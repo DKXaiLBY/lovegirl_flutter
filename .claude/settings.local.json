@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/claude ko zhi wen jian/**)",
+      "Bash(dir \"D:\\\\claude ko zhi wen jian\")"
+    ]
+  }
+}

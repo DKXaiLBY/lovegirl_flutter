@@ -1,0 +1,12 @@
+build
+.gradle
+**/build
+/.idea
+.vscode
+.git
+*.iml
+.DS_Store
+pubspec.lock
+.classpath
+.project
+local.properties

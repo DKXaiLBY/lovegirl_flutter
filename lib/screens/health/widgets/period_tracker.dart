@@ -1,0 +1,298 @@
+import 'package:flutter/material.dart';
+import 'package:lovegirl_flutter/services/api_service.dart';
+import 'package:lovegirl_flutter/services/log_service.dart';
+import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
+import 'package:lovegirl_flutter/utils/constants.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+
+enum PeriodStatus { menstrual, safe, ovulation, premenstrual, unknown }
+
+extension PeriodStatusExt on PeriodStatus {
+  String get label {
+    switch (this) {
+      case PeriodStatus.menstrual: return '经期中';
+      case PeriodStatus.safe: return '安全期';
+      case PeriodStatus.ovulation: return '易孕期';
+      case PeriodStatus.premenstrual: return '经前期';
+      case PeriodStatus.unknown: return '暂无数据';
+    }
+  }
+  String get subLabel {
+    switch (this) {
+      case PeriodStatus.menstrual: return '注意保暖，多喝热水';
+      case PeriodStatus.safe: return '放松享受每一天';
+      case PeriodStatus.ovulation: return '怀孕几率较高';
+      case PeriodStatus.premenstrual: return '经期即将到来';
+      case PeriodStatus.unknown: return '记录经期开始获取预测';
+    }
+  }
+  IconData get icon {
+    switch (this) {
+      case PeriodStatus.menstrual: return Icons.water_drop_rounded;
+      case PeriodStatus.safe: return Icons.shield_rounded;
+      case PeriodStatus.ovulation: return Icons.auto_awesome_rounded;
+      case PeriodStatus.premenstrual: return Icons.notifications_rounded;
+      case PeriodStatus.unknown: return Icons.help_outline_rounded;
+    }
+  }
+  Color get color {
+    switch (this) {
+      case PeriodStatus.menstrual: return LoveGirlTheme.pink;
+      case PeriodStatus.safe: return const Color(0xFF4CAF50);
+      case PeriodStatus.ovulation: return const Color(0xFFE040FB);
+      case PeriodStatus.premenstrual: return const Color(0xFFFF9800);
+      case PeriodStatus.unknown: return LoveGirlTheme.textMuted;
+    }
+  }
+}
+
+class PeriodRecord {
+  final int? id;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final int? cycleLength;
+  final int? periodLength;
+  PeriodRecord({this.id, required this.startDate, this.endDate, this.cycleLength, this.periodLength});
+  factory PeriodRecord.fromJson(Map<String, dynamic> json) {
+    return PeriodRecord(
+      id: json['id'] as int?,
+      startDate: DateTime.parse(json['start_date'] as String),
+      endDate: json['end_date'] != null ? DateTime.parse(json['end_date'] as String) : null,
+      cycleLength: json['cycle_length'] as int?,
+      periodLength: json['period_length'] as int?,
+    );
+  }
+}
+
+class PeriodAnalysis {
+  final double averageCycle;
+  final double averagePeriod;
+  final int totalPeriods;
+  final String regularity;
+  final String? lastPeriod;
+  PeriodAnalysis({required this.averageCycle, required this.averagePeriod, required this.totalPeriods, required this.regularity, this.lastPeriod});
+  factory PeriodAnalysis.fromJson(Map<String, dynamic> json) {
+    return PeriodAnalysis(
+      averageCycle: (json['average_cycle'] as num?)?.toDouble() ?? 0,
+      averagePeriod: (json['average_period'] as num?)?.toDouble() ?? 0,
+      totalPeriods: json['total_periods'] as int? ?? 0,
+      regularity: json['regularity'] as String? ?? 'unknown',
+      lastPeriod: json['last_period'] as String?,
+    );
+  }
+  String get regularityLabel {
+    switch (regularity) { case 'regular': return '周期规律'; case 'irregular': return '不太规律'; default: return '数据不足'; }
+  }
+  Color get regularityColor {
+    switch (regularity) { case 'regular': return const Color(0xFF4CAF50); case 'irregular': return const Color(0xFFFF9800); default: return LoveGirlTheme.textMuted; }
+  }
+}
+
+class PeriodTracker extends StatefulWidget {
+  const PeriodTracker({super.key});
+  @override
+  State<PeriodTracker> createState() => _PeriodTrackerState();
+}
+
+class _PeriodTrackerState extends State<PeriodTracker> {
+  final ApiService _api = ApiService();
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _error;
+  PeriodStatus _currentStatus = PeriodStatus.unknown;
+  List<PeriodRecord> _periods = [];
+  PeriodAnalysis? _analysis;
+  int? _daysUntilNext;
+  int? _cycleDay;
+
+  @override
+  void initState() { super.initState(); _loadData(); }
+
+  Future<void> _loadData() async {
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      final results = await Future.wait([_api.getPeriodStatus(), _api.getPeriods(), _api.getPeriodAnalysis()]);
+      final s = results[0].data?['data'];
+      if (s is Map) {
+        final statusStr = s['status'] as String? ?? 'unknown';
+        switch (statusStr) {
+          case 'menstrual': _currentStatus = PeriodStatus.menstrual;
+          case 'safe': _currentStatus = PeriodStatus.safe;
+          case 'ovulation': _currentStatus = PeriodStatus.ovulation;
+          case 'premenstrual': _currentStatus = PeriodStatus.premenstrual;
+          default: _currentStatus = PeriodStatus.unknown;
+        }
+        _daysUntilNext = s['days_until_next'] as int?;
+        _cycleDay = s['cycle_day'] as int?;
+      }
+      final p = results[1].data?['data'];
+      _periods = (p is List) ? p.map((e) => PeriodRecord.fromJson(Map<String, dynamic>.from(e))).toList() : [];
+      final a = results[2].data?['data'];
+      _analysis = a is Map ? PeriodAnalysis.fromJson(Map<String, dynamic>.from(a)) : null;
+      LogService().info('Period', '加载完成:状态=${_currentStatus.label},记录=${_periods.length}');
+    } catch (e) {
+      _error = '加载失败';
+      LogService().error('Period', '加载失败: $e');
+    }
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _togglePeriod() async {
+    if (_isSaving) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _isSaving = true);
+    try {
+      final now = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      if (_currentStatus == PeriodStatus.menstrual) {
+        await _api.savePeriod({'end_date': now});
+        LogService().userAction('经期:标记结束');
+      } else {
+        await _api.savePeriod({'start_date': now});
+        LogService().userAction('经期:标记开始');
+      }
+      await _loadData();
+    } catch (e) {
+      LogService().error('Period', '操作失败: $e');
+    }
+    setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: LoveGirlTheme.pink));
+    if (_error != null) return _buildError();
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      color: LoveGirlTheme.pink,
+      child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+        _buildStatusRing(),
+        const SizedBox(height: 16),
+        _buildActionButton(),
+        const SizedBox(height: 20),
+        if (_analysis != null) _buildAnalysis(),
+        const SizedBox(height: 20),
+        if (_periods.isNotEmpty) _buildHistory(),
+      ]),
+    );
+  }
+
+  Widget _buildError() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
+    const SizedBox(height: 12),
+    Text(_error!, style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+  ]));
+
+  Widget _buildStatusRing() {
+    final color = _currentStatus.color;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      decoration: BoxDecoration(
+        color: LoveGirlTheme.cardLight,
+        borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg),
+        boxShadow: [BoxShadow(color: color.withAlpha(20), blurRadius: 24, offset: const Offset(0, 8))],
+      ),
+      child: Column(children: [
+        Stack(alignment: Alignment.center, children: [
+          SizedBox(width: 140, height: 140, child: CircularProgressIndicator(value: _cycleDay != null ? (_cycleDay! / 28).clamp(0.0, 1.0) : 0, strokeWidth: 8, backgroundColor: color.withAlpha(20), valueColor: AlwaysStoppedAnimation(color))),
+          Column(children: [
+            Icon(_currentStatus.icon, size: 36, color: color),
+            const SizedBox(height: 4),
+            Text(_currentStatus.label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          ]),
+        ]),
+        const SizedBox(height: 12),
+        Text(_currentStatus.subLabel, style: const TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+        if (_cycleDay != null) ...[
+          const SizedBox(height: 6),
+          Text('周期第 $_cycleDay 天${_daysUntilNext != null ? ' · 距下次 $_daysUntilNext 天' : ''}', style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textSecondary)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildActionButton() {
+    final isOnPeriod = _currentStatus == PeriodStatus.menstrual;
+    return SizedBox(width: double.infinity, height: 52,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving ? null : _togglePeriod,
+        icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Icon(isOnPeriod ? Icons.stop_circle_outlined : Icons.play_circle_outline),
+        label: Text(isOnPeriod ? '标记经期结束' : '标记经期开始', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        style: ElevatedButton.styleFrom(backgroundColor: LoveGirlTheme.pink, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.borderRadius))),
+      ),
+    );
+  }
+
+  Widget _buildAnalysis() {
+    final a = _analysis!;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: LoveGirlTheme.cardLight, borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.analytics_outlined, size: 18, color: LoveGirlTheme.primary),
+          const SizedBox(width: 8),
+          const Text('周期分析', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          const Spacer(),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: a.regularityColor.withAlpha(25), borderRadius: BorderRadius.circular(8)), child: Text(a.regularityLabel, style: TextStyle(fontSize: 12, color: a.regularityColor, fontWeight: FontWeight.w500))),
+        ]),
+        const SizedBox(height: 16),
+        Row(children: [
+          _buildDataItem('平均周期', '${a.averageCycle.toStringAsFixed(0)}天', LoveGirlTheme.pink),
+          _d(),
+          _buildDataItem('平均经期', '${a.averagePeriod.toStringAsFixed(0)}天', LoveGirlTheme.pink),
+          _d(),
+          _buildDataItem('记录次数', '${a.totalPeriods}次', LoveGirlTheme.pink),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _buildDataItem(String label, String value, Color color) => Expanded(child: Column(children: [
+    Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+    const SizedBox(height: 4),
+    Text(label, style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textSecondary)),
+  ]));
+  Widget _d() => Container(width: 1, height: 36, color: LoveGirlTheme.textMuted.withAlpha(30));
+
+  Widget _buildHistory() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Icon(Icons.history, size: 18, color: LoveGirlTheme.textPrimary),
+        const SizedBox(width: 8),
+        const Text('近期记录', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        const Spacer(),
+        Text('共 ${_periods.length} 次', style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
+      ]),
+      const SizedBox(height: 12),
+      ..._periods.take(5).map((r) => _buildHistoryItem(r)),
+    ]);
+  }
+
+  Widget _buildHistoryItem(PeriodRecord r) {
+    final df = DateFormat('M月d日');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: LoveGirlTheme.cardLight, borderRadius: BorderRadius.circular(10)),
+      child: Row(children: [
+        Container(width: 3, height: 36, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), gradient: const LinearGradient(colors: [LoveGirlTheme.pink, LoveGirlTheme.pinkLight]))),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${df.format(r.startDate)} - ${r.endDate != null ? df.format(r.endDate!) : '进行中'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          if (r.periodLength != null || r.cycleLength != null) ...[
+            const SizedBox(height: 4),
+            Row(children: [
+              if (r.periodLength != null) _tag('经期 ${r.periodLength}天'),
+              if (r.periodLength != null && r.cycleLength != null) const SizedBox(width: 6),
+              if (r.cycleLength != null) _tag('周期 ${r.cycleLength}天'),
+            ]),
+          ],
+        ])),
+        if (r.endDate == null) Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: LoveGirlTheme.pink.withAlpha(25), borderRadius: BorderRadius.circular(12)), child: const Text('进行中', style: TextStyle(fontSize: 11, color: LoveGirlTheme.pink, fontWeight: FontWeight.w500))),
+      ]),
+    );
+  }
+
+  Widget _tag(String text) => Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: LoveGirlTheme.pink.withAlpha(12), borderRadius: BorderRadius.circular(6)), child: Text(text, style: const TextStyle(fontSize: 10, color: LoveGirlTheme.pink)));
+}
