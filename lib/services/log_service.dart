@@ -38,6 +38,7 @@ class LogService {
       timestamp: DateTime.now(),
       type: 'INFO',
       message: '[$source] $message',
+      detail: '',
       level: 'INFO',
     ));
   }

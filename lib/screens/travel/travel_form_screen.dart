@@ -648,7 +648,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     Icons.park_rounded,
     Icons.mosque_rounded,
     Icons.tour_rounded,
-    Icons.bridge_rounded,
+    Icons.landscape_rounded,
     Icons.cabin_rounded,
     Icons.construction_rounded,
     Icons.hotel_rounded,
