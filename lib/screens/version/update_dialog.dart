@@ -312,115 +312,123 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
   bool failed = false;
   String errorMsg = '';
 
+  // 用于保存 setDialogState 回调
+  StateSetter? _setDialogState;
+
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setDialogState) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 280,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.cardLight,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 图标
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(20),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  failed
-                      ? Icons.error_outline_rounded
-                      : downloading
-                          ? Icons.download_rounded
-                          : Icons.check_circle_outline_rounded,
-                  color: failed
-                      ? LoveGirlTheme.red
-                      : downloading
-                          ? LoveGirlTheme.primary
-                          : const Color(0xFF4CAF50),
-                  size: 28,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                failed
-                    ? '下载失败'
-                    : downloading
-                        ? '正在下载...'
-                        : '下载完成',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: LoveGirlTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // 进度条
-              if (downloading && !failed) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: progress > 0 ? progress : null,
-                    backgroundColor: LoveGirlTheme.separator,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                        LoveGirlTheme.primary),
-                    minHeight: 6,
+      builder: (ctx, setDialogState) {
+        // 保存 setDialogState 以便在回调中使用
+        _setDialogState = setDialogState;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: LoveGirlTheme.cardLight,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 图标
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: LoveGirlTheme.primary.withAlpha(20),
+                    shape: BoxShape.circle,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  progress > 0
-                      ? '${(progress * 100).toStringAsFixed(0)}%'
-                      : '准备下载...',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: LoveGirlTheme.textMuted,
+                  child: Icon(
+                    failed
+                        ? Icons.error_outline_rounded
+                        : downloading
+                            ? Icons.download_rounded
+                            : Icons.check_circle_outline_rounded,
+                    color: failed
+                        ? LoveGirlTheme.red
+                        : downloading
+                            ? LoveGirlTheme.primary
+                            : const Color(0xFF4CAF50),
+                    size: 28,
                   ),
-                ),
-              ],
-              // 错误信息
-              if (failed) ...[
-                Text(
-                  errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: LoveGirlTheme.textMuted,
-                  ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showDownloadDialog(context, downloadUrl);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: LoveGirlTheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text('重试'),
+                Text(
+                  failed
+                      ? '下载失败'
+                      : downloading
+                          ? '正在下载...'
+                          : '下载完成',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: LoveGirlTheme.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 16),
+                // 进度条
+                if (downloading && !failed) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress > 0 ? progress : null,
+                      backgroundColor: LoveGirlTheme.separator,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          LoveGirlTheme.primary),
+                      minHeight: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    progress > 0
+                        ? '${(progress * 100).toStringAsFixed(0)}%'
+                        : '准备下载...',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: LoveGirlTheme.textMuted,
+                    ),
+                  ),
+                ],
+                // 错误信息
+                if (failed) ...[
+                  Text(
+                    errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: LoveGirlTheme.textMuted,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showDownloadDialog(context, downloadUrl);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: LoveGirlTheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text('重试'),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     ),
   );
 
@@ -428,22 +436,38 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
   _downloadApk(
     downloadUrl,
     onProgress: (p) {
-      if (context.mounted) {
-        // 通过 Navigator.of(context).pop 和重新 showDialog 更新进度
-        // 这里使用一个简化的方式：直接打开浏览器
+      if (context.mounted && _setDialogState != null) {
+        _setDialogState!(() {
+          progress = p;
+        });
       }
     },
     onComplete: (filePath) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // 关闭进度弹窗
-        _installApk(filePath);
+        if (_setDialogState != null) {
+          _setDialogState!(() {
+            downloading = false;
+            progress = 1.0;
+          });
+        }
+        // 延迟一下再关闭弹窗并安装，让用户看到"下载完成"
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (context.mounted) {
+            Navigator.of(context).pop(); // 关闭进度弹窗
+            _installApk(filePath);
+          }
+        });
       }
     },
     onError: (error) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // 关闭进度弹窗
-        // 回退到浏览器下载
-        _launchInBrowser(downloadUrl);
+        if (_setDialogState != null) {
+          _setDialogState!(() {
+            downloading = false;
+            failed = true;
+            errorMsg = error.toString();
+          });
+        }
       }
     },
   );
