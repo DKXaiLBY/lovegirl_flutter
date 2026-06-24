@@ -5,7 +5,8 @@ import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
 
-/// 旅行地图组件 — 使用flutter_map (OpenStreetMap)
+/// 旅行地图组件 — 使用flutter_map + 高德瓦片服务
+/// 国内使用高德瓦片，加载更快、数据更准确
 class TravelMapWidget extends StatefulWidget {
   final List<TravelSpot> spots;
   final int? highlightedId;
@@ -27,6 +28,11 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   // 默认中心点（北京）
   static const LatLng _defaultCenter = LatLng(39.9042, 116.4074);
+
+  // 高德瓦片服务地址（Web墨卡托投影）
+  // 注意：高德瓦片使用 GCJ-02 坐标系，与 WGS-84 有偏移
+  static const String _gaodeTileUrl =
+      'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
 
   /// 平滑移动到指定地点
   void animateToSpot(TravelSpot spot) {
@@ -71,7 +77,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
       borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg),
       child: Stack(
         children: [
-          // flutter_map
+          // flutter_map + 高德瓦片
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -79,10 +85,11 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
               initialZoom: _getInitialZoom(),
             ),
             children: [
-              // OpenStreetMap 瓦片
+              // 高德瓦片图层
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: _gaodeTileUrl,
                 userAgentPackageName: 'com.lovegirl.app',
+                maxZoom: 18,
               ),
               // 标记点
               MarkerLayer(
@@ -373,6 +380,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   final MapController _mapController = MapController();
   LatLng _selectedPosition = const LatLng(39.9042, 116.4074);
 
+  // 高德瓦片服务地址
+  static const String _gaodeTileUrl =
+      'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+
   @override
   void initState() {
     super.initState();
@@ -418,9 +429,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               },
             ),
             children: [
+              // 高德瓦片图层
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate: _gaodeTileUrl,
                 userAgentPackageName: 'com.lovegirl.app',
+                maxZoom: 18,
               ),
             ],
           ),

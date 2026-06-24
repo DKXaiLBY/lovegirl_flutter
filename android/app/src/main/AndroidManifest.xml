@@ -33,6 +33,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- 高德地图API Key (Android) -->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="470b27171201bf472ba04539a0bb2693" />
+        <!-- 高德地图定位服务 -->
+        <service android:name="com.amap.api.location.APSService" />
     </application>
     <queries>
         <intent>
