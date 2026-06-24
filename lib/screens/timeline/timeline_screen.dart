@@ -166,8 +166,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       await _api.createTimeline({
                         'title': titleCtrl.text.trim(),
                         'description': descCtrl.text.trim(),
-                        'type': eventType,
-                        'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        'eventDate': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        'icon': eventType,
                       });
                       Navigator.pop(ctx);
                       await _loadTimeline();
@@ -207,9 +207,21 @@ class _TimelineScreenState extends State<TimelineScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildError()
+              ? RefreshIndicator(
+                  onRefresh: _loadTimeline,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildError())],
+                  ),
+                )
               : _events.isEmpty
-                  ? _buildEmpty()
+                  ? RefreshIndicator(
+                      onRefresh: _loadTimeline,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildEmpty())],
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadTimeline,
                       child: ListView(
@@ -234,8 +246,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
   Widget _buildTimelineItem(Map<String, dynamic> event, bool isLast) {
     final title = event['title'] ?? '';
     final description = event['description'] ?? event['desc'] ?? '';
-    final date = event['date'] ?? '';
-    final type = event['type'] ?? 'default';
+    final date = event['eventDate'] ?? event['date'] ?? '';
+    final type = event['icon'] ?? event['type'] ?? 'default';
     final id = event['id'];
     final icon = _getIcon(type);
 

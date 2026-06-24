@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../settings/settings_screen.dart';
+import '../feeding/feeding_screen.dart';
+import '../anniversary/anniversary_screen.dart';
 import '../mood/mood_screen.dart';
 import '../chat/chat_screen.dart';
 import '../photo/photo_screen.dart';
@@ -94,6 +96,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }),
       _MenuItem(icon: Icons.chat_bubble_outline, title: '私密聊天', onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
+      }),
+      _MenuItem(icon: Icons.card_giftcard, title: '投喂站', onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedingScreen()));
+      }),
+      _MenuItem(icon: Icons.favorite_border, title: '纪念日', onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
       }),
       _MenuItem(icon: Icons.map_outlined, title: '旅行足迹', onTap: () {
         if (widget.onNavigateToTab != null) {

@@ -23,8 +23,8 @@ android {
         applicationId = "com.lovegirl.lovegirl_flutter"
         minSdk = 21
         targetSdk = 34
-        versionCode = 100
-        versionName = "3.7.0"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {

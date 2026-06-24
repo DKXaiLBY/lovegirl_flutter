@@ -16,7 +16,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
   String? get error => _error;
-  bool get isGirl => _user?['role'] == 'girl';
   bool get isAdmin => _user?['is_admin'] == true;
 
   Future<void> init() async {
@@ -109,8 +108,43 @@ class AuthProvider extends ChangeNotifier {
     await _storage.delete(key: AppConstants.tokenKey);
     _user = null;
     _isLoggedIn = false;
+    _devOverrideRole = null;
     notifyListeners();
   }
+
+  // ========== 开发者模式：角色切换 ==========
+  String? _devOverrideRole;
+
+  /// 当前角色（考虑开发者模式覆盖）
+  bool get isGirl {
+    if (_devOverrideRole != null) return _devOverrideRole == 'girl';
+    return _user?['role'] == 'girl';
+  }
+
+  /// 原始角色（忽略开发者覆盖）
+  bool get isOriginalGirl => _user?['role'] == 'girl';
+
+  /// 切换开发者角色（boy ↔ girl），仅用于调试
+  void toggleDevRole() {
+    if (_user == null) return;
+    if (_devOverrideRole == null) {
+      // 首次切换：翻转为对方角色
+      _devOverrideRole = _user!['role'] == 'girl' ? 'boy' : 'girl';
+    } else {
+      // 再次切换：翻转为另一种
+      _devOverrideRole = _devOverrideRole == 'girl' ? 'boy' : 'girl';
+    }
+    notifyListeners();
+  }
+
+  /// 取消开发者角色覆盖
+  void resetDevRole() {
+    _devOverrideRole = null;
+    notifyListeners();
+  }
+
+  /// 是否处于开发者角色覆盖状态
+  bool get isDevRoleOverridden => _devOverrideRole != null;
 
   int get loveDays {
     if (_user == null) return 0;

@@ -148,51 +148,50 @@ class _TravelMainScreenState extends State<TravelMainScreen> {
     }
   }
 
-  // ==================== 地图区域 ====================
+  // ==================== 地图区域（无边全景） ====================
 
   Widget _buildMapSection(TravelProvider provider) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final mapHeight = screenHeight * 0.42;
+    final mapHeight = screenHeight * 0.44;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: OrganicCard(
-        organic: true,
-        padding: EdgeInsets.zero,
-        height: mapHeight,
-        boxShadow: [
-          BoxShadow(
-            color: LoveGirlTheme.primary.withAlpha(20),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+    return SizedBox(
+      height: mapHeight,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 地图本身——全宽无边
+          TravelMapWidget(
+            key: _mapKey,
+            spots: provider.spots,
+            highlightedId: provider.highlightedId,
+            onMarkerTap: _onMarkerTap,
           ),
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        child: Stack(
-          children: [
-            SizedBox(
-              height: mapHeight,
-              child: TravelMapWidget(
-                key: _mapKey,
-                spots: provider.spots,
-                highlightedId: provider.highlightedId,
-                onMarkerTap: _onMarkerTap,
+          // 底部渐变——无缝过渡到下方内容
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            height: 40,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      LoveGirlTheme.bgLight.withAlpha(0),
+                      LoveGirlTheme.bgLight,
+                    ],
+                  ),
+                ),
               ),
             ),
-            // 右上角"已探索"标签
-            Positioned(
-              right: 12,
-              top: 12,
-              child: _buildExploredBadge(provider),
-            ),
-            // 噪点纹理（增强有机质感）
-            const NoiseOverlay(opacity: 0.02),
-          ],
-        ),
+          ),
+          // 右上角"已探索"标签
+          Positioned(
+            right: 16,
+            top: 8,
+            child: _buildExploredBadge(provider),
+          ),
+        ],
       ),
     );
   }

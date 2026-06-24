@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
+import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 
 /// 云端相册页面
@@ -13,14 +15,51 @@ class PhotoScreen extends StatefulWidget {
 
 class _PhotoScreenState extends State<PhotoScreen> {
   final ApiService _api = ApiService();
+  final ImagePicker _picker = ImagePicker();
   List<Map<String, dynamic>> _photos = [];
   bool _loading = true;
+  bool _uploading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     _loadPhotos();
+  }
+
+  Future<void> _pickAndUpload() async {
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      setState(() => _uploading = true);
+      final res = await _api.upload('/api/photo/upload', file.path);
+      final data = res.data?['data'];
+      final url = data is Map ? (data['url'] as String?) : null;
+      if (url != null && url.isNotEmpty) {
+        LogService().userAction('相册:上传照片');
+        await _loadPhotos();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('上传失败，请重试'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+          );
+        }
+      }
+    } catch (e) {
+      LogService().error('Photo', '上传失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('上传失败，请检查网络后重试'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+        );
+      }
+    }
+    setState(() => _uploading = false);
   }
 
   Future<void> _loadPhotos() async {
@@ -106,13 +145,43 @@ class _PhotoScreenState extends State<PhotoScreen> {
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          _uploading
+              ? const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  onPressed: _pickAndUpload,
+                  tooltip: '上传照片',
+                ),
+        ],
       ),
-      body: _loading
+      body: _uploading && _photos.isEmpty
+          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('正在上传...', style: TextStyle(color: LoveGirlTheme.textMuted)),
+            ]))
+          : _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildError()
+              ? RefreshIndicator(
+                  onRefresh: _loadPhotos,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildError())],
+                  ),
+                )
               : _photos.isEmpty
-                  ? _buildEmpty()
+                  ? RefreshIndicator(
+                      onRefresh: _loadPhotos,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildEmpty())],
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: _loadPhotos,
                       child: GridView.builder(

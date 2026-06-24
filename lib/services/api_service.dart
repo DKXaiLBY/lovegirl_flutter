@@ -145,6 +145,19 @@ class ApiService {
   // ========== 版本 ==========
   Future checkVersion(int versionCode) => get('/api/version/check', query: {'version_code': versionCode});
 
+  // ========== 纪念日 ==========
+  Future getAnniversaries() => get('/api/anniversary');
+  Future createAnniversary(Map data) => post('/api/anniversary', data: data);
+  Future updateAnniversary(int id, Map data) => put('/api/anniversary/$id', data: data);
+  Future deleteAnniversary(int id) => delete('/api/anniversary/$id');
+
+  // ========== 隐私 ==========
+  Future getPrivacy() => get('/api/privacy');
+  Future updatePrivacy(Map data) => put('/api/privacy', data: data);
+
+  // ========== 头像上传 ==========
+  Future uploadAvatar(String filePath) => upload('/api/user/avatar', filePath);
+
   // ========== 搜索 ==========
   Future search(String keyword) => get('/api/search', query: {'keyword': keyword});
 }

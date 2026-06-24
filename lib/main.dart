@@ -10,10 +10,15 @@ import 'screens/travel/travel_main_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/life/life_screen.dart';
 import 'screens/health/health_screen.dart';
+import 'screens/version/update_dialog.dart';
+import 'services/log_service.dart';
+import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  LogService.init(); // 加载持久化日志
+  NotificationService().init(); // 初始化本地通知
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
@@ -58,6 +63,16 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
   int _lifeSubTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        checkVersionUpdate(context);
+      }
+    });
+  }
 
   void _navigateToTab(int index) {
     setState(() {

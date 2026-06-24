@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# APK files
+*.apk
+
+# Build scripts
+build_apk.bat
+
+# Python scripts (deployment tools)
+*.py
+
+# Server fixes (deploy separately)
+server_fixes/
+
+# Claude Code
+.claude/

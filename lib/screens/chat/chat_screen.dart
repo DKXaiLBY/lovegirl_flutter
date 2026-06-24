@@ -21,15 +21,39 @@ class _ChatScreenState extends State<ChatScreen> {
   int _page = 1;
   bool _hasMore = true;
 
+  bool _loadingMore = false;
+
   @override
-  void initState() { super.initState(); _loadMessages(); }
+  void initState() {
+    super.initState();
+    _loadMessages();
+    _scrollCtrl.addListener(_onScroll);
+  }
+
   @override
-  void dispose() { _msgCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _scrollCtrl.removeListener(_onScroll);
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // 滚动到顶部（列表倒序，所以顶部=更早的消息）时加载更多
+    if (_scrollCtrl.position.pixels <= 50 && _hasMore && !_loadingMore && !_loading) {
+      _loadMessages();
+    }
+  }
 
   Future<void> _loadMessages({bool refresh = false}) async {
     if (refresh) { _page = 1; _hasMore = true; }
     if (!_hasMore && !refresh) return;
-    setState(() { _loading = true; _error = null; });
+    final isRefresh = refresh || _messages.isEmpty;
+    setState(() {
+      _loading = isRefresh;
+      _loadingMore = !isRefresh;
+      _error = null;
+    });
     try {
       final res = await _api.getMessages(page: refresh ? 1 : _page);
       final data = res.data?['data'];
@@ -47,10 +71,11 @@ class _ChatScreenState extends State<ChatScreen> {
         _hasMore = list.length >= 20;
         _page = refresh ? 2 : _page + 1;
         _loading = false;
+        _loadingMore = false;
       });
       LogService().info('Chat', '加载${list.length}条消息');
     } catch (e) {
-      setState(() { _error = '加载失败'; _loading = false; });
+      setState(() { _error = '加载失败'; _loading = false; _loadingMore = false; });
       LogService().error('Chat', '加载失败: $e');
     }
   }
@@ -103,9 +128,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   : ListView.builder(
                       reverse: true, controller: _scrollCtrl,
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      itemCount: _messages.length + (_hasMore ? 1 : 0),
+                      itemCount: _messages.length + (_hasMore || _loadingMore ? 1 : 0),
                       itemBuilder: (context, index) {
-                        if (index == _messages.length) { _loadMessages(); return const Center(child: Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))); }
+                        if (index == _messages.length) {
+                          // 加载指示器，不再在此处触发加载
+                          return const Center(child: Padding(padding: EdgeInsets.all(16), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))));
+                        }
                         return _buildMessage(_messages[index]);
                       },
                     ),

@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../widgets/weather_widget.dart';
 import '../mood/mood_screen.dart';
 import '../chat/chat_screen.dart';
 import '../photo/photo_screen.dart';
 import '../timeline/timeline_screen.dart';
+import '../feeding/feeding_screen.dart';
+import '../search/search_screen.dart';
+import '../anniversary/anniversary_screen.dart';
+import '../countdown/countdown_screen.dart';
+import '../tasks/tasks_screen.dart';
 
 /// 首页入口数据
 class _HomeEntry {
@@ -29,7 +35,12 @@ const _entries = <_HomeEntry>[
   _HomeEntry(icon: Icons.map_outlined, title: '旅行足迹', subtitle: '记录一起走过的地方', targetTab: 1, color: Color(0xFFFF6B8A)),
   _HomeEntry(icon: Icons.checklist_outlined, title: '待办事项', subtitle: '共同的生活计划', targetTab: 3, route: 'tab:3:0', color: Color(0xFFFFB347)),
   _HomeEntry(icon: Icons.account_balance_wallet_outlined, title: '记账本', subtitle: '管理生活开支', targetTab: 3, route: 'tab:3:1', color: Color(0xFF4CAF50)),
+  _HomeEntry(icon: Icons.card_giftcard, title: '投喂站', subtitle: '给TA一份惊喜', route: 'feeding', color: Color(0xFFFF6B8A)),
+  _HomeEntry(icon: Icons.favorite_border, title: '纪念日', subtitle: '记录重要日子', route: 'anniversary', color: Color(0xFFFF6B8A)),
+  _HomeEntry(icon: Icons.timer_outlined, title: '倒计时', subtitle: '重要的日子', route: 'countdown', color: Color(0xFFE040FB)),
+  _HomeEntry(icon: Icons.auto_awesome_outlined, title: '愿望清单', subtitle: '一起想做的事', route: 'tasks', color: Color(0xFF4CAF50)),
   _HomeEntry(icon: Icons.mood_outlined, title: '心情日记', subtitle: '记录每天心情', route: 'mood', color: Color(0xFF7B8CFF)),
+  _HomeEntry(icon: Icons.search_rounded, title: '搜索', subtitle: '搜索一切记录', route: 'search', color: Color(0xFF7B8CFF)),
   _HomeEntry(icon: Icons.chat_bubble_outline, title: '聊天室', subtitle: '属于我们的悄悄话', route: 'chat', color: Color(0xFFE040FB)),
   _HomeEntry(icon: Icons.photo_library_outlined, title: '云端相册', subtitle: '珍藏美好瞬间', route: 'photo', color: Color(0xFF00BCD4)),
 ];
@@ -75,6 +86,34 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'timeline':
         Navigator.push(context, MaterialPageRoute(builder: (_) => const TimelineScreen()));
         break;
+      case 'feeding':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedingScreen()));
+        break;
+      case 'anniversary':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AnniversaryScreen()));
+        break;
+      case 'countdown':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const CountdownScreen()));
+        break;
+      case 'tasks':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const TasksScreen()));
+        break;
+      case 'search':
+        Navigator.push<Map<String, dynamic>>(context, MaterialPageRoute(builder: (_) => const SearchScreen())).then((result) {
+          if (result != null && mounted) {
+            final type = result['type'] as String? ?? '';
+            if (type == 'travel' && widget.onNavigateToTab != null) {
+              widget.onNavigateToTab!(1);
+            } else if (type == 'todo' && widget.onNavigateToSubTab != null) {
+              widget.onNavigateToSubTab!(3, 0);
+            } else if (type == 'finance' && widget.onNavigateToSubTab != null) {
+              widget.onNavigateToSubTab!(3, 1);
+            } else if (type == 'course' && widget.onNavigateToSubTab != null) {
+              widget.onNavigateToSubTab!(3, 2);
+            }
+          }
+        });
+        break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -100,7 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const SizedBox(height: 8),
             _buildHeader(user, days),
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
+            const WeatherWidget(),
+            const SizedBox(height: 20),
             _buildGrid(),
             const SizedBox(height: 24),
           ],

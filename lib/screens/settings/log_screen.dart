@@ -44,11 +44,32 @@ class _LogScreenState extends State<LogScreen> {
               );
             },
           ),
-          // 清除
+          // 清除日志
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            onPressed: () {
-              setState(() => LogService().clear());
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: '清除全部日志',
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Text('清除日志'),
+                  content: const Text('确定清除全部开发者日志吗？此操作不可撤销。'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('清除', style: TextStyle(color: LoveGirlTheme.pink))),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await LogService().clear();
+                setState(() {});
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('日志已清除'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 1)),
+                  );
+                }
+              }
             },
           ),
         ],

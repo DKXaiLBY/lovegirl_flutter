@@ -6,6 +6,12 @@ import 'package:lovegirl_flutter/utils/constants.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
+int? _toIntOrNull(dynamic v) {
+  if (v is int) return v;
+  if (v == null) return null;
+  return int.tryParse(v.toString());
+}
+
 enum PeriodStatus { menstrual, safe, ovulation, premenstrual, unknown }
 
 extension PeriodStatusExt on PeriodStatus {
@@ -57,11 +63,15 @@ class PeriodRecord {
   factory PeriodRecord.fromJson(Map<String, dynamic> json) {
     return PeriodRecord(
       id: json['id'] as int?,
-      startDate: DateTime.parse(json['start_date'] as String),
-      endDate: json['end_date'] != null ? DateTime.parse(json['end_date'] as String) : null,
-      cycleLength: json['cycle_length'] as int?,
-      periodLength: json['period_length'] as int?,
+      startDate: DateTime.parse((json['startDate'] ?? json['start_date'] ?? '').toString()),
+      endDate: _parseDateOrNull(json['endDate'] ?? json['end_date']),
+      cycleLength: (json['cycleDays'] ?? json['cycle_length']) as int?,
+      periodLength: (json['durationDays'] ?? json['period_length']) as int?,
     );
+  }
+  static DateTime? _parseDateOrNull(dynamic val) {
+    if (val == null || val.toString().isEmpty) return null;
+    return DateTime.tryParse(val.toString());
   }
 }
 
@@ -74,12 +84,17 @@ class PeriodAnalysis {
   PeriodAnalysis({required this.averageCycle, required this.averagePeriod, required this.totalPeriods, required this.regularity, this.lastPeriod});
   factory PeriodAnalysis.fromJson(Map<String, dynamic> json) {
     return PeriodAnalysis(
-      averageCycle: (json['average_cycle'] as num?)?.toDouble() ?? 0,
-      averagePeriod: (json['average_period'] as num?)?.toDouble() ?? 0,
-      totalPeriods: json['total_periods'] as int? ?? 0,
-      regularity: json['regularity'] as String? ?? 'unknown',
-      lastPeriod: json['last_period'] as String?,
+      averageCycle: (_numVal(json['avgCycle'] ?? json['average_cycle']) ?? 28).toDouble(),
+      averagePeriod: (_numVal(json['avgDuration'] ?? json['average_period']) ?? 5).toDouble(),
+      totalPeriods: (_numVal(json['cycleCount'] ?? json['total_periods']) ?? 0).toInt(),
+      regularity: (json['regularity'] ?? 'unknown').toString(),
+      lastPeriod: json['lastPeriod']?.toString(),
     );
+  }
+  static num? _numVal(dynamic v) {
+    if (v is num) return v;
+    if (v == null) return null;
+    return num.tryParse(v.toString());
   }
   String get regularityLabel {
     switch (regularity) { case 'regular': return '周期规律'; case 'irregular': return '不太规律'; default: return '数据不足'; }
@@ -115,7 +130,9 @@ class _PeriodTrackerState extends State<PeriodTracker> {
       final results = await Future.wait([_api.getPeriodStatus(), _api.getPeriods(), _api.getPeriodAnalysis()]);
       final s = results[0].data?['data'];
       if (s is Map) {
-        final statusStr = s['status'] as String? ?? 'unknown';
+        // 服务器返回 phase.phaseKey 或 status
+        final phase = s['phase'] as Map<String, dynamic>?;
+        final statusStr = (phase?['phaseKey'] ?? s['status'] ?? 'unknown').toString();
         switch (statusStr) {
           case 'menstrual': _currentStatus = PeriodStatus.menstrual;
           case 'safe': _currentStatus = PeriodStatus.safe;
@@ -123,8 +140,8 @@ class _PeriodTrackerState extends State<PeriodTracker> {
           case 'premenstrual': _currentStatus = PeriodStatus.premenstrual;
           default: _currentStatus = PeriodStatus.unknown;
         }
-        _daysUntilNext = s['days_until_next'] as int?;
-        _cycleDay = s['cycle_day'] as int?;
+        _daysUntilNext = _toIntOrNull(s['daysUntilNext'] ?? s['days_until_next']);
+        _cycleDay = _toIntOrNull(phase?['dayInPeriod'] ?? s['cycle_day']);
       }
       final p = results[1].data?['data'];
       _periods = (p is List) ? p.map((e) => PeriodRecord.fromJson(Map<String, dynamic>.from(e))).toList() : [];

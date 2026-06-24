@@ -332,7 +332,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                       try {
                         await _api.createTodo({
                           'title': titleCtrl.text.trim(),
-                          'date': dateCtrl.text,
+                          'dueDate': dateCtrl.text,
                           'category': selectedCategory,
                         });
                         Navigator.pop(ctx);
@@ -553,7 +553,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     final title = todo['title'] ?? '';
     final completed =
         todo['completed'] == true || todo['completed'] == 1;
-    final date = todo['date'] ?? '';
+    final date = todo['due_date'] ?? todo['date'] ?? '';
     final category = todo['category'] ?? '日常';
     final categoryColor = _getCategoryColor(category);
     final categoryIcon = _getCategoryIcon(category);

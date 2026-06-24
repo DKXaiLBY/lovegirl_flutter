@@ -42,6 +42,21 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     Color(0xFF009688),
   ];
 
+  static const _colorHex = [
+    '#635BFF', '#FF6B8A', '#00D4AA', '#FF9800', '#9C27B0',
+    '#2196F3', '#4CAF50', '#E91E63', '#3F51B5', '#009688',
+  ];
+
+  // 节次 → 开始时间映射（中国高校标准作息）
+  static const _sectionStartTimes = [
+    '08:00:00', '08:55:00', '10:00:00', '10:55:00',
+    '14:00:00', '14:55:00', '16:00:00', '16:55:00',
+  ];
+  static const _sectionEndTimes = [
+    '08:45:00', '09:40:00', '10:45:00', '11:40:00',
+    '14:45:00', '15:40:00', '16:45:00', '17:40:00',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -375,15 +390,19 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     onPressed: () async {
                       if (nameCtrl.text.trim().isEmpty) return;
                       try {
+                        final startTime = _sectionStartTimes[startSection - 1];
+                        final endTime = _sectionEndTimes[endSection - 1];
                         await _api.createCourse({
-                          'name': nameCtrl.text.trim(),
+                          'courseName': nameCtrl.text.trim(),
                           'teacher': teacherCtrl.text.trim(),
-                          'room': roomCtrl.text.trim(),
-                          'day_of_week': dayOfWeek,
-                          'start_section': startSection,
-                          'end_section': endSection,
-                          'color': colorIndex,
-                          'term': _currentTerm,
+                          'classroom': roomCtrl.text.trim(),
+                          'dayOfWeek': dayOfWeek,
+                          'startTime': startTime,
+                          'endTime': endTime,
+                          'weekType': 'every',
+                          'startWeek': 1,
+                          'endWeek': 20,
+                          'color': _colorHex[colorIndex],
                         });
                         Navigator.pop(ctx);
                         await _loadCourses();
@@ -464,36 +483,42 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
   List<dynamic> _getCoursesForDay(int day) {
     return _courses.where((c) {
-      final d = c['day_of_week'] is int
-          ? c['day_of_week']
-          : int.tryParse(c['day_of_week']?.toString() ?? '0') ?? 0;
+      final d = _getDayOfWeek(c);
       return d == day;
     }).toList();
   }
 
   Color _getCourseColor(dynamic course) {
-    final idx = course['color'] is int
-        ? course['color']
-        : int.tryParse(course['color']?.toString() ?? '0') ?? 0;
+    final hex = course['color']?.toString() ?? '#635BFF';
+    // 尝试从 hex 颜色字符串创建 Color
+    try {
+      final clean = hex.replaceAll('#', '');
+      if (clean.length == 6) {
+        return Color(int.parse('FF$clean', radix: 16));
+      }
+    } catch (_) {}
+    // 回退：尝试作为索引
+    final idx = int.tryParse(hex) ?? 0;
     return _defaultColors[idx % _defaultColors.length];
   }
 
   int _getStartSection(dynamic course) {
-    return course['start_section'] is int
-        ? course['start_section']
-        : int.tryParse(course['start_section']?.toString() ?? '1') ?? 1;
+    // 服务器返回 startTime，尝试解析时间得到节次
+    final time = course['startTime']?.toString() ?? '';
+    final idx = _sectionStartTimes.indexOf(time);
+    return idx >= 0 ? idx + 1 : 1;
   }
 
   int _getEndSection(dynamic course) {
-    return course['end_section'] is int
-        ? course['end_section']
-        : int.tryParse(course['end_section']?.toString() ?? '2') ?? 2;
+    final time = course['endTime']?.toString() ?? '';
+    final idx = _sectionEndTimes.indexOf(time);
+    return idx >= 0 ? idx + 1 : 2;
   }
 
   int _getDayOfWeek(dynamic course) {
-    return course['day_of_week'] is int
-        ? course['day_of_week']
-        : int.tryParse(course['day_of_week']?.toString() ?? '1') ?? 1;
+    final d = course['dayOfWeek'];
+    if (d is int) return d;
+    return int.tryParse(d?.toString() ?? '1') ?? 1;
   }
 
   bool _isToday(int dayOfWeek) {
@@ -798,9 +823,9 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   }
 
   Widget _buildCourseCard(dynamic course) {
-    final name = course['name'] ?? '';
+    final name = course['courseName'] ?? course['name'] ?? '';
     final teacher = course['teacher'] ?? '';
-    final room = course['room'] ?? '';
+    final room = course['classroom'] ?? course['room'] ?? '';
     final color = _getCourseColor(course);
     final startSec = _getStartSection(course);
     final endSec = _getEndSection(course);
