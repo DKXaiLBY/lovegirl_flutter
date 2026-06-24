@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -480,12 +481,15 @@ Future<void> _downloadApk(
 /// 安装 APK
 Future<void> _installApk(String filePath) async {
   try {
-    final uri = Uri.parse('file://$filePath');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    // 使用 open_filex 触发系统安装界面
+    final result = await OpenFilex.open(filePath);
+    LogService().info('Version', 'APK安装结果: ${result.type}');
   } catch (e) {
     LogService().error('Version', '安装APK失败: $e');
+    // 如果安装失败，尝试用浏览器打开
+    if (filePath.startsWith('http')) {
+      _launchInBrowser(filePath);
+    }
   }
 }
 
