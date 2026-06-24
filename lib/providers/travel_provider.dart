@@ -59,14 +59,16 @@ class TravelSpot {
       status: json['status'] ?? 'wish',
       note: json['note'],
       diary: json['diary'],
-      visitedDate: json['visited_date'],
+      // 兼容驼峰和下划线命名
+      visitedDate: json['visitedDate'] ?? json['visited_date'],
       photos: json['photos'] != null ? (json['photos'] is List ? List<String>.from(json['photos']) : []) : [],
       rating: json['rating'],
       mood: json['mood'],
       tags: json['tags'] != null ? (json['tags'] is List ? List<String>.from(json['tags']) : []) : [],
       reason: json['reason'],
       desire: json['desire'],
-      plannedDate: json['planned_date'],
+      // 兼容驼峰和下划线命名
+      plannedDate: json['plannedDate'] ?? json['planned_date'],
       itinerary: json['itinerary'],
       budget: json['budget']?.toDouble(),
     );

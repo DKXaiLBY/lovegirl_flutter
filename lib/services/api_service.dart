@@ -58,9 +58,9 @@ class ApiService {
   Future<Response> delete(String path) =>
       _dio.delete(path);
 
-  Future<Response> upload(String path, String filePath) async {
+  Future<Response> upload(String path, String filePath, {String fieldName = 'file'}) async {
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
+      fieldName: await MultipartFile.fromFile(filePath),
     });
     return _dio.post(path, data: formData);
   }

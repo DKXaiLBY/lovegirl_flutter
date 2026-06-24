@@ -61,7 +61,8 @@ class _MoodScreenState extends State<MoodScreen> {
       _moods = raw.map((e) => Map<String, dynamic>.from(e)).toList();
       _moodMap = {};
       for (final m in _moods) {
-        final date = (m['date'] ?? '').toString().substring(0, 10);
+        // 后端返回 recordDate，前端兼容 date
+        final date = (m['recordDate'] ?? m['date'] ?? '').toString().substring(0, 10);
         _moodMap[date] = m;
       }
       final data2 = results[1].data?['data'];

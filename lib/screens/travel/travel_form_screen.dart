@@ -204,7 +204,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
     switch (_status) {
       case 'visited':
-        data['visited_date'] = _visitedDate;
+        // 后端期望驼峰命名
+        data['visitedDate'] = _visitedDate;
         data['rating'] = _rating;
         data['diary'] = _diaryCtrl.text.trim();
         data['photos'] = _photos;
@@ -215,7 +216,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         data['desire'] = _desire;
         break;
       case 'planned':
-        data['planned_date'] = _plannedDate;
+        // 后端期望驼峰命名
+        data['plannedDate'] = _plannedDate;
         data['itinerary'] = _itineraryCtrl.text.trim();
         final budget = double.tryParse(_budgetCtrl.text.trim());
         if (budget != null) data['budget'] = budget;

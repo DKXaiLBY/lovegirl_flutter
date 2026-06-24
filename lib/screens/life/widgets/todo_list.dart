@@ -135,6 +135,24 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     _loadTodos();
   }
 
+  // 分类映射：中文 -> 英文
+  static const _categoryMap = {
+    '日常': 'daily',
+    '学习': 'study',
+    '工作': 'life',
+    '运动': 'custom',
+    '购物': 'custom',
+    '其他': 'custom',
+  };
+
+  // 反向映射：英文 -> 中文
+  static const _categoryReverseMap = {
+    'daily': '日常',
+    'study': '学习',
+    'life': '工作',
+    'custom': '其他',
+  };
+
   Future<void> _loadTodos() async {
     setState(() => _loading = true);
     try {
@@ -184,7 +202,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     final dateCtrl = TextEditingController();
     String selectedCategory = '日常';
 
-    final categories = ['日常', '学习', '工作', '运动', '购物', '其他'];
+    final categories = ['日常', '学习', '其他'];
     final dateFormat =
         '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
     dateCtrl.text = dateFormat;
@@ -330,10 +348,12 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                     onPressed: () async {
                       if (titleCtrl.text.trim().isEmpty) return;
                       try {
+                        // 将中文分类转换为英文
+                        final categoryEn = _categoryMap[selectedCategory] ?? 'daily';
                         await _api.createTodo({
                           'title': titleCtrl.text.trim(),
                           'dueDate': dateCtrl.text,
-                          'category': selectedCategory,
+                          'category': categoryEn,
                         });
                         Navigator.pop(ctx);
                         await _loadTodos();
@@ -554,7 +574,9 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     final completed =
         todo['completed'] == true || todo['completed'] == 1;
     final date = todo['due_date'] ?? todo['date'] ?? '';
-    final category = todo['category'] ?? '日常';
+    final categoryRaw = todo['category'] ?? 'daily';
+    // 将英文分类转换为中文显示
+    final category = _categoryReverseMap[categoryRaw] ?? categoryRaw;
     final categoryColor = _getCategoryColor(category);
     final categoryIcon = _getCategoryIcon(category);
 

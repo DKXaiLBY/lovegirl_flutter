@@ -456,12 +456,13 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       final amount = double.tryParse(amountCtrl.text);
                       if (amount == null || amount <= 0) return;
                       try {
+                        // 字段名映射：前端 -> 后端
                         await _api.addFinanceRecord({
-                          'type': type,
+                          'type': type == '支出' ? 'expense' : 'income',
                           'category': category,
                           'amount': amount,
-                          'date': dateCtrl.text,
-                          'note': noteCtrl.text.trim(),
+                          'recordDate': dateCtrl.text,
+                          'description': noteCtrl.text.trim(),
                         });
                         Navigator.pop(ctx);
                         await _loadData();
@@ -501,7 +502,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   Map<String, List<dynamic>> _groupByDate(List<dynamic> records) {
     final map = <String, List<dynamic>>{};
     for (final r in records) {
-      final date = r['date']?.toString() ?? '未知日期';
+      // 后端返回 recordDate，前端兼容 date
+      final date = (r['recordDate'] ?? r['date'])?.toString() ?? '未知日期';
       map.putIfAbsent(date, () => []).add(r);
     }
     final sortedKeys = map.keys.toList()
@@ -877,10 +879,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   Widget _buildRecordItem(dynamic r, {bool isLast = true}) {
     final id =
         r['id'] is int ? r['id'] : int.parse(r['id'].toString());
-    final isExpense = r['type']?.toString() == '支出';
-    final amount = (r['amount'] ?? 0).toDouble();
+    // 后端返回 'expense'/'income'，前端兼容 '支出'/'收入'
+    final typeStr = r['type']?.toString() ?? '';
+    final isExpense = typeStr == 'expense' || typeStr == '支出';
+    final amountStr = r['amount']?.toString() ?? '0';
+    final amount = double.tryParse(amountStr) ?? 0;
     final category = r['category'] ?? '其他';
-    final note = r['note'] ?? '';
+    // 后端返回 description，前端兼容 note
+    final note = (r['description'] ?? r['note'])?.toString() ?? '';
     final icon = _getCategoryIcon(category);
 
     return Dismissible(

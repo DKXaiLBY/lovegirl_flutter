@@ -38,7 +38,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
       if (file == null) return;
 
       setState(() => _uploading = true);
-      final res = await _api.upload('/api/photo/upload', file.path);
+      // 修复：后端上传路径是 /api/photo，字段名是 'photo'
+      final res = await _api.upload('/api/photo', file.path, fieldName: 'photo');
       final data = res.data?['data'];
       final url = data is Map ? (data['url'] as String?) : null;
       if (url != null && url.isNotEmpty) {
