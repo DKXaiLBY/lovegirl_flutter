@@ -277,13 +277,32 @@ Future<void> showUpdateDialog(
 /// 下载并安装更新
 Future<void> _downloadAndUpdate(
     BuildContext context, String downloadUrl) async {
+  if (downloadUrl.isEmpty || downloadUrl == AppConstants.baseUrl) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('下载链接无效，请稍后再试'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    return;
+  }
+
   try {
     final uri = Uri.parse(downloadUrl);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      // 备用：用浏览器打开
-      await launchUrl(uri, mode: LaunchMode.platformDefault);
+      LogService().error('Version', '无法启动下载: $downloadUrl');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('无法打开下载链接，请检查网络'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   } catch (e) {
     LogService().error('Version', '下载更新失败: $e');

@@ -169,10 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.white.withAlpha(60),
             child: CircleAvatar(
               radius: 26,
-              backgroundImage: (user?['avatar'] != null && (user!['avatar'] as String).isNotEmpty)
-                  ? NetworkImage(user['avatar'])
+              backgroundImage: (user?['avatar'] != null && (user!['avatar']?.toString().isNotEmpty == true))
+                  ? NetworkImage(user!['avatar'].toString())
                   : null,
-              child: (user?['avatar'] == null || (user!['avatar'] as String).isEmpty)
+              child: (user?['avatar'] == null || user!['avatar']?.toString().isEmpty != false)
                   ? const Icon(Icons.favorite_rounded, color: Colors.white, size: 24)
                   : null,
             ),

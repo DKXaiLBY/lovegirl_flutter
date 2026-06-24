@@ -63,9 +63,9 @@ class _TasksScreenState extends State<TasksScreen>
     setState(() => _loading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final json = prefs.getString(_storageKey);
-      if (json != null) {
-        final list = jsonDecode(json) as List;
+      final jsonStr = prefs.getString(_storageKey);
+      if (jsonStr != null) {
+        final list = jsonDecode(jsonStr) as List;
         setState(() {
           _tasks = list.map((e) => Map<String, dynamic>.from(e)).toList();
         });
@@ -83,14 +83,14 @@ class _TasksScreenState extends State<TasksScreen>
 
   // ---------- CRUD ----------
 
-  void _toggleTask(int index) {
+  Future<void> _toggleTask(int index) async {
     final task = _tasks[index];
     final now = DateTime.now().toIso8601String();
     setState(() {
       task['completed'] = !(task['completed'] == true);
       task['completedAt'] = task['completed'] == true ? now : null;
     });
-    _saveTasks();
+    await _saveTasks();
   }
 
   void _deleteTask(int index) {

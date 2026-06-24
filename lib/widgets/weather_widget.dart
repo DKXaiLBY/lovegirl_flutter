@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
+import '../services/api_service.dart';
 import '../utils/lovegirl_theme.dart';
 
 class WeatherWidget extends StatefulWidget {
@@ -10,8 +10,6 @@ class WeatherWidget extends StatefulWidget {
 }
 
 class _WeatherWidgetState extends State<WeatherWidget> {
-  static const _apiUrl = 'http://47.121.119.191:3001/api/weather?city=北京';
-
   String? _temperature;
   String? _weather;
   String? _city;
@@ -25,23 +23,26 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   }
 
   Future<void> _fetchWeather() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = false;
     });
 
     try {
-      final res = await Dio().get(_apiUrl);
+      final res = await ApiService().get('/api/weather', query: {'city': '北京'});
       final data = res.data['data'] as Map<String, dynamic>?;
       if (data == null) throw Exception('no data');
 
+      if (!mounted) return;
       setState(() {
         _temperature = (data['temp'] ?? data['temperature'])?.toString() ?? '--';
         _weather = data['weather']?.toString() ?? '--';
         _city = data['city']?.toString() ?? '北京';
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
         _error = true;
@@ -117,9 +118,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       height: h,
       decoration: BoxDecoration(
         color: LoveGirlTheme.separator.withAlpha(120),
-        borderRadius: isCircle
-            ? null
-            : BorderRadius.circular(6),
+        borderRadius: isCircle ? null : BorderRadius.circular(6),
         shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
       ),
     );
@@ -153,7 +152,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Left: weather icon in colored circle
           Container(
             width: 40,
             height: 40,
@@ -164,7 +162,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
             child: Icon(_iconForWeather(w), size: 22, color: color),
           ),
           const SizedBox(width: 14),
-          // Center: temperature
           Text(
             '${_temperature ?? '--'}°C',
             style: const TextStyle(
@@ -174,7 +171,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
             ),
           ),
           const Spacer(),
-          // Right: city + weather condition
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -186,11 +182,15 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                   fontWeight: FontWeight.w600,
                   color: LoveGirlTheme.textPrimary,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
                 w,
                 style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

@@ -269,7 +269,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  days == 0 ? '今天' : '$days',
+                  days == 0 ? '今天' : '${days.abs()}',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w300,

@@ -40,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushTodo = true;
 
   // 数据管理
-  String _cacheSize = '12.8 MB';
+  String _cacheSize = '计算中...';
 
   // 开发者模式 — 点击版本号7次开启
   int _devTapCount = 0;
@@ -142,11 +142,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final cacheDir = await getTemporaryDirectory();
       if (cacheDir.existsSync()) {
-        cacheDir.listSync(recursive: true).forEach((file) {
+        for (final file in cacheDir.listSync(recursive: true)) {
           if (file is File) {
-            file.deleteSync();
+            try {
+              file.deleteSync();
+            } catch (_) {
+              // 跳过被锁定的文件
+            }
           }
-        });
+        }
       }
       await _calculateCacheSize();
     } catch (e) {
@@ -711,7 +715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
-    setState(() => _isSaving = false);
+    if (mounted) setState(() => _isSaving = false);
   }
 
   Future<void> _saveProfile(AuthProvider auth) async {
@@ -724,11 +728,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await auth.updateProfile({'nickname': newNickname});
       LogService().userAction('昵称修改: $newNickname');
-      setState(() { _isEditing = false; _isSaving = false; });
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存成功')));
+      if (mounted) setState(() { _isEditing = false; _isSaving = false; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存成功')));
     } catch (e) {
       LogService().error('Settings', '保存昵称失败: $e');
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
