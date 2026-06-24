@@ -515,6 +515,30 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     return idx >= 0 ? idx + 1 : 2;
   }
 
+  /// 获取课程时间字符串（如 "08:00-08:45"）
+  String _getCourseTime(dynamic course) {
+    final startTime = course['startTime']?.toString() ?? '';
+    final endTime = course['endTime']?.toString() ?? '';
+
+    if (startTime.isNotEmpty && endTime.isNotEmpty) {
+      // 格式化时间，去掉秒数
+      final start = startTime.length >= 5 ? startTime.substring(0, 5) : startTime;
+      final end = endTime.length >= 5 ? endTime.substring(0, 5) : endTime;
+      return '$start-$end';
+    }
+
+    // 如果没有时间，根据节次推算
+    final startSec = _getStartSection(course);
+    final endSec = _getEndSection(course);
+    if (startSec - 1 < _sectionStartTimes.length && endSec - 1 < _sectionEndTimes.length) {
+      final start = _sectionStartTimes[startSec - 1].substring(0, 5);
+      final end = _sectionEndTimes[endSec - 1].substring(0, 5);
+      return '$start-$end';
+    }
+
+    return '';
+  }
+
   int _getDayOfWeek(dynamic course) {
     final d = course['dayOfWeek'];
     if (d is int) return d;
@@ -832,6 +856,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     final id = course['id'] is int
         ? course['id']
         : int.parse(course['id'].toString());
+    final timeStr = _getCourseTime(course);
 
     return GestureDetector(
       onLongPress: () => _deleteCourse(id, name),
@@ -895,6 +920,27 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
+                    // 时间显示
+                    if (timeStr.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: LoveGirlTheme.textMuted.withAlpha(160),
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            timeStr,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: LoveGirlTheme.textMuted.withAlpha(160),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                    ],
                     Row(
                       children: [
                         if (teacher.isNotEmpty) ...[

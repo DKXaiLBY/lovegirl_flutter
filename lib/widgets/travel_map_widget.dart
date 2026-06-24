@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
@@ -312,15 +313,13 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 回到默认位置
+        // GPS定位到当前位置
         Material(
           color: Colors.white.withAlpha(220),
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              _mapController.move(_defaultCenter, 10.0);
-            },
+            onTap: _locateCurrentPosition,
             child: Container(
               width: 32,
               height: 32,
@@ -349,6 +348,37 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         ),
       ],
     );
+  }
+
+  /// 定位到当前位置
+  Future<void> _locateCurrentPosition() async {
+    try {
+      // 检查位置权限
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      // 获取当前位置
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 移动地图到当前位置
+      _mapController.move(
+        LatLng(position.latitude, position.longitude),
+        15.0,
+      );
+    } catch (e) {
+      // 定位失败，忽略
+    }
   }
 
   Color _statusColor(String status) {

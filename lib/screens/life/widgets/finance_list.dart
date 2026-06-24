@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
@@ -95,11 +96,16 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   bool _loading = true;
   String? _error;
 
+  // 趋势图数据
+  List<Map<String, dynamic>> _trendData = [];
+  bool _trendLoading = false;
+
   @override
   void initState() {
     super.initState();
     _currentMonth = DateTime.now();
     _loadData();
+    _loadTrendData();
   }
 
   String get _monthStr =>
@@ -139,6 +145,42 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           DateTime(_currentMonth.year, _currentMonth.month + 1);
     });
     _loadData();
+  }
+
+  /// 加载近6个月趋势数据
+  Future<void> _loadTrendData() async {
+    setState(() => _trendLoading = true);
+    try {
+      final now = DateTime.now();
+      final List<Map<String, dynamic>> trend = [];
+
+      for (int i = 5; i >= 0; i--) {
+        final month = DateTime(now.year, now.month - i);
+        final monthStr = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+        try {
+          final res = await _api.getFinanceStats(monthStr);
+          final data = res.data?['data'] ?? {};
+          trend.add({
+            'month': month.month,
+            'income': (data['income'] ?? 0).toDouble(),
+            'expense': (data['expense'] ?? 0).toDouble(),
+          });
+        } catch (_) {
+          trend.add({
+            'month': month.month,
+            'income': 0.0,
+            'expense': 0.0,
+          });
+        }
+      }
+
+      setState(() {
+        _trendData = trend;
+        _trendLoading = false;
+      });
+    } catch (e) {
+      setState(() => _trendLoading = false);
+    }
   }
 
   void _showAddDialog() {
@@ -755,6 +797,191 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               ],
             ),
           ),
+
+          // ---- 月度趋势图 ----
+          if (_trendData.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: LoveGirlTheme.primary.withAlpha(100),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '月度趋势',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: LoveGirlTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            OrganicCard(
+              organic: true,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 160,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: 1000,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: LoveGirlTheme.textMuted.withAlpha(20),
+                              strokeWidth: 1,
+                            );
+                          },
+                        ),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40,
+                              getTitlesWidget: (value, meta) {
+                                return Text(
+                                  '${(value / 1000).toStringAsFixed(0)}k',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: LoveGirlTheme.textMuted.withAlpha(150),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              getTitlesWidget: (value, meta) {
+                                final idx = value.toInt();
+                                if (idx >= 0 && idx < _trendData.length) {
+                                  return Text(
+                                    '${_trendData[idx]['month']}月',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: LoveGirlTheme.textMuted.withAlpha(150),
+                                    ),
+                                  );
+                                }
+                                return const Text('');
+                              },
+                            ),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          // 收入线
+                          LineChartBarData(
+                            spots: List.generate(_trendData.length, (i) {
+                              return FlSpot(i.toDouble(), _trendData[i]['income']);
+                            }),
+                            isCurved: true,
+                            color: LoveGirlTheme.accent,
+                            barWidth: 2,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, bar, index) {
+                                return FlDotCirclePainter(
+                                  radius: 3,
+                                  color: LoveGirlTheme.accent,
+                                  strokeWidth: 0,
+                                );
+                              },
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: LoveGirlTheme.accent.withAlpha(20),
+                            ),
+                          ),
+                          // 支出线
+                          LineChartBarData(
+                            spots: List.generate(_trendData.length, (i) {
+                              return FlSpot(i.toDouble(), _trendData[i]['expense']);
+                            }),
+                            isCurved: true,
+                            color: LoveGirlTheme.pink,
+                            barWidth: 2,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, bar, index) {
+                                return FlDotCirclePainter(
+                                  radius: 3,
+                                  color: LoveGirlTheme.pink,
+                                  strokeWidth: 0,
+                                );
+                              },
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: LoveGirlTheme.pink.withAlpha(20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 图例
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: LoveGirlTheme.accent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '收入',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: LoveGirlTheme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        width: 12,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: LoveGirlTheme.pink,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '支出',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: LoveGirlTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // ---- 账单明细标题 ----
           Padding(
