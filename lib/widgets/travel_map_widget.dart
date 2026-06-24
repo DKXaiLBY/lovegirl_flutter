@@ -30,6 +30,9 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   // 默认中心点（北京）
   static const LatLng _defaultCenter = LatLng(39.9042, 116.4074);
 
+  // 当前位置
+  LatLng? _currentPosition;
+
   // 高德瓦片服务地址（Web墨卡托投影）
   // 注意：高德瓦片使用 GCJ-02 坐标系，与 WGS-84 有偏移
   static const String _gaodeTileUrl =
@@ -167,6 +170,31 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   /// 构建地图标记点
   List<Marker> _buildMarkers() {
     final markers = <Marker>[];
+
+    // 添加当前位置标记
+    if (_currentPosition != null) {
+      markers.add(
+        Marker(
+          point: _currentPosition!,
+          width: 30,
+          height: 30,
+          child: Container(
+            decoration: BoxDecoration(
+              color: LoveGirlTheme.primary,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: LoveGirlTheme.primary.withAlpha(80),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     for (final spot in widget.spots) {
       if (spot.lat == 0 && spot.lng == 0) continue; // 跳过未定位的点
@@ -371,11 +399,15 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      final currentPos = LatLng(position.latitude, position.longitude);
+
+      // 更新当前位置
+      setState(() {
+        _currentPosition = currentPos;
+      });
+
       // 移动地图到当前位置
-      _mapController.move(
-        LatLng(position.latitude, position.longitude),
-        15.0,
-      );
+      _mapController.move(currentPos, 15.0);
     } catch (e) {
       // 定位失败，忽略
     }

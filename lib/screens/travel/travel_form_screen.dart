@@ -863,6 +863,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
   }
 
+  // emoji 字符列表（对应图标）
+  static const _spotEmojis = ['📍', '🏖️', '⛰️', '🏛️', '🎢', '🏰', '🌊', '🌿', '🌋', '🏯', '🌳', '🕌', '🗼', '🏞️', '🛖', '🏗️', '🏨', '🛕'];
+
   static const _spotIcons = <IconData>[
     Icons.location_on_rounded,
     Icons.beach_access_rounded,
@@ -894,7 +897,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         return GestureDetector(
           onTap: () => setState(() {
             _selectedIconIndex = i;
-            _emoji = 'location_$i'; // store index as emoji for backward compat
+            _emoji = _spotEmojis[i]; // 使用 emoji 字符
           }),
           child: Container(
             width: 42,
