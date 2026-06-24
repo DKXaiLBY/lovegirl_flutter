@@ -33,10 +33,10 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   // 当前位置
   LatLng? _currentPosition;
 
-  // 高德瓦片服务地址（Web墨卡托投影）
-  // 注意：高德瓦片使用 GCJ-02 坐标系，与 WGS-84 有偏移
+  // 高德瓦片服务地址（高清矢量瓦片）
+  // scale=2 为 Retina 高清，style=7 为矢量地图（更清晰）
   static const String _gaodeTileUrl =
-      'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+      'https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=7';
 
   /// 平滑移动到指定地点
   void animateToSpot(TravelSpot spot) {
