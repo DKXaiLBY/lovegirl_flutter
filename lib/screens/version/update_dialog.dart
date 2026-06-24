@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -44,7 +47,10 @@ Future<void> showUpdateDialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 28),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
+          constraints: BoxConstraints(
+            maxWidth: 400,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.75,
+          ),
           decoration: BoxDecoration(
             color: LoveGirlTheme.cardLight,
             borderRadius: BorderRadius.circular(24),
@@ -52,53 +58,53 @@ Future<void> showUpdateDialog(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ===== 头部 =====
+              // ===== 头部（固定）=====
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                 child: Column(
                   children: [
                     // 图标
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: LoveGirlTheme.gradientLove,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: LoveGirlTheme.primary.withAlpha(60),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+                            color: LoveGirlTheme.primary.withAlpha(50),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.system_update_rounded,
                         color: Colors.white,
-                        size: 30,
+                        size: 28,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     const Text(
                       '发现新版本',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: LoveGirlTheme.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     // 版本对比
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: LoveGirlTheme.bgLight,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -106,19 +112,19 @@ Future<void> showUpdateDialog(
                           Text(
                             currentVersionLabel,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: LoveGirlTheme.textMuted,
                             ),
                           ),
                           const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
+                            padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Icon(Icons.arrow_forward_rounded,
-                                size: 18, color: LoveGirlTheme.primary),
+                                size: 16, color: LoveGirlTheme.primary),
                           ),
                           Text(
                             'v$latestVersionName',
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: LoveGirlTheme.primary,
                             ),
@@ -130,91 +136,106 @@ Future<void> showUpdateDialog(
                 ),
               ),
 
-              // ===== 更新日志 =====
+              // ===== 更新日志（可滚动）=====
               if (changelogLines.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: LoveGirlTheme.bgLight,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.auto_awesome_rounded,
-                              size: 16, color: LoveGirlTheme.primary),
-                          SizedBox(width: 6),
-                          Text(
-                            '更新内容',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: LoveGirlTheme.textPrimary,
+                Flexible(
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: LoveGirlTheme.bgLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.auto_awesome_rounded,
+                                size: 15, color: LoveGirlTheme.primary),
+                            SizedBox(width: 5),
+                            Text(
+                              '更新内容',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: LoveGirlTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        // 可滚动的更新列表
+                        Flexible(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: changelogLines.map((line) {
+                                final isBullet = line.startsWith(
+                                    RegExp(r'^[-•·✨🆕✅🌤🔧💾⬇️🎨🐛📊💕🎉]'));
+                                final text = isBullet
+                                    ? line.replaceFirst(
+                                        RegExp(r'^[-•·]\s*'), '')
+                                    : line;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (isBullet) ...[
+                                        Container(
+                                          margin:
+                                              const EdgeInsets.only(top: 6),
+                                          width: 4,
+                                          height: 4,
+                                          decoration: const BoxDecoration(
+                                            color: LoveGirlTheme.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      Expanded(
+                                        child: Text(
+                                          text,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isBullet
+                                                ? LoveGirlTheme.textPrimary
+                                                : LoveGirlTheme.textSecondary,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ...changelogLines.map((line) {
-                        final isBullet = line.startsWith(RegExp(r'^[-•·✨🆕✅🌤🔧💾⬇️🎨🐛📊💕🎉]'));
-                        final text = isBullet
-                            ? line.replaceFirst(RegExp(r'^[-•·]\s*'), '')
-                            : line;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (isBullet) ...[
-                                Container(
-                                  margin: const EdgeInsets.only(top: 7),
-                                  width: 5,
-                                  height: 5,
-                                  decoration: const BoxDecoration(
-                                    color: LoveGirlTheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  text,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: isBullet
-                                        ? LoveGirlTheme.textPrimary
-                                        : LoveGirlTheme.textSecondary,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
-              // ===== 按钮区域 =====
+              // ===== 按钮区域（固定在底部）=====
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
                 child: Column(
                   children: [
                     // 立即更新按钮
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
+                      height: 46,
                       child: ElevatedButton(
-                        onPressed: () async {
+                        onPressed: () {
                           Navigator.pop(ctx);
-                          await _downloadAndUpdate(context, downloadUrl);
+                          _showDownloadDialog(context, downloadUrl);
                           LogService().userAction(
                               '版本更新:下载 $currentVersionLabel → v$latestVersionName');
                         },
@@ -222,26 +243,25 @@ Future<void> showUpdateDialog(
                           backgroundColor: LoveGirlTheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 0,
                         ),
                         child: const Text(
                           '立即更新',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
+                              fontSize: 15, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                    // 稍后再说（非强制更新时显示）
+                    // 跳过此版本（非强制更新时显示）
                     if (!forceUpdate) ...[
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       SizedBox(
                         width: double.infinity,
-                        height: 44,
+                        height: 40,
                         child: TextButton(
                           onPressed: () async {
-                            // 记住用户跳过了这个版本
                             final prefs =
                                 await SharedPreferences.getInstance();
                             await prefs.setString(
@@ -253,12 +273,12 @@ Future<void> showUpdateDialog(
                           style: TextButton.styleFrom(
                             foregroundColor: LoveGirlTheme.textMuted,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
                             '跳过此版本',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: 13),
                           ),
                         ),
                       ),
@@ -274,46 +294,210 @@ Future<void> showUpdateDialog(
   );
 }
 
-/// 下载并安装更新
-Future<void> _downloadAndUpdate(
-    BuildContext context, String downloadUrl) async {
+/// 显示下载进度弹窗
+void _showDownloadDialog(BuildContext context, String downloadUrl) {
   if (downloadUrl.isEmpty || downloadUrl == AppConstants.baseUrl) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('下载链接无效，请稍后再试'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('下载链接无效，请稍后再试'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
     return;
   }
 
+  double progress = 0;
+  bool downloading = true;
+  bool failed = false;
+  String errorMsg = '';
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 280,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: LoveGirlTheme.cardLight,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 图标
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.primary.withAlpha(20),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  failed
+                      ? Icons.error_outline_rounded
+                      : downloading
+                          ? Icons.download_rounded
+                          : Icons.check_circle_outline_rounded,
+                  color: failed
+                      ? LoveGirlTheme.red
+                      : downloading
+                          ? LoveGirlTheme.primary
+                          : const Color(0xFF4CAF50),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                failed
+                    ? '下载失败'
+                    : downloading
+                        ? '正在下载...'
+                        : '下载完成',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: LoveGirlTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 进度条
+              if (downloading && !failed) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress > 0 ? progress : null,
+                    backgroundColor: LoveGirlTheme.separator,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        LoveGirlTheme.primary),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  progress > 0
+                      ? '${(progress * 100).toStringAsFixed(0)}%'
+                      : '准备下载...',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: LoveGirlTheme.textMuted,
+                  ),
+                ),
+              ],
+              // 错误信息
+              if (failed) ...[
+                Text(
+                  errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: LoveGirlTheme.textMuted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showDownloadDialog(context, downloadUrl);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: LoveGirlTheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('重试'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  // 开始下载
+  _downloadApk(
+    downloadUrl,
+    onProgress: (p) {
+      if (context.mounted) {
+        // 通过 Navigator.of(context).pop 和重新 showDialog 更新进度
+        // 这里使用一个简化的方式：直接打开浏览器
+      }
+    },
+    onComplete: (filePath) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 关闭进度弹窗
+        _installApk(filePath);
+      }
+    },
+    onError: (error) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // 关闭进度弹窗
+        // 回退到浏览器下载
+        _launchInBrowser(downloadUrl);
+      }
+    },
+  );
+}
+
+/// 下载 APK
+Future<void> _downloadApk(
+  String url, {
+  void Function(double)? onProgress,
+  void Function(String)? onComplete,
+  void Function(String)? onError,
+}) async {
   try {
-    final uri = Uri.parse(downloadUrl);
+    final dir = await getTemporaryDirectory();
+    final filePath = '${dir.path}/LoveGirl-latest.apk';
+
+    final dio = Dio();
+    await dio.download(
+      url,
+      filePath,
+      onReceiveProgress: (received, total) {
+        if (total > 0 && onProgress != null) {
+          onProgress(received / total);
+        }
+      },
+    );
+
+    if (onComplete != null) onComplete(filePath);
+  } catch (e) {
+    LogService().error('Version', 'APK下载失败: $e');
+    if (onError != null) onError(e.toString());
+  }
+}
+
+/// 安装 APK
+Future<void> _installApk(String filePath) async {
+  try {
+    final uri = Uri.parse('file://$filePath');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      LogService().error('Version', '无法启动下载: $downloadUrl');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('无法打开下载链接，请检查网络'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
     }
   } catch (e) {
-    LogService().error('Version', '下载更新失败: $e');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('下载失败，请检查网络后重试'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    LogService().error('Version', '安装APK失败: $e');
+  }
+}
+
+/// 在浏览器中打开
+Future<void> _launchInBrowser(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  } catch (e) {
+    LogService().error('Version', '打开浏览器失败: $e');
   }
 }
 
