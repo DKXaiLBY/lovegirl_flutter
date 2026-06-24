@@ -505,15 +505,23 @@ Future<void> _downloadApk(
 /// 安装 APK
 Future<void> _installApk(String filePath) async {
   try {
-    // 使用 open_filex 触发系统安装界面
-    final result = await OpenFilex.open(filePath);
+    // 使用 open_filex 触发系统安装界面，明确指定类型为 APK
+    final result = await OpenFilex.open(
+      filePath,
+      type: 'application/vnd.android.package-archive',
+    );
     LogService().info('Version', 'APK安装结果: ${result.type}');
+
+    // 如果 open_filex 失败，尝试使用 url_launcher
+    if (result.type != ResultType.done) {
+      LogService().info('Version', 'open_filex失败，尝试url_launcher');
+      final uri = Uri.parse('file://$filePath');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
   } catch (e) {
     LogService().error('Version', '安装APK失败: $e');
-    // 如果安装失败，尝试用浏览器打开
-    if (filePath.startsWith('http')) {
-      _launchInBrowser(filePath);
-    }
   }
 }
 
