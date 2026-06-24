@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,6 +6,44 @@ import 'package:geolocator/geolocator.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
+
+/// WGS-84 坐标转 GCJ-02 坐标（高德地图使用 GCJ-02）
+LatLng _wgs84ToGcj02(double lat, double lng) {
+  const double pi = 3.14159265358979324;
+  const double a = 6378245.0; // 长半轴
+  const double ee = 0.00669342162296594; // 偏心率平方
+
+  double dLat = _transformLat(lng - 105.0, lat - 35.0);
+  double dLng = _transformLng(lng - 105.0, lat - 35.0);
+
+  double radLat = lat / 180.0 * pi;
+  double magic = sin(radLat);
+  magic = 1 - ee * magic * magic;
+  double sqrtMagic = sqrt(magic);
+
+  dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
+  dLng = (dLng * 180.0) / (a / sqrtMagic * cos(radLat) * pi);
+
+  return LatLng(lat + dLat, lng + dLng);
+}
+
+double _transformLat(double x, double y) {
+  const double pi = 3.14159265358979324;
+  double ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * sqrt(x.abs());
+  ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+  ret += (20.0 * sin(y * pi) + 40.0 * sin(y / 3.0 * pi)) * 2.0 / 3.0;
+  ret += (160.0 * sin(y / 12.0 * pi) + 320 * sin(y * pi / 30.0)) * 2.0 / 3.0;
+  return ret;
+}
+
+double _transformLng(double x, double y) {
+  const double pi = 3.15159265358979324;
+  double ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * sqrt(x.abs());
+  ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+  ret += (20.0 * sin(x * pi) + 40.0 * sin(x / 3.0 * pi)) * 2.0 / 3.0;
+  ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0;
+  return ret;
+}
 
 /// 旅行地图组件 — 使用flutter_map + 高德瓦片服务
 /// 国内使用高德瓦片，加载更快、数据更准确
@@ -394,20 +433,21 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         return;
       }
 
-      // 获取当前位置
+      // 获取当前位置（WGS-84 坐标）
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      final currentPos = LatLng(position.latitude, position.longitude);
+      // 转换为 GCJ-02 坐标（高德地图使用）
+      final gcj02Pos = _wgs84ToGcj02(position.latitude, position.longitude);
 
       // 更新当前位置
       setState(() {
-        _currentPosition = currentPos;
+        _currentPosition = gcj02Pos;
       });
 
       // 移动地图到当前位置
-      _mapController.move(currentPos, 15.0);
+      _mapController.move(gcj02Pos, 15.0);
     } catch (e) {
       // 定位失败，忽略
     }
