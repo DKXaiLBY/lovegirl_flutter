@@ -140,7 +140,9 @@ class TravelMapWidgetState extends State<TravelMapWidget>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg),
               ),
-              child: Stack(
+              child: Transform.scale(
+                scale: _scale,
+                child: Stack(
                 children: [
                   // 地图底色
                   _buildMapBackground(size),
@@ -205,6 +207,7 @@ class TravelMapWidgetState extends State<TravelMapWidget>
                   ),
                 ],
               ),
+            ),
             ),
           ),
         );
@@ -348,13 +351,15 @@ class TravelMapWidgetState extends State<TravelMapWidget>
     );
   }
 
+  double _scale = 1.0;
+
   Widget _buildMapControls(Size size) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _miniButton(Icons.add, () {
           setState(() {
-            // 放大模拟 ≈ 减小可见区域
+            _scale = (_scale * 1.3).clamp(0.5, 3.0);
           });
         }),
         const SizedBox(height: 4),
@@ -366,7 +371,7 @@ class TravelMapWidgetState extends State<TravelMapWidget>
         const SizedBox(height: 4),
         _miniButton(Icons.remove, () {
           setState(() {
-            // 缩小模拟
+            _scale = (_scale / 1.3).clamp(0.5, 3.0);
           });
         }),
       ],
@@ -399,6 +404,7 @@ class TravelMapWidgetState extends State<TravelMapWidget>
         onTap: () {
           setState(() {
             _currentOffset = Offset.zero;
+            _scale = 1.0;
           });
         },
         child: Container(
