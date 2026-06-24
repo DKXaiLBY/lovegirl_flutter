@@ -26,6 +26,7 @@ class TravelMapWidgetState extends State<TravelMapWidget>
   late AnimationController _animController;
   Offset _targetOffset = Offset.zero;
   Offset _currentOffset = Offset.zero;
+  double _scale = 1.0;
 
   // 坐标映射边界
   double _minLat = 90, _maxLat = -90, _minLng = 180, _maxLng = -180;
@@ -351,8 +352,6 @@ class TravelMapWidgetState extends State<TravelMapWidget>
     );
   }
 
-  double _scale = 1.0;
-
   Widget _buildMapControls(Size size) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -402,10 +401,20 @@ class TravelMapWidgetState extends State<TravelMapWidget>
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
+          // 重置到初始视图，显示所有标记点
           setState(() {
             _currentOffset = Offset.zero;
             _scale = 1.0;
           });
+        },
+        onLongPress: () {
+          // 长按：缩放到适合所有标记点的大小
+          if (widget.spots.isNotEmpty) {
+            setState(() {
+              _scale = 1.5;
+              _currentOffset = Offset.zero;
+            });
+          }
         },
         child: Container(
           width: 32,

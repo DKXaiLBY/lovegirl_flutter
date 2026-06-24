@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
+import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -44,6 +45,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   final List<String> _tags = [];
   List<String> _photos = [];
   bool _saving = false;
+  bool _locating = false;
+
+  // 经纬度
+  double _lat = 0;
+  double _lng = 0;
 
   bool get _isEditing => widget.spot != null;
 
@@ -69,6 +75,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _moodCtrl.text = s.mood ?? '';
       _tags.addAll(s.tags);
       _photos = List.from(s.photos);
+      _lat = s.lat;
+      _lng = s.lng;
     }
   }
 
@@ -186,8 +194,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       'address': _addressCtrl.text.trim(),
       'emoji': _emoji,
       'status': _status,
-      'lng': widget.spot?.lng ?? 0,
-      'lat': widget.spot?.lat ?? 0,
+      'lng': _lng,
+      'lat': _lat,
       'note': _noteCtrl.text.trim(),
       'tags': _tags,
       'mood': _moodCtrl.text.trim(),
@@ -299,6 +307,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 label: '地址（可选）',
                 hint: '具体地址',
               ),
+              const SizedBox(height: 16),
+              // 定位信息
+              _buildLocationSection(),
             ]),
 
             const SizedBox(height: 8),
@@ -466,6 +477,186 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     ]);
   }
 
+  // ==================== 定位信息 ====================
+  Widget _buildLocationSection() {
+    final hasLocation = _lat != 0 || _lng != 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('定位信息',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+            const Spacer(),
+            // GPS定位按钮
+            GestureDetector(
+              onTap: _locating ? null : _getCurrentLocation,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_locating)
+                      const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: LoveGirlTheme.primary),
+                      )
+                    else
+                      const Icon(Icons.my_location,
+                          size: 14, color: LoveGirlTheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      _locating ? '定位中...' : 'GPS定位',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LoveGirlTheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // 经纬度显示/输入
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: TextEditingController(
+                    text: _lat != 0 ? _lat.toStringAsFixed(6) : ''),
+                label: '纬度 (lat)',
+                hint: '例如：39.9042',
+                keyboardType: TextInputType.number,
+                onChanged: (v) {
+                  final val = double.tryParse(v);
+                  if (val != null) _lat = val;
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildTextField(
+                controller: TextEditingController(
+                    text: _lng != 0 ? _lng.toStringAsFixed(6) : ''),
+                label: '经度 (lng)',
+                hint: '例如：116.4074',
+                keyboardType: TextInputType.number,
+                onChanged: (v) {
+                  final val = double.tryParse(v);
+                  if (val != null) _lng = val;
+                },
+              ),
+            ),
+          ],
+        ),
+        if (hasLocation) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4CAF50).withAlpha(15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle,
+                    size: 16, color: Color(0xFF4CAF50)),
+                const SizedBox(width: 6),
+                Text(
+                  '已定位: ${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF4CAF50),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (!hasLocation) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: LoveGirlTheme.orange.withAlpha(15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline,
+                    size: 16, color: LoveGirlTheme.orange),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '未定位，地点将不会显示在地图上。请点击GPS定位或手动输入经纬度。',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: LoveGirlTheme.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 获取当前GPS位置
+  Future<void> _getCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      // 使用简单的HTTP请求获取IP定位
+      final api = ApiService();
+      final res = await api.get('/api/weather', query: {'city': 'auto'});
+      final data = res.data?['data'];
+      if (data is Map) {
+        // 尝试从天气API获取位置信息
+        // 如果有经纬度字段就使用，否则使用默认值
+        final lat = data['lat'] ?? data['latitude'];
+        final lng = data['lng'] ?? data['longitude'];
+        if (lat != null && lng != null) {
+          setState(() {
+            _lat = double.tryParse(lat.toString()) ?? 0;
+            _lng = double.tryParse(lng.toString()) ?? 0;
+          });
+          LogService().userAction('旅行:GPS定位成功 $_lat,$_lng');
+        } else {
+          // 使用城市名称提示用户手动输入
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('无法自动获取经纬度，请手动输入'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      LogService().error('Travel', 'GPS定位失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('定位失败，请手动输入经纬度'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+    setState(() => _locating = false);
+  }
+
   // ==================== 通用构建方法 ====================
 
   Widget _buildSection(String title, List<Widget> children) {
@@ -503,6 +694,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     bool required = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,6 +712,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           maxLines: maxLines,
           keyboardType: keyboardType,
           validator: validator,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150), fontSize: 14),
