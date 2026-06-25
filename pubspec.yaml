@@ -1,7 +1,7 @@
 name: lovegirl_flutter
 description: "LoveGirl - 情侣专属APP"
 publish_to: 'none'
-version: 3.15.7+121
+version: 3.15.8+122
 
 environment:
   sdk: ^3.6.2

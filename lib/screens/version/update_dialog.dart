@@ -505,24 +505,40 @@ Future<void> _downloadApk(
 /// 安装 APK
 Future<void> _installApk(String filePath) async {
   try {
-    // 使用 open_filex 触发系统安装界面，明确指定类型为 APK
+    LogService().info('Version', '开始安装APK: $filePath');
+
+    // 使用 open_filex 触发系统安装界面
     final result = await OpenFilex.open(
       filePath,
       type: 'application/vnd.android.package-archive',
     );
-    LogService().info('Version', 'APK安装结果: ${result.type}');
 
-    // 如果 open_filex 失败，尝试使用 url_launcher
+    LogService().info('Version', 'open_filex结果: ${result.type}');
+
+    // 如果 open_filex 没有成功，尝试其他方式
     if (result.type != ResultType.done) {
-      LogService().info('Version', 'open_filex失败，尝试url_launcher');
+      LogService().info('Version', '尝试使用 url_launcher 打开');
+
+      // 尝试使用 url_launcher
       final uri = Uri.parse('file://$filePath');
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        LogService().error('Version', '无法打开APK文件');
+        // 如果都失败了，提示用户手动安装
+        _showManualInstallHint(filePath);
       }
     }
   } catch (e) {
-    LogService().error('Version', '安装APK失败: $e');
+    LogService().error('Version', '安装APK异常: $e');
+    _showManualInstallHint(filePath);
   }
+}
+
+/// 显示手动安装提示
+void _showManualInstallHint(String filePath) {
+  // 这里可以显示一个对话框提示用户手动安装
+  LogService().info('Version', '请手动安装APK: $filePath');
 }
 
 /// 在浏览器中打开
