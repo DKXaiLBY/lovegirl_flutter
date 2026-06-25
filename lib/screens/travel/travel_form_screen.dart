@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
@@ -78,6 +80,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _photos = List.from(s.photos);
       _lat = s.lat;
       _lng = s.lng;
+    } else {
+      // 新建时自动获取当前位置
+      _getCurrentLocation();
     }
   }
 
@@ -653,31 +658,93 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   }
 
   /// 获取当前GPS位置
+  /// WGS-84 坐标转 GCJ-02 坐标（高德地图使用）
+  List<double> _wgs84ToGcj02(double lat, double lng) {
+    const double pi = 3.14159265358979324;
+    const double a = 6378245.0;
+    const double ee = 0.00669342162296594;
+
+    double dLat = _transformLat(lng - 105.0, lat - 35.0);
+    double dLng = _transformLng(lng - 105.0, lat - 35.0);
+
+    double radLat = lat / 180.0 * pi;
+    double magic = sin(radLat);
+    magic = 1 - ee * magic * magic;
+    double sqrtMagic = sqrt(magic);
+
+    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
+    dLng = (dLng * 180.0) / (a / sqrtMagic * cos(radLat) * pi);
+
+    return [lat + dLat, lng + dLng];
+  }
+
+  double _transformLat(double x, double y) {
+    const double pi = 3.14159265358979324;
+    double ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * sqrt(x.abs());
+    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+    ret += (20.0 * sin(y * pi) + 40.0 * sin(y / 3.0 * pi)) * 2.0 / 3.0;
+    ret += (160.0 * sin(y / 12.0 * pi) + 320 * sin(y * pi / 30.0)) * 2.0 / 3.0;
+    return ret;
+  }
+
+  double _transformLng(double x, double y) {
+    const double pi = 3.14159265358979324;
+    double ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * sqrt(x.abs());
+    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+    ret += (20.0 * sin(x * pi) + 40.0 * sin(x / 3.0 * pi)) * 2.0 / 3.0;
+    ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0;
+    return ret;
+  }
+
   Future<void> _getCurrentLocation() async {
     setState(() => _locating = true);
     try {
-      final api = ApiService();
-      final res = await api.get('/api/weather/coords', query: {'lat': '39.9', 'lng': '116.4'});
-      final data = res.data?['data'];
-      if (data is Map) {
-        final lat = data['lat'] ?? data['latitude'];
-        final lng = data['lng'] ?? data['longitude'];
-        if (lat != null && lng != null) {
-          setState(() {
-            _lat = double.tryParse(lat.toString()) ?? 0;
-            _lng = double.tryParse(lng.toString()) ?? 0;
-          });
-          LogService().userAction('旅行:GPS定位成功 $_lat,$_lng');
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('无法自动获取经纬度，请使用地图选点'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
+      // 检查位置权限
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _locating = false);
+          return;
         }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _locating = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('请在设置中开启位置权限'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 获取当前位置（WGS-84 坐标）
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      // 转换为 GCJ-02 坐标（高德地图使用）
+      final gcj02 = _wgs84ToGcj02(position.latitude, position.longitude);
+
+      setState(() {
+        _lat = gcj02[0];
+        _lng = gcj02[1];
+      });
+
+      LogService().userAction('旅行:GPS定位成功 $_lat,$_lng');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('定位成功: ${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
       }
     } catch (e) {
       LogService().error('Travel', 'GPS定位失败: $e');

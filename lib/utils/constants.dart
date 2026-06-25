@@ -3,8 +3,8 @@ class AppConstants {
 
   static const String appName = 'LoveGirl';
   static const String baseUrl = 'http://47.121.119.191:3001';
-  static const String versionName = '3.15.8';
-  static const int versionCode = 122;
+  static const String versionName = '3.15.9';
+  static const int versionCode = 123;
 
   // 设计规范
   static const double borderRadius = 14.0;
