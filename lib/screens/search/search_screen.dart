@@ -39,6 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'travel': '旅行足迹',
     'todo': '待办事项',
     'finance': '记账记录',
+    'course': '课程表',
     'mood': '心情日记',
     'photo': '云端相册',
     'chat': '聊天记录',
@@ -50,6 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
     'travel': Icons.map_rounded,
     'todo': Icons.checklist_rounded,
     'finance': Icons.account_balance_wallet_rounded,
+    'course': Icons.school_rounded,
     'mood': Icons.mood_rounded,
     'photo': Icons.photo_library_rounded,
     'chat': Icons.chat_bubble_rounded,
@@ -105,16 +107,15 @@ class _SearchScreenState extends State<SearchScreen> {
       _groupedResults = {};
 
       if (data is Map) {
-        // 后端返回格式: { todos: [...], finances: [...], ... }
-        final categories = ['todos', 'finances', 'courses', 'photos', 'moods', 'timeline', 'feeding'];
+        // 后端返回格式: { todos: [...], finances: [...], courses: [...], wishlist: [...], photos: [...], moods: [...] }
+        final categories = ['todos', 'finances', 'courses', 'wishlist', 'photos', 'moods'];
         final typeMap = {
           'todos': 'todo',
           'finances': 'finance',
           'courses': 'course',
+          'wishlist': 'feeding',
           'photos': 'photo',
           'moods': 'mood',
-          'timeline': 'timeline',
-          'feeding': 'feeding',
         };
 
         for (final cat in categories) {

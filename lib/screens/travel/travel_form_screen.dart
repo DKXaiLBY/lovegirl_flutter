@@ -1,20 +1,12 @@
-import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
-import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/services/log_service.dart';
+import 'package:lovegirl_flutter/screens/travel/map_picker_screen.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
-import 'package:lovegirl_flutter/utils/constants.dart';
 import 'package:intl/intl.dart';
 
-/// 添加/编辑旅行地点的全屏表单页面
+/// 添加/编辑旅行地点的表单页面
 class TravelFormScreen extends StatefulWidget {
-  /// 传入已有地点为编辑模式，null 为新建模式
   final TravelSpot? spot;
 
   const TravelFormScreen({super.key, this.spot});
@@ -34,25 +26,18 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   final _itineraryCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
 
-  // 构造存储
-  final _tagsCtrl = TextEditingController();
-  final _moodCtrl = TextEditingController();
-
   String _status = 'visited';
   int _rating = 0;
   int _desire = 1;
   String? _visitedDate;
   String? _plannedDate;
-  String _emoji = '📍';
-  int _selectedIconIndex = 0;
-  final List<String> _tags = [];
-  List<String> _photos = [];
   bool _saving = false;
-  bool _locating = false;
 
-  // 经纬度
+  // 地图选点相关
   double _lat = 0;
   double _lng = 0;
+  String _selectedCity = '';
+  String _selectedAddress = '';
 
   bool get _isEditing => widget.spot != null;
 
@@ -64,7 +49,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _nameCtrl.text = s.name;
       _cityCtrl.text = s.city;
       _addressCtrl.text = s.address;
-      _emoji = s.emoji;
       _status = s.status;
       _diaryCtrl.text = s.diary ?? '';
       _noteCtrl.text = s.note ?? '';
@@ -75,14 +59,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _desire = s.desire ?? 1;
       _visitedDate = s.visitedDate;
       _plannedDate = s.plannedDate;
-      _moodCtrl.text = s.mood ?? '';
-      _tags.addAll(s.tags);
-      _photos = List.from(s.photos);
       _lat = s.lat;
       _lng = s.lng;
-    } else {
-      // 新建时自动获取当前位置
-      _getCurrentLocation();
+      _selectedCity = s.city;
+      _selectedAddress = s.address;
     }
   }
 
@@ -96,8 +76,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     _reasonCtrl.dispose();
     _itineraryCtrl.dispose();
     _budgetCtrl.dispose();
-    _tagsCtrl.dispose();
-    _moodCtrl.dispose();
     super.dispose();
   }
 
@@ -108,16 +86,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       initialDate: now,
       firstDate: DateTime(2010),
       lastDate: DateTime(2035),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: LoveGirlTheme.primary,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() {
@@ -131,45 +99,32 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     }
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final picker = ImagePicker();
-      final file = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1280,
-        maxHeight: 1280,
-        imageQuality: 85,
-      );
-      if (file == null) return;
+  /// 打开地图选点
+  Future<void> _openMapPicker() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(
+          initialLat: _lat != 0 ? _lat : null,
+          initialLng: _lng != 0 ? _lng : null,
+        ),
+      ),
+    );
 
-      // 上传图片到服务器
-      final api = ApiService();
-      try {
-        final res = await api.upload('/api/travel/upload', file.path);
-        final data = res.data?['data'];
-        final url = data is Map ? (data['url'] as String?) : null;
-        if (url != null && url.isNotEmpty) {
-          setState(() => _photos.add(url));
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('图片上传失败，请重试'), behavior: SnackBarBehavior.floating),
-            );
-          }
+    if (result != null) {
+      setState(() {
+        _lat = result['lat'] ?? 0;
+        _lng = result['lng'] ?? 0;
+        _selectedCity = result['city'] ?? '';
+        _selectedAddress = result['address'] ?? '';
+        // 自动填充城市（如果为空）
+        if (_cityCtrl.text.isEmpty && _selectedCity.isNotEmpty) {
+          _cityCtrl.text = _selectedCity;
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('上传失败: $e'), behavior: SnackBarBehavior.floating),
-          );
+        // 自动填充地址（如果为空）
+        if (_addressCtrl.text.isEmpty && _selectedAddress.isNotEmpty) {
+          _addressCtrl.text = _selectedAddress;
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('选择图片失败'), behavior: SnackBarBehavior.floating),
-        );
-      }
+      });
     }
   }
 
@@ -182,46 +137,30 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       return;
     }
 
-    // 解析标签
-    if (_tagsCtrl.text.trim().isNotEmpty) {
-      final parsed = _tagsCtrl.text
-          .split(RegExp(r'[,，、\s]+'))
-          .map((t) => t.trim())
-          .where((t) => t.isNotEmpty)
-          .toList();
-      _tags.addAll(parsed.where((t) => !_tags.contains(t)));
-    }
-
     setState(() => _saving = true);
 
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'city': _cityCtrl.text.trim(),
       'address': _addressCtrl.text.trim(),
-      'emoji': _emoji,
+      'emoji': '📍',
       'status': _status,
       'lng': _lng,
       'lat': _lat,
       'note': _noteCtrl.text.trim(),
-      'tags': _tags,
-      'mood': _moodCtrl.text.trim(),
     };
 
     switch (_status) {
       case 'visited':
-        // 后端期望驼峰命名
         data['visitedDate'] = _visitedDate;
         data['rating'] = _rating;
         data['diary'] = _diaryCtrl.text.trim();
-        data['photos'] = _photos;
-        data['mood'] = _moodCtrl.text.trim();
         break;
       case 'wish':
         data['reason'] = _reasonCtrl.text.trim();
         data['desire'] = _desire;
         break;
       case 'planned':
-        // 后端期望驼峰命名
         data['plannedDate'] = _plannedDate;
         data['itinerary'] = _itineraryCtrl.text.trim();
         final budget = double.tryParse(_budgetCtrl.text.trim());
@@ -272,13 +211,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                     onPressed: _save,
                     icon: const Icon(Icons.check, size: 20),
                     label: const Text('保存'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: LoveGirlTheme.primary,
-                      textStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
                   ),
           ),
         ],
@@ -288,20 +220,13 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           children: [
-            // ======== Emoji 选择器 ========
-            _buildSection('地点图标', [
-              _buildEmojiPicker(),
-            ]),
-
-            // ======== 基本信息 ========
+            // 基本信息
             _buildSection('基本信息', [
               _buildTextField(
                 controller: _nameCtrl,
                 label: '地点名称',
                 hint: '例如：故宫博物院',
                 required: true,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? '请输入地点名称' : null,
               ),
               const SizedBox(height: 12),
               _buildTextField(
@@ -315,21 +240,25 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 label: '地址（可选）',
                 hint: '具体地址',
               ),
-              const SizedBox(height: 16),
-              // 定位信息
-              _buildLocationSection(),
             ]),
 
             const SizedBox(height: 8),
 
-            // ======== 状态切换 ========
+            // 位置选择
+            _buildSection('位置信息', [
+              _buildLocationPicker(),
+            ]),
+
+            const SizedBox(height: 8),
+
+            // 状态切换
             _buildSection('旅行状态', [
               _buildStatusToggle(),
             ]),
 
             const SizedBox(height: 8),
 
-            // ======== 状态专属字段 ========
+            // 状态专属字段
             if (_status == 'visited') _buildVisitedFields(),
             if (_status == 'wish') _buildWishFields(),
             if (_status == 'planned') _buildPlannedFields(),
@@ -341,93 +270,45 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
   }
 
-  // ==================== Visited 专属字段 ====================
+  // Visited 专属字段
   Widget _buildVisitedFields() {
-    return Column(
-      children: [
-        _buildSection('旅行回忆', [
-          // 去的日期
-          _buildDateTile(
-            icon: Icons.calendar_today,
-            label: '去的日期',
-            value: _visitedDate,
-            onTap: () => _pickDate(isVisited: true),
-          ),
-          const SizedBox(height: 16),
-
-          // 评分
-          const Text('评分', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(5, (i) {
-              final starIdx = i + 1;
-              return GestureDetector(
-                onTap: () => setState(() => _rating = starIdx),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Icon(
-                    starIdx <= _rating ? Icons.star : Icons.star_border,
-                    color: starIdx <= _rating
-                        ? const Color(0xFFFFB800)
-                        : LoveGirlTheme.textMuted,
-                    size: 36,
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 16),
-
-          // 心情
-          _buildTextField(
-            controller: _moodCtrl,
-            label: '心情',
-            hint: '例如：开心、感动、浪漫',
-          ),
-          const SizedBox(height: 16),
-
-          // 照片
-          const Text('照片', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-          const SizedBox(height: 8),
-          _buildPhotoGrid(),
-          const SizedBox(height: 16),
-
-          // 游记
-          _buildTextField(
-            controller: _diaryCtrl,
-            label: '游记日记',
-            hint: '写下你们的旅行故事...',
-            maxLines: 5,
-          ),
-          const SizedBox(height: 16),
-
-          // 标签
-          _buildTextField(
-            controller: _tagsCtrl,
-            label: '标签（逗号分隔）',
-            hint: '例如：第一次, 必去, 情侣',
-          ),
-          if (_tags.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _tags.map((t) => Chip(
-                label: Text(t, style: const TextStyle(fontSize: 12)),
-                deleteIcon: const Icon(Icons.close, size: 16),
-                onDeleted: () => setState(() => _tags.remove(t)),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              )).toList(),
+    return _buildSection('旅行回忆', [
+      _buildDateTile(
+        icon: Icons.calendar_today,
+        label: '去的日期',
+        value: _visitedDate,
+        onTap: () => _pickDate(isVisited: true),
+      ),
+      const SizedBox(height: 16),
+      const Text('评分', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+      const SizedBox(height: 8),
+      Row(
+        children: List.generate(5, (i) {
+          final starIdx = i + 1;
+          return GestureDetector(
+            onTap: () => setState(() => _rating = starIdx),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Icon(
+                starIdx <= _rating ? Icons.star : Icons.star_border,
+                color: starIdx <= _rating ? const Color(0xFFFFB800) : LoveGirlTheme.textMuted,
+                size: 32,
+              ),
             ),
-          ],
-        ]),
-      ],
-    );
+          );
+        }),
+      ),
+      const SizedBox(height: 16),
+      _buildTextField(
+        controller: _diaryCtrl,
+        label: '游记日记',
+        hint: '写下你们的旅行故事...',
+        maxLines: 5,
+      ),
+    ]);
   }
 
-  // ==================== Wish 专属字段 ====================
+  // Wish 专属字段
   Widget _buildWishFields() {
     return _buildSection('想去的心愿', [
       _buildTextField(
@@ -440,7 +321,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       const Text('渴望度', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
       const SizedBox(height: 8),
       Row(
-        mainAxisSize: MainAxisSize.min,
         children: List.generate(3, (i) {
           final idx = i + 1;
           return GestureDetector(
@@ -449,7 +329,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               padding: const EdgeInsets.only(right: 12),
               child: Icon(
                 Icons.local_fire_department_rounded,
-                size: 32.0 - (3 - _desire) * 4.0,
+                size: 32,
                 color: idx <= _desire ? LoveGirlTheme.orange : LoveGirlTheme.textMuted.withAlpha(77),
               ),
             ),
@@ -459,7 +339,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     ]);
   }
 
-  // ==================== Planned 专属字段 ====================
+  // Planned 专属字段
   Widget _buildPlannedFields() {
     return _buildSection('出行计划', [
       _buildDateTile(
@@ -485,290 +365,14 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     ]);
   }
 
-  // ==================== 定位信息 ====================
-  Widget _buildLocationSection() {
-    final hasLocation = _lat != 0 || _lng != 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Text('定位信息',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-            const Spacer(),
-            // 地图选点按钮
-            GestureDetector(
-              onTap: _openMapPicker,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.map, size: 14, color: LoveGirlTheme.primary),
-                    SizedBox(width: 4),
-                    Text(
-                      '地图选点',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: LoveGirlTheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // GPS定位按钮
-            GestureDetector(
-              onTap: _locating ? null : _getCurrentLocation,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_locating)
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: LoveGirlTheme.primary),
-                      )
-                    else
-                      const Icon(Icons.my_location,
-                          size: 14, color: LoveGirlTheme.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      _locating ? '定位中...' : 'GPS定位',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: LoveGirlTheme.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // 经纬度显示
-        if (hasLocation) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withAlpha(15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF4CAF50).withAlpha(40)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle,
-                    size: 18, color: Color(0xFF4CAF50)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '已定位',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF4CAF50),
-                        ),
-                      ),
-                      Text(
-                        '纬度: ${_lat.toStringAsFixed(6)}  经度: ${_lng.toStringAsFixed(6)}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: const Color(0xFF4CAF50).withAlpha(180),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => setState(() { _lat = 0; _lng = 0; }),
-                  child: Icon(Icons.close,
-                      size: 18, color: const Color(0xFF4CAF50).withAlpha(150)),
-                ),
-              ],
-            ),
-          ),
-        ] else ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: LoveGirlTheme.orange.withAlpha(15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: LoveGirlTheme.orange.withAlpha(40)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline,
-                    size: 18, color: LoveGirlTheme.orange),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '未定位，地点将不会显示在地图上\n请点击"地图选点"或"GPS定位"',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: LoveGirlTheme.orange,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// 打开地图选点
-  Future<void> _openMapPicker() async {
-    final result = await Navigator.push<Map<String, dynamic>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MapPickerScreen(
-          initialLat: _lat != 0 ? _lat : null,
-          initialLng: _lng != 0 ? _lng : null,
-        ),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _lat = result['lat'] ?? 0;
-        _lng = result['lng'] ?? 0;
-      });
-      LogService().userAction('旅行:地图选点 $_lat,$_lng');
-    }
-  }
-
-  /// 获取当前GPS位置
-  /// WGS-84 坐标转 GCJ-02 坐标（高德地图使用）
-  List<double> _wgs84ToGcj02(double lat, double lng) {
-    const double pi = 3.14159265358979324;
-    const double a = 6378245.0;
-    const double ee = 0.00669342162296594;
-
-    double dLat = _transformLat(lng - 105.0, lat - 35.0);
-    double dLng = _transformLng(lng - 105.0, lat - 35.0);
-
-    double radLat = lat / 180.0 * pi;
-    double magic = sin(radLat);
-    magic = 1 - ee * magic * magic;
-    double sqrtMagic = sqrt(magic);
-
-    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
-    dLng = (dLng * 180.0) / (a / sqrtMagic * cos(radLat) * pi);
-
-    return [lat + dLat, lng + dLng];
-  }
-
-  double _transformLat(double x, double y) {
-    const double pi = 3.14159265358979324;
-    double ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * sqrt(x.abs());
-    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
-    ret += (20.0 * sin(y * pi) + 40.0 * sin(y / 3.0 * pi)) * 2.0 / 3.0;
-    ret += (160.0 * sin(y / 12.0 * pi) + 320 * sin(y * pi / 30.0)) * 2.0 / 3.0;
-    return ret;
-  }
-
-  double _transformLng(double x, double y) {
-    const double pi = 3.14159265358979324;
-    double ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * sqrt(x.abs());
-    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
-    ret += (20.0 * sin(x * pi) + 40.0 * sin(x / 3.0 * pi)) * 2.0 / 3.0;
-    ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0;
-    return ret;
-  }
-
-  Future<void> _getCurrentLocation() async {
-    setState(() => _locating = true);
-    try {
-      // 检查位置权限
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => _locating = false);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        setState(() => _locating = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('请在设置中开启位置权限'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      }
-
-      // 获取当前位置（WGS-84 坐标）
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      // 转换为 GCJ-02 坐标（高德地图使用）
-      final gcj02 = _wgs84ToGcj02(position.latitude, position.longitude);
-
-      setState(() {
-        _lat = gcj02[0];
-        _lng = gcj02[1];
-      });
-
-      LogService().userAction('旅行:GPS定位成功 $_lat,$_lng');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('定位成功: ${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      LogService().error('Travel', 'GPS定位失败: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('定位失败，请使用地图选点'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-    setState(() => _locating = false);
-  }
-
-  // ==================== 通用构建方法 ====================
-
+  // 通用构建方法
   Widget _buildSection(String title, List<Widget> children) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: LoveGirlTheme.cardLight,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black.withAlpha(8)),
       ),
       child: Column(
@@ -796,8 +400,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     int maxLines = 1,
     bool required = false,
     TextInputType? keyboardType,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,11 +416,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
-          validator: validator,
-          onChanged: onChanged,
+          validator: required
+              ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null
+              : null,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150), fontSize: 14),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -835,7 +437,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             filled: true,
             fillColor: LoveGirlTheme.bgLight,
           ),
-          style: const TextStyle(fontSize: 15),
         ),
       ],
     );
@@ -871,7 +472,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       color: value != null ? LoveGirlTheme.textPrimary : LoveGirlTheme.textMuted,
-                      fontWeight: value != null ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
                 ],
@@ -886,9 +486,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   Widget _buildStatusToggle() {
     final statuses = [
-      {'key': 'visited', 'label': '已打卡', 'color': LoveGirlTheme.visited},
-      {'key': 'wish', 'label': '心愿单', 'color': LoveGirlTheme.wish},
-      {'key': 'planned', 'label': '计划中', 'color': LoveGirlTheme.planned},
+      {'key': 'visited', 'label': '已打卡', 'color': const Color(0xFF4CAF50)},
+      {'key': 'wish', 'label': '心愿单', 'color': const Color(0xFFFF9800)},
+      {'key': 'planned', 'label': '计划中', 'color': const Color(0xFF9C27B0)},
     ];
 
     return Row(
@@ -930,143 +530,67 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
   }
 
-  // emoji 字符列表（对应图标）
-  static const _spotEmojis = ['📍', '🏖️', '⛰️', '🏛️', '🎢', '🏰', '🌊', '🌿', '🌋', '🏯', '🌳', '🕌', '🗼', '🏞️', '🛖', '🏗️', '🏨', '🛕'];
+  /// 位置选择器
+  Widget _buildLocationPicker() {
+    final hasLocation = _lat != 0 || _lng != 0;
 
-  static const _spotIcons = <IconData>[
-    Icons.location_on_rounded,
-    Icons.beach_access_rounded,
-    Icons.terrain_rounded,
-    Icons.account_balance_rounded,
-    Icons.attractions_rounded,
-    Icons.castle_rounded,
-    Icons.water_rounded,
-    Icons.nature_rounded,
-    Icons.volcano_rounded,
-    Icons.fort_rounded,
-    Icons.park_rounded,
-    Icons.mosque_rounded,
-    Icons.tour_rounded,
-    Icons.landscape_rounded,
-    Icons.cabin_rounded,
-    Icons.construction_rounded,
-    Icons.hotel_rounded,
-    Icons.temple_buddhist_rounded,
-  ];
-
-  Widget _buildEmojiPicker() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(_spotIcons.length, (i) {
-        final icon = _spotIcons[i];
-        final selected = i == _selectedIconIndex;
-        return GestureDetector(
-          onTap: () => setState(() {
-            _selectedIconIndex = i;
-            _emoji = _spotEmojis[i]; // 使用 emoji 字符
-          }),
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: selected
-                  ? LoveGirlTheme.primary.withAlpha(30)
-                  : LoveGirlTheme.bgLight,
-              border: Border.all(
-                color: selected ? LoveGirlTheme.primary : Colors.black.withAlpha(15),
-                width: selected ? 2 : 1,
-              ),
-            ),
-            child: Icon(icon, size: 20, color: selected ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildPhotoGrid() {
-    if (_photos.isEmpty) {
-      return GestureDetector(
-        onTap: _pickImage,
-        child: Container(
-          height: 100,
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.bgLight,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.black.withAlpha(15), style: BorderStyle.solid),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add_photo_alternate_outlined, size: 32, color: LoveGirlTheme.textMuted.withAlpha(150)),
-                const SizedBox(height: 4),
-                Text('添加照片', style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted.withAlpha(180))),
-              ],
-            ),
-          ),
+    return GestureDetector(
+      onTap: _openMapPicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: LoveGirlTheme.bgLight,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black.withAlpha(15)),
         ),
-      );
-    }
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: _photos.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              if (index == _photos.length) {
-                return GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: LoveGirlTheme.bgLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.black.withAlpha(15)),
-                    ),
-                    child: Center(
-                      child: Icon(Icons.add, size: 28, color: LoveGirlTheme.textMuted.withAlpha(150)),
-                    ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.map,
+              size: 20,
+              color: hasLocation ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '地图位置',
+                    style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textSecondary),
                   ),
-                );
-              }
-              final photo = _photos[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Stack(
-                  children: [
-                    if (photo.startsWith('http'))
-                      Image.network(photo, width: 100, height: 100, fit: BoxFit.cover)
-                    else
-                      Image.file(File(photo), width: 100, height: 100, fit: BoxFit.cover),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _photos.removeAt(index)),
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.close, size: 14, color: Colors.white),
-                        ),
+                  const SizedBox(height: 2),
+                  if (hasLocation)
+                    Text(
+                      _selectedAddress.isNotEmpty
+                          ? _selectedAddress
+                          : '${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: LoveGirlTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    const Text(
+                      '点击在地图上选择位置',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: LoveGirlTheme.textMuted,
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            ),
+            Icon(
+              hasLocation ? Icons.check_circle : Icons.chevron_right,
+              size: 20,
+              color: hasLocation ? const Color(0xFF4CAF50) : LoveGirlTheme.textMuted,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

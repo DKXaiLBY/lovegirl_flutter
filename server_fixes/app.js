@@ -1,20 +1,60 @@
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ========== Security & Ops Middleware ==========
+
+// 安全 HTTP 头（防 XSS/点击劫持/MIME嗅探等）
+app.use(helmet());
+
+// CORS — 允许APP来源（开发阶段开放所有，生产可收紧）
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Gzip 压缩
 app.use(compression());
+
+// 请求日志
+app.use(morgan('short'));
+
+// Body 解析
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK' }));
+// 全局限流 — 每IP每分钟最多200次请求
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,      // 1分钟窗口
+  max: 200,                  // 最多200次
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 429, message: '请求太频繁，请稍后再试' },
+});
+app.use('/api', globalLimiter);
 
-// Routes
+// 登录接口特殊限流 — 每分钟最多10次，防止暴力破解
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { code: 429, message: '登录尝试过于频繁，请1分钟后再试' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', rateLimit({ windowMs: 60 * 1000, max: 5 }));
+
+// ========== Health Check ==========
+app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime: process.uptime() }));
+
+// ========== Routes ==========
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/travel', require('./routes/travel'));
@@ -40,13 +80,39 @@ app.use('/api/daily', require('./routes/daily'));
 app.use('/api/exam', require('./routes/exam'));
 app.use('/api/privacy', require('./routes/privacy'));
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ code: 500, message: '服务器内部错误' });
+// ========== 404 Handler ==========
+app.use((req, res) => {
+  res.status(404).json({ code: 404, message: `接口不存在: ${req.method} ${req.path}` });
 });
 
+// ========== Error Handling ==========
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.path}:`, err.message);
+
+  // 区分不同类型的错误
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ code: 400, message: '请求体JSON格式错误' });
+  }
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ code: 400, message: '上传文件超出限制' });
+  }
+  if (err.name === 'UnauthorizedError' || err.status === 401) {
+    return res.status(401).json({ code: 401, message: '未授权，请重新登录' });
+  }
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ code: 400, message: err.message });
+  }
+
+  res.status(err.status || 500).json({
+    code: err.status || 500,
+    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : err.message,
+  });
+});
+
+// ========== Start ==========
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('LoveGirl server running on port', PORT);
+  console.log(`[LoveGirl] Server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
 });
+
+module.exports = app;

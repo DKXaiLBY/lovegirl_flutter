@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
 import '../utils/lovegirl_theme.dart';
 
@@ -22,6 +24,44 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     _fetchWeather();
   }
 
+  /// WGS-84 坐标转 GCJ-02 坐标（高德地图使用）
+  List<double> _wgs84ToGcj02(double lat, double lng) {
+    const double pi = 3.14159265358979324;
+    const double a = 6378245.0;
+    const double ee = 0.00669342162296594;
+
+    double dLat = _transformLat(lng - 105.0, lat - 35.0);
+    double dLng = _transformLng(lng - 105.0, lat - 35.0);
+
+    double radLat = lat / 180.0 * pi;
+    double magic = sin(radLat);
+    magic = 1 - ee * magic * magic;
+    double sqrtMagic = sqrt(magic);
+
+    dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
+    dLng = (dLng * 180.0) / (a / sqrtMagic * cos(radLat) * pi);
+
+    return [lat + dLat, lng + dLng];
+  }
+
+  double _transformLat(double x, double y) {
+    const double pi = 3.14159265358979324;
+    double ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * sqrt(x.abs());
+    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+    ret += (20.0 * sin(y * pi) + 40.0 * sin(y / 3.0 * pi)) * 2.0 / 3.0;
+    ret += (160.0 * sin(y / 12.0 * pi) + 320 * sin(y * pi / 30.0)) * 2.0 / 3.0;
+    return ret;
+  }
+
+  double _transformLng(double x, double y) {
+    const double pi = 3.14159265358979324;
+    double ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * sqrt(x.abs());
+    ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
+    ret += (20.0 * sin(x * pi) + 40.0 * sin(x / 3.0 * pi)) * 2.0 / 3.0;
+    ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0;
+    return ret;
+  }
+
   Future<void> _fetchWeather() async {
     if (!mounted) return;
     setState(() {
@@ -30,8 +70,47 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     });
 
     try {
-      final res = await ApiService().get('/api/weather', query: {'city': '北京'});
-      final data = res.data['data'] as Map<String, dynamic>?;
+      // 获取 GPS 位置
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        // 获取当前位置
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+        ).timeout(const Duration(seconds: 10));
+
+        // 转换为 GCJ-02 坐标（高德地图使用）
+        final gcj02 = _wgs84ToGcj02(position.latitude, position.longitude);
+
+        // 使用经纬度获取天气
+        final res = await ApiService().get('/api/weather/coords', query: {
+          'lat': gcj02[0].toString(),
+          'lng': gcj02[1].toString(),
+        }).timeout(const Duration(seconds: 10));
+
+        final data = res.data?['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          if (!mounted) return;
+          setState(() {
+            _temperature = (data['temp'] ?? data['temperature'])?.toString() ?? '--';
+            _weather = data['weather']?.toString() ?? '--';
+            _city = data['city']?.toString() ?? '未知';
+            _loading = false;
+          });
+          return;
+        }
+      }
+
+      // 如果 GPS 定位失败，使用默认城市
+      final res = await ApiService().get('/api/weather', query: {'city': '北京'}).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('timeout'),
+      );
+
+      final data = res.data?['data'] as Map<String, dynamic>?;
       if (data == null) throw Exception('no data');
 
       if (!mounted) return;

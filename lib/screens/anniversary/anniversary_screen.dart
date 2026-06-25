@@ -86,7 +86,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
 
   /// 获取下一个发生日期（今年或明年）
   DateTime _nextOccurrence(Map<String, dynamic> item) {
-    final dateStr = (item['date'] ?? '').toString();
+    // 后端返回的是 eventDate（驼峰命名），前端兼容 event_date 和 date
+    final dateStr = (item['eventDate'] ?? item['event_date'] ?? item['date'] ?? '').toString();
     if (dateStr.isEmpty) return DateTime(2099);
     final parts = dateStr.split('-');
     if (parts.length < 2) return DateTime(2099);
@@ -104,6 +105,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
 
   /// 计算距今天数
   int _daysUntil(String dateStr) {
+    // 后端返回的是 event_date，前端兼容 date
     if (dateStr.isEmpty) return 99999;
     final parts = dateStr.split('-');
     if (parts.length < 2) return 99999;
@@ -556,7 +558,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     final config = _typeConfig[type] ?? _typeConfig['custom']!;
     final title = item['title'] ?? '';
     final desc = item['description'] ?? '';
-    final dateStr = item['date'] ?? '';
+    // 后端返回的是 eventDate（驼峰命名），前端兼容 event_date 和 date
+    final dateStr = (item['eventDate'] ?? item['event_date'] ?? item['date'] ?? '').toString();
     final daysUntil = _daysUntil(dateStr);
     final lunarMark = item['is_lunar'] == true || item['is_lunar'] == 1 ? ' (农历)' : '';
 
