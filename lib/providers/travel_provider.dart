@@ -147,20 +147,33 @@ class TravelProvider extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      final res = await _api.getTravelSpots(status: _activeStatus.isNotEmpty ? _activeStatus : null, city: _activeCity.isNotEmpty ? _activeCity : null);
+      final statusParam = _activeStatus.isNotEmpty ? _activeStatus : null;
+      final cityParam = _activeCity.isNotEmpty ? _activeCity : null;
+      print('[TravelProvider] fetchSpots: status=$statusParam, city=$cityParam');
+
+      final res = await _api.getTravelSpots(status: statusParam, city: cityParam);
       final data = res.data?['data'];
+
+      print('[TravelProvider] API response data: $data');
+
       if (data != null && data is Map) {
         final list = data['list'];
+        print('[TravelProvider] list type: ${list.runtimeType}, length: ${list is List ? list.length : "not a list"}');
+
         _spots = (list is List)
             ? list.map((e) => TravelSpot.fromJson(Map<String, dynamic>.from(e))).toList()
             : [];
         final cities = data['cities'];
         _cityOptions = (cities is List) ? cities.cast<String>() : [];
+
+        print('[TravelProvider] _spots count: ${_spots.length}');
       } else {
+        print('[TravelProvider] data is null or not a Map');
         _spots = [];
         _cityOptions = [];
       }
     } catch (e) {
+      print('[TravelProvider] fetchSpots error: $e');
       _spots = [];
       _cityOptions = [];
     }
