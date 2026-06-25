@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/constants.dart';
 
 /// 云端相册页面
 class PhotoScreen extends StatefulWidget {
@@ -111,6 +112,9 @@ class _PhotoScreenState extends State<PhotoScreen> {
   }
 
   void _showFullScreen(String url) {
+    // 确保 URL 是完整的
+    final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -124,7 +128,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           body: Center(
             child: InteractiveViewer(
               child: CachedNetworkImage(
-                imageUrl: url,
+                imageUrl: fullUrl,
                 fit: BoxFit.contain,
                 placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white)),
                 errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 64),
@@ -196,12 +200,13 @@ class _PhotoScreenState extends State<PhotoScreen> {
                         itemBuilder: (context, index) {
                           final photo = _photos[index];
                           final url = photo['url'] ?? photo['image'] ?? '';
+                          final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
                           final id = photo['id'];
                           return GestureDetector(
                             onTap: () => _showFullScreen(url),
                             onLongPress: () => id != null ? _deletePhoto(id) : null,
                             child: CachedNetworkImage(
-                              imageUrl: url,
+                              imageUrl: fullUrl,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(color: LoveGirlTheme.bgLight),
                               errorWidget: (_, __, ___) => Container(

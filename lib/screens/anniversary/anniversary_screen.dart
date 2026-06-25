@@ -326,7 +326,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                         'title': title,
                         'description': descCtrl.text.trim(),
                         'type': selectedType,
-                        'date': '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                        'eventDate': '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                        'icon': _typeConfig[selectedType]?['icon']?.toString() ?? '💕',
                         'is_lunar': isLunar,
                         'repeat_type': repeatType,
                       };
@@ -444,13 +445,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                     ],
                   ),
                 ),
-      floatingActionButton: _anniversaries.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: () => _showAddEditSheet(),
-              backgroundColor: LoveGirlTheme.primary,
-              child: const Icon(Icons.add_rounded, color: Colors.white),
-            )
-          : null,
     );
   }
 
@@ -501,8 +495,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
           const SizedBox(height: 20),
           // 倒计时数字
           Container(
-            width: 100,
-            height: 100,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               color: Colors.white.withAlpha(40),
               shape: BoxShape.circle,
@@ -510,9 +504,17 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  '$_nextDays',
-                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w200, color: Colors.white, height: 1),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '$_nextDays',
+                    style: TextStyle(
+                      fontSize: _nextDays > 99 ? 32 : 40,
+                      fontWeight: FontWeight.w200,
+                      color: Colors.white,
+                      height: 1,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 const Text('天', style: TextStyle(fontSize: 14, color: Colors.white70)),

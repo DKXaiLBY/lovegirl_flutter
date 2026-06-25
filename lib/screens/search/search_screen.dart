@@ -100,22 +100,43 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final res = await _api.search(keyword);
       final data = res.data?['data'];
-      List raw;
-      if (data is List) {
-        raw = data;
-      } else if (data is Map) {
-        raw = data['list'] as List? ?? data['results'] as List? ?? [];
-      } else {
-        raw = [];
-      }
-      _results = raw.map((e) => Map<String, dynamic>.from(e)).toList();
 
-      // 按 type 分组
+      _results = [];
       _groupedResults = {};
-      for (final item in _results) {
-        final type = (item['type'] ?? 'other').toString();
-        _groupedResults.putIfAbsent(type, () => []).add(item);
+
+      if (data is Map) {
+        // 后端返回格式: { todos: [...], finances: [...], ... }
+        final categories = ['todos', 'finances', 'courses', 'photos', 'moods', 'timeline', 'feeding'];
+        final typeMap = {
+          'todos': 'todo',
+          'finances': 'finance',
+          'courses': 'course',
+          'photos': 'photo',
+          'moods': 'mood',
+          'timeline': 'timeline',
+          'feeding': 'feeding',
+        };
+
+        for (final cat in categories) {
+          final items = data[cat];
+          if (items is List && items.isNotEmpty) {
+            final type = typeMap[cat] ?? cat;
+            for (final item in items) {
+              final Map<String, dynamic> result = Map<String, dynamic>.from(item);
+              result['type'] = type;
+              _results.add(result);
+              _groupedResults.putIfAbsent(type, () => []).add(result);
+            }
+          }
+        }
+      } else if (data is List) {
+        _results = data.map((e) => Map<String, dynamic>.from(e)).toList();
+        for (final item in _results) {
+          final type = (item['type'] ?? 'other').toString();
+          _groupedResults.putIfAbsent(type, () => []).add(item);
+        }
       }
+
       LogService().info('Search', '搜索"$keyword" 找到${_results.length}条结果');
     } catch (e) {
       _error = '搜索失败，请重试';
