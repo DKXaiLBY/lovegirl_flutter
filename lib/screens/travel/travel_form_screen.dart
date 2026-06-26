@@ -101,30 +101,39 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   /// 打开地图选点
   Future<void> _openMapPicker() async {
-    final result = await Navigator.of(context).push<Map<String, dynamic>>(
-      MaterialPageRoute(
-        builder: (_) => MapPickerScreen(
-          initialLat: _lat != 0 ? _lat : null,
-          initialLng: _lng != 0 ? _lng : null,
+    try {
+      final result = await Navigator.of(context).push<Map<String, dynamic>>(
+        MaterialPageRoute(
+          builder: (_) => MapPickerScreen(
+            initialLat: _lat != 0 ? _lat : null,
+            initialLng: _lng != 0 ? _lng : null,
+          ),
         ),
-      ),
-    );
+      );
 
-    if (result != null) {
-      setState(() {
-        _lat = result['lat'] ?? 0;
-        _lng = result['lng'] ?? 0;
-        _selectedCity = result['city'] ?? '';
-        _selectedAddress = result['address'] ?? '';
-        // 自动填充城市（如果为空）
-        if (_cityCtrl.text.isEmpty && _selectedCity.isNotEmpty) {
-          _cityCtrl.text = _selectedCity;
-        }
-        // 自动填充地址（如果为空）
-        if (_addressCtrl.text.isEmpty && _selectedAddress.isNotEmpty) {
-          _addressCtrl.text = _selectedAddress;
-        }
-      });
+      if (result != null) {
+        setState(() {
+          _lat = result['lat'] ?? 0;
+          _lng = result['lng'] ?? 0;
+          _selectedCity = result['city'] ?? '';
+          _selectedAddress = result['address'] ?? '';
+          if (_cityCtrl.text.isEmpty && _selectedCity.isNotEmpty) {
+            _cityCtrl.text = _selectedCity;
+          }
+          if (_addressCtrl.text.isEmpty && _selectedAddress.isNotEmpty) {
+            _addressCtrl.text = _selectedAddress;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('打开地图失败，请重试'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -132,14 +141,16 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入地点名称')),
+        const SnackBar(
+          content: Text('请输入地点名称'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
 
     setState(() => _saving = true);
 
-    // 默认日期为今天（如果未选择）
     final now = DateTime.now();
     final today = DateFormat('yyyy-MM-dd').format(now);
 
@@ -179,16 +190,50 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       } else {
         await provider.createSpot(data);
       }
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
+          SnackBar(
+            content: Text(_isEditing ? '修改成功' : '添加成功'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF4CAF50),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        final msg = _getErrorMessage(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: LoveGirlTheme.red,
+            duration: const Duration(seconds: 2),
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// 将异常转为中文提示
+  String _getErrorMessage(dynamic error) {
+    final s = error.toString();
+    if (s.contains('SocketException') || s.contains('Connection refused')) {
+      return '网络连接失败，请检查网络';
+    }
+    if (s.contains('TimeoutException') || s.contains('timeout')) {
+      return '请求超时，请稍后重试';
+    }
+    if (s.contains('401')) {
+      return '登录已过期，请重新登录';
+    }
+    if (s.contains('500')) {
+      return '服务器繁忙，请稍后重试';
+    }
+    return '保存失败，请重试';
   }
 
   @override
@@ -262,10 +307,26 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
             const SizedBox(height: 8),
 
-            // 状态专属字段
-            if (_status == 'visited') _buildVisitedFields(),
-            if (_status == 'wish') _buildWishFields(),
-            if (_status == 'planned') _buildPlannedFields(),
+            // 已打卡专属字段 — 用 Visibility 保持状态
+            Visibility(
+              visible: _status == 'visited',
+              maintainState: true,
+              child: _buildVisitedFields(),
+            ),
+
+            // 心愿单专属字段
+            Visibility(
+              visible: _status == 'wish',
+              maintainState: true,
+              child: _buildWishFields(),
+            ),
+
+            // 计划中专属字段
+            Visibility(
+              visible: _status == 'planned',
+              maintainState: true,
+              child: _buildPlannedFields(),
+            ),
 
             const SizedBox(height: 32),
           ],
@@ -284,7 +345,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         onTap: () => _pickDate(isVisited: true),
       ),
       const SizedBox(height: 16),
-      const Text('评分', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+      const Text('评分',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
       const SizedBox(height: 8),
       Row(
         children: List.generate(5, (i) {
@@ -295,7 +357,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               padding: const EdgeInsets.only(right: 8),
               child: Icon(
                 starIdx <= _rating ? Icons.star : Icons.star_border,
-                color: starIdx <= _rating ? const Color(0xFFFFB800) : LoveGirlTheme.textMuted,
+                color: starIdx <= _rating
+                    ? const Color(0xFFFFB800)
+                    : LoveGirlTheme.textMuted,
                 size: 32,
               ),
             ),
@@ -322,7 +386,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         maxLines: 3,
       ),
       const SizedBox(height: 16),
-      const Text('渴望度', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+      const Text('渴望度',
+          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
       const SizedBox(height: 8),
       Row(
         children: List.generate(3, (i) {
@@ -334,7 +399,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               child: Icon(
                 Icons.local_fire_department_rounded,
                 size: 32,
-                color: idx <= _desire ? LoveGirlTheme.orange : LoveGirlTheme.textMuted.withAlpha(77),
+                color: idx <= _desire
+                    ? LoveGirlTheme.orange
+                    : LoveGirlTheme.textMuted.withAlpha(77),
               ),
             ),
           );
@@ -410,9 +477,12 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       children: [
         Row(
           children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+            Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w500, fontSize: 14)),
             if (required)
-              const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
+              const Text(' *',
+                  style: TextStyle(color: Colors.red, fontSize: 14)),
           ],
         ),
         const SizedBox(height: 6),
@@ -425,7 +495,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               : null,
           decoration: InputDecoration(
             hintText: hint,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.black.withAlpha(15)),
@@ -436,7 +507,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
+              borderSide:
+                  const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
             ),
             filled: true,
             fillColor: LoveGirlTheme.bgLight,
@@ -469,19 +541,24 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textSecondary)),
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 12, color: LoveGirlTheme.textSecondary)),
                   const SizedBox(height: 2),
                   Text(
                     value ?? '点击选择日期',
                     style: TextStyle(
                       fontSize: 15,
-                      color: value != null ? LoveGirlTheme.textPrimary : LoveGirlTheme.textMuted,
+                      color: value != null
+                          ? LoveGirlTheme.textPrimary
+                          : LoveGirlTheme.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: LoveGirlTheme.textMuted),
+            const Icon(Icons.chevron_right,
+                size: 20, color: LoveGirlTheme.textMuted),
           ],
         ),
       ),
@@ -522,7 +599,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight:
+                        active ? FontWeight.w600 : FontWeight.normal,
                     color: active ? color : LoveGirlTheme.textSecondary,
                   ),
                 ),
@@ -552,17 +630,18 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             Icon(
               Icons.map,
               size: 20,
-              color: hasLocation ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
+              color: hasLocation
+                  ? LoveGirlTheme.primary
+                  : LoveGirlTheme.textMuted,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '地图位置',
-                    style: const TextStyle(fontSize: 12, color: LoveGirlTheme.textSecondary),
-                  ),
+                  const Text('地图位置',
+                      style: TextStyle(
+                          fontSize: 12, color: LoveGirlTheme.textSecondary)),
                   const SizedBox(height: 2),
                   if (hasLocation)
                     Text(
@@ -578,7 +657,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                     )
                   else
                     const Text(
-                      '点击在地图上选择位置',
+                      '点击在地图上选择位置（可选）',
                       style: TextStyle(
                         fontSize: 14,
                         color: LoveGirlTheme.textMuted,
@@ -590,7 +669,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             Icon(
               hasLocation ? Icons.check_circle : Icons.chevron_right,
               size: 20,
-              color: hasLocation ? const Color(0xFF4CAF50) : LoveGirlTheme.textMuted,
+              color: hasLocation
+                  ? const Color(0xFF4CAF50)
+                  : LoveGirlTheme.textMuted,
             ),
           ],
         ),
