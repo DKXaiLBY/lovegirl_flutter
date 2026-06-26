@@ -45,8 +45,8 @@ router.get('/', authRequired, async (req, res) => {
     // 查询绑定关系
     const [rows] = await pool.query(
       `SELECT c.id, c.user1_id, c.user2_id, c.created_at,
-              u1.nickname AS user1_name, u1.avatar AS user1_avatar, u1.role AS user1_role,
-              u2.nickname AS user2_name, u2.avatar AS user2_avatar, u2.role AS user2_role
+              u1.nickname AS user1_name, u1.avatar_url AS user1_avatar, u1.role AS user1_role,
+              u2.nickname AS user2_name, u2.avatar_url AS user2_avatar, u2.role AS user2_role
        FROM couples c
        JOIN users u1 ON c.user1_id = u1.id
        JOIN users u2 ON c.user2_id = u2.id

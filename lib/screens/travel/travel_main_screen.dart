@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:amap_flutter_base/amap_flutter_base.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
 import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
