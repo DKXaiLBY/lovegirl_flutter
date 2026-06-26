@@ -1,7 +1,7 @@
 name: lovegirl_flutter
 description: "LoveGirl - 情侣专属APP"
 publish_to: 'none'
-version: 3.16.7+131
+version: 3.17.0+132
 
 environment:
   sdk: ^3.6.2
@@ -34,6 +34,10 @@ dependencies:
   flutter_map: ^6.0.0
   latlong2: ^0.9.0
   geolocator: ^11.0.0
+
+dependency_overrides:
+  amap_flutter_base:
+    path: ./packages/amap_flutter_base
 
 dev_dependencies:
   flutter_test:

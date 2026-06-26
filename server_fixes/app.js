@@ -90,6 +90,7 @@ app.use('/api/daily', require('./routes/daily'));
 app.use('/api/exam', require('./routes/exam'));
 app.use('/api/privacy', require('./routes/privacy'));
 app.use('/api/couple', require('./routes/couple'));
+app.use('/api/deploy', require('./routes/deploy_api'));
 
 // ========== 404 Handler (all paths return JSON) ==========
 app.use((req, res) => {
