@@ -11,7 +11,10 @@ const app = express();
 // ========== Security & Ops Middleware ==========
 
 // 安全 HTTP 头（防 XSS/点击劫持/MIME嗅探等）
-app.use(helmet());
+// helmet 配置：关闭 HSTS（APP 使用 HTTP，不需要强制 HTTPS）
+app.use(helmet({
+  hsts: false,  // 禁用 HSTS，避免浏览器强制 HTTPS 导致下载问题
+}));
 
 // CORS — 允许APP来源
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -63,7 +66,17 @@ app.use('/api/auth/register', rateLimit({ windowMs: 60 * 1000, max: 5 }));
 
 // ========== Static Files (APK downloads) ==========
 const path = require('path');
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+  // APK 文件不缓存，确保下载最新版本
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.apk')) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Surrogate-Control', 'no-store');
+    }
+  },
+}));
 
 // ========== Health Check ==========
 app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime: process.uptime() }));

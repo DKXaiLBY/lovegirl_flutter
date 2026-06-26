@@ -484,16 +484,36 @@ Future<void> _downloadApk(
     final dir = await getTemporaryDirectory();
     final filePath = '${dir.path}/LoveGirl-latest.apk';
 
+    // 删除旧文件，确保下载最新版本
+    final oldFile = File(filePath);
+    if (await oldFile.exists()) {
+      await oldFile.delete();
+    }
+
+    // 添加时间戳参数避免缓存
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final cacheBustUrl = url.contains('?') ? '$url&_t=$timestamp' : '$url?_t=$timestamp';
+
     final dio = Dio();
+    dio.options.connectTimeout = const Duration(seconds: 30);
+    dio.options.receiveTimeout = const Duration(minutes: 5);
+
     await dio.download(
-      url,
+      cacheBustUrl,
       filePath,
+      deleteOnError: true,
       onReceiveProgress: (received, total) {
         if (total > 0 && onProgress != null) {
           onProgress(received / total);
         }
       },
     );
+
+    // 验证下载的文件大小
+    final file = File(filePath);
+    if (!await file.exists() || await file.length() < 1024 * 1024) {
+      throw Exception('下载的APK文件无效');
+    }
 
     if (onComplete != null) onComplete(filePath);
   } catch (e) {
