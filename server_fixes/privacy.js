@@ -58,13 +58,24 @@ router.put('/', authRequired, async (req, res) => {
 });
 
 // GET /api/privacy/check?type=photo|mood|travel|chat&partner_id=xxx
-// 检查对方是否允许访问某类数据
+// 检查对方是否允许访问某类数据（需验证伴侣关系）
 router.get('/check', authRequired, async (req, res) => {
   try {
     const { type, partner_id } = req.query;
     if (!type || !partner_id) {
       return res.status(400).json({ code: 400, message: '缺少参数' });
     }
+
+    // 验证伴侣关系
+    const userId = req.user.id;
+    const [coupleRows] = await pool.query(
+      "SELECT id FROM couples WHERE ((user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)) AND status = 'active'",
+      [userId, partner_id, partner_id, userId]
+    );
+    if (coupleRows.length === 0) {
+      return res.status(403).json({ code: 403, message: '无权访问对方隐私设置' });
+    }
+
     const [rows] = await pool.query('SELECT * FROM user_privacy WHERE user_id = ?', [partner_id]);
     const setting = rows[0] || {};
     const fieldMap = { photo: 'photo_visible', mood: 'mood_visible', travel: 'travel_visible', chat: 'chat_visible' };
@@ -72,6 +83,15 @@ router.get('/check', authRequired, async (req, res) => {
     if (!field) return res.status(400).json({ code: 400, message: '无效的类型' });
     res.json({ code: 200, data: { visible: setting[field] !== false } });
   } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') {
+      // couples 表不存在时放行（向后兼容）
+      const { partner_id, type } = req.query;
+      const [rows] = await pool.query('SELECT * FROM user_privacy WHERE user_id = ?', [partner_id]);
+      const setting = rows[0] || {};
+      const fieldMap = { photo: 'photo_visible', mood: 'mood_visible', travel: 'travel_visible', chat: 'chat_visible' };
+      const field = fieldMap[type];
+      return res.json({ code: 200, data: { visible: setting[field] !== false } });
+    }
     console.error('检查隐私设置失败:', err);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }

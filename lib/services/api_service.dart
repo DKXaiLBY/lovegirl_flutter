@@ -160,4 +160,10 @@ class ApiService {
 
   // ========== 搜索 ==========
   Future search(String keyword) => get('/api/search', query: {'keyword': keyword});
+
+  // ========== 伴侣绑定 ==========
+  Future getCoupleStatus() => get('/api/couple');
+  Future createCoupleInvite() => post('/api/couple/invite');
+  Future acceptCoupleInvite(String code) => post('/api/couple/accept', data: {'code': code});
+  Future breakCouple() => delete('/api/couple');
 }

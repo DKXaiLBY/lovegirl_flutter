@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../settings/settings_screen.dart';
 import '../feeding/feeding_screen.dart';
@@ -9,6 +10,7 @@ import '../mood/mood_screen.dart';
 import '../chat/chat_screen.dart';
 import '../photo/photo_screen.dart';
 import '../timeline/timeline_screen.dart';
+import '../couple/couple_binding_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final void Function(int tabIndex)? onNavigateToTab;
@@ -19,6 +21,25 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final ApiService _api = ApiService();
+  String? _partnerName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoupleStatus();
+  }
+
+  Future<void> _loadCoupleStatus() async {
+    try {
+      final res = await _api.getCoupleStatus();
+      final data = res.data?['data'];
+      if (data is Map && data['coupled'] == true && data['partner'] is Map) {
+        if (mounted) setState(() => _partnerName = data['partner']['nickname']);
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -71,7 +92,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '在一起 ${auth.loveDays} 天',
+                  _partnerName != null
+                      ? '💕 与 $_partnerName 在一起 ${auth.loveDays} 天'
+                      : '在一起 ${auth.loveDays} 天',
                   style: const TextStyle(fontSize: 13, color: LoveGirlTheme.primary),
                 ),
               ],
@@ -85,6 +108,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildMenu(AuthProvider auth) {
     final items = <_MenuItem>[
+      _MenuItem(icon: Icons.link_rounded, title: '伴侣绑定', onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const CoupleBindingScreen()));
+      }),
       _MenuItem(icon: Icons.photo_library_outlined, title: '云端相册', onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PhotoScreen()));
       }),

@@ -210,16 +210,23 @@ router.post('/orders', authRequired, async (req, res) => {
 
     const totalPrice = productPrice * qty;
 
-    // 查找伴侣作为接收者
-    // TODO: 引入 couple/binding 表记录伴侣关系，当前假设只有2个用户（boy+girl）
-    const partnerRole = req.user.role === 'boy' ? 'girl' : 'boy';
+    // 查找伴侣作为接收者（优先用 couple 表，回退到角色匹配）
     let receiverId = null;
     try {
-      const [partners] = await pool.query(
-        'SELECT id FROM users WHERE role = ? AND id != ? ORDER BY last_login DESC LIMIT 1',
-        [partnerRole, senderId]
+      const [coupleRows] = await pool.query(
+        "SELECT CASE WHEN user1_id = ? THEN user2_id ELSE user1_id END AS partner_id FROM couples WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'",
+        [senderId, senderId, senderId]
       );
-      if (partners.length > 0) receiverId = partners[0].id;
+      if (coupleRows.length > 0) {
+        receiverId = coupleRows[0].partner_id;
+      } else {
+        const partnerRole = req.user.role === 'boy' ? 'girl' : 'boy';
+        const [partners] = await pool.query(
+          'SELECT id FROM users WHERE role = ? AND id != ? ORDER BY last_login DESC LIMIT 1',
+          [partnerRole, senderId]
+        );
+        if (partners.length > 0) receiverId = partners[0].id;
+      }
     } catch (_) {
       receiverId = null;
     }
