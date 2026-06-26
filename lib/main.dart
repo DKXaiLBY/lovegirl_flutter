@@ -103,27 +103,29 @@ class _AppShellState extends State<AppShell> {
     }
 
     // 固定5个Tab：健康Tab对男友端显示但不允许进入
-    final pages = <Widget>[
-      HomeScreen(
-        onNavigateToTab: _navigateToTab,
-        onNavigateToSubTab: (tab, subTab) {
-          if (tab == 3) {
-            _navigateToLifeSubTab(subTab);
-          } else {
-            _navigateToTab(tab);
-          }
-        },
-      ),
-      const TravelMainScreen(),
-      const HealthScreen(),
-      LifeScreen(key: ValueKey('life_$_lifeSubTab'), initialTab: _lifeSubTab),
-      ProfileScreen(onNavigateToTab: _navigateToTab),
-    ];
-
+    // 旅行Tab使用懒加载，避免高德SDK在启动时初始化导致闪退
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: pages,
+        children: [
+          HomeScreen(
+            onNavigateToTab: _navigateToTab,
+            onNavigateToSubTab: (tab, subTab) {
+              if (tab == 3) {
+                _navigateToLifeSubTab(subTab);
+              } else {
+                _navigateToTab(tab);
+              }
+            },
+          ),
+          // 旅行Tab：懒加载，只在首次访问时创建
+          _currentIndex == 1
+              ? const TravelMainScreen()
+              : const SizedBox.shrink(),
+          const HealthScreen(),
+          LifeScreen(key: ValueKey('life_$_lifeSubTab'), initialTab: _lifeSubTab),
+          ProfileScreen(onNavigateToTab: _navigateToTab),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(auth),
     );

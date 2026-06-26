@@ -25,9 +25,12 @@ class TravelMapWidget extends StatefulWidget {
 
 class TravelMapWidgetState extends State<TravelMapWidget> {
   AMapController? _controller;
+  bool _mapReady = false;
+  bool _mapError = false;
   static const LatLng _defaultCenter = LatLng(30.5728, 104.0668); // 成都
 
   void animateToSpot(TravelSpot spot) {
+    if (!_mapReady || _controller == null) return;
     if (spot.lat != 0 || spot.lng != 0) {
       _controller?.moveCamera(
         CameraUpdate.newLatLngZoom(LatLng(spot.lat, spot.lng), 15.0),
@@ -36,6 +39,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   }
 
   void moveToLocation(double lat, double lng, {double zoom = 14.0}) {
+    if (!_mapReady || _controller == null) return;
     _controller?.moveCamera(
       CameraUpdate.newLatLngZoom(LatLng(lat, lng), zoom),
     );
@@ -43,10 +47,43 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 如果地图加载失败，显示备用UI
+    if (_mapError) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        child: Container(
+          color: const Color(0xFF1A1A2E),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.map_outlined, size: 48, color: Colors.white38),
+                const SizedBox(height: 8),
+                const Text('地图加载失败',
+                    style: TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => setState(() => _mapError = false),
+                  child: const Text('重试',
+                      style: TextStyle(color: LoveGirlTheme.primary)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-      child: AMapWidget(
-        // 高德合规声明
+      child: _buildMap(),
+    );
+  }
+
+  Widget _buildMap() {
+    try {
+      return AMapWidget(
+        // 高德合规声明（必须）
         privacyStatement: const AMapPrivacyStatement(
           hasContains: true,
           hasShow: true,
@@ -56,19 +93,10 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           target: _defaultCenter,
           zoom: 4.0,
         ),
-        // 暗色主题
-        mapType: MapType.night,
-        // 3D建筑
-        buildingsEnabled: true,
+        // 普通地图（夜间模式可能导致兼容问题）
+        mapType: MapType.normal,
         // 缩放范围
         minMaxZoomPreference: const MinMaxZoomPreference(3.0, 18.0),
-        // 显示定位蓝点
-        myLocationStyleOptions: MyLocationStyleOptions(
-          true,
-          circleFillColor: LoveGirlTheme.primary.withAlpha(40),
-          circleStrokeColor: LoveGirlTheme.primary.withAlpha(100),
-          circleStrokeWidth: 2.0,
-        ),
         // 手势
         zoomGesturesEnabled: true,
         scrollGesturesEnabled: true,
@@ -81,14 +109,25 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         // 回调
         onMapCreated: (controller) {
           _controller = controller;
-          // 延迟移动到第一个有点的位置
+          _mapReady = true;
           Future.delayed(const Duration(milliseconds: 500), () {
-            _fitBounds();
+            if (mounted) _fitBounds();
           });
         },
         onLongPress: widget.onLongPress,
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('AMap SDK error: $e');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _mapError = true);
+      });
+      return Container(
+        color: const Color(0xFF1A1A2E),
+        child: const Center(
+          child: CircularProgressIndicator(color: LoveGirlTheme.primary),
+        ),
+      );
+    }
   }
 
   Set<Marker> _buildMarkers() {
@@ -118,16 +157,13 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   Set<Polyline> _buildPolylines() {
     final visitedSpots = widget.spots
-        .where((s) =>
-            s.status == 'visited' && (s.lat != 0 || s.lng != 0))
+        .where((s) => s.status == 'visited' && (s.lat != 0 || s.lng != 0))
         .toList()
-      ..sort(
-          (a, b) => (a.visitedDate ?? '').compareTo(b.visitedDate ?? ''));
+      ..sort((a, b) => (a.visitedDate ?? '').compareTo(b.visitedDate ?? ''));
 
     if (visitedSpots.length < 2) return {};
 
-    final points =
-        visitedSpots.map((s) => LatLng(s.lat, s.lng)).toList();
+    final points = visitedSpots.map((s) => LatLng(s.lat, s.lng)).toList();
 
     return {
       Polyline(
@@ -139,6 +175,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   }
 
   void _fitBounds() {
+    if (!_mapReady || _controller == null) return;
     final validSpots =
         widget.spots.where((s) => s.lat != 0 || s.lng != 0).toList();
     if (validSpots.isEmpty) return;
