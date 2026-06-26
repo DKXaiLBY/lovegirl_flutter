@@ -27,6 +27,7 @@ class AuthProvider extends ChangeNotifier {
         _isLoggedIn = true;
       } catch (_) {
         await _storage.delete(key: AppConstants.tokenKey);
+        _error = '登录已过期，请重新登录';
       }
     }
     notifyListeners();

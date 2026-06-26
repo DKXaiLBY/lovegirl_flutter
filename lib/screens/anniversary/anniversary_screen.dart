@@ -31,6 +31,15 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
 
   static const _typeOptions = ['love', 'birthday', 'first', 'custom'];
 
+  static const _typeEmojis = {
+    'love': '💕',
+    'birthday': '🎂',
+    'first': '⭐',
+    'custom': '✨',
+  };
+
+  String _typeEmoji(String type) => _typeEmojis[type] ?? '✨';
+
   @override
   void initState() {
     super.initState();
@@ -329,7 +338,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                         'description': descCtrl.text.trim(),
                         'type': selectedType,
                         'eventDate': '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
-                        'icon': _typeConfig[selectedType]?['icon']?.toString() ?? '💕',
+                        'icon': _typeEmoji(selectedType),
                         'is_lunar': isLunar,
                         'repeat_type': repeatType,
                       };

@@ -53,10 +53,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           CircleAvatar(
             radius: 28,
             backgroundColor: LoveGirlTheme.separator,
-            backgroundImage: (user?['avatar'] != null && (user!['avatar'] as String).isNotEmpty)
-                ? NetworkImage(user['avatar'])
+            backgroundImage: (user?['avatar'] != null && (user!['avatar']?.toString().isNotEmpty == true))
+                ? NetworkImage(user!['avatar'].toString())
                 : null,
-            child: (user?['avatar'] == null || (user!['avatar'] as String).isEmpty)
+            child: (user?['avatar'] == null || user!['avatar']?.toString().isEmpty != false)
                 ? const Icon(Icons.person, color: LoveGirlTheme.textMuted)
                 : null,
           ),

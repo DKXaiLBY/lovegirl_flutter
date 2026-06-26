@@ -33,8 +33,8 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _scrollCtrl.removeListener(_onScroll);
-    _msgCtrl.dispose();
     _scrollCtrl.dispose();
+    _msgCtrl.dispose();
     super.dispose();
   }
 
@@ -152,7 +152,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessage(Map<String, dynamic> msg) {
     final content = _decode(msg['content']?.toString());
     final isMine = msg['is_mine'] == true;
-    final time = msg['created_at']?.toString().substring(11, 16) ?? '';
+    final createdAtStr = msg['created_at']?.toString() ?? '';
+    final time = createdAtStr.length >= 16 ? createdAtStr.substring(11, 16) : '';
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(

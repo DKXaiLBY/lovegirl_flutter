@@ -308,7 +308,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _avatarPlaceholder(AuthProvider auth) {
     final name = auth.user?['nickname'] ?? '?';
-    return Container(color: LoveGirlTheme.primary.withAlpha(30), child: Center(child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: LoveGirlTheme.primary))));
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      color: LoveGirlTheme.primary.withAlpha(30),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: LoveGirlTheme.primary,
+          ),
+        ),
+      ),
+    );
   }
 
   // ========== 主题 ==========
@@ -335,25 +348,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildSwitchRow(Icons.photo_library_outlined, LoveGirlTheme.primary, '相册可见', _photoVisible, (v) {
             setState(() => _photoVisible = v);
-            ApiService().updatePrivacy({'photo_visible': v}).catchError((e) => LogService().error('Settings', '保存相册隐私失败: $e'));
+            ApiService().updatePrivacy({'photo_visible': v}).catchError((e) {
+              LogService().error('Settings', '保存相册隐私失败: $e');
+              if (mounted) {
+                setState(() => _photoVisible = !v);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+              }
+            });
             LogService().userAction('隐私:相册可见=$v');
           }),
           const Divider(height: 20, indent: 40),
           _buildSwitchRow(Icons.mood_outlined, LoveGirlTheme.orange, '心情可见', _moodVisible, (v) {
             setState(() => _moodVisible = v);
-            ApiService().updatePrivacy({'mood_visible': v}).catchError((e) => LogService().error('Settings', '保存心情隐私失败: $e'));
+            ApiService().updatePrivacy({'mood_visible': v}).catchError((e) {
+              LogService().error('Settings', '保存心情隐私失败: $e');
+              if (mounted) {
+                setState(() => _moodVisible = !v);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+              }
+            });
             LogService().userAction('隐私:心情可见=$v');
           }),
           const Divider(height: 20, indent: 40),
           _buildSwitchRow(Icons.map_outlined, LoveGirlTheme.visited, '行程可见', _travelVisible, (v) {
             setState(() => _travelVisible = v);
-            ApiService().updatePrivacy({'travel_visible': v}).catchError((e) => LogService().error('Settings', '保存行程隐私失败: $e'));
+            ApiService().updatePrivacy({'travel_visible': v}).catchError((e) {
+              LogService().error('Settings', '保存行程隐私失败: $e');
+              if (mounted) {
+                setState(() => _travelVisible = !v);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+              }
+            });
             LogService().userAction('隐私:行程可见=$v');
           }),
           const Divider(height: 20, indent: 40),
           _buildSwitchRow(Icons.chat_bubble_outline, LoveGirlTheme.planned, '聊天记录可见', _chatVisible, (v) {
             setState(() => _chatVisible = v);
-            ApiService().updatePrivacy({'chat_visible': v}).catchError((e) => LogService().error('Settings', '保存聊天隐私失败: $e'));
+            ApiService().updatePrivacy({'chat_visible': v}).catchError((e) {
+              LogService().error('Settings', '保存聊天隐私失败: $e');
+              if (mounted) {
+                setState(() => _chatVisible = !v);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+              }
+            });
             LogService().userAction('隐私:聊天可见=$v');
           }),
         ],

@@ -53,8 +53,8 @@ build_apk.bat
 # Python scripts (deployment tools)
 *.py
 
-# Server fixes (deploy separately)
-server_fixes/
+# Server fixes — now tracked in git for code review
+# server_fixes/
 
 # Claude Code
 .claude/

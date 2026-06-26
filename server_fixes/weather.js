@@ -12,6 +12,8 @@ router.get('/', async (req, res) => {
     if (!city) {
       return res.status(400).json({ code: 400, message: '请提供城市名或使用 /api/weather/coords 接口' });
     }
+    // 确保响应使用UTF-8编码
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     const weather = await getWeatherByCity(city);
     if (!weather) return res.status(500).json({ code: 500, message: '获取天气失败' });
     res.json({ code: 200, data: weather });
@@ -35,7 +37,9 @@ router.get('/coords', async (req, res) => {
     try {
       const geoRes = await axios.get('https://restapi.amap.com/v3/geocode/regeo', {
         params: { key: GAODE_KEY, location: `${lng},${lat}`, radius: 1000, extensions: 'base' },
-        timeout: 8000
+        timeout: 8000,
+        responseType: 'json',
+        responseEncoding: 'utf8',
       });
       if (geoRes.data.status === '1' && geoRes.data.regeocode) {
         const addr = geoRes.data.regeocode.addressComponent || {};
@@ -93,6 +97,8 @@ router.get('/coords', async (req, res) => {
       }
     }
 
+    // 确保响应使用UTF-8编码
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     if (weatherData) return res.json({ code: 200, data: weatherData });
     res.json({ code: 200, data: { city: fullAddress || '未知', message: '天气数据暂不可用' } });
   } catch (err) {
@@ -103,13 +109,14 @@ router.get('/coords', async (req, res) => {
 
 router.post('/reminder', authRequired, async (req, res) => {
   try {
-    if (req.user.role !== 'boy') return res.status(403).json({ code: 403, message: '只有男友可以发送提醒' });
     const { content } = req.body;
     if (!content) return res.status(400).json({ code: 400, message: '请输入提醒内容' });
-    const [girls] = await pool.query('SELECT id FROM users WHERE role = ?', ['girl']);
-    if (girls.length === 0) return res.status(404).json({ code: 404, message: '未找到女友账号' });
+    // 发送给伴侣（异角色用户）
+    const partnerRole = req.user.role === 'boy' ? 'girl' : 'boy';
+    const [partners] = await pool.query('SELECT id FROM users WHERE role = ?', [partnerRole]);
+    if (partners.length === 0) return res.status(404).json({ code: 404, message: '未找到伴侣账号' });
     await pool.query('INSERT INTO push_messages (user_id, type, title, content) VALUES (?, ?, ?, ?)',
-      [girls[0].id, 'custom', '天气提醒', content]);
+      [partners[0].id, 'custom', '天气提醒', content]);
     res.json({ code: 200, message: '提醒发送成功' });
   } catch (err) {
     res.status(500).json({ code: 500, message: '服务器错误' });

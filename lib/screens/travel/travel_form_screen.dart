@@ -139,6 +139,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
     setState(() => _saving = true);
 
+    // 默认日期为今天（如果未选择）
+    final now = DateTime.now();
+    final today = DateFormat('yyyy-MM-dd').format(now);
+
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'city': _cityCtrl.text.trim(),
@@ -152,7 +156,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
     switch (_status) {
       case 'visited':
-        data['visitedDate'] = _visitedDate;
+        data['visitedDate'] = _visitedDate ?? today;
         data['rating'] = _rating;
         data['diary'] = _diaryCtrl.text.trim();
         break;
@@ -161,7 +165,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         data['desire'] = _desire;
         break;
       case 'planned':
-        data['plannedDate'] = _plannedDate;
+        data['plannedDate'] = _plannedDate ?? today;
         data['itinerary'] = _itineraryCtrl.text.trim();
         final budget = double.tryParse(_budgetCtrl.text.trim());
         if (budget != null) data['budget'] = budget;

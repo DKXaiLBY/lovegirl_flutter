@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,12 +6,9 @@ import 'package:lovegirl_flutter/utils/amap_api.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/travel_map_widget.dart' show wgs84ToGcj02;
 
-/// 地图选点页面
-/// 支持搜索地址 + 点击地图选点
 class MapPickerScreen extends StatefulWidget {
   final double? initialLat;
   final double? initialLng;
-
   const MapPickerScreen({super.key, this.initialLat, this.initialLng});
 
   @override
@@ -27,429 +23,133 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   String _selectedName = '';
   String _selectedAddress = '';
   String _selectedCity = '';
-
   List<AmapPoi> _searchResults = [];
   bool _searching = false;
   bool _showResults = false;
 
   static const LatLng _defaultCenter = LatLng(39.9042, 116.4074);
-  static const String _gaodeTileUrl =
-      'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}';
+  static const String _tileUrl = 'https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=7';
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialLat != null && widget.initialLng != null &&
-        (widget.initialLat != 0 || widget.initialLng != 0)) {
+    if (widget.initialLat != null && widget.initialLng != null && (widget.initialLat != 0 || widget.initialLng != 0)) {
       _selectedPoint = LatLng(widget.initialLat!, widget.initialLng!);
     }
     _getCurrentLocation();
   }
 
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _searchCtrl.dispose(); super.dispose(); }
 
   Future<void> _getCurrentLocation() async {
     if (_selectedPoint != null) return;
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        ).timeout(const Duration(seconds: 10));
-
+      if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high).timeout(const Duration(seconds: 10));
         final gcj02 = wgs84ToGcj02(position.latitude, position.longitude);
         _mapController.move(gcj02, 14.0);
       }
     } catch (_) {}
   }
 
-  /// 搜索地址
   Future<void> _search(String keyword) async {
-    if (keyword.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _showResults = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _searching = true;
-      _showResults = true;
-    });
-
+    if (keyword.trim().isEmpty) { setState(() { _searchResults = []; _showResults = false; }); return; }
+    setState(() { _searching = true; _showResults = true; });
     final results = await AmapApi.searchPoi(keyword.trim());
-
-    if (mounted) {
-      setState(() {
-        _searchResults = results;
-        _searching = false;
-      });
-    }
+    if (mounted) setState(() { _searchResults = results; _searching = false; });
   }
 
-  /// 选择搜索结果
   void _selectPoi(AmapPoi poi) {
     final point = LatLng(poi.lat, poi.lng);
     setState(() {
-      _selectedPoint = point;
-      _selectedName = poi.name;
-      _selectedAddress = poi.address;
-      _selectedCity = poi.city;
-      _showResults = false;
-      _searchCtrl.text = poi.name;
+      _selectedPoint = point; _selectedName = poi.name; _selectedAddress = poi.address; _selectedCity = poi.city;
+      _showResults = false; _searchCtrl.text = poi.name;
     });
     _mapController.move(point, 15.0);
   }
 
-  /// 点击地图选点
-  void _onMapTap(TapPosition tapPosition, LatLng point) async {
-    setState(() {
-      _selectedPoint = point;
-      _selectedName = '';
-      _selectedAddress = '';
-      _selectedCity = '';
-    });
-
-    // 逆地理编码获取地址
+  void _onMapTap(TapPosition pos, LatLng point) async {
+    setState(() { _selectedPoint = point; _selectedName = ''; _selectedAddress = ''; _selectedCity = ''; });
     final regeo = await AmapApi.regeo(point.latitude, point.longitude);
-    if (regeo != null && mounted) {
-      setState(() {
-        _selectedAddress = regeo.address;
-        _selectedCity = regeo.city;
-        _selectedName = regeo.district;
-      });
-    }
+    if (regeo != null && mounted) setState(() { _selectedAddress = regeo.address; _selectedCity = regeo.city; _selectedName = regeo.district; });
   }
 
-  /// 确认选择
   void _confirm() {
-    if (_selectedPoint == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先选择一个位置')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop({
-      'lat': _selectedPoint!.latitude,
-      'lng': _selectedPoint!.longitude,
-      'name': _selectedName,
-      'address': _selectedAddress,
-      'city': _selectedCity,
-    });
+    if (_selectedPoint == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请先选择一个位置'))); return; }
+    Navigator.of(context).pop({'lat': _selectedPoint!.latitude, 'lng': _selectedPoint!.longitude, 'name': _selectedName, 'address': _selectedAddress, 'city': _selectedCity});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
+    return Scaffold(body: Stack(children: [
+      FlutterMap(
+        mapController: _mapController,
+        options: MapOptions(initialCenter: _selectedPoint ?? _defaultCenter, initialZoom: _selectedPoint != null ? 15.0 : 10.0, maxZoom: 18.0, minZoom: 3.0, onTap: _onMapTap),
         children: [
-          // 地图
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _selectedPoint ?? _defaultCenter,
-              initialZoom: _selectedPoint != null ? 15.0 : 10.0,
-              maxZoom: 18.0,
-              minZoom: 3.0,
-              onTap: _onMapTap,
+          TileLayer(urlTemplate: _tileUrl, userAgentPackageName: 'com.lovegirl.app', maxZoom: 18, maxNativeZoom: 18),
+          if (_selectedPoint != null) MarkerLayer(markers: [
+            Marker(point: _selectedPoint!, width: 40, height: 50,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: LoveGirlTheme.primary, borderRadius: BorderRadius.circular(8),
+                    boxShadow: [BoxShadow(color: LoveGirlTheme.primary.withAlpha(80), blurRadius: 4, offset: const Offset(0, 2))]),
+                  child: Text(_selectedName.isNotEmpty ? _selectedName : '选中位置', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600))),
+                const Icon(Icons.location_on, color: LoveGirlTheme.primary, size: 30),
+              ]),
             ),
-            children: [
-              TileLayer(
-                urlTemplate: _gaodeTileUrl,
-                userAgentPackageName: 'com.lovegirl.app',
-              ),
-              if (_selectedPoint != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _selectedPoint!,
-                      width: 40,
-                      height: 50,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: LoveGirlTheme.primary,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: LoveGirlTheme.primary.withAlpha(80),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              _selectedName.isNotEmpty ? _selectedName : '选中位置',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const Icon(
-                            Icons.location_on,
-                            color: LoveGirlTheme.primary,
-                            size: 30,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-
-          // 顶部搜索栏
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            child: _buildSearchBar(),
-          ),
-
-          // 搜索结果列表
-          if (_showResults)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 60,
-              left: 16,
-              right: 16,
-              child: _buildSearchResults(),
-            ),
-
-          // 底部信息栏
-          if (_selectedPoint != null && !_showResults)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 16,
-              left: 16,
-              right: 16,
-              child: _buildBottomBar(),
-            ),
-
-          // 返回按钮
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 8,
-            child: _buildBackButton(),
-          ),
+          ]),
         ],
       ),
-    );
-  }
-
-  Widget _buildBackButton() {
-    return Material(
-      color: Colors.white.withAlpha(220),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => Navigator.of(context).pop(),
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          child: const Icon(Icons.arrow_back, size: 20, color: LoveGirlTheme.textPrimary),
-        ),
-      ),
-    );
+      Positioned(top: MediaQuery.of(context).padding.top + 8, left: 56, right: 16, child: _buildSearchBar()),
+      if (_showResults) Positioned(top: MediaQuery.of(context).padding.top + 60, left: 16, right: 16, child: _buildSearchResults()),
+      if (_selectedPoint != null && !_showResults) Positioned(bottom: MediaQuery.of(context).padding.bottom + 16, left: 16, right: 16, child: _buildBottomBar()),
+      Positioned(top: MediaQuery.of(context).padding.top + 8, left: 8,
+        child: Material(color: Colors.white.withAlpha(220), borderRadius: BorderRadius.circular(8),
+          child: InkWell(borderRadius: BorderRadius.circular(8), onTap: () => Navigator.of(context).pop(),
+            child: Container(width: 40, height: 40, alignment: Alignment.center, child: const Icon(Icons.arrow_back, size: 20, color: LoveGirlTheme.textPrimary))))),
+    ]));
   }
 
   Widget _buildSearchBar() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchCtrl,
-        decoration: InputDecoration(
-          hintText: '搜索地点...',
-          prefixIcon: const Icon(Icons.search, color: LoveGirlTheme.textMuted),
-          suffixIcon: _searchCtrl.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _searchCtrl.clear();
-                    setState(() {
-                      _searchResults = [];
-                      _showResults = false;
-                    });
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, 2))]),
+      child: TextField(controller: _searchCtrl,
+        decoration: InputDecoration(hintText: '搜索地点...', prefixIcon: const Icon(Icons.search, color: LoveGirlTheme.textMuted),
+          suffixIcon: _searchCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _searchCtrl.clear(); setState(() { _searchResults = []; _showResults = false; }); }) : null,
+          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
         onSubmitted: _search,
-        onChanged: (v) {
-          // 防抖搜索
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (v == _searchCtrl.text && v.isNotEmpty) {
-              _search(v);
-            }
-          });
-        },
-      ),
+        onChanged: (v) { Future.delayed(const Duration(milliseconds: 500), () { if (v == _searchCtrl.text && v.isNotEmpty) _search(v); }); }),
     );
   }
 
   Widget _buildSearchResults() {
-    if (_searching) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (_searchResults.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: const Text('未找到相关地点', textAlign: TextAlign.center),
-      );
-    }
-
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 300),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _searchResults.length,
+    if (_searching) return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10)]), child: const Center(child: CircularProgressIndicator()));
+    if (_searchResults.isEmpty) return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10)]), child: const Text('未找到相关地点', textAlign: TextAlign.center));
+    return Container(constraints: const BoxConstraints(maxHeight: 300), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10)]),
+      child: ListView.separated(shrinkWrap: true, padding: const EdgeInsets.symmetric(vertical: 8), itemCount: _searchResults.length,
         separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.withAlpha(30)),
-        itemBuilder: (context, index) {
-          final poi = _searchResults[index];
-          return ListTile(
-            dense: true,
-            leading: const Icon(Icons.location_on, color: LoveGirlTheme.primary, size: 20),
-            title: Text(
-              poi.name,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              '${poi.city} ${poi.address}',
-              style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            onTap: () => _selectPoi(poi),
-          );
-        },
-      ),
+        itemBuilder: (context, index) { final poi = _searchResults[index]; return ListTile(dense: true, leading: const Icon(Icons.location_on, color: LoveGirlTheme.primary, size: 20),
+          title: Text(poi.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text('${poi.city} ${poi.address}', style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () => _selectPoi(poi)); }),
     );
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(20),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 位置信息
-          if (_selectedName.isNotEmpty)
-            Text(
-              _selectedName,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary,
-              ),
-            ),
-          if (_selectedAddress.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              _selectedAddress,
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          const SizedBox(height: 4),
-          Text(
-            '${_selectedPoint!.latitude.toStringAsFixed(6)}, ${_selectedPoint!.longitude.toStringAsFixed(6)}',
-            style: TextStyle(fontSize: 11, color: LoveGirlTheme.textMuted.withAlpha(150)),
-          ),
-          const SizedBox(height: 12),
-          // 确认按钮
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _confirm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: LoveGirlTheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text('确认选择此位置', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ],
-      ),
+    return Container(padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10, offset: const Offset(0, -2))]),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (_selectedName.isNotEmpty) Text(_selectedName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: LoveGirlTheme.textPrimary)),
+        if (_selectedAddress.isNotEmpty) ...[const SizedBox(height: 4), Text(_selectedAddress, style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted), maxLines: 2, overflow: TextOverflow.ellipsis)],
+        const SizedBox(height: 4),
+        Text('${_selectedPoint!.latitude.toStringAsFixed(6)}, ${_selectedPoint!.longitude.toStringAsFixed(6)}', style: TextStyle(fontSize: 11, color: LoveGirlTheme.textMuted.withAlpha(150))),
+        const SizedBox(height: 12),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _confirm, style: ElevatedButton.styleFrom(backgroundColor: LoveGirlTheme.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          child: const Text('确认选择此位置', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)))),
+      ]),
     );
   }
 }

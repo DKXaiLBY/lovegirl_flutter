@@ -33,34 +33,48 @@ class _FeedingScreenState extends State<FeedingScreen> {
       _loading = true;
       _error = null;
     });
-    try {
-      final results = await Future.wait([
-        _api.get('/api/feeding/shops'),
-        _api.getFeedingStats(),
-        _api.getFeedingOrders(),
-      ]);
 
-      final shopData = results[0].data?['data'];
+    // 分别请求，单个失败不影响其他
+    try {
+      final shopRes = await _api.get('/api/feeding/shops').timeout(const Duration(seconds: 10));
+      final shopData = shopRes.data?['data'];
       _shops = shopData is List
           ? shopData.map((e) => Map<String, dynamic>.from(e)).toList()
           : [];
+    } catch (e) {
+      LogService().error('Feeding', '加载店铺失败: $e');
+      _shops = [];
+    }
 
-      final statsData = results[1].data?['data'];
+    try {
+      final statsRes = await _api.getFeedingStats().timeout(const Duration(seconds: 10));
+      final statsData = statsRes.data?['data'];
       _stats = statsData is Map<String, dynamic> ? statsData : {};
+    } catch (e) {
+      LogService().error('Feeding', '加载统计失败: $e');
+      _stats = {};
+    }
 
-      final orderData = results[2].data?['data'];
+    try {
+      final orderRes = await _api.getFeedingOrders().timeout(const Duration(seconds: 10));
+      final orderData = orderRes.data?['data'];
       List rawOrders = orderData is List
           ? orderData
           : (orderData is Map ? (orderData['list'] ?? []) : []);
       _recentOrders =
           rawOrders.map((e) => Map<String, dynamic>.from(e)).toList();
-
-      LogService().info('Feeding',
-          '加载店铺${_shops.length}个, 订单${_recentOrders.length}条');
     } catch (e) {
-      setState(() => _error = '加载失败');
-      LogService().error('Feeding', '加载失败: $e');
+      LogService().error('Feeding', '加载订单失败: $e');
+      _recentOrders = [];
     }
+
+    // 如果三个全部失败才显示错误
+    if (_shops.isEmpty && _stats.isEmpty && _recentOrders.isEmpty) {
+      setState(() => _error = '加载失败，请检查网络后重试');
+    }
+
+    LogService().info('Feeding',
+        '加载店铺${_shops.length}个, 订单${_recentOrders.length}条');
     setState(() => _loading = false);
   }
 

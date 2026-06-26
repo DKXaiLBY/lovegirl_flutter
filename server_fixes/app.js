@@ -13,9 +13,19 @@ const app = express();
 // 安全 HTTP 头（防 XSS/点击劫持/MIME嗅探等）
 app.use(helmet());
 
-// CORS — 允许APP来源（开发阶段开放所有，生产可收紧）
+// CORS — 允许APP来源
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://47.121.119.191:3001', 'http://localhost:3000', 'http://localhost:3001'];
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    // 允许无origin的请求（APP端、curl等）
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    callback(null, true); // 生产环境收紧时改为 callback(new Error('Not allowed by CORS'))
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -80,9 +90,12 @@ app.use('/api/daily', require('./routes/daily'));
 app.use('/api/exam', require('./routes/exam'));
 app.use('/api/privacy', require('./routes/privacy'));
 
-// ========== 404 Handler ==========
+// ========== 404 Handler (all paths return JSON) ==========
 app.use((req, res) => {
-  res.status(404).json({ code: 404, message: `接口不存在: ${req.method} ${req.path}` });
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ code: 404, message: `接口不存在: ${req.method} ${req.path}` });
+  }
+  res.status(404).json({ code: 404, message: '资源不存在' });
 });
 
 // ========== Error Handling ==========

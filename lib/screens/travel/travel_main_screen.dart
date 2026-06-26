@@ -25,12 +25,16 @@ class _TravelMainScreenState extends State<TravelMainScreen> {
   }
 
   void _openForm({TravelSpot? spot}) async {
-    await Navigator.of(context).push(
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => TravelFormScreen(spot: spot),
       ),
     );
+    // 表单关闭后刷新数据
+    if (result == true && mounted) {
+      context.read<TravelProvider>().refreshAll();
+    }
   }
 
   void _onMarkerTap(TravelSpot spot) {
