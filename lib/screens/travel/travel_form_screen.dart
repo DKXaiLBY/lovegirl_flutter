@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
-import 'package:lovegirl_flutter/screens/travel/map_picker_screen.dart';
+import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:intl/intl.dart';
 
-/// 添加/编辑旅行地点的表单页面
+/// 添加/编辑旅行地点 — 精简版表单
 class TravelFormScreen extends StatefulWidget {
   final TravelSpot? spot;
 
@@ -16,28 +16,15 @@ class TravelFormScreen extends StatefulWidget {
 }
 
 class _TravelFormScreenState extends State<TravelFormScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _cityCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _diaryCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
-  final _reasonCtrl = TextEditingController();
-  final _itineraryCtrl = TextEditingController();
-  final _budgetCtrl = TextEditingController();
+  final _diaryCtrl = TextEditingController();
 
+  String _city = '';
   String _status = 'visited';
   int _rating = 0;
-  int _desire = 1;
   String? _visitedDate;
-  String? _plannedDate;
   bool _saving = false;
-
-  // 地图选点相关
-  double _lat = 0;
-  double _lng = 0;
-  String _selectedCity = '';
-  String _selectedAddress = '';
 
   bool get _isEditing => widget.spot != null;
 
@@ -47,39 +34,29 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     final s = widget.spot;
     if (s != null) {
       _nameCtrl.text = s.name;
-      _cityCtrl.text = s.city;
-      _addressCtrl.text = s.address;
+      _city = s.city;
       _status = s.status;
-      _diaryCtrl.text = s.diary ?? '';
       _noteCtrl.text = s.note ?? '';
-      _reasonCtrl.text = s.reason ?? '';
-      _itineraryCtrl.text = s.itinerary ?? '';
-      _budgetCtrl.text = s.budget?.toStringAsFixed(0) ?? '';
+      _diaryCtrl.text = s.diary ?? '';
       _rating = s.rating ?? 0;
-      _desire = s.desire ?? 1;
       _visitedDate = s.visitedDate;
-      _plannedDate = s.plannedDate;
-      _lat = s.lat;
-      _lng = s.lng;
-      _selectedCity = s.city;
-      _selectedAddress = s.address;
     }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _cityCtrl.dispose();
-    _addressCtrl.dispose();
-    _diaryCtrl.dispose();
     _noteCtrl.dispose();
-    _reasonCtrl.dispose();
-    _itineraryCtrl.dispose();
-    _budgetCtrl.dispose();
+    _diaryCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate({required bool isVisited}) async {
+  Future<void> _pickCity() async {
+    final city = await showCityPicker(context, currentCity: _city);
+    if (city != null) setState(() => _city = city);
+  }
+
+  Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -88,102 +65,53 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       lastDate: DateTime(2035),
     );
     if (picked != null) {
-      setState(() {
-        final fmt = DateFormat('yyyy-MM-dd');
-        if (isVisited) {
-          _visitedDate = fmt.format(picked);
-        } else {
-          _plannedDate = fmt.format(picked);
-        }
-      });
+      setState(() => _visitedDate = DateFormat('yyyy-MM-dd').format(picked));
     }
   }
 
-  /// 打开地图选点
-  Future<void> _openMapPicker() async {
-    try {
-      final result = await Navigator.of(context).push<Map<String, dynamic>>(
-        MaterialPageRoute(
-          builder: (_) => MapPickerScreen(
-            initialLat: _lat != 0 ? _lat : null,
-            initialLng: _lng != 0 ? _lng : null,
-          ),
-        ),
-      );
-
-      if (result != null) {
-        setState(() {
-          _lat = result['lat'] ?? 0;
-          _lng = result['lng'] ?? 0;
-          _selectedCity = result['city'] ?? '';
-          _selectedAddress = result['address'] ?? '';
-          if (_cityCtrl.text.isEmpty && _selectedCity.isNotEmpty) {
-            _cityCtrl.text = _selectedCity;
-          }
-          if (_addressCtrl.text.isEmpty && _selectedAddress.isNotEmpty) {
-            _addressCtrl.text = _selectedAddress;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('打开地图失败，请重试'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
-  void _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('请输入地点名称'),
-          behavior: SnackBarBehavior.floating,
-        ),
+            content: Text('请输入地点名称'),
+            behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    if (_city.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('请选择城市'),
+            behavior: SnackBarBehavior.floating),
       );
       return;
     }
 
     setState(() => _saving = true);
 
-    final now = DateTime.now();
-    final today = DateFormat('yyyy-MM-dd').format(now);
-
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
-      'city': _cityCtrl.text.trim(),
-      'address': _addressCtrl.text.trim(),
-      'emoji': '📍',
+      'city': _city,
       'status': _status,
-      'lng': _lng,
-      'lat': _lat,
+      'emoji': '📍',
       'note': _noteCtrl.text.trim(),
     };
 
-    switch (_status) {
-      case 'visited':
-        data['visitedDate'] = _visitedDate ?? today;
-        data['rating'] = _rating;
-        data['diary'] = _diaryCtrl.text.trim();
-        break;
-      case 'wish':
-        data['reason'] = _reasonCtrl.text.trim();
-        data['desire'] = _desire;
-        break;
-      case 'planned':
-        data['plannedDate'] = _plannedDate ?? today;
-        data['itinerary'] = _itineraryCtrl.text.trim();
-        final budget = double.tryParse(_budgetCtrl.text.trim());
-        if (budget != null) data['budget'] = budget;
-        break;
+    if (_status == 'visited') {
+      data['visitedDate'] = _visitedDate ?? today;
+      data['rating'] = _rating;
+      data['diary'] = _diaryCtrl.text.trim();
+    }
+
+    // 编辑时保留原坐标
+    if (_isEditing) {
+      data['lat'] = widget.spot!.lat;
+      data['lng'] = widget.spot!.lng;
     }
 
     try {
+      if (!mounted) return;
       final provider = context.read<TravelProvider>();
       if (_isEditing) {
         await provider.updateSpot(widget.spot!.id, data);
@@ -196,44 +124,27 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             content: Text(_isEditing ? '修改成功' : '添加成功'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: const Color(0xFF4CAF50),
-            duration: const Duration(seconds: 1),
           ),
         );
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        final msg = _getErrorMessage(e);
+        final msg = e.toString().contains('SocketException')
+            ? '网络连接失败，请检查网络'
+            : e.toString().contains('Timeout')
+                ? '请求超时，请稍后重试'
+                : '保存失败，请重试';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
             behavior: SnackBarBehavior.floating,
             backgroundColor: LoveGirlTheme.red,
-            duration: const Duration(seconds: 2),
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
-  }
-
-  /// 将异常转为中文提示
-  String _getErrorMessage(dynamic error) {
-    final s = error.toString();
-    if (s.contains('SocketException') || s.contains('Connection refused')) {
-      return '网络连接失败，请检查网络';
-    }
-    if (s.contains('TimeoutException') || s.contains('timeout')) {
-      return '请求超时，请稍后重试';
-    }
-    if (s.contains('401')) {
-      return '登录已过期，请重新登录';
-    }
-    if (s.contains('500')) {
-      return '服务器繁忙，请稍后重试';
-    }
-    return '保存失败，请重试';
+    if (mounted) setState(() => _saving = false);
   }
 
   @override
@@ -243,7 +154,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         title: Text(_isEditing ? '编辑地点' : '添加地点'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           Padding(
@@ -251,11 +162,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             child: _saving
                 ? const Center(
                     child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2)))
                 : TextButton.icon(
                     onPressed: _save,
                     icon: const Icon(Icons.check, size: 20),
@@ -264,416 +173,210 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            // 基本信息
-            _buildSection('基本信息', [
-              _buildTextField(
-                controller: _nameCtrl,
-                label: '地点名称',
-                hint: '例如：故宫博物院',
-                required: true,
-              ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                controller: _cityCtrl,
-                label: '城市',
-                hint: '例如：北京',
-              ),
-              const SizedBox(height: 12),
-              _buildTextField(
-                controller: _addressCtrl,
-                label: '地址（可选）',
-                hint: '具体地址',
-              ),
-            ]),
-
-            const SizedBox(height: 8),
-
-            // 位置选择
-            _buildSection('位置信息', [
-              _buildLocationPicker(),
-            ]),
-
-            const SizedBox(height: 8),
-
-            // 状态切换
-            _buildSection('旅行状态', [
-              _buildStatusToggle(),
-            ]),
-
-            const SizedBox(height: 8),
-
-            // 已打卡专属字段 — 用 Visibility 保持状态
-            Visibility(
-              visible: _status == 'visited',
-              maintainState: true,
-              child: _buildVisitedFields(),
-            ),
-
-            // 心愿单专属字段
-            Visibility(
-              visible: _status == 'wish',
-              maintainState: true,
-              child: _buildWishFields(),
-            ),
-
-            // 计划中专属字段
-            Visibility(
-              visible: _status == 'planned',
-              maintainState: true,
-              child: _buildPlannedFields(),
-            ),
-
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Visited 专属字段
-  Widget _buildVisitedFields() {
-    return _buildSection('旅行回忆', [
-      _buildDateTile(
-        icon: Icons.calendar_today,
-        label: '去的日期',
-        value: _visitedDate,
-        onTap: () => _pickDate(isVisited: true),
-      ),
-      const SizedBox(height: 16),
-      const Text('评分',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-      const SizedBox(height: 8),
-      Row(
-        children: List.generate(5, (i) {
-          final starIdx = i + 1;
-          return GestureDetector(
-            onTap: () => setState(() => _rating = starIdx),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Icon(
-                starIdx <= _rating ? Icons.star : Icons.star_border,
-                color: starIdx <= _rating
-                    ? const Color(0xFFFFB800)
-                    : LoveGirlTheme.textMuted,
-                size: 32,
-              ),
-            ),
-          );
-        }),
-      ),
-      const SizedBox(height: 16),
-      _buildTextField(
-        controller: _diaryCtrl,
-        label: '游记日记',
-        hint: '写下你们的旅行故事...',
-        maxLines: 5,
-      ),
-    ]);
-  }
-
-  // Wish 专属字段
-  Widget _buildWishFields() {
-    return _buildSection('想去的心愿', [
-      _buildTextField(
-        controller: _reasonCtrl,
-        label: '想去的理由',
-        hint: '为什么想去这里呢？',
-        maxLines: 3,
-      ),
-      const SizedBox(height: 16),
-      const Text('渴望度',
-          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
-      const SizedBox(height: 8),
-      Row(
-        children: List.generate(3, (i) {
-          final idx = i + 1;
-          return GestureDetector(
-            onTap: () => setState(() => _desire = idx),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Icon(
-                Icons.local_fire_department_rounded,
-                size: 32,
-                color: idx <= _desire
-                    ? LoveGirlTheme.orange
-                    : LoveGirlTheme.textMuted.withAlpha(77),
-              ),
-            ),
-          );
-        }),
-      ),
-    ]);
-  }
-
-  // Planned 专属字段
-  Widget _buildPlannedFields() {
-    return _buildSection('出行计划', [
-      _buildDateTile(
-        icon: Icons.event,
-        label: '计划日期',
-        value: _plannedDate,
-        onTap: () => _pickDate(isVisited: false),
-      ),
-      const SizedBox(height: 16),
-      _buildTextField(
-        controller: _itineraryCtrl,
-        label: '行程安排',
-        hint: '计划去哪些地方？',
-        maxLines: 3,
-      ),
-      const SizedBox(height: 16),
-      _buildTextField(
-        controller: _budgetCtrl,
-        label: '预估预算（元）',
-        hint: '例如：5000',
-        keyboardType: TextInputType.number,
-      ),
-    ]);
-  }
-
-  // 通用构建方法
-  Widget _buildSection(String title, List<Widget> children) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: LoveGirlTheme.cardLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withAlpha(8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: LoveGirlTheme.textPrimary,
+          // 地点名称
+          _label('地点名称', required: true),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _nameCtrl,
+            decoration: _inputDecoration('例如：故宫博物院'),
+          ),
+          const SizedBox(height: 16),
+
+          // 城市
+          _label('城市', required: true),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _pickCity,
+            child: Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: LoveGirlTheme.bgLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.black.withAlpha(15)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_city,
+                      size: 20, color: LoveGirlTheme.textMuted),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _city.isEmpty ? '点击选择城市' : _city,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: _city.isEmpty
+                            ? LoveGirlTheme.textMuted
+                            : LoveGirlTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right,
+                      size: 20, color: LoveGirlTheme.textMuted),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          ...children,
+          const SizedBox(height: 16),
+
+          // 状态
+          _label('状态'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _statusChip('visited', '✅ 已打卡', const Color(0xFF4CAF50)),
+              const SizedBox(width: 8),
+              _statusChip('wish', '⭐ 心愿单', const Color(0xFFFF9800)),
+              const SizedBox(width: 8),
+              _statusChip('planned', '📋 计划中', const Color(0xFF9C27B0)),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 已打卡专属
+          if (_status == 'visited') ...[
+            // 日期
+            _label('去的日期'),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _pickDate,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.bgLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black.withAlpha(15)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 18, color: LoveGirlTheme.primary),
+                    const SizedBox(width: 10),
+                    Text(
+                      _visitedDate ?? '点击选择日期（默认今天）',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: _visitedDate != null
+                            ? LoveGirlTheme.textPrimary
+                            : LoveGirlTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 评分
+            _label('评分'),
+            const SizedBox(height: 8),
+            Row(
+              children: List.generate(5, (i) {
+                final starIdx = i + 1;
+                return GestureDetector(
+                  onTap: () => setState(() => _rating = starIdx),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(
+                      starIdx <= _rating ? Icons.star : Icons.star_border,
+                      color: starIdx <= _rating
+                          ? const Color(0xFFFFB800)
+                          : LoveGirlTheme.textMuted,
+                      size: 32,
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 16),
+
+            // 游记
+            _label('游记'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _diaryCtrl,
+              maxLines: 4,
+              decoration: _inputDecoration('写下你们的旅行故事...'),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // 备注
+          _label('备注'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _noteCtrl,
+            maxLines: 3,
+            decoration: _inputDecoration('补充说明...'),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    String? hint,
-    int maxLines = 1,
-    bool required = false,
-    TextInputType? keyboardType,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _label(String text, {bool required = false}) {
+    return Row(
       children: [
-        Row(
-          children: [
-            Text(label,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500, fontSize: 14)),
-            if (required)
-              const Text(' *',
-                  style: TextStyle(color: Colors.red, fontSize: 14)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          validator: required
-              ? (v) => (v == null || v.trim().isEmpty) ? '请输入$label' : null
-              : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.black.withAlpha(15)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.black.withAlpha(15)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
-            ),
-            filled: true,
-            fillColor: LoveGirlTheme.bgLight,
-          ),
-        ),
+        Text(text,
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 14)),
+        if (required)
+          const Text(' *',
+              style: TextStyle(color: Colors.red, fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildDateTile({
-    required IconData icon,
-    required String label,
-    required String? value,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.black.withAlpha(15)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: LoveGirlTheme.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 12, color: LoveGirlTheme.textSecondary)),
-                  const SizedBox(height: 2),
-                  Text(
-                    value ?? '点击选择日期',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: value != null
-                          ? LoveGirlTheme.textPrimary
-                          : LoveGirlTheme.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right,
-                size: 20, color: LoveGirlTheme.textMuted),
-          ],
-        ),
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: LoveGirlTheme.bgLight,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.black.withAlpha(15)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.black.withAlpha(15)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide:
+            const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
       ),
     );
   }
 
-  Widget _buildStatusToggle() {
-    final statuses = [
-      {'key': 'visited', 'label': '已打卡', 'color': const Color(0xFF4CAF50)},
-      {'key': 'wish', 'label': '心愿单', 'color': const Color(0xFFFF9800)},
-      {'key': 'planned', 'label': '计划中', 'color': const Color(0xFF9C27B0)},
-    ];
-
-    return Row(
-      children: statuses.map((s) {
-        final active = _status == s['key'];
-        final color = s['color'] as Color;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: s['key'] == 'visited' ? 0 : 6,
-              right: s['key'] == 'planned' ? 0 : 6,
-            ),
-            child: GestureDetector(
-              onTap: () => setState(() => _status = s['key'] as String),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: active ? color.withAlpha(30) : LoveGirlTheme.bgLight,
-                  border: Border.all(
-                    color: active ? color : Colors.black.withAlpha(15),
-                    width: active ? 1.5 : 1,
-                  ),
-                ),
-                child: Text(
-                  s['label'] as String,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight:
-                        active ? FontWeight.w600 : FontWeight.normal,
-                    color: active ? color : LoveGirlTheme.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  /// 位置选择器
-  Widget _buildLocationPicker() {
-    final hasLocation = _lat != 0 || _lng != 0;
-
+  Widget _statusChip(String value, String label, Color color) {
+    final active = _status == value;
     return GestureDetector(
-      onTap: _openMapPicker,
+      onTap: () => setState(() => _status = value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.black.withAlpha(15)),
+          color: active ? color.withAlpha(30) : LoveGirlTheme.bgLight,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? color : Colors.black.withAlpha(10),
+          ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.map,
-              size: 20,
-              color: hasLocation
-                  ? LoveGirlTheme.primary
-                  : LoveGirlTheme.textMuted,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('地图位置',
-                      style: TextStyle(
-                          fontSize: 12, color: LoveGirlTheme.textSecondary)),
-                  const SizedBox(height: 2),
-                  if (hasLocation)
-                    Text(
-                      _selectedAddress.isNotEmpty
-                          ? _selectedAddress
-                          : '${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: LoveGirlTheme.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
-                    const Text(
-                      '点击在地图上选择位置（可选）',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: LoveGirlTheme.textMuted,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Icon(
-              hasLocation ? Icons.check_circle : Icons.chevron_right,
-              size: 20,
-              color: hasLocation
-                  ? const Color(0xFF4CAF50)
-                  : LoveGirlTheme.textMuted,
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: active ? color : LoveGirlTheme.textSecondary,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ),
     );
