@@ -61,6 +61,10 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', rateLimit({ windowMs: 60 * 1000, max: 5 }));
 
+// ========== Static Files (APK downloads) ==========
+const path = require('path');
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 // ========== Health Check ==========
 app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime: process.uptime() }));
 
