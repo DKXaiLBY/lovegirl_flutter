@@ -67,7 +67,8 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 延迟5秒后自动检查版本更新并弹出更新公告
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         checkVersionUpdate(context);
       }

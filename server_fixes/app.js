@@ -85,6 +85,7 @@ app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/travel', require('./routes/travel'));
+app.use('/api/travel', require('./routes/travel_photos')); // 旅行照片
 app.use('/api/period', require('./routes/period'));
 app.use('/api/calorie', require('./routes/calorie'));
 app.use('/api/todo', require('./routes/todo'));

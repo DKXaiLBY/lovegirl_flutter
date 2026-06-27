@@ -85,6 +85,13 @@ class ApiService {
   Future deleteTravelSpot(int id) => delete('/api/travel/spots/$id');
   Future getTravelStats() => get('/api/travel/stats');
 
+  // 旅行照片
+  Future uploadTravelPhoto(int spotId, String filePath) =>
+      upload('/api/travel/spots/$spotId/photos', filePath, fieldName: 'photo');
+  Future getTravelPhotos(int spotId) => get('/api/travel/spots/$spotId/photos');
+  Future deleteTravelPhoto(int spotId, int photoId) =>
+      delete('/api/travel/spots/$spotId/photos/$photoId');
+
   // ========== 姨妈 ==========
   Future getPeriods() => get('/api/period');
   Future savePeriod(Map data) => post('/api/period', data: data);

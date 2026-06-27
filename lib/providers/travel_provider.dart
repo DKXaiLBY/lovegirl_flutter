@@ -82,12 +82,14 @@ class TravelStats {
   final int wish;
   final int planned;
   final int cities;
+  final double totalBudget;
 
   TravelStats({
     this.visited = 0,
     this.wish = 0,
     this.planned = 0,
     this.cities = 0,
+    this.totalBudget = 0,
   });
 
   factory TravelStats.fromJson(Map<String, dynamic> json) {
@@ -96,6 +98,7 @@ class TravelStats {
       wish: json['wish'] ?? 0,
       planned: json['planned'] ?? 0,
       cities: json['cities'] ?? 0,
+      totalBudget: (json['totalBudget'] ?? 0).toDouble(),
     );
   }
 }
@@ -109,16 +112,73 @@ class TravelProvider extends ChangeNotifier {
   String _activeStatus = '';
   int? _highlightedId;
 
+  // 搜索与排序
+  String _searchQuery = '';
+  String _sortBy = 'default'; // default, name, rating, date, city
+
   List<TravelSpot> get spots => _spots;
   TravelStats? get stats => _stats;
   bool get loading => _loading;
   String get activeStatus => _activeStatus;
   int? get highlightedId => _highlightedId;
+  String get searchQuery => _searchQuery;
+  String get sortBy => _sortBy;
 
-  // 筛选后的地点列表
+  // 筛选+搜索+排序后的地点列表
   List<TravelSpot> get filteredSpots {
-    if (_activeStatus.isEmpty) return _spots;
-    return _spots.where((s) => s.status == _activeStatus).toList();
+    var list = _spots;
+
+    // 状态筛选
+    if (_activeStatus.isNotEmpty) {
+      list = list.where((s) => s.status == _activeStatus).toList();
+    }
+
+    // 搜索过滤
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((s) =>
+        s.name.toLowerCase().contains(q) ||
+        s.city.toLowerCase().contains(q) ||
+        (s.note ?? '').toLowerCase().contains(q) ||
+        (s.diary ?? '').toLowerCase().contains(q)
+      ).toList();
+    }
+
+    // 排序
+    switch (_sortBy) {
+      case 'name':
+        list = List.from(list)..sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'rating':
+        list = List.from(list)..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+        break;
+      case 'date':
+        list = List.from(list)..sort((a, b) => (b.visitedDate ?? '').compareTo(a.visitedDate ?? ''));
+        break;
+      case 'city':
+        list = List.from(list)..sort((a, b) => a.city.compareTo(b.city));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  }
+
+  // 地图上显示的标记（仅搜索+状态筛选，不做排序）
+  List<TravelSpot> get mapSpots {
+    var list = _spots;
+    if (_activeStatus.isNotEmpty) {
+      list = list.where((s) => s.status == _activeStatus).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((s) =>
+        s.name.toLowerCase().contains(q) ||
+        s.city.toLowerCase().contains(q)
+      ).toList();
+    }
+    return list;
   }
 
   // 基于实际spots计算的统计数据（保证一致性）
@@ -127,7 +187,8 @@ class TravelProvider extends ChangeNotifier {
     final wish = _spots.where((s) => s.status == 'wish').length;
     final planned = _spots.where((s) => s.status == 'planned').length;
     final cities = _spots.where((s) => s.city.isNotEmpty).map((s) => s.city).toSet().length;
-    return TravelStats(visited: visited, wish: wish, planned: planned, cities: cities);
+    final totalBudget = _spots.where((s) => s.budget != null).fold(0.0, (sum, s) => sum + s.budget!);
+    return TravelStats(visited: visited, wish: wish, planned: planned, cities: cities, totalBudget: totalBudget);
   }
 
   // 刷新所有数据
@@ -172,6 +233,18 @@ class TravelProvider extends ChangeNotifier {
   // 设置筛选状态
   void setStatus(String status) {
     _activeStatus = status;
+    notifyListeners();
+  }
+
+  // 设置搜索关键词
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  // 设置排序方式
+  void setSortBy(String sortBy) {
+    _sortBy = sortBy;
     notifyListeners();
   }
 

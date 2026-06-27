@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
+import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:intl/intl.dart';
 
-/// 添加/编辑旅行地点 — 精简版表单
+/// 添加/编辑旅行地点 — 完整表单
 class TravelFormScreen extends StatefulWidget {
   final TravelSpot? spot;
 
@@ -19,14 +21,40 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   final _nameCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   final _diaryCtrl = TextEditingController();
+  final _budgetCtrl = TextEditingController();
+  final _itineraryCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
 
   String _city = '';
   String _status = 'visited';
   int _rating = 0;
   String? _visitedDate;
+  String? _plannedDate;
+  String _weather = '';
+  String _mood = '';
   bool _saving = false;
 
   bool get _isEditing => widget.spot != null;
+
+  // 天气选项
+  static const _weatherOptions = [
+    {'emoji': '☀️', 'label': '晴天'},
+    {'emoji': '🌤️', 'label': '多云'},
+    {'emoji': '🌧️', 'label': '雨天'},
+    {'emoji': '❄️', 'label': '雪天'},
+    {'emoji': '🌙', 'label': '夜晚'},
+    {'emoji': '🌈', 'label': '彩虹'},
+  ];
+
+  // 心情选项
+  static const _moodOptions = [
+    {'emoji': '🥰', 'label': '甜蜜'},
+    {'emoji': '😊', 'label': '开心'},
+    {'emoji': '🤩', 'label': '兴奋'},
+    {'emoji': '😌', 'label': '平静'},
+    {'emoji': '🥹', 'label': '感动'},
+    {'emoji': '😎', 'label': '酷'},
+  ];
 
   @override
   void initState() {
@@ -40,6 +68,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _diaryCtrl.text = s.diary ?? '';
       _rating = s.rating ?? 0;
       _visitedDate = s.visitedDate;
+      _plannedDate = s.plannedDate;
+      _weather = s.mood ?? ''; // 复用mood字段存储天气+心情
+      _budgetCtrl.text = s.budget != null ? s.budget!.toStringAsFixed(0) : '';
+      _itineraryCtrl.text = s.itinerary ?? '';
+      _reasonCtrl.text = s.reason ?? '';
     }
   }
 
@@ -48,6 +81,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     _nameCtrl.dispose();
     _noteCtrl.dispose();
     _diaryCtrl.dispose();
+    _budgetCtrl.dispose();
+    _itineraryCtrl.dispose();
+    _reasonCtrl.dispose();
     super.dispose();
   }
 
@@ -56,7 +92,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     if (city != null) setState(() => _city = city);
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickVisitedDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -66,6 +102,19 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
     if (picked != null) {
       setState(() => _visitedDate = DateFormat('yyyy-MM-dd').format(picked));
+    }
+  }
+
+  Future<void> _pickPlannedDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(2035),
+    );
+    if (picked != null) {
+      setState(() => _plannedDate = DateFormat('yyyy-MM-dd').format(picked));
     }
   }
 
@@ -94,7 +143,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       'name': _nameCtrl.text.trim(),
       'city': _city,
       'status': _status,
-      'emoji': '📍',
+      'emoji': _statusEmoji,
       'note': _noteCtrl.text.trim(),
     };
 
@@ -102,6 +151,22 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       data['visitedDate'] = _visitedDate ?? today;
       data['rating'] = _rating;
       data['diary'] = _diaryCtrl.text.trim();
+      data['mood'] = _mood;
+    }
+
+    if (_status == 'planned') {
+      data['plannedDate'] = _plannedDate;
+      data['itinerary'] = _itineraryCtrl.text.trim();
+    }
+
+    if (_status == 'wish') {
+      data['reason'] = _reasonCtrl.text.trim();
+    }
+
+    // 预算
+    final budgetText = _budgetCtrl.text.trim();
+    if (budgetText.isNotEmpty) {
+      data['budget'] = double.tryParse(budgetText);
     }
 
     // 编辑时保留原坐标
@@ -145,6 +210,19 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       }
     }
     if (mounted) setState(() => _saving = false);
+  }
+
+  String get _statusEmoji {
+    switch (_status) {
+      case 'visited':
+        return '✅';
+      case 'wish':
+        return '⭐';
+      case 'planned':
+        return '📋';
+      default:
+        return '📍';
+    }
   }
 
   @override
@@ -235,15 +313,18 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               _statusChip('planned', '📋 计划中', const Color(0xFF9C27B0)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // 已打卡专属
+          // ===== 已打卡专属 =====
           if (_status == 'visited') ...[
+            _sectionTitle('打卡详情'),
+            const SizedBox(height: 12),
+
             // 日期
             _label('去的日期'),
             const SizedBox(height: 6),
             GestureDetector(
-              onTap: _pickDate,
+              onTap: _pickVisitedDate,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -270,6 +351,86 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // 天气
+            _label('天气'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _weatherOptions.map((w) {
+                final active = _weather == w['label'];
+                return GestureDetector(
+                  onTap: () =>
+                      setState(() => _weather = active ? '' : w['label']!),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? LoveGirlTheme.primary.withAlpha(20)
+                          : LoveGirlTheme.bgLight,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: active
+                            ? LoveGirlTheme.primary
+                            : Colors.black.withAlpha(10),
+                      ),
+                    ),
+                    child: Text('${w['emoji']} ${w['label']}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: active
+                              ? LoveGirlTheme.primary
+                              : LoveGirlTheme.textSecondary,
+                          fontWeight:
+                              active ? FontWeight.w600 : FontWeight.normal,
+                        )),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 心情
+            _label('心情'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _moodOptions.map((m) {
+                final active = _mood == m['label'];
+                return GestureDetector(
+                  onTap: () =>
+                      setState(() => _mood = active ? '' : m['label']!),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? LoveGirlTheme.pink.withAlpha(20)
+                          : LoveGirlTheme.bgLight,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: active
+                            ? LoveGirlTheme.pink
+                            : Colors.black.withAlpha(10),
+                      ),
+                    ),
+                    child: Text('${m['emoji']} ${m['label']}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: active
+                              ? LoveGirlTheme.pink
+                              : LoveGirlTheme.textSecondary,
+                          fontWeight:
+                              active ? FontWeight.w600 : FontWeight.normal,
+                        )),
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 16),
 
@@ -301,11 +462,93 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             const SizedBox(height: 6),
             TextField(
               controller: _diaryCtrl,
-              maxLines: 4,
+              maxLines: 5,
               decoration: _inputDecoration('写下你们的旅行故事...'),
             ),
             const SizedBox(height: 16),
           ],
+
+          // ===== 心愿单专属 =====
+          if (_status == 'wish') ...[
+            _sectionTitle('心愿详情'),
+            const SizedBox(height: 12),
+
+            _label('想去的理由'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _reasonCtrl,
+              maxLines: 3,
+              decoration: _inputDecoration('为什么想去这里？'),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ===== 规划中专属 =====
+          if (_status == 'planned') ...[
+            _sectionTitle('规划详情'),
+            const SizedBox(height: 12),
+
+            _label('计划日期'),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _pickPlannedDate,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.bgLight,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black.withAlpha(15)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.event,
+                        size: 18, color: Color(0xFF9C27B0)),
+                    const SizedBox(width: 10),
+                    Text(
+                      _plannedDate ?? '点击选择计划日期',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: _plannedDate != null
+                            ? LoveGirlTheme.textPrimary
+                            : LoveGirlTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            _label('行程安排'),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _itineraryCtrl,
+              maxLines: 4,
+              decoration: _inputDecoration('Day1: ...\nDay2: ...'),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // ===== 预算（所有状态通用） =====
+          _sectionTitle('其他信息'),
+          const SizedBox(height: 12),
+
+          _label('预算（元）'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _budgetCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+            ],
+            decoration: _inputDecoration('例如：5000').copyWith(
+              prefixIcon: const Icon(Icons.account_balance_wallet_outlined,
+                  size: 20, color: LoveGirlTheme.textMuted),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // 备注
           _label('备注'),
@@ -315,9 +558,43 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             maxLines: 3,
             decoration: _inputDecoration('补充说明...'),
           ),
+          const SizedBox(height: 20),
+
+          // ===== 照片管理（编辑模式） =====
+          if (_isEditing) ...[
+            _sectionTitle('照片'),
+            const SizedBox(height: 12),
+            TravelPhotoGrid(
+              spotId: widget.spot!.id,
+              editable: true,
+            ),
+            const SizedBox(height: 20),
+          ],
+
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 16,
+          decoration: BoxDecoration(
+            color: LoveGirlTheme.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: LoveGirlTheme.textSecondary)),
+      ],
     );
   }
 
@@ -337,6 +614,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
+      hintStyle:
+          TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150)),
       filled: true,
       fillColor: LoveGirlTheme.bgLight,
       contentPadding:

@@ -1,0 +1,20 @@
+-- 旅行地点照片表
+CREATE TABLE IF NOT EXISTS travel_photos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  spot_id INT NOT NULL,
+  user_id INT NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (spot_id) REFERENCES travel_spots(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_spot_id (spot_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 更新 travel_spots 表添加新字段（如果不存在）
+ALTER TABLE travel_spots
+  ADD COLUMN IF NOT EXISTS weather VARCHAR(20) DEFAULT NULL COMMENT '天气' AFTER mood,
+  ADD COLUMN IF NOT EXISTS reason TEXT DEFAULT NULL COMMENT '想去的理由' AFTER tags,
+  ADD COLUMN IF NOT EXISTS planned_date DATE DEFAULT NULL COMMENT '计划日期' AFTER reason,
+  ADD COLUMN IF NOT EXISTS itinerary TEXT DEFAULT NULL COMMENT '行程安排' AFTER planned_date,
+  ADD COLUMN IF NOT EXISTS budget DECIMAL(10, 2) DEFAULT NULL COMMENT '预算' AFTER itinerary;
