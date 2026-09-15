@@ -482,7 +482,6 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
     return SizedBox(
       width: 118,
-      height: 72,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Row(
@@ -500,6 +499,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
             const SizedBox(width: 6),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

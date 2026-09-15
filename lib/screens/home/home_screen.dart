@@ -451,21 +451,29 @@ class _TodayCareSection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '\u4eca\u5929\u8981\u7167\u987e\u7684\u4e8b',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: const Text(
+                        '\u4eca\u5929\u8981\u7167\u987e\u7684\u4e8b',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: LoveGirlTheme.textPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      '\u7231\u662f\u628a\u5c0f\u4e8b\uff0c\u653e\u5728\u5fc3\u4e0a \u2665',
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: LoveGirlTheme.textMuted,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: const Text(
+                        '\u7231\u662f\u628a\u5c0f\u4e8b\uff0c\u653e\u5728\u5fc3\u4e0a \u2665',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: LoveGirlTheme.textMuted,
+                        ),
                       ),
                     ),
                   ],
@@ -812,20 +820,22 @@ class _FeedingCareCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Expanded(
-                    child: Text(
-                      '投喂她',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary,
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: const Text(
+                        '投喂她',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: LoveGirlTheme.textPrimary,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Flexible(child: _StatusChip(label: status)),
+                  _StatusChip(label: status),
                 ],
               ),
               SizedBox(height: compact ? 10 : 12),
@@ -945,15 +955,17 @@ class _TodoCareCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text(
-                  '待办清单',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    '待办清单',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: LoveGirlTheme.textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -997,9 +1009,12 @@ class _TodoCareCard extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text(
-                '\u65b0\u589e\u4e00\u4ef6\u4e8b',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: const Text(
+                  '\u65b0\u589e\u4e00\u4ef6\u4e8b',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
             ),
           ),
