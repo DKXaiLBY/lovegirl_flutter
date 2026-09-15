@@ -55,6 +55,13 @@ build_apk.bat
 
 # Server fixes — now tracked in git for code review
 # server_fixes/
+server_fixes/.env
+.env
 
 # Claude Code
 .claude/
+
+# Debug artifacts (kept on disk, excluded from git; some are evidence referenced by docs)
+tmp_*
+build_log*
+node_modules/

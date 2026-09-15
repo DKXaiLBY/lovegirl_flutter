@@ -24,6 +24,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     'travel': Icons.flight,
     'gift': Icons.card_giftcard,
     'anniversary': Icons.celebration,
+    'achievement': Icons.emoji_events,
     'default': Icons.auto_awesome,
   };
 
@@ -56,7 +57,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
     String eventType = 'default';
     DateTime selectedDate = DateTime.now();
 
-    final types = ['first_meet', 'love', 'anniversary', 'travel', 'gift', 'default'];
+    final types = [
+      'first_meet',
+      'love',
+      'anniversary',
+      'travel',
+      'gift',
+      'default'
+    ];
     final typeLabels = ['初次相遇', '确定关系', '纪念日', '旅行', '礼物', '其他'];
 
     showModalBottomSheet(
@@ -67,7 +75,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
         builder: (ctx, setSheetState) => Container(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20, right: 20, top: 24,
+            left: 20,
+            right: 20,
+            top: 24,
           ),
           decoration: const BoxDecoration(
             color: LoveGirlTheme.cardLight,
@@ -79,7 +89,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
             children: [
               Center(
                 child: Container(
-                  width: 36, height: 4,
+                  width: 36,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: LoveGirlTheme.textMuted.withAlpha(60),
                     borderRadius: BorderRadius.circular(2),
@@ -87,7 +98,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('添加时刻', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: LoveGirlTheme.textPrimary)),
+              const Text('添加时刻',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: LoveGirlTheme.textPrimary)),
               const SizedBox(height: 20),
               TextField(
                 controller: titleCtrl,
@@ -105,23 +120,32 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 decoration: const InputDecoration(
                   labelText: '描述（选填）',
                   hintText: '记录这个美好的时刻...',
-                  prefixIcon: Icon(Icons.description, color: LoveGirlTheme.textMuted),
+                  prefixIcon:
+                      Icon(Icons.description, color: LoveGirlTheme.textMuted),
                 ),
               ),
               const SizedBox(height: 12),
               // 类型选择
-              const Text('事件类型', style: TextStyle(fontSize: 14, color: LoveGirlTheme.textSecondary)),
+              const Text('事件类型',
+                  style: TextStyle(
+                      fontSize: 14, color: LoveGirlTheme.textSecondary)),
               const SizedBox(height: 8),
               Wrap(
-                spacing: 8, runSpacing: 8,
+                spacing: 8,
+                runSpacing: 8,
                 children: List.generate(types.length, (i) {
                   final selected = eventType == types[i];
                   return ChoiceChip(
                     label: Text(typeLabels[i]),
                     selected: selected,
                     selectedColor: LoveGirlTheme.primary.withAlpha(30),
-                    labelStyle: TextStyle(color: selected ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary, fontSize: 13),
-                    onSelected: (_) => setSheetState(() => eventType = types[i]),
+                    labelStyle: TextStyle(
+                        color: selected
+                            ? LoveGirlTheme.primary
+                            : LoveGirlTheme.textSecondary,
+                        fontSize: 13),
+                    onSelected: (_) =>
+                        setSheetState(() => eventType = types[i]),
                   );
                 }),
               ),
@@ -135,10 +159,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now(),
                   );
-                  if (picked != null) setSheetState(() => selectedDate = picked);
+                  if (picked != null) {
+                    setSheetState(() => selectedDate = picked);
+                  }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
                     color: LoveGirlTheme.bgLight,
                     borderRadius: BorderRadius.circular(12),
@@ -146,11 +173,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 16, color: LoveGirlTheme.primary),
+                      const Icon(Icons.calendar_today,
+                          size: 16, color: LoveGirlTheme.primary),
                       const SizedBox(width: 10),
                       Text(
                         DateFormat('yyyy年M月d日').format(selectedDate),
-                        style: const TextStyle(fontSize: 15, color: LoveGirlTheme.textPrimary),
+                        style: const TextStyle(
+                            fontSize: 15, color: LoveGirlTheme.textPrimary),
                       ),
                     ],
                   ),
@@ -158,7 +187,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
               ),
               const SizedBox(height: 20),
               SizedBox(
-                width: double.infinity, height: 50,
+                width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: () async {
                     if (titleCtrl.text.trim().isEmpty) return;
@@ -166,20 +196,27 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       await _api.createTimeline({
                         'title': titleCtrl.text.trim(),
                         'description': descCtrl.text.trim(),
-                        'eventDate': DateFormat('yyyy-MM-dd').format(selectedDate),
+                        'eventDate':
+                            DateFormat('yyyy-MM-dd').format(selectedDate),
                         'icon': eventType,
                       });
+                      if (!ctx.mounted) return;
                       Navigator.pop(ctx);
                       await _loadTimeline();
                     } catch (e) {
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('保存失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+                          SnackBar(
+                              content: Text('保存失败: $e'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2)),
                         );
                       }
                     }
                   },
-                  child: const Text('保存', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: const Text('保存',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -198,9 +235,17 @@ class _TimelineScreenState extends State<TimelineScreen> {
     return Scaffold(
       backgroundColor: LoveGirlTheme.bgLight,
       appBar: AppBar(
+        backgroundColor: LoveGirlTheme.bgLight,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text('恋爱时光轴'),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: LoveGirlTheme.textPrimary,
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -211,7 +256,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   onRefresh: _loadTimeline,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildError())],
+                    children: [
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: _buildError())
+                    ],
                   ),
                 )
               : _events.isEmpty
@@ -219,7 +268,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
                       onRefresh: _loadTimeline,
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildEmpty())],
+                        children: [
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: _buildEmpty())
+                        ],
                       ),
                     )
                   : RefreshIndicator(
@@ -230,7 +283,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
                           // 时间轴线条
                           ...List.generate(_events.length, (index) {
                             final event = _events[index];
-                            return _buildTimelineItem(event, index == _events.length - 1);
+                            return _buildTimelineItem(
+                                event, index == _events.length - 1);
                           }),
                         ],
                       ),
@@ -268,7 +322,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
             child: Column(
               children: [
                 Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: LoveGirlTheme.primary.withAlpha(20),
                     shape: BoxShape.circle,
@@ -301,7 +356,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: LoveGirlTheme.textPrimary)),
+                        child: Text(title,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: LoveGirlTheme.textPrimary)),
                       ),
                       GestureDetector(
                         onTap: () async {
@@ -312,22 +371,32 @@ class _TimelineScreenState extends State<TimelineScreen> {
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('删除失败'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+                                  const SnackBar(
+                                      content: Text('删除失败'),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: Duration(seconds: 2)),
                                 );
                               }
                             }
                           }
                         },
-                        child: const Icon(Icons.delete_outline, size: 16, color: LoveGirlTheme.textMuted),
+                        child: const Icon(Icons.delete_outline,
+                            size: 16, color: LoveGirlTheme.textMuted),
                       ),
                     ],
                   ),
                   if (description.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(description, style: const TextStyle(fontSize: 14, color: LoveGirlTheme.textSecondary)),
+                    Text(description,
+                        style: const TextStyle(
+                            fontSize: 14, color: LoveGirlTheme.textSecondary)),
                   ],
                   const SizedBox(height: 8),
-                  Text(formattedDate, style: const TextStyle(fontSize: 12, color: LoveGirlTheme.pink, fontWeight: FontWeight.w500)),
+                  Text(formattedDate,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: LoveGirlTheme.pink,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -344,9 +413,13 @@ class _TimelineScreenState extends State<TimelineScreen> {
         children: [
           const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
           const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+          Text(_error!,
+              style: const TextStyle(color: LoveGirlTheme.textSecondary)),
           const SizedBox(height: 16),
-          TextButton.icon(onPressed: _loadTimeline, icon: const Icon(Icons.refresh), label: const Text('重试')),
+          TextButton.icon(
+              onPressed: _loadTimeline,
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试')),
         ],
       ),
     );
@@ -357,10 +430,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.auto_awesome_outlined, size: 64, color: LoveGirlTheme.textMuted),
+          const Icon(Icons.auto_awesome_outlined,
+              size: 64, color: LoveGirlTheme.textMuted),
           const SizedBox(height: 12),
-          const Text('还没有时刻记录', style: TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
-          const Text('点击右下角添加你们的恋爱时刻', style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+          const Text('还没有时刻记录',
+              style:
+                  TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
+          const Text('点击右下角添加你们的恋爱时刻',
+              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
         ],
       ),
     );

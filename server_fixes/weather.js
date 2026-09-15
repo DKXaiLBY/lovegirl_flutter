@@ -83,6 +83,7 @@ router.get('/coords', async (req, res) => {
           city: fullAddress,
           date: todayCast.date || new Date().toISOString().split('T')[0],
           temp: currentTemp,
+          feelsLike: currentTemp,
           tempHigh: parseInt(todayCast.daytemp) || null,
           tempLow: parseInt(todayCast.nighttemp) || null,
           weather: live.weather || todayCast.dayweather || '未知',

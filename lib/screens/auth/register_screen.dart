@@ -19,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  String _gender = 'female';
 
   @override
   void dispose() {
@@ -39,6 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _usernameController.text.trim(),
       _passwordController.text,
       _nicknameController.text.trim(),
+      gender: _gender,
     );
 
     if (!mounted) return;
@@ -213,6 +215,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 16),
 
             // 密码
+            _buildGenderSelector(),
+            const SizedBox(height: 16),
+
             _buildInputField(
               controller: _passwordController,
               hint: '密码',
@@ -368,6 +373,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
       validator: validator,
+    );
+  }
+
+  Widget _buildGenderSelector() {
+    Widget option(String gender, String label, IconData icon) {
+      final selected = _gender == gender;
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _gender = gender),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: selected
+                  ? LoveGirlTheme.primary.withAlpha(24)
+                  : LoveGirlTheme.bgLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? LoveGirlTheme.primary : Colors.transparent,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: selected
+                      ? LoveGirlTheme.primary
+                      : LoveGirlTheme.textMuted,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected
+                          ? LoveGirlTheme.primary
+                          : LoveGirlTheme.textPrimary,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        option('female', '女生', Icons.female_rounded),
+        const SizedBox(width: 12),
+        option('male', '男生', Icons.male_rounded),
+      ],
     );
   }
 

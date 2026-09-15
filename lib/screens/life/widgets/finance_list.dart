@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
 /// ===== 波浪分割线绘制器 =====
@@ -39,8 +40,8 @@ class WaveDividerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant WaveDividerPainter old) =>
-      old.color != color;
+  bool shouldRepaint(covariant WaveDividerPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// ===== 有机形状箭头按钮 =====
@@ -95,10 +96,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   Map<String, dynamic> _stats = {};
   bool _loading = true;
   String? _error;
+  String? _sourceFilter; // null=全部, 'travel'=旅行花费, ''=日常记账
 
   // 趋势图数据
   List<Map<String, dynamic>> _trendData = [];
-  bool _trendLoading = false;
 
   @override
   void initState() {
@@ -115,8 +116,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     setState(() => _loading = true);
     try {
       final results = await Future.wait([
-        _api.getFinanceRecords(_monthStr),
-        _api.getFinanceStats(_monthStr),
+        _api.getFinanceRecords(_monthStr, source: _sourceFilter),
+        _api.getFinanceStats(_monthStr, source: _sourceFilter),
       ]);
       setState(() {
         _records = results[0].data['data'] ?? [];
@@ -133,30 +134,28 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
 
   void _prevMonth() {
     setState(() {
-      _currentMonth =
-          DateTime(_currentMonth.year, _currentMonth.month - 1);
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
     });
     _loadData();
   }
 
   void _nextMonth() {
     setState(() {
-      _currentMonth =
-          DateTime(_currentMonth.year, _currentMonth.month + 1);
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
     });
     _loadData();
   }
 
   /// 加载近6个月趋势数据
   Future<void> _loadTrendData() async {
-    setState(() => _trendLoading = true);
     try {
       final now = DateTime.now();
       final List<Map<String, dynamic>> trend = [];
 
       for (int i = 5; i >= 0; i--) {
         final month = DateTime(now.year, now.month - i);
-        final monthStr = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+        final monthStr =
+            '${month.year}-${month.month.toString().padLeft(2, '0')}';
         try {
           final res = await _api.getFinanceStats(monthStr);
           final data = res.data?['data'] ?? {};
@@ -176,13 +175,11 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
 
       setState(() {
         _trendData = trend;
-        _trendLoading = false;
       });
-    } catch (e) {
-      setState(() => _trendLoading = false);
-    }
+    } catch (_) {}
   }
 
+  // ignore: unused_element
   void _showAddDialog() {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
@@ -274,14 +271,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           });
                         },
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: type == '支出'
                                 ? LoveGirlTheme.pink.withAlpha(25)
                                 : LoveGirlTheme.bgLight,
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: type == '支出'
                                   ? LoveGirlTheme.pink.withAlpha(60)
@@ -327,14 +322,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           });
                         },
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: type == '收入'
                                 ? LoveGirlTheme.accent.withAlpha(25)
                                 : LoveGirlTheme.bgLight,
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: type == '收入'
                                   ? LoveGirlTheme.accent.withAlpha(60)
@@ -426,12 +419,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                                 ? LoveGirlTheme.pink
                                                 : LoveGirlTheme.accent)
                                             .withAlpha(80)
-                                        : LoveGirlTheme.textMuted
-                                            .withAlpha(40),
+                                        : LoveGirlTheme.textMuted.withAlpha(40),
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   onSelected: (_) =>
                                       setSheetState(() => category = c),
@@ -506,12 +497,16 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           'recordDate': dateCtrl.text,
                           'description': noteCtrl.text.trim(),
                         });
+                        if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         await _loadData();
                       } catch (e) {
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('添加失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+                            SnackBar(
+                                content: Text('添加失败: $e'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2)),
                           );
                         }
                       }
@@ -548,8 +543,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       final date = (r['recordDate'] ?? r['date'])?.toString() ?? '未知日期';
       map.putIfAbsent(date, () => []).add(r);
     }
-    final sortedKeys = map.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final sortedKeys = map.keys.toList()..sort((a, b) => b.compareTo(a));
     final sortedMap = <String, List<dynamic>>{};
     for (final k in sortedKeys) {
       sortedMap[k] = map[k]!;
@@ -564,9 +558,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         final m = int.parse(parts[1]);
         final d = int.parse(parts[2]);
         final weekdays = ['一', '二', '三', '四', '五', '六', '日'];
-        final dt =
-            DateTime(int.parse(parts[0]), m, d);
-        return '${m}月${d}日 周${weekdays[dt.weekday - 1]}';
+        final dt = DateTime(int.parse(parts[0]), m, d);
+        return '$m月$d日 周${weekdays[dt.weekday - 1]}';
       }
     } catch (_) {}
     return dateStr;
@@ -609,8 +602,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: OrganicCard(
-        organic: true,
+      child: LovePaper(
         padding: EdgeInsets.zero,
         child: _buildBody(),
       ),
@@ -677,13 +669,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
         children: [
           // ---- 月份切换 ----
-          OrganicCard(
-            organic: true,
+          LovePaper(
             padding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
             ),
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -709,14 +700,24 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
             ),
           ),
 
-          // ---- 概览卡片（绿→粉渐变 + 有机波浪分割） ----
-          OrganicCard(
-            organic: true,
+          // ---- 来源筛选 ----
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                _buildSourceChip(null, '全部'),
+                const SizedBox(width: 8),
+                _buildSourceChip('', '日常记账'),
+                const SizedBox(width: 8),
+                _buildSourceChip('travel', '旅行花费'),
+              ],
+            ),
+          ),
+
+          // ---- 概览卡片 ----
+          LoveTicketCard(
             padding: EdgeInsets.zero,
-            gradient: const [
-              LoveGirlTheme.accent,
-              LoveGirlTheme.pink,
-            ],
+            color: LoveGirlTheme.paperWarm,
             margin: const EdgeInsets.only(bottom: 16),
             child: Column(
               children: [
@@ -740,7 +741,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         height: 60,
                         child: CustomPaint(
                           painter: WaveDividerPainter(
-                            color: Colors.white.withAlpha(50),
+                            color: LoveGirlTheme.separator,
                             amplitude: 5,
                           ),
                         ),
@@ -763,7 +764,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     padding: const EdgeInsets.symmetric(
                       vertical: 12,
                     ),
-                    color: Colors.white.withAlpha(35),
+                    color: LoveGirlTheme.paper.withAlpha(180),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -772,20 +773,20 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                               ? Icons.savings_rounded
                               : Icons.warning_amber_rounded,
                           size: 16,
-                          color: Colors.white.withAlpha(200),
+                          color: LoveGirlTheme.textSecondary,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           balance >= 0 ? '本月结余  ' : '本月超支  ',
                           style: TextStyle(
-                            color: Colors.white.withAlpha(200),
+                            color: LoveGirlTheme.textSecondary,
                             fontSize: 14,
                           ),
                         ),
                         Text(
                           '¥${balance.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: LoveGirlTheme.textPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
@@ -824,8 +825,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 ],
               ),
             ),
-            OrganicCard(
-              organic: true,
+            LovePaper(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               margin: const EdgeInsets.only(bottom: 16),
               child: Column(
@@ -855,7 +855,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   '${(value / 1000).toStringAsFixed(0)}k',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: LoveGirlTheme.textMuted.withAlpha(150),
+                                    color:
+                                        LoveGirlTheme.textMuted.withAlpha(150),
                                   ),
                                 );
                               },
@@ -871,7 +872,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                     '${_trendData[idx]['month']}月',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: LoveGirlTheme.textMuted.withAlpha(150),
+                                      color: LoveGirlTheme.textMuted
+                                          .withAlpha(150),
                                     ),
                                   );
                                 }
@@ -891,7 +893,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           // 收入线
                           LineChartBarData(
                             spots: List.generate(_trendData.length, (i) {
-                              return FlSpot(i.toDouble(), _trendData[i]['income']);
+                              return FlSpot(
+                                  i.toDouble(), _trendData[i]['income']);
                             }),
                             isCurved: true,
                             color: LoveGirlTheme.accent,
@@ -914,7 +917,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           // 支出线
                           LineChartBarData(
                             spots: List.generate(_trendData.length, (i) {
-                              return FlSpot(i.toDouble(), _trendData[i]['expense']);
+                              return FlSpot(
+                                  i.toDouble(), _trendData[i]['expense']);
                             }),
                             isCurved: true,
                             color: LoveGirlTheme.pink,
@@ -1048,8 +1052,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       ),
                     ),
                   ),
-                  OrganicCard(
-                    organic: true,
+                  LovePaper(
                     padding: EdgeInsets.zero,
                     margin: const EdgeInsets.only(bottom: 6),
                     child: Column(
@@ -1079,12 +1082,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: Colors.white.withAlpha(200)),
+            Icon(icon, size: 16, color: LoveGirlTheme.primary),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withAlpha(200),
+                color: LoveGirlTheme.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -1094,7 +1097,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         Text(
           '¥${amount.toStringAsFixed(2)}',
           style: const TextStyle(
-            color: Colors.white,
+            color: LoveGirlTheme.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -1103,9 +1106,40 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     );
   }
 
+  Widget _buildSourceChip(String? value, String label) {
+    final active = _sourceFilter == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _sourceFilter = active ? null : value);
+        _loadData();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: active
+              ? LoveGirlTheme.primary.withAlpha(25)
+              : LoveGirlTheme.bgLight,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+                ? LoveGirlTheme.primary.withAlpha(80)
+                : LoveGirlTheme.textMuted.withAlpha(40),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            color: active ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecordItem(dynamic r, {bool isLast = true}) {
-    final id =
-        r['id'] is int ? r['id'] : int.parse(r['id'].toString());
+    final id = r['id'] is int ? r['id'] : int.parse(r['id'].toString());
     // 后端返回 'expense'/'income'，前端兼容 '支出'/'收入'
     final typeStr = r['type']?.toString() ?? '';
     final isExpense = typeStr == 'expense' || typeStr == '支出';
@@ -1114,6 +1148,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     final category = r['category'] ?? '其他';
     // 后端返回 description，前端兼容 note
     final note = (r['description'] ?? r['note'])?.toString() ?? '';
+    final source = r['source']?.toString() ?? '';
     final icon = _getCategoryIcon(category);
 
     return Dismissible(
@@ -1155,7 +1190,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           } catch (e) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('删除失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+                SnackBar(
+                    content: Text('删除失败: $e'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2)),
               );
             }
             await _loadData(); // 恢复原状态
@@ -1202,9 +1240,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: (isExpense
-                        ? LoveGirlTheme.pink
-                        : LoveGirlTheme.accent)
+                color: (isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent)
                     .withAlpha(18),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1228,6 +1264,28 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       color: LoveGirlTheme.textPrimary,
                     ),
                   ),
+                  if (source == 'travel')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: LoveGirlTheme.accent.withAlpha(20),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '旅行花费',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: LoveGirlTheme.accent,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
                   if (note.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -1250,9 +1308,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: (isExpense
-                        ? LoveGirlTheme.pink
-                        : LoveGirlTheme.accent)
+                color: (isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent)
                     .withAlpha(12),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1261,9 +1317,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isExpense
-                      ? LoveGirlTheme.pink
-                      : LoveGirlTheme.accent,
+                  color: isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent,
                 ),
               ),
             ),

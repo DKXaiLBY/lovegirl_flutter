@@ -198,6 +198,13 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
     const SizedBox(height: 12),
     Text(_error!, style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+    const SizedBox(height: 16),
+    TextButton.icon(
+      onPressed: _loadData,
+      icon: const Icon(Icons.refresh, size: 18),
+      label: const Text('点击重试'),
+      style: TextButton.styleFrom(foregroundColor: LoveGirlTheme.pink),
+    ),
   ]));
 
   Widget _buildStatusRing() {

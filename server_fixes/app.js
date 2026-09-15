@@ -4,6 +4,7 @@ const compression = require('compression');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(morgan('short'));
 
 // Body 解析
 app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
 
 // 全局限流 — 每IP每分钟最多200次请求
@@ -65,7 +67,6 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', rateLimit({ windowMs: 60 * 1000, max: 5 }));
 
 // ========== Static Files (APK downloads) ==========
-const path = require('path');
 app.use('/public', express.static(path.join(__dirname, 'public'), {
   // APK 文件不缓存，确保下载最新版本
   setHeaders: (res, filePath) => {
@@ -82,33 +83,37 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
 app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime: process.uptime() }));
 
 // ========== Routes ==========
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/user', require('./routes/user'));
-app.use('/api/travel', require('./routes/travel'));
-app.use('/api/travel', require('./routes/travel_photos')); // 旅行照片
-app.use('/api/period', require('./routes/period'));
-app.use('/api/calorie', require('./routes/calorie'));
-app.use('/api/todo', require('./routes/todo'));
-app.use('/api/finance', require('./routes/finance'));
-app.use('/api/course', require('./routes/course'));
-app.use('/api/photo', require('./routes/photo'));
-app.use('/api/mood', require('./routes/mood'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/timeline', require('./routes/timeline'));
-app.use('/api/feeding', require('./routes/feeding'));
-app.use('/api/weather', require('./routes/weather'));
-app.use('/api/version', require('./routes/version'));
-app.use('/api/search', require('./routes/search'));
-app.use('/api/sync', require('./routes/sync'));
-app.use('/api/activity', require('./routes/activity'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/aliases', require('./routes/aliases'));
-app.use('/api/anniversary', require('./routes/anniversary'));
-app.use('/api/daily', require('./routes/daily'));
-app.use('/api/exam', require('./routes/exam'));
-app.use('/api/privacy', require('./routes/privacy'));
-app.use('/api/couple', require('./routes/couple'));
-app.use('/api/deploy', require('./routes/deploy_api'));
+// server_fixes 当前仓库里优先挂载已经落地的真实路由。
+app.use('/api/auth', require('./auth'));
+app.use('/api/user', require('./user'));
+app.use('/api/travel', require('./travel'));
+app.use('/api/travel', require('./travel_photos')); // 旅行照片
+app.use('/api/period', require('./period'));
+app.use('/api/todo', require('./todo'));
+app.use('/api/finance', require('./finance'));
+app.use('/api/course', require('./course'));
+app.use('/api/photo', require('./photo'));
+app.use('/api/mood', require('./mood'));
+app.use('/api/chat', require('./chat'));
+app.use('/api/timeline', require('./timeline'));
+app.use('/api/home', require('./home'));
+app.use('/api/feeding', require('./feeding_v2'));
+app.use('/api/weather', require('./weather'));
+app.use('/api/version', require('./version'));
+app.use('/api/beans', require('./beans'));
+app.use('/api/achievements', require('./achievements'));
+app.use('/api/notifications', require('./notifications'));
+app.use('/api/sync', require('./sync'));
+app.use('/api/activity', require('./activity'));
+app.use('/api/admin', require('./admin_products'));
+app.use('/api/admin', require('./admin'));
+app.use('/api/aliases', require('./aliases'));
+app.use('/api/anniversary', require('./anniversary'));
+app.use('/api/daily', require('./daily'));
+app.use('/api/exam', require('./exam'));
+app.use('/api/privacy', require('./privacy'));
+app.use('/api/couple', require('./couple'));
+app.use('/api/deploy', require('./deploy_api'));
 
 // ========== 404 Handler (all paths return JSON) ==========
 app.use((req, res) => {

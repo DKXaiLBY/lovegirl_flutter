@@ -1,0 +1,3 @@
+
+Running Gradle task 'assembleRelease'...                        
+Running Gradle task 'assembleRelease'...                         2,003ms

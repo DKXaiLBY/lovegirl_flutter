@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/screens/tasks/task_form.dart';
 
 class TasksScreen extends StatefulWidget {
@@ -189,8 +190,7 @@ class _TasksScreenState extends State<TasksScreen>
     }
   }
 
-  Color _catColor(String? cat) =>
-      _categoryColors[cat] ?? LoveGirlTheme.primary;
+  Color _catColor(String? cat) => _categoryColors[cat] ?? LoveGirlTheme.primary;
 
   IconData _catIcon(String? cat) =>
       _categoryIcons[cat] ?? Icons.checklist_rounded;
@@ -256,8 +256,7 @@ class _TasksScreenState extends State<TasksScreen>
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: OrganicCard(
-        organic: true,
+      child: LovePaper(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
           children: [
@@ -422,8 +421,7 @@ class _TasksScreenState extends State<TasksScreen>
         onTap: () => _editTask(idx),
         child: Opacity(
           opacity: completed ? 0.55 : 1.0,
-          child: OrganicCard(
-            organic: true,
+          child: LovePaper(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             margin: const EdgeInsets.only(bottom: 8),
             child: Row(
@@ -450,9 +448,8 @@ class _TasksScreenState extends State<TasksScreen>
                           color: completed
                               ? LoveGirlTheme.textMuted
                               : LoveGirlTheme.textPrimary,
-                          decoration: completed
-                              ? TextDecoration.lineThrough
-                              : null,
+                          decoration:
+                              completed ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       if (notes.isNotEmpty) ...[
@@ -566,21 +563,20 @@ class _TasksScreenState extends State<TasksScreen>
 class _HandDrawnCheckbox extends StatelessWidget {
   final bool checked;
   final Color color;
-  final double size;
+  static const double _size = 24.0;
 
   const _HandDrawnCheckbox({
     this.checked = false,
     this.color = LoveGirlTheme.primary,
-    this.size = 24.0,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: size,
-      height: size,
+      width: _size,
+      height: _size,
       child: CustomPaint(
-        size: Size(size, size),
+        size: const Size(_size, _size),
         painter: _HandDrawnCheckboxPainter(
           checked: checked,
           color: color,

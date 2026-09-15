@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'widgets/period_tracker.dart';
-import 'widgets/calorie_tracker.dart';
 
 class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
@@ -13,143 +12,99 @@ class HealthScreen extends StatefulWidget {
   State<HealthScreen> createState() => _HealthScreenState();
 }
 
-class _HealthScreenState extends State<HealthScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _HealthScreenState extends State<HealthScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     // 仅女友角色可访问，但已在 AppShell 中处理，这里做个安全兜底
     if (!auth.isGirl) {
       return const Scaffold(
+        backgroundColor: LoveGirlTheme.bgLight,
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.favorite_border, size: 64, color: LoveGirlTheme.pink),
-              SizedBox(height: 16),
-              Text('只有她才能查看哦 💕',
-                  style: TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
-            ],
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: LovePaper(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_rounded,
+                      size: 52, color: LoveGirlTheme.primary),
+                  SizedBox(height: 14),
+                  Text(
+                    '健康页只给她看',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: LoveGirlTheme.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    '这里会保护她的私密记录',
+                    style:
+                        TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: LoveGirlTheme.bgLight,
-        body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverAppBar(
-                expandedHeight: 100,
-                floating: false,
-                pinned: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: WavyBackground(
-                    colors: [
-                      LoveGirlTheme.pink.withAlpha(40),
-                      LoveGirlTheme.pinkLight.withAlpha(25),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    child: const SizedBox.expand(),
-                  ),
-                  titlePadding: const EdgeInsetsDirectional.only(start: 20, bottom: 16),
-                  title: const Text(
-                    '健康',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: LoveGirlTheme.textPrimary,
+    return Scaffold(
+      backgroundColor: LoveGirlTheme.bgLight,
+      body: LovePage(
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+              child: LoveTicketCard(
+                color: LoveGirlTheme.paperWarm,
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    const LoveStickerIcon(
+                      icon: Icons.health_and_safety_rounded,
+                      color: LoveGirlTheme.primary,
                     ),
-                  ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '健康',
+                            style: TextStyle(
+                              fontSize: 23,
+                              fontWeight: FontWeight.w900,
+                              color: LoveGirlTheme.textPrimary,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            '柔和一点，也清楚一点',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: LoveGirlTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const LovePill(
+                      text: '私密',
+                      icon: Icons.lock_rounded,
+                      color: LoveGirlTheme.primary,
+                    ),
+                  ],
                 ),
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: OrganicCard(
-                      organic: true,
-                      padding: EdgeInsets.zero,
-                      child: TabBar(
-                      controller: _tabController,
-                      indicator: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: LinearGradient(
-                          colors: [LoveGirlTheme.pink, LoveGirlTheme.pinkLight],
-                        ),
-                      ),
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: Colors.transparent,
-                      labelColor: Colors.white,
-                      unselectedLabelColor: LoveGirlTheme.textSecondary,
-                      labelStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      unselectedLabelStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      splashFactory: NoSplash.splashFactory,
-                      padding: const EdgeInsets.all(4),
-                      tabs: const [
-                        Tab(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.water_drop, size: 18),
-                              SizedBox(width: 6),
-                              Text('姨妈助手'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.restaurant, size: 18),
-                              SizedBox(width: 6),
-                              Text('卡路里'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ), // TabBar
-                  ), // OrganicCard
-                ), // Padding
-              ), // PreferredSize
-            ), // SliverAppBar bottom
-          ];
-          },
-          body: Container(
-            margin: const EdgeInsets.only(top: 8),
-            child: TabBarView(
-              controller: _tabController,
-              children: const [
-                PeriodTracker(),
-                CalorieTracker(),
-              ],
+              ),
             ),
-          ),
+            const Expanded(child: PeriodTracker()),
+          ],
         ),
       ),
     );

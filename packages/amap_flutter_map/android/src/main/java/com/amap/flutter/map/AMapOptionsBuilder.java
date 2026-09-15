@@ -54,6 +54,9 @@ class AMapOptionsBuilder implements AMapOptionsSink {
             options.zoomControlsEnabled(false);
             final AMapPlatformView aMapPlatformView = new AMapPlatformView(id, context, binaryMessenger, lifecycleProvider, options);
 
+            if (!aMapPlatformView.isReady()) {
+                return null;
+            }
 
             if (null != customMapStyleOptions) {
                 aMapPlatformView.getMapController().setCustomMapStyleOptions(customMapStyleOptions);

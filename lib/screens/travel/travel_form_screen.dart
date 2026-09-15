@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
+import 'package:lovegirl_flutter/screens/travel/map_picker_screen.dart';
+import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
@@ -24,6 +26,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   final _budgetCtrl = TextEditingController();
   final _itineraryCtrl = TextEditingController();
   final _reasonCtrl = TextEditingController();
+  final _transportationCtrl = TextEditingController();
+  final _nearbyCtrl = TextEditingController();
+  final _tipsCtrl = TextEditingController();
 
   String _city = '';
   String _status = 'visited';
@@ -32,6 +37,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   String? _plannedDate;
   String _weather = '';
   String _mood = '';
+  double _lat = 0;
+  double _lng = 0;
+  String _address = '';
   bool _saving = false;
 
   bool get _isEditing => widget.spot != null;
@@ -73,6 +81,12 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _budgetCtrl.text = s.budget != null ? s.budget!.toStringAsFixed(0) : '';
       _itineraryCtrl.text = s.itinerary ?? '';
       _reasonCtrl.text = s.reason ?? '';
+      _transportationCtrl.text = s.transportation ?? '';
+      _nearbyCtrl.text = s.nearby ?? '';
+      _tipsCtrl.text = s.tips ?? '';
+      _lat = s.lat;
+      _lng = s.lng;
+      _address = s.address;
     }
   }
 
@@ -84,12 +98,41 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     _budgetCtrl.dispose();
     _itineraryCtrl.dispose();
     _reasonCtrl.dispose();
+    _transportationCtrl.dispose();
+    _nearbyCtrl.dispose();
+    _tipsCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _pickCity() async {
     final city = await showCityPicker(context, currentCity: _city);
     if (city != null) setState(() => _city = city);
+  }
+
+  Future<void> _pickLocation() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (_) => MapPickerScreen(
+          initialLat: _lat == 0 ? null : _lat,
+          initialLng: _lng == 0 ? null : _lng,
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _lat = (result['lat'] as num?)?.toDouble() ?? _lat;
+      _lng = (result['lng'] as num?)?.toDouble() ?? _lng;
+      _address = result['address']?.toString() ?? _address;
+      final name = result['name']?.toString() ?? '';
+      final city = result['city']?.toString() ?? '';
+      if (_nameCtrl.text.trim().isEmpty && name.isNotEmpty) {
+        _nameCtrl.text = name;
+      }
+      if (city.isNotEmpty) {
+        _city = city;
+      }
+    });
   }
 
   Future<void> _pickVisitedDate() async {
@@ -122,16 +165,14 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     if (_nameCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('请输入地点名称'),
-            behavior: SnackBarBehavior.floating),
+            content: Text('请输入地点名称'), behavior: SnackBarBehavior.floating),
       );
       return;
     }
     if (_city.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('请选择城市'),
-            behavior: SnackBarBehavior.floating),
+            content: Text('请选择城市'), behavior: SnackBarBehavior.floating),
       );
       return;
     }
@@ -142,9 +183,13 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     final data = <String, dynamic>{
       'name': _nameCtrl.text.trim(),
       'city': _city,
+      'address': _address,
       'status': _status,
       'emoji': _statusEmoji,
       'note': _noteCtrl.text.trim(),
+      'transportation': _transportationCtrl.text.trim(),
+      'nearby': _nearbyCtrl.text.trim(),
+      'tips': _tipsCtrl.text.trim(),
     };
 
     if (_status == 'visited') {
@@ -169,10 +214,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       data['budget'] = double.tryParse(budgetText);
     }
 
-    // 编辑时保留原坐标
-    if (_isEditing) {
-      data['lat'] = widget.spot!.lat;
-      data['lng'] = widget.spot!.lng;
+    if (_lat != 0 || _lng != 0) {
+      data['lat'] = _lat;
+      data['lng'] = _lng;
     }
 
     try {
@@ -183,6 +227,24 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       } else {
         await provider.createSpot(data);
       }
+
+      // 同步写入记账模块：预算 > 0 时自动创建旅行花费记录
+      final budgetValue = budgetText.isNotEmpty ? double.tryParse(budgetText) : null;
+      if (budgetValue != null && budgetValue > 0) {
+        try {
+          await ApiService().addFinanceRecord({
+            'type': 'expense',
+            'category': '旅行',
+            'amount': budgetValue,
+            'recordDate': _visitedDate ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            'description': '${_nameCtrl.text.trim()}（$_city）',
+            'source': 'travel',
+          });
+        } catch (_) {
+          // 记账同步失败不阻断旅行保存流程
+        }
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -270,8 +332,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             onTap: _pickCity,
             child: Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: LoveGirlTheme.bgLight,
                 borderRadius: BorderRadius.circular(10),
@@ -301,6 +362,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           ),
           const SizedBox(height: 16),
 
+          _label('地图位置'),
+          const SizedBox(height: 6),
+          _locationPickerTile(),
+          const SizedBox(height: 16),
+
           // 状态
           _label('状态'),
           const SizedBox(height: 8),
@@ -327,8 +393,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               onTap: _pickVisitedDate,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: LoveGirlTheme.bgLight,
                   borderRadius: BorderRadius.circular(10),
@@ -366,8 +432,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                   onTap: () =>
                       setState(() => _weather = active ? '' : w['label']!),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: active
                           ? LoveGirlTheme.primary.withAlpha(20)
@@ -406,8 +472,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                   onTap: () =>
                       setState(() => _mood = active ? '' : m['label']!),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: active
                           ? LoveGirlTheme.pink.withAlpha(20)
@@ -472,7 +538,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           if (_status == 'wish') ...[
             _sectionTitle('心愿详情'),
             const SizedBox(height: 12),
-
             _label('想去的理由'),
             const SizedBox(height: 6),
             TextField(
@@ -487,15 +552,14 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           if (_status == 'planned') ...[
             _sectionTitle('规划详情'),
             const SizedBox(height: 12),
-
             _label('计划日期'),
             const SizedBox(height: 6),
             GestureDetector(
               onTap: _pickPlannedDate,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: LoveGirlTheme.bgLight,
                   borderRadius: BorderRadius.circular(10),
@@ -503,8 +567,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.event,
-                        size: 18, color: Color(0xFF9C27B0)),
+                    const Icon(Icons.event, size: 18, color: Color(0xFF9C27B0)),
                     const SizedBox(width: 10),
                     Text(
                       _plannedDate ?? '点击选择计划日期',
@@ -520,7 +583,6 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
             _label('行程安排'),
             const SizedBox(height: 6),
             TextField(
@@ -547,6 +609,31 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               prefixIcon: const Icon(Icons.account_balance_wallet_outlined,
                   size: 20, color: LoveGirlTheme.textMuted),
             ),
+          ),
+          const SizedBox(height: 16),
+
+          _label('交通方式'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _transportationCtrl,
+            decoration: _inputDecoration('地铁 / 打车 / 步行路线'),
+          ),
+          const SizedBox(height: 16),
+
+          _label('附近推荐'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _nearbyCtrl,
+            decoration: _inputDecoration('附近餐厅、景点或停车点'),
+          ),
+          const SizedBox(height: 16),
+
+          _label('小提示'),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _tipsCtrl,
+            maxLines: 2,
+            decoration: _inputDecoration('预约、营业时间或注意事项'),
           ),
           const SizedBox(height: 16),
 
@@ -577,6 +664,66 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
   }
 
+  Widget _locationPickerTile() {
+    final hasLocation = _lat != 0 || _lng != 0;
+    return GestureDetector(
+      onTap: _pickLocation,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: LoveGirlTheme.bgLight,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.black.withAlpha(15)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              hasLocation ? Icons.location_on_rounded : Icons.add_location_alt,
+              size: 20,
+              color:
+                  hasLocation ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasLocation ? '已选择地图位置' : '点击搜索或在地图上选点',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: hasLocation
+                          ? LoveGirlTheme.textPrimary
+                          : LoveGirlTheme.textMuted,
+                    ),
+                  ),
+                  if (hasLocation) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      _address.isNotEmpty
+                          ? _address
+                          : '${_lat.toStringAsFixed(6)}, ${_lng.toStringAsFixed(6)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: LoveGirlTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right,
+                size: 20, color: LoveGirlTheme.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionTitle(String title) {
     return Row(
       children: [
@@ -602,11 +749,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     return Row(
       children: [
         Text(text,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 14)),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         if (required)
-          const Text(' *',
-              style: TextStyle(color: Colors.red, fontSize: 14)),
+          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
       ],
     );
   }
@@ -614,12 +759,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle:
-          TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150)),
+      hintStyle: TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150)),
       filled: true,
       fillColor: LoveGirlTheme.bgLight,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Colors.black.withAlpha(15)),
@@ -630,8 +773,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide:
-            const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
+        borderSide: const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
       ),
     );
   }

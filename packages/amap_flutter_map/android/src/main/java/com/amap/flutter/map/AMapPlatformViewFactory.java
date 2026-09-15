@@ -1,6 +1,7 @@
 package com.amap.flutter.map;
 
 import android.content.Context;
+import android.os.Build;
 
 import com.amap.api.maps.model.CameraPosition;
 import com.amap.flutter.map.utils.ConvertUtil;
@@ -32,6 +33,17 @@ class AMapPlatformViewFactory extends PlatformViewFactory {
 
     @Override
     public PlatformView create(Context context, int viewId, Object args) {
+        if (Build.SUPPORTED_ABIS != null) {
+            for (String abi : Build.SUPPORTED_ABIS) {
+                if (abi != null && abi.startsWith("x86")) {
+                    return new AMapErrorPlatformView(
+                            context,
+                            "\u5f53\u524d\u6a21\u62df\u5668\u67b6\u6784\u7f3a\u5c11\u9ad8\u5fb7\u539f\u751f\u5730\u56fe\u5e93\n\u8bf7\u5728\u5b89\u5353\u771f\u673a\u4e0a\u67e5\u770b\u771f\u5730\u56fe"
+                    );
+                }
+            }
+        }
+
         final AMapOptionsBuilder builder = new AMapOptionsBuilder();
         Map<String, Object> params = null;
         try {
@@ -75,6 +87,10 @@ class AMapPlatformViewFactory extends PlatformViewFactory {
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "create", e);
         }
-        return builder.build(viewId, context, binaryMessenger, lifecycleProvider);
+        AMapPlatformView view = builder.build(viewId, context, binaryMessenger, lifecycleProvider);
+        if (view == null || !view.isReady()) {
+            return new AMapErrorPlatformView(context);
+        }
+        return view;
     }
 }

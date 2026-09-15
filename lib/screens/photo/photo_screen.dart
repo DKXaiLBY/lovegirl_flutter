@@ -40,7 +40,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
 
       setState(() => _uploading = true);
       // 修复：后端上传路径是 /api/photo，字段名是 'photo'
-      final res = await _api.upload('/api/photo', file.path, fieldName: 'photo');
+      final res =
+          await _api.upload('/api/photo', file.path, fieldName: 'photo');
       final data = res.data?['data'];
       final url = data is Map ? (data['url'] as String?) : null;
       if (url != null && url.isNotEmpty) {
@@ -49,7 +50,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('上传失败，请重试'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+            const SnackBar(
+                content: Text('上传失败，请重试'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2)),
           );
         }
       }
@@ -57,7 +61,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
       LogService().error('Photo', '上传失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('上传失败，请检查网络后重试'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+          const SnackBar(
+              content: Text('上传失败，请检查网络后重试'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2)),
         );
       }
     }
@@ -89,10 +96,13 @@ class _PhotoScreenState extends State<PhotoScreen> {
         title: const Text('删除照片'),
         content: const Text('确定删除这张照片吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除', style: TextStyle(color: LoveGirlTheme.pink)),
+            child:
+                const Text('删除', style: TextStyle(color: LoveGirlTheme.pink)),
           ),
         ],
       ),
@@ -104,7 +114,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('删除失败'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+            const SnackBar(
+                content: Text('删除失败'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2)),
           );
         }
       }
@@ -113,7 +126,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
 
   void _showFullScreen(String url) {
     // 确保 URL 是完整的
-    final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
+    final fullUrl =
+        url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
 
     Navigator.push(
       context,
@@ -130,8 +144,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
               child: CachedNetworkImage(
                 imageUrl: fullUrl,
                 fit: BoxFit.contain,
-                placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                placeholder: (_, __) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white)),
+                errorWidget: (_, __, ___) => const Icon(Icons.broken_image,
+                    color: Colors.white54, size: 64),
               ),
             ),
           ),
@@ -145,16 +161,28 @@ class _PhotoScreenState extends State<PhotoScreen> {
     return Scaffold(
       backgroundColor: LoveGirlTheme.bgLight,
       appBar: AppBar(
+        backgroundColor: LoveGirlTheme.bgLight,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: const Text('云端相册'),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: LoveGirlTheme.textPrimary,
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           _uploading
               ? const Padding(
                   padding: EdgeInsets.only(right: 16),
-                  child: Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))),
+                  child: Center(
+                      child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2))),
                 )
               : IconButton(
                   icon: const Icon(Icons.add_photo_alternate_outlined),
@@ -164,60 +192,79 @@ class _PhotoScreenState extends State<PhotoScreen> {
         ],
       ),
       body: _uploading && _photos.isEmpty
-          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('正在上传...', style: TextStyle(color: LoveGirlTheme.textMuted)),
-            ]))
+          ? const Center(
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('正在上传...',
+                      style: TextStyle(color: LoveGirlTheme.textMuted)),
+                ]))
           : _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? RefreshIndicator(
-                  onRefresh: _loadPhotos,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildError())],
-                  ),
-                )
-              : _photos.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
                   ? RefreshIndicator(
                       onRefresh: _loadPhotos,
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: [SizedBox(height: MediaQuery.of(context).size.height * 0.7, child: _buildEmpty())],
+                        children: [
+                          SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.7,
+                              child: _buildError())
+                        ],
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _loadPhotos,
-                      child: GridView.builder(
-                        padding: const EdgeInsets.all(4),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 4,
-                          crossAxisSpacing: 4,
-                        ),
-                        itemCount: _photos.length,
-                        itemBuilder: (context, index) {
-                          final photo = _photos[index];
-                          final url = photo['url'] ?? photo['image'] ?? '';
-                          final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
-                          final id = photo['id'];
-                          return GestureDetector(
-                            onTap: () => _showFullScreen(url),
-                            onLongPress: () => id != null ? _deletePhoto(id) : null,
-                            child: CachedNetworkImage(
-                              imageUrl: fullUrl,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: LoveGirlTheme.bgLight),
-                              errorWidget: (_, __, ___) => Container(
-                                color: LoveGirlTheme.bgLight,
-                                child: const Icon(Icons.broken_image, color: LoveGirlTheme.textMuted),
-                              ),
+                  : _photos.isEmpty
+                      ? RefreshIndicator(
+                          onRefresh: _loadPhotos,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.7,
+                                  child: _buildEmpty())
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadPhotos,
+                          child: GridView.builder(
+                            padding: const EdgeInsets.all(4),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 4,
+                              crossAxisSpacing: 4,
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                            itemCount: _photos.length,
+                            itemBuilder: (context, index) {
+                              final photo = _photos[index];
+                              final url = photo['url'] ?? photo['image'] ?? '';
+                              final fullUrl = url.startsWith('http')
+                                  ? url
+                                  : '${AppConstants.baseUrl}$url';
+                              final id = photo['id'];
+                              return GestureDetector(
+                                onTap: () => _showFullScreen(url),
+                                onLongPress: () =>
+                                    id != null ? _deletePhoto(id) : null,
+                                child: CachedNetworkImage(
+                                  imageUrl: fullUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) =>
+                                      Container(color: LoveGirlTheme.bgLight),
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: LoveGirlTheme.bgLight,
+                                    child: const Icon(Icons.broken_image,
+                                        color: LoveGirlTheme.textMuted),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
     );
   }
 
@@ -228,7 +275,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
         children: [
           const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
           const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+          Text(_error!,
+              style: const TextStyle(color: LoveGirlTheme.textSecondary)),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: _loadPhotos,
@@ -245,10 +293,14 @@ class _PhotoScreenState extends State<PhotoScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.photo_library_outlined, size: 64, color: LoveGirlTheme.textMuted),
+          const Icon(Icons.photo_library_outlined,
+              size: 64, color: LoveGirlTheme.textMuted),
           const SizedBox(height: 12),
-          const Text('还没有照片', style: TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
-          const Text('你们一起的照片会展示在这里', style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+          const Text('还没有照片',
+              style:
+                  TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
+          const Text('你们一起的照片会展示在这里',
+              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
         ],
       ),
     );

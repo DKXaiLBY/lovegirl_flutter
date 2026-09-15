@@ -92,7 +92,8 @@ class AMapWidget extends StatefulWidget {
   ///高德合规声明配置
   ///
   /// 高德SDK合规使用方案请参考：https://lbs.amap.com/news/sdkhgsy
-  final AMapPrivacyStatement ?privacyStatement;
+  final AMapPrivacyStatement? privacyStatement;
+
   /// 创建一个展示高德地图的widget
   ///
   /// 如果使用的高德地图SDK的版本是8.1.0及以上版本，
@@ -109,7 +110,8 @@ class AMapWidget extends StatefulWidget {
     Key? key,
     this.privacyStatement,
     this.apiKey,
-    this.initialCameraPosition = const CameraPosition(target: LatLng(39.909187, 116.397451), zoom: 10),
+    this.initialCameraPosition =
+        const CameraPosition(target: LatLng(39.909187, 116.397451), zoom: 10),
     this.mapType = MapType.normal,
     this.buildingsEnabled = true,
     this.compassEnabled = false,
@@ -182,11 +184,14 @@ class _MapState extends State<AMapWidget> {
   }
 
   @override
-  void dispose() async {
+  void dispose() {
+    if (_controller.isCompleted) {
+      _controller.future.then((controller) {
+        controller.disponse();
+        print('dispose AMapWidget with mapId: ${controller.mapId}');
+      });
+    }
     super.dispose();
-    AMapController controller = await _controller.future;
-    controller.disponse();
-    print('dispose AMapWidget with mapId: ${controller.mapId}');
   }
 
   @override
@@ -268,19 +273,22 @@ class _MapState extends State<AMapWidget> {
   void _updateMarkers() async {
     final AMapController controller = await _controller.future;
     // ignore: unawaited_futures
-    controller._updateMarkers(MarkerUpdates.from(_markers.values.toSet(), widget.markers));
+    controller._updateMarkers(
+        MarkerUpdates.from(_markers.values.toSet(), widget.markers));
     _markers = keyByMarkerId(widget.markers);
   }
 
   void _updatePolylines() async {
     final AMapController controller = await _controller.future;
-    controller._updatePolylines(PolylineUpdates.from(_polylines.values.toSet(), widget.polylines));
+    controller._updatePolylines(
+        PolylineUpdates.from(_polylines.values.toSet(), widget.polylines));
     _polylines = keyByPolylineId(widget.polylines);
   }
 
   void _updatePolygons() async {
     final AMapController controller = await _controller.future;
-    controller._updatePolygons(PolygonUpdates.from(_polygons.values.toSet(), widget.polygons));
+    controller._updatePolygons(
+        PolygonUpdates.from(_polygons.values.toSet(), widget.polygons));
     _polygons = keyByPolygonId(widget.polygons);
   }
 }
@@ -400,7 +408,8 @@ class _AMapOptions {
     final Map<String, dynamic> prevOptionsMap = toMap();
 
     return newOptions.toMap()
-      ..removeWhere((String key, dynamic value) => (_checkChange(key, prevOptionsMap[key], value)));
+      ..removeWhere((String key, dynamic value) =>
+          (_checkChange(key, prevOptionsMap[key], value)));
   }
 
   bool _checkChange(String key, dynamic preValue, dynamic newValue) {

@@ -36,7 +36,12 @@ class LogService {
     try {
       final lines = content.split('\n');
       for (final line in lines) {
-        if (line.isEmpty || line.startsWith('===') || line.startsWith('Exported') || line.startsWith('Total')) continue;
+        if (line.isEmpty ||
+            line.startsWith('===') ||
+            line.startsWith('Exported') ||
+            line.startsWith('Total')) {
+          continue;
+        }
         // 格式: [HH:mm:ss.ms] [LEVEL] [TYPE] message
         if (line.startsWith('[')) {
           final parts = line.split('] ');
@@ -70,13 +75,15 @@ class LogService {
     }
   }
 
-  void api(String method, String path, {Map<String, dynamic>? params, int? statusCode, dynamic response, Duration? duration}) {
+  void api(String method, String path,
+      {Map<String, dynamic>? params, int? statusCode, Duration? duration}) {
     _add(LogEntry(
       timestamp: DateTime.now(),
       type: 'API',
       message: '$method $path',
-      detail: 'Status: $statusCode | Duration: ${duration?.inMilliseconds ?? 0}ms\n'
-          'Params: ${jsonEncode(params)}\nResponse: ${_truncate(jsonEncode(response))}',
+      detail:
+          'Status: $statusCode | Duration: ${duration?.inMilliseconds ?? 0}ms\n'
+          'Params: ${jsonEncode(params)}',
       level: statusCode != null && statusCode >= 400 ? 'ERROR' : 'INFO',
     ));
   }
@@ -133,7 +140,8 @@ class LogService {
     buffer.writeln('Total entries: ${_logs.length}');
     buffer.writeln('');
     for (final entry in _logs) {
-      buffer.writeln('[${_formatTime(entry.timestamp)}] [${entry.level}] [${entry.type}] ${entry.message}');
+      buffer.writeln(
+          '[${_formatTime(entry.timestamp)}] [${entry.level}] [${entry.type}] ${entry.message}');
       if (entry.detail.isNotEmpty) {
         buffer.writeln('  ${entry.detail.replaceAll('\n', '\n  ')}');
       }
@@ -155,18 +163,16 @@ class LogService {
   }
 
   String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}:${dt.second.toString().padLeft(2,'0')}.${dt.millisecond.toString().padLeft(3,'0')}';
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}.${dt.millisecond.toString().padLeft(3, '0')}';
   }
-
-  String _truncate(String s) => s.length > 500 ? '${s.substring(0, 500)}...' : s;
 }
 
 class LogEntry {
   final DateTime timestamp;
-  final String type;   // API, ERROR, INFO, USER
+  final String type; // API, ERROR, INFO, USER
   final String message;
   final String detail;
-  final String level;  // INFO, WARN, ERROR
+  final String level; // INFO, WARN, ERROR
 
   LogEntry({
     required this.timestamp,

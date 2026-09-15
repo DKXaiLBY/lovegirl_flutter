@@ -1,61 +1,32 @@
-import 'dart:math';
+import 'package:amap_flutter_base/amap_flutter_base.dart'
+    show AMapApiKey, AMapLocation, AMapPrivacyStatement, LatLng, LatLngBounds;
+import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
-/// WGS-84 坐标转 GCJ-02 坐标（高德地图使用）
-LatLng wgs84ToGcj02(double lat, double lng) {
-  const double pi = 3.14159265358979324;
-  const double a = 6378245.0;
-  const double ee = 0.00669342162296594;
-  double dLat = _transformLat(lng - 105.0, lat - 35.0);
-  double dLng = _transformLng(lng - 105.0, lat - 35.0);
-  double radLat = lat / 180.0 * pi;
-  double magic = sin(radLat);
-  magic = 1 - ee * magic * magic;
-  double sqrtMagic = sqrt(magic);
-  dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * pi);
-  dLng = (dLng * 180.0) / (a / sqrtMagic * cos(radLat) * pi);
-  return LatLng(lat + dLat, lng + dLng);
-}
-
-double _transformLat(double x, double y) {
-  const double pi = 3.14159265358979324;
-  double ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * sqrt(x.abs());
-  ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
-  ret += (20.0 * sin(y * pi) + 40.0 * sin(y / 3.0 * pi)) * 2.0 / 3.0;
-  ret += (160.0 * sin(y / 12.0 * pi) + 320 * sin(y * pi / 30.0)) * 2.0 / 3.0;
-  return ret;
-}
-
-double _transformLng(double x, double y) {
-  const double pi = 3.14159265358979324;
-  double ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * sqrt(x.abs());
-  ret += (20.0 * sin(6.0 * x * pi) + 20.0 * sin(2.0 * x * pi)) * 2.0 / 3.0;
-  ret += (20.0 * sin(x * pi) + 40.0 * sin(x / 3.0 * pi)) * 2.0 / 3.0;
-  ret += (150.0 * sin(x / 12.0 * pi) + 300.0 * sin(x / 30.0 * pi)) * 2.0 / 3.0;
-  return ret;
-}
-
-/// 地图样式枚举
-enum MapStyle {
-  standard('标准', Icons.map_rounded),
-  satellite('卫星', Icons.satellite_alt_rounded),
-  dark('暗色', Icons.dark_mode_rounded);
+enum TravelMapStyle {
+  normal('\u6807\u51c6', Icons.map_rounded, MapType.normal),
+  satellite('\u536b\u661f', Icons.satellite_alt_rounded, MapType.satellite),
+  night('\u591c\u95f4', Icons.dark_mode_rounded, MapType.night);
 
   final String label;
   final IconData icon;
-  const MapStyle(this.label, this.icon);
+  final MapType type;
+
+  const TravelMapStyle(this.label, this.icon, this.type);
 }
 
-/// 旅行地图组件 — flutter_map + 高德瓦片 + 样式切换 + 定位
 class TravelMapWidget extends StatefulWidget {
   final List<TravelSpot> spots;
-  final List<TravelSpot>? allSpots; // 全量spots（用于计算边界）
+  final List<TravelSpot>? allSpots;
+  final List<TravelRoute> routes;
+  final TravelRoute? activeRoute;
+  final int? currentUserId;
   final int? highlightedId;
+  final VoidCallback? onMapReady;
   final void Function(TravelSpot spot)? onMarkerTap;
   final void Function(LatLng position)? onLongPress;
 
@@ -63,7 +34,11 @@ class TravelMapWidget extends StatefulWidget {
     super.key,
     required this.spots,
     this.allSpots,
+    this.routes = const [],
+    this.activeRoute,
+    this.currentUserId,
     this.highlightedId,
+    this.onMapReady,
     this.onMarkerTap,
     this.onLongPress,
   });
@@ -72,357 +47,533 @@ class TravelMapWidget extends StatefulWidget {
   State<TravelMapWidget> createState() => TravelMapWidgetState();
 }
 
-class TravelMapWidgetState extends State<TravelMapWidget>
-    with SingleTickerProviderStateMixin {
-  final MapController _mapController = MapController();
+class TravelMapWidgetState extends State<TravelMapWidget> {
   static const LatLng _defaultCenter = LatLng(30.5728, 104.0668);
+  static const String _androidMapKey = '2209d350da6804c16673f5c36d52f64b';
 
-  MapStyle _currentStyle = MapStyle.standard;
+  AMapController? _controller;
+  TravelMapStyle _style = TravelMapStyle.normal;
+  AMapLocation? _lastLocation;
+  String? _approvalNumber;
+  bool _trafficEnabled = false;
   bool _isLocating = false;
   bool _hasFitBounds = false;
+  bool _locationEnabled = false;
+  bool _mapReady = false;
 
-  // 地图瓦片配置
-  static const Map<MapStyle, String> _tileUrls = {
-    MapStyle.standard:
-        'https://wprd01.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=2&style=7',
-    MapStyle.satellite:
-        'https://webst01.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
-    MapStyle.dark:
-        'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-  };
+  Future<bool> _ensureLocationLayer({bool requestPermission = false}) async {
+    var status = await Permission.location.status;
+    if (!status.isGranted && requestPermission) {
+      status = await Permission.location.request();
+    }
 
-  static const String _fallbackTile =
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    if (!status.isGranted) {
+      if (!requestPermission) {
+        return false;
+      }
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              '\u9700\u8981\u5b9a\u4f4d\u6743\u9650\u540e\u624d\u80fd\u663e\u793a\u5f53\u524d\u4f4d\u7f6e'),
+          behavior: SnackBarBehavior.floating,
+          action: status.isPermanentlyDenied
+              ? SnackBarAction(
+                  label: '\u8bbe\u7f6e',
+                  onPressed: openAppSettings,
+                )
+              : null,
+        ),
+      );
+      return false;
+    }
 
-  @override
-  void initState() {
-    super.initState();
+    if (!_locationEnabled && mounted) {
+      setState(() => _locationEnabled = true);
+    }
+    return true;
+  }
+
+  Future<void> _primeLocationLayer() async {
+    if (_locationEnabled || !mounted) return;
+    await _ensureLocationLayer();
+  }
+
+  bool _isValidCoordinate(double lat, double lng) {
+    return lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180 &&
+        !(lat == 0 && lng == 0);
   }
 
   @override
-  void didUpdateWidget(TravelMapWidget oldWidget) {
+  void didUpdateWidget(covariant TravelMapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当spots变化时，自动适应边界
-    if (!_hasFitBounds && widget.spots.isNotEmpty) {
+    if (!_mapReady) return;
+    if (!_hasFitBounds && widget.spots.isNotEmpty && _controller != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _fitBounds();
+        fitBounds();
         _hasFitBounds = true;
       });
     }
-  }
-
-  void _fitBounds() {
-    final validSpots =
-        widget.spots.where((s) => s.lat != 0 || s.lng != 0).toList();
-    if (validSpots.isEmpty) return;
-    if (validSpots.length == 1) {
-      _mapController.move(
-          LatLng(validSpots.first.lat, validSpots.first.lng), 12.0);
-      return;
+    if (oldWidget.activeRoute != widget.activeRoute &&
+        widget.activeRoute?.path.isNotEmpty == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => fitBounds());
     }
-
-    double minLat = validSpots.first.lat;
-    double maxLat = validSpots.first.lat;
-    double minLng = validSpots.first.lng;
-    double maxLng = validSpots.first.lng;
-
-    for (final s in validSpots) {
-      if (s.lat < minLat) minLat = s.lat;
-      if (s.lat > maxLat) maxLat = s.lat;
-      if (s.lng < minLng) minLng = s.lng;
-      if (s.lng > maxLng) maxLng = s.lng;
-    }
-
-    final center = LatLng(
-      (minLat + maxLat) / 2,
-      (minLng + maxLng) / 2,
-    );
-
-    final latDiff = maxLat - minLat;
-    final lngDiff = maxLng - minLng;
-    final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
-
-    double zoom = 10.0;
-    if (maxDiff > 30) {
-      zoom = 3.0;
-    } else if (maxDiff > 15) {
-      zoom = 4.0;
-    } else if (maxDiff > 8) {
-      zoom = 5.0;
-    } else if (maxDiff > 3) {
-      zoom = 6.0;
-    } else if (maxDiff > 1) {
-      zoom = 8.0;
-    } else if (maxDiff > 0.3) {
-      zoom = 10.0;
-    }
-
-    _mapController.move(center, zoom);
   }
 
   void animateToSpot(TravelSpot spot) {
-    if (spot.lat != 0 || spot.lng != 0) {
-      _mapController.move(LatLng(spot.lat, spot.lng), 15.0);
+    if (!_isValidCoordinate(spot.lat, spot.lng)) return;
+    moveToLocation(spot.lat, spot.lng, zoom: 16);
+  }
+
+  Future<void> moveToLocation(
+    double lat,
+    double lng, {
+    double zoom = 14,
+  }) async {
+    try {
+      await _controller?.moveCamera(
+        CameraUpdate.newLatLngZoom(LatLng(lat, lng), zoom),
+        animated: true,
+        duration: 650,
+      );
+    } catch (_) {
+      // Ignore transient native camera errors while the platform view is mounting.
     }
   }
 
-  void moveToLocation(double lat, double lng, {double zoom = 14.0}) {
-    _mapController.move(LatLng(lat, lng), zoom);
+  Future<void> fitBounds() async {
+    final points = <LatLng>[
+      ...widget.spots
+          .where((s) => _isValidCoordinate(s.lat, s.lng))
+          .map((s) => LatLng(s.lat, s.lng)),
+      ...?widget.activeRoute?.path
+          .where((p) => _isValidCoordinate(p.lat, p.lng))
+          .map((p) => LatLng(p.lat, p.lng)),
+    ];
+    if (points.isEmpty || _controller == null) return;
+    if (points.length == 1) {
+      await moveToLocation(
+        points.first.latitude,
+        points.first.longitude,
+        zoom: 13,
+      );
+      return;
+    }
+
+    var minLat = points.first.latitude;
+    var maxLat = points.first.latitude;
+    var minLng = points.first.longitude;
+    var maxLng = points.first.longitude;
+    for (final point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    try {
+      await _controller!.moveCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(minLat, minLng),
+            northeast: LatLng(maxLat, maxLng),
+          ),
+          72,
+        ),
+        animated: true,
+        duration: 650,
+      );
+    } catch (_) {
+      await moveToLocation(points.first.latitude, points.first.longitude);
+    }
   }
 
-  /// 定位到当前位置
   Future<void> locateMe() async {
     if (_isLocating) return;
     setState(() => _isLocating = true);
-
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('需要定位权限才能使用此功能'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('定位权限被永久拒绝，请在设置中开启'),
-              behavior: SnackBarBehavior.floating,
-              action: SnackBarAction(
-                label: '设置',
-                onPressed: () => Geolocator.openAppSettings(),
-              ),
-            ),
-          );
-        }
+      final locationReady = await _ensureLocationLayer(requestPermission: true);
+      if (!locationReady) {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      if (_lastLocation == null) {
+        for (var i = 0; i < 8 && mounted && _lastLocation == null; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+        }
+      }
 
-      // WGS-84 → GCJ-02
-      final gcjPos = wgs84ToGcj02(position.latitude, position.longitude);
-
-      _mapController.move(gcjPos, 14.0);
-    } catch (e) {
-      if (mounted) {
+      final location = _lastLocation;
+      if (location != null) {
+        await _controller?.moveCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: location.latLng,
+              zoom: 16,
+              bearing: location.bearing.isFinite ? location.bearing : 0,
+              tilt: 0,
+            ),
+          ),
+          animated: true,
+          duration: 650,
+        );
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('定位失败，请重试'),
+            content: Text(
+                '\u6b63\u5728\u83b7\u53d6\u5b9a\u4f4d\uff0c\u7a0d\u7b49\u4e00\u4e0b\u518d\u8bd5'),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLocating = false);
+      if (mounted) {
+        setState(() => _isLocating = false);
+      }
     }
   }
 
-  void _cycleMapStyle() {
-    final nextIndex =
-        (_currentStyle.index + 1) % MapStyle.values.length;
-    setState(() => _currentStyle = MapStyle.values[nextIndex]);
+  void _cycleStyle() {
+    final nextIndex = (_style.index + 1) % TravelMapStyle.values.length;
+    setState(() => _style = TravelMapStyle.values[nextIndex]);
+  }
+
+  void cycleMapStyle() {
+    _cycleStyle();
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-          child: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _defaultCenter,
-              initialZoom: 4.0,
-              maxZoom: 18.0,
-              minZoom: 3.0,
-              onLongPress: widget.onLongPress != null
-                  ? (pos, point) => widget.onLongPress!(point)
-                  : null,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: _tileUrls[_currentStyle]!,
-                fallbackUrl: _fallbackTile,
-                userAgentPackageName: 'com.lovegirl.app',
-                maxZoom: 18,
-                maxNativeZoom: 18,
-              ),
-              PolylineLayer(polylines: _buildPolylines()),
-              MarkerLayer(markers: _buildMarkers()),
-            ],
+        AMapWidget(
+          apiKey: const AMapApiKey(androidKey: _androidMapKey),
+          privacyStatement: const AMapPrivacyStatement(
+            hasContains: true,
+            hasShow: true,
+            hasAgree: true,
           ),
+          initialCameraPosition: const CameraPosition(
+            target: _defaultCenter,
+            zoom: 4,
+          ),
+          mapType: _style.type,
+          trafficEnabled: _trafficEnabled,
+          compassEnabled: true,
+          scaleEnabled: true,
+          touchPoiEnabled: true,
+          myLocationStyleOptions: _locationEnabled
+              ? MyLocationStyleOptions(
+                  true,
+                  trackingMode: MyLocationTrackingMode.locationRotate,
+                  circleFillColor: const Color(0x331677FF),
+                  circleStrokeColor: const Color(0xFF1677FF),
+                  circleStrokeWidth: 1,
+                )
+              : null,
+          markers: _mapReady ? _buildMarkers() : const <Marker>{},
+          polylines: _mapReady ? _buildPolylines() : const <Polyline>{},
+          onMapCreated: (controller) async {
+            _controller = controller;
+            try {
+              _approvalNumber = await controller.getMapContentApprovalNumber();
+            } catch (_) {
+              _approvalNumber = null;
+            }
+            if (mounted) {
+              setState(() {
+                _mapReady = true;
+              });
+            } else {
+              _mapReady = true;
+            }
+            widget.onMapReady?.call();
+            _primeLocationLayer();
+            if (widget.spots.isNotEmpty) {
+              Future<void>.delayed(const Duration(milliseconds: 320), () {
+                if (!mounted) return;
+                fitBounds();
+                _hasFitBounds = true;
+              });
+            }
+          },
+          onLongPress: widget.onLongPress,
+          onLocationChanged: (location) {
+            if (!mounted) return;
+            setState(() => _lastLocation = location);
+          },
         ),
-
-        // 地图样式切换按钮
         Positioned(
           top: 12,
           right: 12,
-          child: _MapButton(
-            icon: _currentStyle.icon,
-            tooltip: '切换地图样式（${_currentStyle.label}）',
-            onTap: _cycleMapStyle,
+          child: Column(
+            children: [
+              _MapButton(
+                icon: _style.icon,
+                tooltip:
+                    '\u5207\u6362\u5730\u56fe\u6837\u5f0f\uff1a${_style.label}',
+                onTap: _cycleStyle,
+              ),
+              const SizedBox(height: 10),
+              _MapButton(
+                icon: _trafficEnabled
+                    ? Icons.traffic_rounded
+                    : Icons.traffic_outlined,
+                tooltip: _trafficEnabled
+                    ? '\u5173\u95ed\u8def\u51b5'
+                    : '\u6253\u5f00\u8def\u51b5',
+                isActive: _trafficEnabled,
+                onTap: () => setState(() {
+                  _trafficEnabled = !_trafficEnabled;
+                }),
+              ),
+            ],
           ),
         ),
-
-        // 定位按钮
         Positioned(
           bottom: 12,
           right: 12,
-          child: _MapButton(
-            icon: _isLocating ? null : Icons.my_location_rounded,
-            tooltip: '定位到我',
-            onTap: locateMe,
-            isLoading: _isLocating,
+          child: Column(
+            children: [
+              if (widget.spots.length > 1 ||
+                  widget.activeRoute?.path.isNotEmpty == true) ...[
+                _MapButton(
+                  icon: Icons.fit_screen_rounded,
+                  tooltip: '\u67e5\u770b\u5168\u90e8\u6807\u8bb0',
+                  onTap: fitBounds,
+                ),
+                const SizedBox(height: 10),
+              ],
+              _MapButton(
+                icon: _isLocating ? null : Icons.my_location_rounded,
+                tooltip: '\u5b9a\u4f4d\u5230\u6211',
+                onTap: locateMe,
+                isLoading: _isLocating,
+              ),
+            ],
           ),
         ),
-
-        // 适应所有标记按钮
-        if (widget.spots.length > 1)
+        if (_lastLocation != null)
           Positioned(
-            bottom: 56,
-            right: 12,
-            child: _MapButton(
-              icon: Icons.fit_screen_rounded,
-              tooltip: '查看所有标记',
-              onTap: _fitBounds,
-            ),
+            left: 12,
+            bottom: 12,
+            child: _LocationBadge(location: _lastLocation!),
+          ),
+        if (_approvalNumber != null && _approvalNumber!.isNotEmpty)
+          Positioned(
+            left: 12,
+            top: 12,
+            child: _ApprovalBadge(text: _approvalNumber!),
           ),
       ],
     );
   }
 
-  List<Marker> _buildMarkers() {
-    final markers = <Marker>[];
-    for (final spot in widget.spots) {
-      if (spot.lat == 0 && spot.lng == 0) continue;
-
-      final color = _statusColor(spot.status);
-      final isHighlighted = widget.highlightedId == spot.id;
-
-      markers.add(Marker(
-        point: LatLng(spot.lat, spot.lng),
-        width: isHighlighted ? 50 : 40,
-        height: isHighlighted ? 60 : 50,
-        child: GestureDetector(
-          onTap: () => widget.onMarkerTap?.call(spot),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withAlpha(80),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  spot.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Icon(Icons.location_on,
-                  color: color, size: isHighlighted ? 30 : 24),
-            ],
-          ),
+  Set<Marker> _buildMarkers() {
+    return widget.spots
+        .where((spot) => _isValidCoordinate(spot.lat, spot.lng))
+        .map((spot) {
+      final highlighted = widget.highlightedId == spot.id;
+      return Marker(
+        position: LatLng(spot.lat, spot.lng),
+        icon: BitmapDescriptor.defaultMarkerWithHue(
+          highlighted ? BitmapDescriptor.hueRose : _spotHue(spot),
         ),
-      ));
-    }
-    return markers;
+        infoWindow: InfoWindow(
+          title: spot.name,
+          snippet: [
+            if (spot.city.isNotEmpty) spot.city,
+            if ((spot.creatorNickname ?? '').isNotEmpty) spot.creatorNickname!,
+          ].join(' · '),
+        ),
+        zIndex: highlighted ? 20 : 10,
+        onTap: (_) => widget.onMarkerTap?.call(spot),
+      );
+    }).toSet();
   }
 
-  List<Polyline> _buildPolylines() {
-    final visitedSpots = widget.spots
-        .where((s) => s.status == 'visited' && (s.lat != 0 || s.lng != 0))
+  Set<Polyline> _buildPolylines() {
+    final lines = <Polyline>{};
+    final activeRoute = widget.activeRoute;
+    final activeRoutePoints = activeRoute?.path
+            .where((p) => _isValidCoordinate(p.lat, p.lng))
+            .map((p) => LatLng(p.lat, p.lng))
+            .toList() ??
+        const <LatLng>[];
+    if (activeRoute != null && activeRoutePoints.length > 1) {
+      final points = activeRoutePoints;
+      lines.add(
+        Polyline(
+          points: points,
+          width: 12,
+          color: LoveGirlTheme.primary.withAlpha(70),
+          capType: CapType.round,
+          joinType: JoinType.round,
+        ),
+      );
+      lines.add(
+        Polyline(
+          points: points,
+          width: 7,
+          color: LoveGirlTheme.primary,
+          capType: CapType.round,
+          joinType: JoinType.round,
+        ),
+      );
+      return lines;
+    }
+
+    final visited = widget.spots
+        .where((s) => s.status == 'visited' && _isValidCoordinate(s.lat, s.lng))
         .toList()
       ..sort((a, b) => (a.visitedDate ?? '').compareTo(b.visitedDate ?? ''));
-
-    if (visitedSpots.length < 2) return [];
-
-    final points = visitedSpots.map((s) => LatLng(s.lat, s.lng)).toList();
-    return [
-      Polyline(
-          points: points,
-          color: LoveGirlTheme.primary.withAlpha(40),
-          strokeWidth: 6.0),
-      Polyline(
-          points: points,
-          color: LoveGirlTheme.primary.withAlpha(180),
-          strokeWidth: 3.0),
-    ];
+    if (visited.length > 1) {
+      lines.add(
+        Polyline(
+          points: visited.map((s) => LatLng(s.lat, s.lng)).toList(),
+          width: 5,
+          color: LoveGirlTheme.primary.withAlpha(150),
+          capType: CapType.round,
+          joinType: JoinType.round,
+        ),
+      );
+    }
+    return lines;
   }
 
-  Color _statusColor(String status) {
+  double _statusHue(String status) {
     switch (status) {
       case 'visited':
-        return const Color(0xFF4CAF50);
-      case 'wish':
-        return const Color(0xFFFF9800);
+        return BitmapDescriptor.hueGreen;
       case 'planned':
-        return const Color(0xFF9C27B0);
+        return BitmapDescriptor.hueViolet;
+      case 'wish':
+        return BitmapDescriptor.hueOrange;
       default:
-        return LoveGirlTheme.primary;
+        return BitmapDescriptor.hueRose;
     }
+  }
+
+  double _spotHue(TravelSpot spot) {
+    final owner = spot.createdBy;
+    if (owner == null || owner <= 0) return _statusHue(spot.status);
+    if (spot.status == 'visited') return BitmapDescriptor.hueGreen;
+    if (widget.currentUserId != null && owner == widget.currentUserId) {
+      return BitmapDescriptor.hueAzure;
+    }
+    return BitmapDescriptor.hueOrange;
   }
 }
 
-/// 地图上的圆形按钮
+class _LocationBadge extends StatelessWidget {
+  final AMapLocation location;
+
+  const _LocationBadge({required this.location});
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracy = location.accuracy > 0
+        ? ' \u00b7 \u7cbe\u5ea6 ${location.accuracy.round()} \u7c73'
+        : '';
+    final bearing = location.bearing > 0
+        ? ' \u00b7 \u671d\u5411${location.bearing.round()}\u00b0'
+        : '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(235),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.navigation_rounded,
+            size: 14,
+            color: Color(0xFF1677FF),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            '\u5f53\u524d\u4f4d\u7f6e$accuracy$bearing',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: LoveGirlTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApprovalBadge extends StatelessWidget {
+  final String text;
+
+  const _ApprovalBadge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(210),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 10, color: LoveGirlTheme.textMuted),
+      ),
+    );
+  }
+}
+
 class _MapButton extends StatelessWidget {
   final IconData? icon;
   final String tooltip;
   final VoidCallback onTap;
   final bool isLoading;
+  final bool isActive;
 
   const _MapButton({
-    this.icon,
+    required this.icon,
     required this.tooltip,
     required this.onTap,
     this.isLoading = false,
+    this.isActive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
         child: Container(
-          width: 36,
-          height: 36,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(220),
+            color:
+                isActive ? LoveGirlTheme.primary : Colors.white.withAlpha(235),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(20),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+                color: Colors.black.withAlpha(24),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -432,11 +583,15 @@ class _MapButton extends StatelessWidget {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: LoveGirlTheme.primary),
+                      strokeWidth: 2,
+                      color: LoveGirlTheme.primary,
+                    ),
                   )
-                : Icon(icon,
-                    size: 20, color: LoveGirlTheme.textPrimary),
+                : Icon(
+                    icon,
+                    size: 20,
+                    color: isActive ? Colors.white : LoveGirlTheme.textPrimary,
+                  ),
           ),
         ),
       ),

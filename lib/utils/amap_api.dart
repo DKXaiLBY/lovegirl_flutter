@@ -1,61 +1,35 @@
-import 'package:dio/dio.dart';
+import '../services/api_service.dart';
 
-/// 高德地图 Web API 工具类
-/// 用于 POI 搜索、地理编码等
+/// AMap Web service helper.
+///
+/// Web service calls are proxied through the backend so the Web key never
+/// ships inside the Flutter APK.
 class AmapApi {
-  static const String _apiKey = '470b27171201bf472ba04539a0bb2693';
-  static const String _baseUrl = 'https://restapi.amap.com';
+  static final ApiService _api = ApiService();
 
-  static final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
-
-  /// POI 关键字搜索
-  /// 返回 {name, address, lat, lng, city} 列表
   static Future<List<AmapPoi>> searchPoi(String keyword, {String? city}) async {
-    try {
-      final response = await _dio.get('$_baseUrl/v3/place/text', queryParameters: {
-        'key': _apiKey,
-        'keywords': keyword,
-        'city': city ?? '',
-        'citylimit': city != null && city.isNotEmpty ? 'true' : 'false',
-        'offset': '20',
-        'page': '1',
-        'extensions': 'base',
-      });
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['status'] == '1' && data['pois'] != null) {
-          return (data['pois'] as List).map((e) => AmapPoi.fromJson(e)).toList();
-        }
-      }
-    } catch (_) {}
+    final response = await _api.searchAmapPoi(keyword, city: city);
+    final list = response.data?['data']?['list'];
+    if (list is List) {
+      return list
+          .map((e) => AmapPoi.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
     return [];
   }
 
-  /// 逆地理编码（坐标 → 地址）
   static Future<AmapRegeo?> regeo(double lat, double lng) async {
     try {
-      final response = await _dio.get('$_baseUrl/v3/geocode/regeo', queryParameters: {
-        'key': _apiKey,
-        'location': '$lng,$lat',
-        'extensions': 'base',
-      });
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['status'] == '1' && data['regeocode'] != null) {
-          return AmapRegeo.fromJson(data['regeocode']);
-        }
+      final response = await _api.regeoAmap(lat, lng);
+      final data = response.data?['data'];
+      if (data is Map) {
+        return AmapRegeo.fromJson(Map<String, dynamic>.from(data));
       }
     } catch (_) {}
     return null;
   }
 }
 
-/// 高德 POI 数据
 class AmapPoi {
   final String name;
   final String address;
@@ -74,20 +48,26 @@ class AmapPoi {
   });
 
   factory AmapPoi.fromJson(Map<String, dynamic> json) {
-    final location = json['location']?.toString() ?? '0,0';
-    final parts = location.split(',');
     return AmapPoi(
       name: json['name'] ?? '',
       address: json['address'] ?? '',
       city: json['cityname'] ?? json['city'] ?? '',
-      lng: double.tryParse(parts.isNotEmpty ? parts[0] : '0') ?? 0,
-      lat: double.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
+      lng: _readCoordinate(json, 'lng', 0),
+      lat: _readCoordinate(json, 'lat', 1),
       type: json['type'] ?? '',
     );
   }
+
+  static double _readCoordinate(
+      Map<String, dynamic> json, String key, int index) {
+    if (json[key] != null) {
+      return double.tryParse(json[key].toString()) ?? 0;
+    }
+    final parts = (json['location']?.toString() ?? '0,0').split(',');
+    return double.tryParse(parts.length > index ? parts[index] : '0') ?? 0;
+  }
 }
 
-/// 高德逆地理编码结果
 class AmapRegeo {
   final String address;
   final String city;
@@ -102,9 +82,9 @@ class AmapRegeo {
   factory AmapRegeo.fromJson(Map<String, dynamic> json) {
     final addressComponent = json['addressComponent'] ?? {};
     return AmapRegeo(
-      address: json['formatted_address'] ?? '',
-      city: addressComponent['city'] ?? '',
-      district: addressComponent['district'] ?? '',
+      address: json['formatted_address'] ?? json['address'] ?? '',
+      city: json['city'] ?? addressComponent['city'] ?? '',
+      district: json['district'] ?? addressComponent['district'] ?? '',
     );
   }
 }

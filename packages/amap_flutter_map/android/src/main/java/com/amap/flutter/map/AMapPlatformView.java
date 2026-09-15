@@ -7,6 +7,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.amap.api.maps.AMap;
@@ -49,8 +50,12 @@ public class AMapPlatformView
     private PolygonsController polygonsController;
 
     private TextureMapView mapView;
+    private final View fallbackView;
+    private boolean mapViewCreated = false;
+    private boolean mapViewResumed = false;
 
     private boolean disposed = false;
+    private final Lifecycle lifecycle;
 
     private final Map<String, MyMethodCallHandler> myMethodCallHandlerMap;
 
@@ -59,6 +64,8 @@ public class AMapPlatformView
                      BinaryMessenger binaryMessenger,
                      LifecycleProvider lifecycleProvider,
                      AMapOptions options) {
+        this.lifecycle = lifecycleProvider.getLifecycle();
+        this.fallbackView = new AMapErrorPlatformView(context).getView();
 
         methodChannel = new MethodChannel(binaryMessenger, "amap_flutter_map_" + id);
         methodChannel.setMethodCallHandler(this);
@@ -66,16 +73,44 @@ public class AMapPlatformView
 
         try {
             mapView = new TextureMapView(context, options);
+            ensureMapViewCreated(null);
             AMap amap = mapView.getMap();
             mapController = new MapController(methodChannel, mapView);
             markersController = new MarkersController(methodChannel, amap);
             polylinesController = new PolylinesController(methodChannel, amap);
             polygonsController = new PolygonsController(methodChannel, amap);
             initMyMethodCallHandlerMap();
-            lifecycleProvider.getLifecycle().addObserver(this);
+            if (lifecycle != null) {
+                lifecycle.addObserver(this);
+            }
+            ensureMapViewResumed();
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "<init>", e);
         }
+    }
+
+    private void ensureMapViewCreated(@Nullable Bundle bundle) {
+        if (mapView == null || mapViewCreated) {
+            return;
+        }
+        mapView.onCreate(bundle);
+        mapViewCreated = true;
+    }
+
+    private void ensureMapViewResumed() {
+        if (mapView == null || mapViewResumed) {
+            return;
+        }
+        mapView.onResume();
+        mapViewResumed = true;
+    }
+
+    private void pauseMapViewIfNecessary() {
+        if (mapView == null || !mapViewResumed) {
+            return;
+        }
+        mapView.onPause();
+        mapViewResumed = false;
     }
 
     private void initMyMethodCallHandlerMap() {
@@ -125,6 +160,13 @@ public class AMapPlatformView
         return polygonsController;
     }
 
+    public boolean isReady() {
+        return mapView != null
+                && mapController != null
+                && markersController != null
+                && polylinesController != null
+                && polygonsController != null;
+    }
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
@@ -146,9 +188,7 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            if (null != mapView) {
-                mapView.onCreate(null);
-            }
+            ensureMapViewCreated(null);
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "onCreate", e);
         }
@@ -166,9 +206,8 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            if (null != mapView) {
-                mapView.onResume();
-            }
+            ensureMapViewCreated(null);
+            ensureMapViewResumed();
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "onResume", e);
         }
@@ -181,7 +220,7 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            mapView.onPause();
+            pauseMapViewIfNecessary();
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "onPause", e);
         }
@@ -212,7 +251,9 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            mapView.onSaveInstanceState(bundle);
+            if (null != mapView) {
+                mapView.onSaveInstanceState(bundle);
+            }
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "onSaveInstanceState", e);
         }
@@ -225,7 +266,10 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            mapView.onCreate(bundle);
+            if (!mapViewCreated && null != mapView) {
+                mapView.onCreate(bundle);
+                mapViewCreated = true;
+            }
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "onRestoreInstanceState", e);
         }
@@ -235,7 +279,10 @@ public class AMapPlatformView
     @Override
     public View getView() {
         LogUtil.i(CLASS_NAME, "getView==>");
-        return mapView;
+        if (mapView != null) {
+            return mapView;
+        }
+        return fallbackView;
     }
 
     @Override
@@ -245,9 +292,12 @@ public class AMapPlatformView
             if (disposed) {
                 return;
             }
-            methodChannel.setMethodCallHandler(null);
-            destroyMapViewIfNecessary();
             disposed = true;
+            methodChannel.setMethodCallHandler(null);
+            if (lifecycle != null) {
+                lifecycle.removeObserver(this);
+            }
+            destroyMapViewIfNecessary();
         } catch (Throwable e) {
             LogUtil.e(CLASS_NAME, "dispose", e);
         }
@@ -257,7 +307,26 @@ public class AMapPlatformView
         if (mapView == null) {
             return;
         }
-        mapView.onDestroy();
+        try {
+            if (mapViewResumed) {
+                mapView.onPause();
+            }
+        } catch (Throwable e) {
+            LogUtil.e(CLASS_NAME, "pauseBeforeDestroy", e);
+        }
+        try {
+            mapView.onDestroy();
+        } catch (Throwable e) {
+            LogUtil.e(CLASS_NAME, "destroyMapViewIfNecessary", e);
+        }
+        mapViewResumed = false;
+        mapViewCreated = false;
+        mapView = null;
+        mapController = null;
+        markersController = null;
+        polylinesController = null;
+        polygonsController = null;
+        myMethodCallHandlerMap.clear();
     }
 
 

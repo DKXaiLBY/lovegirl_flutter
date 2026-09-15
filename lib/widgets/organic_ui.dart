@@ -76,7 +76,8 @@ class OrganicPaths {
     final path = Path();
     final rand = Random(rect.left.toInt() + rect.top.toInt());
 
-    path.moveTo(rect.left + _jitter(rand, jitter), rect.top + _jitter(rand, jitter));
+    path.moveTo(
+        rect.left + _jitter(rand, jitter), rect.top + _jitter(rand, jitter));
     _jitterLineTo(path, rand, rect.right, rect.top, jitter);
     _jitterLineTo(path, rand, rect.right, rect.bottom, jitter);
     _jitterLineTo(path, rand, rect.left, rect.bottom, jitter);
@@ -88,7 +89,8 @@ class OrganicPaths {
   static double _jitter(Random rand, double amount) =>
       (rand.nextDouble() - 0.5) * amount * 2;
 
-  static void _jitterLineTo(Path path, Random rand, double x, double y, double j) {
+  static void _jitterLineTo(
+      Path path, Random rand, double x, double y, double j) {
     final cx = (path.getBounds().center.dx + x) / 2 + _jitter(rand, j);
     final cy = (path.getBounds().center.dy + y) / 2 + _jitter(rand, j);
     path.quadraticBezierTo(cx, cy, x + _jitter(rand, j), y + _jitter(rand, j));
@@ -132,21 +134,25 @@ class OrganicCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? Colors.white.withAlpha(240),
         gradient: gradient != null
-            ? LinearGradient(colors: gradient!, begin: Alignment.topLeft, end: Alignment.bottomRight)
+            ? LinearGradient(
+                colors: gradient!,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight)
             : null,
         borderRadius: organic ? null : BorderRadius.circular(borderRadius),
-        boxShadow: boxShadow ?? [
-          BoxShadow(
-            color: Colors.black.withAlpha(15),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: boxShadow ??
+            [
+              BoxShadow(
+                color: Colors.black.withAlpha(15),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Colors.black.withAlpha(8),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
       ),
       child: child,
     );
@@ -175,29 +181,37 @@ class OrganicClipper extends CustomClipper<Path> {
     // 左上角
     path.moveTo(0, r);
     path.quadraticBezierTo(
-      0 + _j(rand, j), 0 + _j(rand, j),
-      r + _j(rand, j), 0 + _j(rand, j),
+      0 + _j(rand, j),
+      0 + _j(rand, j),
+      r + _j(rand, j),
+      0 + _j(rand, j),
     );
     // 上边
     path.lineTo(size.width - r, 0);
     // 右上角
     path.quadraticBezierTo(
-      size.width + _j(rand, j), 0 + _j(rand, j),
-      size.width, r,
+      size.width + _j(rand, j),
+      0 + _j(rand, j),
+      size.width,
+      r,
     );
     // 右边
     path.lineTo(size.width, size.height - r);
     // 右下角
     path.quadraticBezierTo(
-      size.width + _j(rand, j), size.height + _j(rand, j),
-      size.width - r, size.height,
+      size.width + _j(rand, j),
+      size.height + _j(rand, j),
+      size.width - r,
+      size.height,
     );
     // 下边
     path.lineTo(r, size.height);
     // 左下角
     path.quadraticBezierTo(
-      0 + _j(rand, j), size.height + _j(rand, j),
-      0, size.height - r,
+      0 + _j(rand, j),
+      size.height + _j(rand, j),
+      0,
+      size.height - r,
     );
     path.close();
     return path;
@@ -206,8 +220,8 @@ class OrganicClipper extends CustomClipper<Path> {
   double _j(Random r, double a) => (r.nextDouble() - 0.5) * a * 2;
 
   @override
-  bool shouldReclip(covariant OrganicClipper old) =>
-      old.borderRadius != borderRadius;
+  bool shouldReclip(covariant OrganicClipper oldClipper) =>
+      oldClipper.borderRadius != borderRadius;
 }
 
 /// 顶部有机圆角裁剪（用于底部弹窗等）
@@ -224,13 +238,17 @@ class TopOrganicClipper extends CustomClipper<Path> {
     path.moveTo(0, size.height);
     path.lineTo(0, r);
     path.quadraticBezierTo(
-      0 + _j2(rand, j), 0 + _j2(rand, j),
-      r + _j2(rand, j), 0 + _j2(rand, j),
+      0 + _j2(rand, j),
+      0 + _j2(rand, j),
+      r + _j2(rand, j),
+      0 + _j2(rand, j),
     );
     path.lineTo(size.width - r, 0);
     path.quadraticBezierTo(
-      size.width + _j2(rand, j), 0 + _j2(rand, j),
-      size.width, r,
+      size.width + _j2(rand, j),
+      0 + _j2(rand, j),
+      size.width,
+      r,
     );
     path.lineTo(size.width, size.height);
     path.close();
@@ -240,8 +258,8 @@ class TopOrganicClipper extends CustomClipper<Path> {
   double _j2(Random r, double a) => (r.nextDouble() - 0.5) * a * 2;
 
   @override
-  bool shouldReclip(covariant TopOrganicClipper old) =>
-      old.radius != radius;
+  bool shouldReclip(covariant TopOrganicClipper oldClipper) =>
+      oldClipper.radius != radius;
 }
 
 /// 波浪背景容器
@@ -306,7 +324,8 @@ class NoiseOverlay extends StatelessWidget {
   final double opacity;
   final Color color;
 
-  const NoiseOverlay({super.key, this.opacity = 0.03, this.color = Colors.black});
+  const NoiseOverlay(
+      {super.key, this.opacity = 0.03, this.color = Colors.black});
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +425,11 @@ class AuroraBackground extends StatefulWidget {
   const AuroraBackground({
     super.key,
     required this.child,
-    this.colors = const [Color(0xFF635BFF), Color(0xFF00D4AA), Color(0xFFFF6B8A)],
+    this.colors = const [
+      Color(0xFF635BFF),
+      Color(0xFF00D4AA),
+      Color(0xFFFF6B8A)
+    ],
   });
 
   @override
@@ -471,8 +494,10 @@ class _AuroraPainter extends CustomPainter {
         ..color = colors[i].withAlpha(25)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80);
 
-      final offsetX = size.width * (0.3 + 0.4 * sin(progress * 2 * pi + i * 2.0));
-      final offsetY = size.height * (0.3 + 0.4 * cos(progress * 2 * pi + i * 1.5));
+      final offsetX =
+          size.width * (0.3 + 0.4 * sin(progress * 2 * pi + i * 2.0));
+      final offsetY =
+          size.height * (0.3 + 0.4 * cos(progress * 2 * pi + i * 1.5));
 
       canvas.drawCircle(
         Offset(offsetX, offsetY),
@@ -483,6 +508,5 @@ class _AuroraPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _AuroraPainter old) =>
-      old.progress != progress;
+  bool shouldRepaint(covariant _AuroraPainter old) => old.progress != progress;
 }

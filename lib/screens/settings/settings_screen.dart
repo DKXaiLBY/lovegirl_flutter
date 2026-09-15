@@ -13,6 +13,7 @@ import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/services/notification_service.dart';
 import 'package:lovegirl_flutter/screens/version/update_dialog.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'log_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -172,72 +173,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        title: const Text('设置'),
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.arrow_back_rounded),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              const SizedBox(height: 14),
+              _buildHeader(),
+              const SizedBox(height: 22),
+              _buildSectionHeader('编辑资料'),
+              const SizedBox(height: 10),
+              _buildProfileCard(auth),
+              const SizedBox(height: 24),
+              _buildSectionHeader('外观设置'),
+              const SizedBox(height: 10),
+              _buildThemeCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('隐私安全'),
+              const SizedBox(height: 10),
+              _buildPrivacyCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('推送通知'),
+              const SizedBox(height: 10),
+              _buildPushCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('数据管理'),
+              const SizedBox(height: 10),
+              _buildDataCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('开发者'),
+              const SizedBox(height: 10),
+              _buildDevCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('关于'),
+              const SizedBox(height: 10),
+              _buildAboutCard(),
+              const SizedBox(height: 24),
+              _buildLogoutCard(auth),
+              const SizedBox(height: 40),
+            ],
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            _buildSectionHeader('编辑资料'),
-            const SizedBox(height: 10),
-            _buildProfileCard(auth),
-            const SizedBox(height: 24),
-            _buildSectionHeader('外观设置'),
-            const SizedBox(height: 10),
-            _buildThemeCard(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('隐私安全'),
-            const SizedBox(height: 10),
-            _buildPrivacyCard(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('推送通知'),
-            const SizedBox(height: 10),
-            _buildPushCard(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('数据管理'),
-            const SizedBox(height: 10),
-            _buildDataCard(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('开发者'),
-            const SizedBox(height: 10),
-            _buildDevCard(),
-            const SizedBox(height: 24),
-            _buildSectionHeader('关于'),
-            const SizedBox(height: 10),
-            _buildAboutCard(),
-            const SizedBox(height: 24),
-            _buildLogoutCard(auth),
-            const SizedBox(height: 40),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
+  Widget _buildHeader() {
+    return LovePaper(
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Container(width: 3, height: 16, decoration: BoxDecoration(color: LoveGirlTheme.primary, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: LoveGirlTheme.textSecondary)),
+          LoveIconButton(
+            icon: Icons.arrow_back_ios_new_rounded,
+            tooltip: '返回',
+            onTap: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: LoveGirlTheme.secondarySoft,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.folder_special_rounded,
+              color: LoveGirlTheme.secondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '资料夹管理',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: LoveGirlTheme.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  '账号、安全、通知和数据',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: LoveGirlTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return LoveSectionTitle(title: title);
   }
 
   // ========== 编辑资料 ==========
@@ -254,17 +288,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Stack(
                   children: [
                     Container(
-                      width: 64, height: 64,
-                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: LoveGirlTheme.primary.withAlpha(50), width: 2)),
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: LoveGirlTheme.primary.withAlpha(50),
+                              width: 2)),
                       child: ClipOval(
-                        child: auth.user?['avatar'] != null && (auth.user!['avatar'] as String).isNotEmpty
-                            ? Image.network(auth.user!['avatar'], fit: BoxFit.cover, errorBuilder: (_, __, ___) => _avatarPlaceholder(auth))
+                        child: auth.user?['avatar'] != null &&
+                                (auth.user!['avatar'] as String).isNotEmpty
+                            ? Image.network(auth.user!['avatar'],
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _avatarPlaceholder(auth))
                             : _avatarPlaceholder(auth),
                       ),
                     ),
                     if (_isEditing)
                       Positioned.fill(
-                        child: Container(decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle), child: const Icon(Icons.edit, color: Colors.white, size: 22)),
+                        child: Container(
+                            decoration: const BoxDecoration(
+                                color: Colors.black38, shape: BoxShape.circle),
+                            child: const Icon(Icons.edit,
+                                color: Colors.white, size: 22)),
                       ),
                   ],
                 ),
@@ -276,27 +323,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         controller: _nicknameController,
                         decoration: InputDecoration(
                           hintText: '输入昵称',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: LoveGirlTheme.primary.withAlpha(60))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: LoveGirlTheme.primary)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: LoveGirlTheme.primary.withAlpha(60))),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: LoveGirlTheme.primary)),
                         ),
                         style: const TextStyle(fontSize: 15),
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(auth.user?['nickname'] ?? '未设置', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: LoveGirlTheme.textPrimary)),
+                          Text(auth.user?['nickname'] ?? '未设置',
+                              style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: LoveGirlTheme.textPrimary)),
                           const SizedBox(height: 2),
-                          Text(auth.isGirl ? '女友' : '男友', style: const TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+                          Text(auth.isGirl ? '女友' : '男友',
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  color: LoveGirlTheme.textMuted)),
                         ],
                       ),
               ),
               GestureDetector(
-                onTap: _isEditing ? () => _saveProfile(auth) : () => setState(() => _isEditing = true),
+                onTap: _isEditing
+                    ? () => _saveProfile(auth)
+                    : () => setState(() => _isEditing = true),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: (_isEditing ? LoveGirlTheme.accent : LoveGirlTheme.primary).withAlpha(25), borderRadius: BorderRadius.circular(10)),
-                  child: Text(_isEditing ? '保存' : '编辑', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _isEditing ? LoveGirlTheme.accent : LoveGirlTheme.primary)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                      color: (_isEditing
+                              ? LoveGirlTheme.accent
+                              : LoveGirlTheme.primary)
+                          .withAlpha(25),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Text(_isEditing ? '保存' : '编辑',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: _isEditing
+                              ? LoveGirlTheme.accent
+                              : LoveGirlTheme.primary)),
                 ),
               ),
             ],
@@ -329,12 +404,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDark;
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.light_mode_rounded, const Color(0xFFFFB300), '亮色模式', !isDark, (v) { if (v) themeProvider.setDarkMode(false); }),
+          _buildSwitchRow(Icons.light_mode_rounded, const Color(0xFFFFB300),
+              '亮色模式', !isDark, (v) {
+            if (v) themeProvider.setDarkMode(false);
+          }),
           const Divider(height: 24, indent: 40),
-          _buildSwitchRow(Icons.dark_mode_rounded, const Color(0xFF7C4DFF), '暗色模式', isDark, (v) { if (v) themeProvider.setDarkMode(true); }),
+          _buildSwitchRow(
+              Icons.dark_mode_rounded, const Color(0xFF7C4DFF), '暗色模式', isDark,
+              (v) {
+            if (v) themeProvider.setDarkMode(true);
+          }),
         ],
       ),
     );
@@ -343,52 +426,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 隐私安全 ==========
   Widget _buildPrivacyCard() {
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.photo_library_outlined, LoveGirlTheme.primary, '相册可见', _photoVisible, (v) {
+          _buildSwitchRow(Icons.photo_library_outlined, LoveGirlTheme.primary,
+              '相册可见', _photoVisible, (v) {
             setState(() => _photoVisible = v);
             ApiService().updatePrivacy({'photo_visible': v}).catchError((e) {
               LogService().error('Settings', '保存相册隐私失败: $e');
               if (mounted) {
                 setState(() => _photoVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
               }
             });
             LogService().userAction('隐私:相册可见=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.mood_outlined, LoveGirlTheme.orange, '心情可见', _moodVisible, (v) {
+          _buildSwitchRow(
+              Icons.mood_outlined, LoveGirlTheme.orange, '心情可见', _moodVisible,
+              (v) {
             setState(() => _moodVisible = v);
             ApiService().updatePrivacy({'mood_visible': v}).catchError((e) {
               LogService().error('Settings', '保存心情隐私失败: $e');
               if (mounted) {
                 setState(() => _moodVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
               }
             });
             LogService().userAction('隐私:心情可见=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.map_outlined, LoveGirlTheme.visited, '行程可见', _travelVisible, (v) {
+          _buildSwitchRow(
+              Icons.map_outlined, LoveGirlTheme.visited, '行程可见', _travelVisible,
+              (v) {
             setState(() => _travelVisible = v);
             ApiService().updatePrivacy({'travel_visible': v}).catchError((e) {
               LogService().error('Settings', '保存行程隐私失败: $e');
               if (mounted) {
                 setState(() => _travelVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
               }
             });
             LogService().userAction('隐私:行程可见=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.chat_bubble_outline, LoveGirlTheme.planned, '聊天记录可见', _chatVisible, (v) {
+          _buildSwitchRow(Icons.chat_bubble_outline, LoveGirlTheme.planned,
+              '聊天记录可见', _chatVisible, (v) {
             setState(() => _chatVisible = v);
             ApiService().updatePrivacy({'chat_visible': v}).catchError((e) {
               LogService().error('Settings', '保存聊天隐私失败: $e');
               if (mounted) {
                 setState(() => _chatVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
               }
             });
             LogService().userAction('隐私:聊天可见=$v');
@@ -401,31 +495,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 推送设置 ==========
   Widget _buildPushCard() {
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.notifications_outlined, LoveGirlTheme.primary, '推送总开关', _pushEnabled, (v) {
+          _buildSwitchRow(Icons.notifications_outlined, LoveGirlTheme.primary,
+              '推送总开关', _pushEnabled, (v) {
             setState(() => _pushEnabled = v);
             _savePushSetting('push_enabled', v);
             NotificationService().setPushEnabled(v);
             LogService().userAction('推送:总开关=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.water_drop_outlined, LoveGirlTheme.pink, '姨妈提醒', _pushPeriod, (v) {
+          _buildSwitchRow(Icons.water_drop_outlined, LoveGirlTheme.pink, '姨妈提醒',
+              _pushPeriod, (v) {
             setState(() => _pushPeriod = v);
             _savePushSetting('push_period', v);
             NotificationService.setPeriodEnabled(v);
             LogService().userAction('推送:姨妈提醒=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.favorite_outline, LoveGirlTheme.red, '纪念日提醒', _pushAnniversary, (v) {
+          _buildSwitchRow(Icons.favorite_outline, LoveGirlTheme.red, '纪念日提醒',
+              _pushAnniversary, (v) {
             setState(() => _pushAnniversary = v);
             _savePushSetting('push_anniversary', v);
             NotificationService.setAnniversaryEnabled(v);
             LogService().userAction('推送:纪念日=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.checklist_outlined, LoveGirlTheme.accent, '待办提醒', _pushTodo, (v) {
+          _buildSwitchRow(
+              Icons.checklist_outlined, LoveGirlTheme.accent, '待办提醒', _pushTodo,
+              (v) {
             setState(() => _pushTodo = v);
             _savePushSetting('push_todo', v);
             NotificationService.setTodoEnabled(v);
@@ -439,23 +539,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 数据管理 ==========
   Widget _buildDataCard() {
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildTapRow(Icons.cached_rounded, LoveGirlTheme.orange, '清除缓存', '当前 $_cacheSize', () async {
+          _buildTapRow(Icons.cached_rounded, LoveGirlTheme.orange, '清除缓存',
+              '当前 $_cacheSize', () async {
             await _clearCache();
             LogService().userAction('数据:清除缓存');
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('缓存已清除'), duration: Duration(seconds: 1)));
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('缓存已清除'), duration: Duration(seconds: 1)));
             }
           }),
           const Divider(height: 20, indent: 40),
-          _buildTapRow(Icons.file_download_outlined, LoveGirlTheme.primary, '导出数据', 'JSON格式', () {
+          _buildTapRow(Icons.file_download_outlined, LoveGirlTheme.primary,
+              '导出数据', 'JSON格式', () {
             LogService().userAction('数据:导出');
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('数据导出功能开发中'), duration: Duration(seconds: 1)));
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('数据导出功能开发中'), duration: Duration(seconds: 1)));
           }),
           const Divider(height: 20, indent: 40),
-          _buildTapRow(Icons.delete_sweep_outlined, LoveGirlTheme.red, '重置所有数据', '谨慎操作', () {
+          _buildTapRow(
+              Icons.delete_sweep_outlined, LoveGirlTheme.red, '重置所有数据', '谨慎操作',
+              () {
             _showResetConfirm();
           }),
         ],
@@ -470,26 +577,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // 未开启开发者模式：仅显示日志入口
     if (!_isDevMode) {
       return Container(
-        padding: const EdgeInsets.all(16), decoration: _cardDeco(),
-        child: _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted, '开发者日志', '查看API调用记录', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const LogScreen()));
+        padding: const EdgeInsets.all(16),
+        decoration: _cardDeco(),
+        child: _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted,
+            '开发者日志', '查看API调用记录', () {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const LogScreen()));
         }),
       );
     }
 
     // 开发者模式已开启
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                width: 3, height: 16,
-                decoration: BoxDecoration(color: LoveGirlTheme.orange, borderRadius: BorderRadius.circular(2)),
+                width: 3,
+                height: 16,
+                decoration: BoxDecoration(
+                    color: LoveGirlTheme.orange,
+                    borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 8),
-              const Text('🔧 开发者模式', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: LoveGirlTheme.orange)),
+              const Text('🔧 开发者模式',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: LoveGirlTheme.orange)),
             ],
           ),
           const SizedBox(height: 12),
@@ -503,17 +621,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(color: LoveGirlTheme.orange.withAlpha(40), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.swap_horiz_rounded, color: LoveGirlTheme.orange, size: 20),
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                      color: LoveGirlTheme.orange.withAlpha(40),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.swap_horiz_rounded,
+                      color: LoveGirlTheme.orange, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('角色切换', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: LoveGirlTheme.textPrimary)),
-                      Text('调试用，翻转男/女友端视角', style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
+                      Text('角色切换',
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: LoveGirlTheme.textPrimary)),
+                      Text('调试用，翻转男/女友端视角',
+                          style: TextStyle(
+                              fontSize: 12, color: LoveGirlTheme.textMuted)),
                     ],
                   ),
                 ),
@@ -527,7 +655,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       auth.resetDevRole();
                     }
                     setState(() {});
-                    LogService().userAction('开发者:角色切换 -> ${auth.isGirl ? "女友" : "男友"}');
+                    LogService()
+                        .userAction('开发者:角色切换 -> ${auth.isGirl ? "女友" : "男友"}');
                   },
                 ),
               ],
@@ -536,11 +665,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             '当前视角: ${auth.isGirl ? "👧 女友端" : "👦 男友端"}${auth.isDevRoleOverridden ? " (已覆盖)" : ""}',
-            style: TextStyle(fontSize: 13, color: auth.isDevRoleOverridden ? LoveGirlTheme.orange : LoveGirlTheme.textMuted),
+            style: TextStyle(
+                fontSize: 13,
+                color: auth.isDevRoleOverridden
+                    ? LoveGirlTheme.orange
+                    : LoveGirlTheme.textMuted),
           ),
           const Divider(height: 24, indent: 40),
-          _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted, '开发者日志', '查看API/错误记录', () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const LogScreen()));
+          _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted,
+              '开发者日志', '查看API/错误记录', () {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const LogScreen()));
           }),
         ],
       ),
@@ -550,7 +685,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _onVersionTap() {
     final now = DateTime.now();
     // 超过3秒重置计数
-    if (_lastDevTapTime != null && now.difference(_lastDevTapTime!).inSeconds > 3) {
+    if (_lastDevTapTime != null &&
+        now.difference(_lastDevTapTime!).inSeconds > 3) {
       _devTapCount = 0;
     }
     _lastDevTapTime = now;
@@ -583,7 +719,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 关于 ==========
   Widget _buildAboutCard() {
     return Container(
-      padding: const EdgeInsets.all(16), decoration: _cardDeco(),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
       child: Column(
         children: [
           _buildInfoRow(Icons.info_outline, '应用名称', AppConstants.appName),
@@ -591,10 +728,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // 版本号 — 可点击（7次连击开启开发者模式）
           GestureDetector(
             onTap: _onVersionTap,
-            child: _buildInfoRow(Icons.tag, '当前版本', 'v${AppConstants.versionName} (build ${AppConstants.versionCode})'),
+            child: _buildInfoRow(Icons.tag, '当前版本',
+                'v${AppConstants.versionName} (build ${AppConstants.versionCode})'),
           ),
           const Divider(height: 24, indent: 40),
-          _buildTapRow(Icons.system_update_outlined, LoveGirlTheme.accent, '检查更新', '点击检查', () {
+          _buildTapRow(Icons.system_update_outlined, LoveGirlTheme.accent,
+              '检查更新', '点击检查', () {
             manualCheckVersion(context);
           }),
           const Divider(height: 24, indent: 40),
@@ -615,9 +754,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.logout, size: 20, color: LoveGirlTheme.pink.withAlpha(200)),
+            Icon(Icons.logout,
+                size: 20, color: LoveGirlTheme.pink.withAlpha(200)),
             const SizedBox(width: 8),
-            Text('退出登录', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: LoveGirlTheme.pink.withAlpha(220))),
+            Text('退出登录',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: LoveGirlTheme.pink.withAlpha(220))),
           ],
         ),
       ),
@@ -627,31 +771,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 工具组件 ==========
   BoxDecoration _cardDeco() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return LoveGirlTheme.glassDecoration(tint: isDark ? LoveGirlTheme.cardDark : Colors.white, opacity: isDark ? 0.5 : 0.85);
+    return BoxDecoration(
+      color: isDark ? LoveGirlTheme.cardDark : LoveGirlTheme.paper,
+      borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+      border: Border.all(
+        color: isDark ? Colors.white.withAlpha(18) : LoveGirlTheme.separator,
+      ),
+      boxShadow: isDark ? null : LoveGirlTheme.cardShadow(),
+    );
   }
 
-  Widget _buildSwitchRow(IconData icon, Color iconColor, String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchRow(IconData icon, Color iconColor, String label,
+      bool value, ValueChanged<bool> onChanged) {
     return Row(
       children: [
-        Container(width: 36, height: 36, decoration: BoxDecoration(color: iconColor.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
+        Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+                color: iconColor.withAlpha(25),
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: iconColor, size: 20)),
         const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: LoveGirlTheme.textPrimary))),
-        Switch.adaptive(value: value, activeColor: LoveGirlTheme.primary, onChanged: onChanged),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: LoveGirlTheme.textPrimary))),
+        Switch.adaptive(
+            value: value,
+            activeColor: LoveGirlTheme.primary,
+            onChanged: onChanged),
       ],
     );
   }
 
-  Widget _buildTapRow(IconData icon, Color iconColor, String label, String trailing, VoidCallback onTap) {
+  Widget _buildTapRow(IconData icon, Color iconColor, String label,
+      String trailing, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: iconColor.withAlpha(25), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
+          Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: iconColor.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: iconColor, size: 20)),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 15, color: LoveGirlTheme.textPrimary))),
-          Text(trailing, style: const TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+          Expanded(
+              child: Text(label,
+                  style: const TextStyle(
+                      fontSize: 15, color: LoveGirlTheme.textPrimary))),
+          Text(trailing,
+              style: const TextStyle(
+                  fontSize: 13, color: LoveGirlTheme.textMuted)),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right, size: 18, color: LoveGirlTheme.textMuted),
+          const Icon(Icons.chevron_right,
+              size: 18, color: LoveGirlTheme.textMuted),
         ],
       ),
     );
@@ -661,11 +840,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isHeartRow = icon == Icons.favorite_outline;
     return Row(
       children: [
-        Container(width: 36, height: 36, decoration: BoxDecoration(color: (isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary).withAlpha(isHeartRow ? 25 : 20), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary, size: 20)),
+        Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+                color: (isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary)
+                    .withAlpha(isHeartRow ? 25 : 20),
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon,
+                color: isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary,
+                size: 20)),
         const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 15, color: LoveGirlTheme.textSecondary)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 15, color: LoveGirlTheme.textSecondary)),
         const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: LoveGirlTheme.textPrimary)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: LoveGirlTheme.textPrimary)),
       ],
     );
   }
@@ -678,22 +872,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: const BoxDecoration(color: LoveGirlTheme.cardLight, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: const BoxDecoration(
+            color: LoveGirlTheme.cardLight,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            const Text('更换头像', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('更换头像',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             ListTile(
-              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: LoveGirlTheme.primary.withAlpha(20), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.photo_library_outlined, color: LoveGirlTheme.primary)),
+              leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: LoveGirlTheme.primary.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.photo_library_outlined,
+                      color: LoveGirlTheme.primary)),
               title: const Text('从相册选择'),
-              trailing: const Icon(Icons.chevron_right, color: LoveGirlTheme.textMuted),
+              trailing: const Icon(Icons.chevron_right,
+                  color: LoveGirlTheme.textMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
-                  final file = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512, maxHeight: 512, imageQuality: 85);
+                  final file = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 512,
+                      maxHeight: 512,
+                      imageQuality: 85);
                   if (file != null) {
                     LogService().userAction('头像:选择图片 ${file.path}');
                     _uploadAvatar(file.path);
@@ -705,13 +919,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: LoveGirlTheme.primary.withAlpha(20), borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.camera_alt_outlined, color: LoveGirlTheme.primary)),
+              leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: LoveGirlTheme.primary.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.camera_alt_outlined,
+                      color: LoveGirlTheme.primary)),
               title: const Text('拍照'),
-              trailing: const Icon(Icons.chevron_right, color: LoveGirlTheme.textMuted),
+              trailing: const Icon(Icons.chevron_right,
+                  color: LoveGirlTheme.textMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
-                  final file = await picker.pickImage(source: ImageSource.camera, maxWidth: 512, maxHeight: 512, imageQuality: 85);
+                  final file = await picker.pickImage(
+                      source: ImageSource.camera,
+                      maxWidth: 512,
+                      maxHeight: 512,
+                      imageQuality: 85);
                   if (file != null) {
                     LogService().userAction('头像:拍照 ${file.path}');
                     _uploadAvatar(file.path);
@@ -728,6 +954,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _uploadAvatar(String filePath) async {
+    if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
       final api = ApiService();
@@ -741,14 +968,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       LogService().userAction('头像:上传成功');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('头像已更新'), behavior: SnackBarBehavior.floating, duration: Duration(seconds: 2)),
+          const SnackBar(
+              content: Text('头像已更新'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2)),
         );
       }
     } catch (e) {
       LogService().error('Settings', '头像上传失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('上传失败，请重试'), behavior: SnackBarBehavior.floating),
+          const SnackBar(
+              content: Text('上传失败，请重试'), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -756,17 +987,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveProfile(AuthProvider auth) async {
+    if (_isSaving) return;
     final newNickname = _nicknameController.text.trim();
     if (newNickname.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('昵称不能为空')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('昵称不能为空')));
       return;
     }
     setState(() => _isSaving = true);
     try {
       await auth.updateProfile({'nickname': newNickname});
       LogService().userAction('昵称修改: $newNickname');
-      if (mounted) setState(() { _isEditing = false; _isSaving = false; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存成功')));
+      if (mounted) {
+        setState(() {
+          _isEditing = false;
+          _isSaving = false;
+        });
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('保存成功')));
+      }
     } catch (e) {
       LogService().error('Settings', '保存昵称失败: $e');
       if (mounted) setState(() => _isSaving = false);
@@ -778,10 +1019,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('确认重置', style: TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            const Text('确认重置', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('将清除所有本地数据，包括缓存和登录状态。此操作不可撤销。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -789,7 +1032,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final auth = context.read<AuthProvider>();
               auth.logout();
             },
-            child: Text('确认重置', style: TextStyle(color: LoveGirlTheme.red.withAlpha(220))),
+            child: Text('确认重置',
+                style: TextStyle(color: LoveGirlTheme.red.withAlpha(220))),
           ),
         ],
       ),
@@ -803,10 +1047,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? LoveGirlTheme.cardDark : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('退出后需要重新登录哦~'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -814,7 +1060,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               auth.logout();
               LogService().userAction('退出登录');
             },
-            child: Text('退出', style: TextStyle(color: LoveGirlTheme.pink.withAlpha(220))),
+            child: Text('退出',
+                style: TextStyle(color: LoveGirlTheme.pink.withAlpha(220))),
           ),
         ],
       ),

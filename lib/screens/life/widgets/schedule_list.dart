@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
 /// ===== 课程表 =====
@@ -18,6 +19,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   String? _error;
 
   static const _weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  // ignore: unused_field
   static const _sectionLabels = [
     '第1节',
     '第2节',
@@ -43,18 +45,38 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   ];
 
   static const _colorHex = [
-    '#635BFF', '#FF6B8A', '#00D4AA', '#FF9800', '#9C27B0',
-    '#2196F3', '#4CAF50', '#E91E63', '#3F51B5', '#009688',
+    '#635BFF',
+    '#FF6B8A',
+    '#00D4AA',
+    '#FF9800',
+    '#9C27B0',
+    '#2196F3',
+    '#4CAF50',
+    '#E91E63',
+    '#3F51B5',
+    '#009688',
   ];
 
   // 节次 → 开始时间映射（中国高校标准作息）
   static const _sectionStartTimes = [
-    '08:00:00', '08:55:00', '10:00:00', '10:55:00',
-    '14:00:00', '14:55:00', '16:00:00', '16:55:00',
+    '08:00:00',
+    '08:55:00',
+    '10:00:00',
+    '10:55:00',
+    '14:00:00',
+    '14:55:00',
+    '16:00:00',
+    '16:55:00',
   ];
   static const _sectionEndTimes = [
-    '08:45:00', '09:40:00', '10:45:00', '11:40:00',
-    '14:45:00', '15:40:00', '16:45:00', '17:40:00',
+    '08:45:00',
+    '09:40:00',
+    '10:45:00',
+    '11:40:00',
+    '14:45:00',
+    '15:40:00',
+    '16:45:00',
+    '17:40:00',
   ];
 
   @override
@@ -68,7 +90,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     final year = now.year;
     final month = now.month;
     if (month >= 2 && month <= 7) {
-      return '${year - 1}-${year}-2';
+      return '${year - 1}-$year-2';
     } else {
       return '$year-${year + 1}-1';
     }
@@ -207,8 +229,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             style: const TextStyle(fontSize: 13),
                           ),
                           selected: dayOfWeek == day,
-                          selectedColor:
-                              LoveGirlTheme.primary.withAlpha(30),
+                          selectedColor: LoveGirlTheme.primary.withAlpha(30),
                           labelStyle: TextStyle(
                             color: dayOfWeek == day
                                 ? LoveGirlTheme.primary
@@ -248,8 +269,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           ),
                           const SizedBox(height: 6),
                           Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: LoveGirlTheme.bgLight,
                               borderRadius: BorderRadius.circular(14),
@@ -295,8 +315,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           ),
                           const SizedBox(height: 6),
                           Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: LoveGirlTheme.bgLight,
                               borderRadius: BorderRadius.circular(14),
@@ -309,14 +328,12 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                   8 - startSection,
                                   (i) => DropdownMenuItem(
                                     value: startSection + i,
-                                    child:
-                                        Text('第${startSection + i}节'),
+                                    child: Text('第${startSection + i}节'),
                                   ),
                                 ),
                                 onChanged: (v) {
                                   if (v != null) {
-                                    setSheetState(
-                                        () => endSection = v);
+                                    setSheetState(() => endSection = v);
                                   }
                                 },
                               ),
@@ -341,12 +358,10 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   height: 32,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    children:
-                        List.generate(_defaultColors.length, (i) {
+                    children: List.generate(_defaultColors.length, (i) {
                       final isSelected = colorIndex == i;
                       return GestureDetector(
-                        onTap: () =>
-                            setSheetState(() => colorIndex = i),
+                        onTap: () => setSheetState(() => colorIndex = i),
                         child: Container(
                           width: 32,
                           height: 32,
@@ -363,8 +378,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: _defaultColors[i]
-                                          .withAlpha(100),
+                                      color: _defaultColors[i].withAlpha(100),
                                       blurRadius: 8,
                                     ),
                                   ]
@@ -404,12 +418,16 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           'endWeek': 20,
                           'color': _colorHex[colorIndex],
                         });
+                        if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         await _loadCourses();
                       } catch (e) {
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('添加失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+                            SnackBar(
+                                content: Text('添加失败: $e'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2)),
                           );
                         }
                       }
@@ -473,7 +491,10 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+            SnackBar(
+                content: Text('删除失败: $e'),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2)),
           );
         }
         await _loadCourses(); // 恢复原状态
@@ -522,7 +543,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
     if (startTime.isNotEmpty && endTime.isNotEmpty) {
       // 格式化时间，去掉秒数
-      final start = startTime.length >= 5 ? startTime.substring(0, 5) : startTime;
+      final start =
+          startTime.length >= 5 ? startTime.substring(0, 5) : startTime;
       final end = endTime.length >= 5 ? endTime.substring(0, 5) : endTime;
       return '$start-$end';
     }
@@ -530,7 +552,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     // 如果没有时间，根据节次推算
     final startSec = _getStartSection(course);
     final endSec = _getEndSection(course);
-    if (startSec - 1 < _sectionStartTimes.length && endSec - 1 < _sectionEndTimes.length) {
+    if (startSec - 1 < _sectionStartTimes.length &&
+        endSec - 1 < _sectionEndTimes.length) {
       final start = _sectionStartTimes[startSec - 1].substring(0, 5);
       final end = _sectionEndTimes[endSec - 1].substring(0, 5);
       return '$start-$end';
@@ -555,8 +578,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: OrganicCard(
-        organic: true,
+      child: LovePaper(
         padding: EdgeInsets.zero,
         child: _buildBody(),
       ),
@@ -605,8 +627,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             children: [
               // ---- 学期标题 ----
-              OrganicCard(
-                organic: true,
+              LovePaper(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -660,8 +681,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
               ),
 
               // ---- 星期行（有机圆形标签） ----
-              OrganicCard(
-                organic: true,
+              LovePaper(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 8,
@@ -727,8 +747,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: OrganicCard(
-                    organic: true,
+                  child: LovePaper(
                     padding: EdgeInsets.zero,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -853,26 +872,17 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     final color = _getCourseColor(course);
     final startSec = _getStartSection(course);
     final endSec = _getEndSection(course);
-    final id = course['id'] is int
-        ? course['id']
-        : int.parse(course['id'].toString());
+    final id =
+        course['id'] is int ? course['id'] : int.parse(course['id'].toString());
     final timeStr = _getCourseTime(course);
 
     return GestureDetector(
       onLongPress: () => _deleteCourse(id, name),
       child: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        child: OrganicCard(
-          organic: true,
+        child: LovePaper(
           padding: const EdgeInsets.all(12),
           color: color.withAlpha(10),
-          boxShadow: [
-            BoxShadow(
-              color: color.withAlpha(20),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
           child: Row(
             children: [
               // 节次信息（有机色块）

@@ -2,7 +2,20 @@
   "permissions": {
     "allow": [
       "Read(//d/claude ko zhi wen jian/**)",
-      "Bash(dir \"D:\\\\claude ko zhi wen jian\")"
+      "Bash(dir \"D:\\\\claude ko zhi wen jian\")",
+      "Bash(netstat -ano)",
+      "Bash(tasklist /FI \"PID eq 14372\")",
+      "Bash(ps -p 14372 -o pid,comm)",
+      "Bash(curl -s -v http://127.0.0.1:15721/v1/responses)",
+      "Bash(curl *)",
+      "Bash(powershell *)",
+      "Bash(reg query *)",
+      "Read(//c/Users/DKX/AppData/Roaming/cc-switch/**)",
+      "Read(//c/Users/DKX/AppData/Roaming/**)",
+      "Bash(ls *)",
+      "Bash(cmd *)",
+      "Read(//d/.claude/**)",
+      "Read(//c/Users/DKX/**)"
     ]
   }
 }

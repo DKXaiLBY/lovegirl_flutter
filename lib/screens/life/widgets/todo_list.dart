@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
 /// ===== 手绘风格复选框 =====
@@ -176,7 +177,10 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+          SnackBar(
+              content: Text('操作失败: $e'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2)),
         );
       }
       await _loadTodos(); // 即使失败也刷新，恢复UI状态
@@ -190,7 +194,10 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('删除失败，请重试'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+          const SnackBar(
+              content: Text('删除失败，请重试'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2)),
         );
       }
       await _loadTodos(); // 恢复原状态
@@ -349,18 +356,23 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                       if (titleCtrl.text.trim().isEmpty) return;
                       try {
                         // 将中文分类转换为英文
-                        final categoryEn = _categoryMap[selectedCategory] ?? 'daily';
+                        final categoryEn =
+                            _categoryMap[selectedCategory] ?? 'daily';
                         await _api.createTodo({
                           'title': titleCtrl.text.trim(),
                           'dueDate': dateCtrl.text,
                           'category': categoryEn,
                         });
+                        if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         await _loadTodos();
                       } catch (e) {
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('添加失败: $e'), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+                            SnackBar(
+                                content: Text('添加失败: $e'),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2)),
                           );
                         }
                       }
@@ -463,8 +475,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: OrganicCard(
-        organic: true,
+      child: LovePaper(
         padding: EdgeInsets.zero,
         child: _buildBody(),
       ),
@@ -522,8 +533,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                   itemCount: _todos.length,
-                  itemBuilder: (ctx, index) =>
-                      _buildTodoItem(_todos[index]),
+                  itemBuilder: (ctx, index) => _buildTodoItem(_todos[index]),
                 ),
         ),
         // 有机形状 FAB
@@ -571,8 +581,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     final id =
         todo['id'] is int ? todo['id'] : int.parse(todo['id'].toString());
     final title = todo['title'] ?? '';
-    final completed =
-        todo['completed'] == true || todo['completed'] == 1;
+    final completed = todo['completed'] == true || todo['completed'] == 1;
     final date = todo['due_date'] ?? todo['date'] ?? '';
     final categoryRaw = todo['category'] ?? 'daily';
     // 将英文分类转换为中文显示
@@ -613,8 +622,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       ),
       child: Opacity(
         opacity: completed ? 0.55 : 1.0,
-        child: OrganicCard(
-          organic: true,
+        child: LovePaper(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           margin: const EdgeInsets.only(bottom: 8),
           child: Row(
@@ -651,9 +659,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                         color: completed
                             ? LoveGirlTheme.textMuted
                             : LoveGirlTheme.textPrimary,
-                        decoration: completed
-                            ? TextDecoration.lineThrough
-                            : null,
+                        decoration:
+                            completed ? TextDecoration.lineThrough : null,
                       ),
                     ),
                     if (date.isNotEmpty) ...[
@@ -663,16 +670,14 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color:
-                                LoveGirlTheme.textMuted.withAlpha(120),
+                            color: LoveGirlTheme.textMuted.withAlpha(120),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             date,
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted
-                                  .withAlpha(150),
+                              color: LoveGirlTheme.textMuted.withAlpha(150),
                             ),
                           ),
                         ],

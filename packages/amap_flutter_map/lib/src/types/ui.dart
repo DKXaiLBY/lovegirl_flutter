@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui' show Color, hashValues;
+import 'dart:ui' show Color;
 import 'package:amap_flutter_base/amap_flutter_base.dart';
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 
@@ -63,8 +63,14 @@ class MinMaxZoomPreference {
   /// 缩放级别范围为[3, 20]，超出范围取边界值
   ///
   const MinMaxZoomPreference(double minZoom, double maxZoom)
-      : this.minZoom = ((minZoom < 3 ? 3 : minZoom) > (maxZoom > 20 ? 20 : maxZoom) ? maxZoom : minZoom),
-        this.maxZoom = ((minZoom < 3 ? 3 : minZoom) > (maxZoom > 20 ? 20 : maxZoom) ? minZoom : maxZoom);
+      : this.minZoom =
+            ((minZoom < 3 ? 3 : minZoom) > (maxZoom > 20 ? 20 : maxZoom)
+                ? maxZoom
+                : minZoom),
+        this.maxZoom =
+            ((minZoom < 3 ? 3 : minZoom) > (maxZoom > 20 ? 20 : maxZoom)
+                ? minZoom
+                : maxZoom);
 
   /// 最小zoomLevel
   final double? minZoom;
@@ -97,9 +103,18 @@ class MinMaxZoomPreference {
 }
 
 ///定位小蓝点配置项
+enum MyLocationTrackingMode {
+  show,
+  follow,
+  locationRotate,
+}
+
 class MyLocationStyleOptions {
   ///是否显示定位小蓝点
   bool enabled;
+
+  ///定位跟随模式
+  MyLocationTrackingMode? trackingMode;
 
   ///精度圈填充色
   Color? circleFillColor;
@@ -115,6 +130,7 @@ class MyLocationStyleOptions {
 
   MyLocationStyleOptions(
     this.enabled, {
+    this.trackingMode,
     this.circleFillColor,
     this.circleStrokeColor,
     this.circleStrokeWidth,
@@ -124,6 +140,7 @@ class MyLocationStyleOptions {
   MyLocationStyleOptions clone() {
     return MyLocationStyleOptions(
       enabled,
+      trackingMode: trackingMode,
       circleFillColor: circleFillColor,
       circleStrokeColor: circleStrokeColor,
       circleStrokeWidth: circleStrokeWidth,
@@ -135,8 +152,15 @@ class MyLocationStyleOptions {
     if (null == json) {
       return null;
     }
+    final trackingModeIndex = json['trackingMode'];
+    final trackingMode = trackingModeIndex is int &&
+            trackingModeIndex >= 0 &&
+            trackingModeIndex < MyLocationTrackingMode.values.length
+        ? MyLocationTrackingMode.values[trackingModeIndex]
+        : null;
     return MyLocationStyleOptions(
       json['enabled'] ?? false,
+      trackingMode: trackingMode,
       circleFillColor: json['circleFillColor'] ?? null,
       circleStrokeColor: json['circleStrokeColor'] ?? null,
       circleStrokeWidth: json['circleStrokeWidth'] ?? null,
@@ -154,6 +178,7 @@ class MyLocationStyleOptions {
     }
 
     addIfPresent('enabled', enabled);
+    addIfPresent('trackingMode', trackingMode?.index);
     addIfPresent('circleFillColor', circleFillColor?.value);
     addIfPresent('circleStrokeColor', circleStrokeColor?.value);
     addIfPresent('circleStrokeWidth', circleStrokeWidth);
@@ -165,9 +190,10 @@ class MyLocationStyleOptions {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (runtimeType != other.runtimeType) return false;
-    if (other is !MyLocationStyleOptions) return false;
+    if (other is! MyLocationStyleOptions) return false;
     final MyLocationStyleOptions typedOther = other;
     return enabled == typedOther.enabled &&
+        trackingMode == typedOther.trackingMode &&
         circleFillColor == typedOther.circleFillColor &&
         circleStrokeColor == typedOther.circleStrokeColor &&
         icon == typedOther.icon;
@@ -177,14 +203,15 @@ class MyLocationStyleOptions {
   String toString() {
     return 'MyLocationOptionsStyle{'
         'enabled: $enabled,'
+        'trackingMode: $trackingMode,'
         'circleFillColor: $circleFillColor,'
         'circleStrokeColor: $circleStrokeColor,'
         'icon: $icon, }';
   }
 
   @override
-  int get hashCode =>
-      Object.hash(enabled, circleFillColor, circleStrokeColor, icon);
+  int get hashCode => Object.hash(
+      enabled, trackingMode, circleFillColor, circleStrokeColor, icon);
 }
 
 ///地图自定义样式
@@ -233,7 +260,7 @@ class CustomStyleOptions {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (runtimeType != other.runtimeType) return false;
-    if (other is !CustomStyleOptions) return false;
+    if (other is! CustomStyleOptions) return false;
     final CustomStyleOptions typedOther = other;
     return enabled == typedOther.enabled &&
         styleData == typedOther.styleData &&
