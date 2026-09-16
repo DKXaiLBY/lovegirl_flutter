@@ -264,7 +264,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           ),
           mapType: _style.type,
           trafficEnabled: _trafficEnabled,
-          compassEnabled: true,
+          compassEnabled: false,
           scaleEnabled: true,
           touchPoiEnabled: true,
           myLocationStyleOptions: _locationEnabled

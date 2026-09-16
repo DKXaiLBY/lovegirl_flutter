@@ -214,7 +214,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               target: _selectedPoint ?? _defaultCenter,
               zoom: _selectedPoint == null ? 5 : 16,
             ),
-            compassEnabled: true,
+            compassEnabled: false,
             scaleEnabled: true,
             touchPoiEnabled: true,
             myLocationStyleOptions: MyLocationStyleOptions(

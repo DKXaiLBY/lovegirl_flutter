@@ -615,6 +615,7 @@ class TravelProvider extends ChangeNotifier {
     try {
       await _api.updateTravelSpot(id, data);
       await refreshAll();
+      await _refreshActiveRoutePreview();
     } catch (_) {
       _error = '地点保存失败，请检查网络后重试';
       notifyListeners();
@@ -626,9 +627,33 @@ class TravelProvider extends ChangeNotifier {
     try {
       await _api.deleteTravelSpot(id);
       await refreshAll();
+      await _refreshActiveRoutePreview();
     } catch (_) {
       _error = '地点删除失败，请检查网络后重试';
       notifyListeners();
     }
+  }
+
+  /// 地点增删改后同步路线预览：按剩余有效地点重算，不足两个时清除预览，
+  /// 避免底部路线栏残留引用已删除地点的旧路线。
+  Future<void> _refreshActiveRoutePreview() async {
+    final route = _activeRoute;
+    if (route == null) return;
+    final validSpots = filteredSpots.where(_hasValidCoordinate).toList()
+      ..sort((a, b) {
+        final dayCompare = (a.routeDay ?? 999).compareTo(b.routeDay ?? 999);
+        if (dayCompare != 0) return dayCompare;
+        final orderCompare =
+            (a.routeOrder ?? 999).compareTo(b.routeOrder ?? 999);
+        if (orderCompare != 0) return orderCompare;
+        return a.name.compareTo(b.name);
+      });
+    if (validSpots.length < 2) {
+      _activeRoute = null;
+      _routeError = null;
+      notifyListeners();
+      return;
+    }
+    await previewRoute(validSpots, route.mode);
   }
 }
