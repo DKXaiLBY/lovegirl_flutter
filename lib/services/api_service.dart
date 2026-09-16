@@ -318,6 +318,21 @@ class ApiService {
   Future updateFeedingOrderDelivery(int id, Map data) =>
       put('/api/feeding/orders/$id/delivery', data: data);
 
+  // ========== 情侣厨房 ==========
+  Future getKitchenMenu() => get('/api/kitchen/menu');
+  Future createKitchenDish(Map data) => post('/api/kitchen/dishes', data: data);
+  Future updateKitchenDish(int id, Map data) =>
+      put('/api/kitchen/dishes/$id', data: data);
+  Future deleteKitchenDish(int id) => delete('/api/kitchen/dishes/$id');
+  Future getKitchenOrders() => get('/api/kitchen/orders');
+  Future createKitchenOrder(Map data) => post('/api/kitchen/orders', data: data);
+  Future updateKitchenOrderStatus(int id, String status, {Map? extra}) =>
+      put('/api/kitchen/orders/$id/status',
+          data: {'status': status, ...?extra});
+  Future getKitchenSummary() => get('/api/kitchen/summary');
+  Future uploadKitchenPhoto(String filePath) =>
+      upload('/api/kitchen/upload', filePath, fieldName: 'photo');
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

@@ -15,7 +15,6 @@ import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../timeline/timeline_screen.dart';
 import '../version/update_dialog.dart';
-import 'admin_feeding_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final void Function(int tabIndex)? onNavigateToTab;
@@ -334,19 +333,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: LoveGirlTheme.secondary,
             onTap: () => _openSettings(context),
           ),
-          if (isAdmin) ...[
-            const Divider(),
-            LoveMenuRow(
-              icon: Icons.inventory_2_outlined,
-              title: '\u6295\u5582\u7ad9\u7ba1\u7406',
-              value: '\u5e97\u94fa\u4e0e\u5546\u54c1\u914d\u7f6e',
-              color: LoveGirlTheme.secondary,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminFeedingScreen()),
-              ),
-            ),
-          ],
         ],
       ),
     );

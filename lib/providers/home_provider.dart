@@ -38,7 +38,7 @@ class HomeProvider extends ChangeNotifier {
         _safeRequest(() => _api.getHomeToday()),
         _safeRequest(() => _api.getHomeMemory()),
         _safeRequest(() => _api.getBeanCheckInStatus()),
-        _safeRequest(() => _api.getFeedingOrders()),
+        _safeRequest(() => _api.getKitchenOrders()),
         _safeRequest(() => _api.getTodos()),
         _safeRequest(() => _api.getTravelTrips()),
         _safeRequest(() => _api.getTravelRoutes()),
@@ -51,7 +51,11 @@ class HomeProvider extends ChangeNotifier {
       final todayRaw = _extractDataMap(results[0]);
       final memoryData = _extractData(results[1]);
       final statusData = _extractDataMap(results[2]);
-      final feedingOrders = _extractList(results[3]);
+      final kitchenData = _extractDataMap(results[3]);
+      final feedingOrders = [
+        ..._extractList(kitchenData['incoming']),
+        ..._extractList(kitchenData['outgoing']),
+      ];
       final todos = _extractList(results[4]);
       final travelTrips = _extractList(results[5]);
       final travelRoutes = _extractList(results[6]);
@@ -185,32 +189,31 @@ class HomeProvider extends ChangeNotifier {
   }
 
   Map<String, dynamic> _buildFeedPreview(List<Map<String, dynamic>> orders) {
+    // 情侣厨房订单：优先展示进行中的（待接单/烹饪中），否则展示最近一单
     final active = orders.firstWhere(
-      (item) => !const ['completed', 'cancelled'].contains(
+      (item) => !const ['done', 'cancelled'].contains(
         _asString(item['status']).toLowerCase(),
       ),
       orElse: () => orders.isNotEmpty ? orders.first : <String, dynamic>{},
     );
-    final status = _asString(active['status'], fallback: 'pending');
+    final status = _asString(active['status'], fallback: '');
+
+    String title = '今晚想吃什么';
+    final items = active['items'];
+    if (items is List && items.isNotEmpty) {
+      final first = _mapFrom(items.first);
+      final name = _asString(first['name']);
+      if (name.isNotEmpty) {
+        title = items.length > 1 ? '$name 等 ${items.length} 道菜' : name;
+      }
+    }
 
     return {
-      'title': _asString(
-        active['product_name'] ?? active['productName'] ?? active['title'],
-        fallback: '\u829d\u829d\u6843\u6843',
-      ),
-      'shop': _asString(
-        active['shop_name'] ?? active['shopName'],
-        fallback: '\u559c\u8336',
-      ),
+      'title': title,
+      'shop': '情侣厨房',
       'statusLabel': _feedingStatusLabel(status),
-      'price': _asDouble(
-        active['total_price'],
-        fallback: _asDouble(active['actual_amount'], fallback: 25),
-      ),
-      'operator': _asString(
-        active['sender_name'] ?? active['operatorName'],
-        fallback: '\u5927\u767d',
-      ),
+      'price': _asDouble(active['total_price'], fallback: 0),
+      'operator': '♥',
     };
   }
 
@@ -344,20 +347,23 @@ class HomeProvider extends ChangeNotifier {
 
   String _feedingStatusLabel(String status) {
     switch (status.toLowerCase()) {
+      case 'placed':
+        return '\u5f85\u63a5\u5355';
       case 'pending':
         return '\u5f85\u63a5\u5355';
       case 'accepted':
-        return '\u5df2\u63a5\u5355';
+        return '\u70f9\u996a\u4e2d';
       case 'preparing':
         return '\u51c6\u5907\u4e2d';
       case 'delivering':
         return '\u914d\u9001\u4e2d';
+      case 'done':
       case 'completed':
-        return '\u5df2\u5b8c\u6210';
+        return '\u5df2\u5f00\u996d';
       case 'cancelled':
         return '\u5df2\u53d6\u6d88';
       default:
-        return '\u5f85\u63a5\u5355';
+        return '\u8fd8\u6ca1\u70b9\u5355';
     }
   }
 

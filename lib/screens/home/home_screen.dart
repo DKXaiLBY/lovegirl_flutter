@@ -8,7 +8,7 @@ import '../../providers/home_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
-import '../feeding/feeding_screen.dart';
+import '../kitchen/kitchen_screen.dart';
 import '../timeline/timeline_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               _TodayCareSection(
                 today: home.today,
-                onFeedingTap: () => _push(const FeedingScreen()),
+                onFeedingTap: () => _push(const KitchenScreen()),
                 onTodoTap: () => widget.onNavigateToSubTab?.call(3, 0),
               ),
               const SizedBox(height: 18),
@@ -825,7 +825,7 @@ class _FeedingCareCard extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: const Text(
-                        '投喂她',
+                        '情侣厨房',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,

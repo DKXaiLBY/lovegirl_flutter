@@ -9,7 +9,8 @@ import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/home_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/auth/login_screen.dart';
-import 'package:lovegirl_flutter/screens/feeding/feeding_screen.dart';
+import 'package:lovegirl_flutter/providers/kitchen_provider.dart';
+import 'package:lovegirl_flutter/screens/kitchen/kitchen_screen.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
@@ -291,69 +292,47 @@ void main() {
     expect(find.textContaining('Day'), findsNothing);
   });
 
-  testWidgets('feeding order detail sheet keeps the ticket-style summary',
-      (tester) async {
-    final order = <String, dynamic>{
+  test('kitchen order parsing keeps item snapshots and totals', () {
+    final order = KitchenOrder.fromJson(const {
       'id': 7,
-      'status': 'pending',
-      'is_mine': true,
-      'is_received': false,
-      'shop_name': '喜茶',
-      'shop_icon': '🥤',
-      'product_name': '芝芝桃桃',
-      'quantity': 2,
-      'total_price': 36,
-      'message': '今天想喝热一点的，少冰。',
-      'platform': '美团',
-      'actual_amount': '34',
-      'platform_order_id': 'MT20260716001',
-      'note': '下课前送到宿舍楼下',
-      'urge_count': 2,
-    };
+      'status': 'done',
+      'orderer_id': 32,
+      'cook_id': 33,
+      'total_price': 59,
+      'items': [
+        {'dish_id': 3, 'name': '红烧肉', 'emoji': '🍖', 'price': 35, 'quantity': 1},
+        {'dish_id': 4, 'name': '番茄炒蛋', 'emoji': '🍅', 'price': 12, 'quantity': 2},
+      ],
+      'photo_url': '/uploads/kitchen/a.jpg',
+      'beans_awarded': 1,
+    });
 
-    await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: OrderDetailSheet(order: order))),
-    );
-
-    await tester.pump();
-
-    expect(find.text('我替她下的'), findsOneWidget);
-    expect(find.text('喜茶'), findsOneWidget);
-    expect(find.text('芝芝桃桃 x2'), findsOneWidget);
-    expect(find.text('真实下单信息'), findsOneWidget);
-    expect(find.text('下单平台: 美团'), findsOneWidget);
-    expect(find.text('实际金额: ¥34'), findsOneWidget);
-    expect(find.text('平台订单号: MT20260716001'), findsOneWidget);
-    expect(find.text('备注: 下课前送到宿舍楼下'), findsOneWidget);
-    expect(find.text('催单 (2)'), findsOneWidget);
-    expect(find.text('取消订单'), findsOneWidget);
+    expect(order.items.length, 2);
+    expect(order.items.first.name, '红烧肉');
+    expect(order.items.last.quantity, 2);
+    expect(order.totalPrice, 59);
+    expect(order.status, 'done');
+    expect(order.isActive, isFalse);
+    expect(order.beansAwarded, isTrue);
   });
 
-  testWidgets('feeding delivering order requires real fulfillment details',
+  testWidgets('kitchen orders screen shows empty states for both tabs',
       (tester) async {
-    final order = <String, dynamic>{
-      'id': 8,
-      'status': 'delivering',
-      'is_mine': false,
-      'is_received': true,
-      'shop_name': '茶颜悦色',
-      'shop_icon': '🍵',
-      'product_name': '幽兰拿铁',
-      'quantity': 1,
-      'total_price': 18,
-      'message': '送到校门口就好。',
-      'urge_count': 0,
-    };
+    final kitchen = KitchenProvider()
+      ..incoming = const []
+      ..outgoing = const [];
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: OrderDetailSheet(order: order))),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<KitchenProvider>.value(value: kitchen),
+        ],
+        child: const MaterialApp(home: KitchenOrdersScreen()),
+      ),
     );
-
     await tester.pump();
 
-    expect(find.text('配送中'), findsWidgets);
-    expect(find.text('完成履约并记录真实信息'), findsOneWidget);
-    expect(find.text('标记已完成'), findsNothing);
+    expect(find.text('还没有收到订单'), findsOneWidget);
   });
 
   testWidgets('profile screen keeps the archive-style sections',
