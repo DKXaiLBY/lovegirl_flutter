@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../utils/lovegirl_theme.dart';
+import '../utils/motion.dart';
 
 class LovePage extends StatelessWidget {
   final Widget child;
@@ -219,16 +220,19 @@ class LovePrimaryButton extends StatelessWidget {
       textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );
+    Widget button;
     if (icon == null) {
-      return FilledButton(
-          onPressed: onPressed, style: style, child: Text(text));
+      button =
+          FilledButton(onPressed: onPressed, style: style, child: Text(text));
+    } else {
+      button = FilledButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 17),
+        label: Text(text),
+        style: style,
+      );
     }
-    return FilledButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 17),
-      label: Text(text),
-      style: style,
-    );
+    return PressableScale(child: button);
   }
 }
 

@@ -95,6 +95,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -131,6 +132,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),

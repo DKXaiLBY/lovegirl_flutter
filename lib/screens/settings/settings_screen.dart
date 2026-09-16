@@ -442,11 +442,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mapPrefs.setShowOrderArrows(v);
           }),
           const Divider(height: 24, indent: 40),
-          _buildSwitchRow(
-              Icons.auto_awesome_rounded, LoveGirlTheme.secondary, '界面动效',
-              mapPrefs.motionLevel != 'off', (v) {
-            mapPrefs.setMotionLevel(v ? 'standard' : 'off');
-          }),
+          InkWell(
+            onTap: () {
+              final next = switch (mapPrefs.motionLevel) {
+                'off' => 'standard',
+                'standard' => 'rich',
+                _ => 'off',
+              };
+              mapPrefs.setMotionLevel(next);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: LoveGirlTheme.secondarySoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.auto_awesome_rounded,
+                        size: 20, color: LoveGirlTheme.secondary),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('界面动效',
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600)),
+                  ),
+                  Text(
+                    switch (mapPrefs.motionLevel) {
+                      'off' => '关闭',
+                      'rich' => '增强',
+                      _ => '标准',
+                    },
+                    style: const TextStyle(
+                        color: LoveGirlTheme.primary,
+                        fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded,
+                      size: 18, color: LoveGirlTheme.textMuted),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../kitchen/kitchen_screen.dart';
@@ -40,51 +41,72 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final home = context.watch<HomeProvider>();
+    final ambience = timeAmbienceOverlay();
 
     return Scaffold(
       backgroundColor: LoveGirlTheme.bgLight,
-      body: LovePage(
-        padding: EdgeInsets.zero,
-        child: RefreshIndicator(
-          onRefresh: home.refresh,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-            children: [
-              _HomeHeader(
-                loveDays: math.max(auth.loveDays, home.loveDays),
-                beanBalance: home.beanBalance,
+      body: Stack(
+        children: [
+          LovePage(
+            padding: EdgeInsets.zero,
+            child: RefreshIndicator(
+              onRefresh: home.refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                children: [
+                  StaggerIn(
+                    index: 0,
+                    child: _HomeHeader(
+                      loveDays: math.max(auth.loveDays, home.loveDays),
+                      beanBalance: home.beanBalance,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  if (home.error != null &&
+                      (home.today == null || home.memory == null)) ...[
+                    _ErrorBanner(message: home.error!, onRetry: home.refresh),
+                    const SizedBox(height: 16),
+                  ],
+                  StaggerIn(
+                    index: 1,
+                    child: _TodayCareSection(
+                      today: home.today,
+                      onFeedingTap: () => _push(const KitchenScreen()),
+                      onTodoTap: () => widget.onNavigateToSubTab?.call(3, 0),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  StaggerIn(
+                    index: 2,
+                    child: _MemoryTicket(
+                      memory: home.memory,
+                      onTap: () => _push(const TimelineScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  StaggerIn(
+                    index: 3,
+                    child: _TravelTicket(
+                      preview: _typedMap(home.today?['travelPreview']),
+                      onTap: () => widget.onNavigateToTab?.call(1),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  StaggerIn(
+                    index: 4,
+                    child: _LifeSummaryTicket(
+                      today: home.today,
+                      onFinanceTap: () => widget.onNavigateToSubTab?.call(3, 1),
+                      onCourseTap: () => widget.onNavigateToSubTab?.call(3, 2),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 18),
-              if (home.error != null &&
-                  (home.today == null || home.memory == null)) ...[
-                _ErrorBanner(message: home.error!, onRetry: home.refresh),
-                const SizedBox(height: 16),
-              ],
-              _TodayCareSection(
-                today: home.today,
-                onFeedingTap: () => _push(const KitchenScreen()),
-                onTodoTap: () => widget.onNavigateToSubTab?.call(3, 0),
-              ),
-              const SizedBox(height: 18),
-              _MemoryTicket(
-                memory: home.memory,
-                onTap: () => _push(const TimelineScreen()),
-              ),
-              const SizedBox(height: 18),
-              _TravelTicket(
-                preview: _typedMap(home.today?['travelPreview']),
-                onTap: () => widget.onNavigateToTab?.call(1),
-              ),
-              const SizedBox(height: 18),
-              _LifeSummaryTicket(
-                today: home.today,
-                onFinanceTap: () => widget.onNavigateToSubTab?.call(3, 1),
-                onCourseTap: () => widget.onNavigateToSubTab?.call(3, 2),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (ambience != null) Positioned.fill(child: ambience),
+        ],
       ),
     );
   }
@@ -167,8 +189,8 @@ class _HomeHeader extends StatelessWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: RichText(
-                            text: TextSpan(
+                          child: Text.rich(
+                            TextSpan(
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -179,12 +201,15 @@ class _HomeHeader extends StatelessWidget {
                                   text:
                                       '\u6211\u4eec\u5728\u4e00\u8d77\u7684\u7b2c ',
                                 ),
-                                TextSpan(
-                                  text: '$loveDays',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    color: LoveGirlTheme.primary,
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: RollingNumber(
+                                    value: loveDays,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: LoveGirlTheme.primary,
+                                    ),
                                   ),
                                 ),
                                 const TextSpan(text: ' \u5929 \u2665'),
@@ -237,8 +262,8 @@ class _BeanBadge extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$balance',
+            RollingNumber(
+              value: balance,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w900,

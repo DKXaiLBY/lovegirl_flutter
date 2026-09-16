@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
 
@@ -293,13 +294,16 @@ class _MenuTabState extends State<_MenuTab> {
                             itemCount: dishes.length,
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 10),
-                            itemBuilder: (context, i) => _DishCard(
-                              dish: dishes[i],
-                              onAdd: () {
-                                widget.kitchen.addToCart(dishes[i].id);
-                                HapticFeedback.selectionClick();
-                              },
-                              qty: widget.kitchen.cart[dishes[i].id] ?? 0,
+                            itemBuilder: (context, i) => StaggerIn(
+                              index: i,
+                              child: _DishCard(
+                                dish: dishes[i],
+                                onAdd: () {
+                                  widget.kitchen.addToCart(dishes[i].id);
+                                  HapticFeedback.selectionClick();
+                                },
+                                qty: widget.kitchen.cart[dishes[i].id] ?? 0,
+                              ),
                             ),
                           ),
                         ),
@@ -757,6 +761,7 @@ class _CartSheetState extends State<_CartSheet> {
                   final err = await kitchen.placeOrder(_noteCtrl.text.trim());
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
+                  if (err == null) HapticFeedback.mediumImpact();
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(err ?? '下单成功！等 TA 开火啦 🔥'),
                     behavior: SnackBarBehavior.floating,
@@ -1496,6 +1501,7 @@ class _OrderCard extends StatelessWidget {
                     final err = await kitchen
                         .updateOrderStatus(order.id, 'accepted');
                     if (context.mounted) {
+                      if (err == null) HapticFeedback.mediumImpact();
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                           content: Text(err ?? '已接单，去买菜吧 🛒'),
                           behavior: SnackBarBehavior.floating));
