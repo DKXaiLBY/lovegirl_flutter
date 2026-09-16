@@ -3,7 +3,9 @@ import 'package:amap_flutter_base/amap_flutter_base.dart'
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
+import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
@@ -60,6 +62,23 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   bool _hasFitBounds = false;
   bool _locationEnabled = false;
   bool _mapReady = false;
+
+  /// 票根风 pin（按状态预加载，失败时回退到色相 marker）
+  final Map<String, BitmapDescriptor> _pinCache = {};
+  BitmapDescriptor? _arrowTexture;
+
+  Future<void> _loadArrowTexture() async {
+    try {
+      final texture = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(devicePixelRatio: 3.0),
+        'assets/images/arrow_texture.png',
+        mipmaps: false,
+      );
+      if (mounted) {
+        setState(() => _arrowTexture = texture);
+      }
+    } catch (_) {}
+  }
 
   Future<bool> _ensureLocationLayer({bool requestPermission = false}) async {
     var status = await Permission.location.status;
@@ -128,6 +147,53 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
   void animateToSpot(TravelSpot spot) {
     if (!_isValidCoordinate(spot.lat, spot.lng)) return;
     moveToLocation(spot.lat, spot.lng, zoom: 16);
+  }
+
+  /// 三段式镜头飞行：在目标点上空拉升到上帝视角 → 倾角巡航下降 → 平视落地。
+  /// 跨省/同城都适用；任何一步失败都退回普通平滑移动。
+  Future<void> flyToSpot(TravelSpot spot) async {
+    if (!_isValidCoordinate(spot.lat, spot.lng)) return;
+    final controller = _controller;
+    if (controller == null) {
+      animateToSpot(spot);
+      return;
+    }
+    final dest = LatLng(spot.lat, spot.lng);
+    try {
+      // 拉升：目标上空国家视角，带倾角获得 3D 纵深感
+      await controller.moveCamera(
+        CameraUpdate.newCameraPosition(CameraPosition(
+          target: dest,
+          zoom: 4.6,
+          tilt: 42,
+          bearing: 28,
+        )),
+        animated: true,
+        duration: 720,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 740));
+      // 巡航下降：保持上帝视角接近地面
+      await controller.moveCamera(
+        CameraUpdate.newCameraPosition(CameraPosition(
+          target: dest,
+          zoom: 11,
+          tilt: 42,
+          bearing: 28,
+        )),
+        animated: true,
+        duration: 820,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 840));
+      // 落地：回正视角，稳稳落在地点上
+      await controller.moveCamera(
+        CameraUpdate.newCameraPosition(
+            CameraPosition(target: dest, zoom: 15.5)),
+        animated: true,
+        duration: 600,
+      );
+    } catch (_) {
+      animateToSpot(spot);
+    }
   }
 
   Future<void> moveToLocation(
@@ -249,6 +315,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final mapPrefs = context.watch<MapPrefsProvider>();
     return Stack(
       children: [
         AMapWidget(
@@ -270,16 +337,21 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           myLocationStyleOptions: _locationEnabled
               ? MyLocationStyleOptions(
                   true,
-                  trackingMode: MyLocationTrackingMode.locationRotate,
+                  // 只显示定位不跟随镜头，避免定位更新与镜头飞行/手势抢相机
+                  trackingMode: MyLocationTrackingMode.show,
                   circleFillColor: const Color(0x331677FF),
                   circleStrokeColor: const Color(0xFF1677FF),
                   circleStrokeWidth: 1,
                 )
               : null,
           markers: _mapReady ? _buildMarkers() : const <Marker>{},
-          polylines: _mapReady ? _buildPolylines() : const <Polyline>{},
+          polylines: _mapReady
+              ? _buildPolylines(showOrderArrows: mapPrefs.showOrderArrows)
+              : const <Polyline>{},
           onMapCreated: (controller) async {
             _controller = controller;
+            _preloadPins();
+            _loadArrowTexture();
             try {
               _approvalNumber = await controller.getMapContentApprovalNumber();
             } catch (_) {
@@ -374,16 +446,40 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     );
   }
 
+  /// 预加载票根风 pin 资源（按状态色）
+  Future<void> _preloadPins() async {
+    const pins = {
+      'visited': 'assets/images/pin_visited.png',
+      'planned': 'assets/images/pin_planned.png',
+      'wish': 'assets/images/pin_wish.png',
+    };
+    for (final entry in pins.entries) {
+      try {
+        final descriptor = await BitmapDescriptor.fromAssetImage(
+          const ImageConfiguration(devicePixelRatio: 3.0),
+          entry.value,
+          mipmaps: false,
+        );
+        _pinCache[entry.key] = descriptor;
+      } catch (_) {
+        // 加载失败则继续使用色相 marker
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
   Set<Marker> _buildMarkers() {
     return widget.spots
         .where((spot) => _isValidCoordinate(spot.lat, spot.lng))
         .map((spot) {
       final highlighted = widget.highlightedId == spot.id;
+      final pin = _pinCache[spot.status];
       return Marker(
         position: LatLng(spot.lat, spot.lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          highlighted ? BitmapDescriptor.hueRose : _spotHue(spot),
-        ),
+        icon: highlighted
+            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose)
+            : (pin ??
+                BitmapDescriptor.defaultMarkerWithHue(_spotHue(spot))),
         infoWindow: InfoWindow(
           title: spot.name,
           snippet: [
@@ -392,12 +488,15 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           ].join(' · '),
         ),
         zIndex: highlighted ? 20 : 10,
-        onTap: (_) => widget.onMarkerTap?.call(spot),
+        onTap: (_) {
+          flyToSpot(spot);
+          widget.onMarkerTap?.call(spot);
+        },
       );
     }).toSet();
   }
 
-  Set<Polyline> _buildPolylines() {
+  Set<Polyline> _buildPolylines({required bool showOrderArrows}) {
     final lines = <Polyline>{};
     final activeRoute = widget.activeRoute;
     final activeRoutePoints = activeRoute?.path
@@ -442,6 +541,48 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           joinType: JoinType.round,
         ),
       );
+    }
+
+    // 顺序箭头线：按 routeDay/routeOrder 把地点串成"顺序表"
+    if (showOrderArrows) {
+      final ordered = widget.spots
+          .where((s) => _isValidCoordinate(s.lat, s.lng))
+          .toList()
+        ..sort((a, b) {
+          final day =
+              (a.routeDay ?? 999).compareTo(b.routeDay ?? 999);
+          if (day != 0) return day;
+          final order =
+              (a.routeOrder ?? 999).compareTo(b.routeOrder ?? 999);
+          if (order != 0) return order;
+          return a.name.compareTo(b.name);
+        });
+      if (ordered.length > 1) {
+        try {
+          lines.add(
+            Polyline(
+              points: ordered.map((s) => LatLng(s.lat, s.lng)).toList(),
+              width: 10,
+              color: LoveGirlTheme.primary.withAlpha(230),
+              customTexture: _arrowTexture,
+              capType: CapType.round,
+              joinType: JoinType.round,
+            ),
+          );
+        } catch (_) {
+          // 纹理不可用时退化为虚线
+          lines.add(
+            Polyline(
+              points: ordered.map((s) => LatLng(s.lat, s.lng)).toList(),
+              width: 5,
+              color: LoveGirlTheme.primary.withAlpha(170),
+              dashLineType: DashLineType.square,
+              capType: CapType.round,
+              joinType: JoinType.round,
+            ),
+          );
+        }
+      }
     }
     return lines;
   }

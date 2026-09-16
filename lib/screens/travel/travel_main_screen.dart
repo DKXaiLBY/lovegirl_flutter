@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
@@ -541,6 +543,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
 
   Widget _buildMapSection(TravelProvider provider) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final mapPrefs = context.watch<MapPrefsProvider>();
     final mapHeight = (screenHeight * 0.66).clamp(470.0, 690.0).toDouble();
     final availableSpots = provider.filteredSpots.isNotEmpty
         ? provider.filteredSpots
@@ -583,6 +586,12 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   ),
                 ),
               ),
+              if (mapPrefs.showOrderArrows)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _OrderArrowsPainter(spots: previewSpots),
+                  ),
+                ),
               Positioned(
                 left: 12,
                 top: 12,
@@ -3215,4 +3224,101 @@ class _SpotDetailSheet extends StatelessWidget {
         return status;
     }
   }
+}
+
+/// 顺序箭头层：按 routeDay/routeOrder 把地点串成"顺序表"，弓形虚线 + 箭头
+class _OrderArrowsPainter extends CustomPainter {
+  final List<TravelSpot> spots;
+
+  static const List<Alignment> _alignments = [
+    Alignment(0.05, -0.36),
+    Alignment(-0.48, -0.08),
+    Alignment(0.66, -0.18),
+    Alignment(-0.28, 0.16),
+    Alignment(0.20, 0.02),
+    Alignment(0.58, 0.20),
+  ];
+
+  /// 与 _MapPinPreview 估计尺寸接近，用于把锚点从 pin 中心往回校正
+  static const Size _pinSize = Size(96, 66);
+
+  _OrderArrowsPainter({required this.spots});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (spots.length < 2) return;
+    // spots 是显示顺序（与 pin 的 alignments 一一对应），
+    // 箭头要按 routeDay/routeOrder 连，但锚点必须取回各自显示位置
+    final order = List<int>.generate(spots.length, (i) => i)
+      ..sort((a, b) {
+        final day =
+            (spots[a].routeDay ?? 999).compareTo(spots[b].routeDay ?? 999);
+        if (day != 0) return day;
+        final order2 =
+            (spots[a].routeOrder ?? 999).compareTo(spots[b].routeOrder ?? 999);
+        if (order2 != 0) return order2;
+        return spots[a].name.compareTo(spots[b].name);
+      });
+
+    Offset anchor(int i) {
+      final a = _alignments[i % _alignments.length];
+      final cx = size.width / 2 + a.x * (size.width - _pinSize.width) / 2;
+      final cy = size.height / 2 + a.y * (size.height - _pinSize.height) / 2;
+      return Offset(cx, cy);
+    }
+
+    final linePaint = Paint()
+      ..color = LoveGirlTheme.primary.withAlpha(130)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+    final headPaint = Paint()
+      ..color = LoveGirlTheme.primary.withAlpha(185)
+      ..style = PaintingStyle.fill;
+
+    for (var i = 0; i < order.length - 1; i++) {
+      final start = anchor(order[i]);
+      final end = anchor(order[i + 1]);
+      final mid = Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
+      final normal = Offset(-(end.dy - start.dy), end.dx - start.dx);
+      final len = normal.distance;
+      final ctrl = len == 0
+          ? mid
+          : mid + Offset(normal.dx / len, normal.dy / len) * min(36.0, len * 0.16);
+      final path = Path()
+        ..moveTo(start.dx, start.dy)
+        ..quadraticBezierTo(ctrl.dx, ctrl.dy, end.dx, end.dy);
+
+      for (final metric in path.computeMetrics()) {
+        var dist = 0.0;
+        const dashWidth = 7.0;
+        const dashSpace = 6.0;
+        while (dist < metric.length) {
+          final next = min(dist + dashWidth, metric.length);
+          canvas.drawPath(metric.extractPath(dist, next), linePaint);
+          dist = next + dashSpace;
+        }
+        final tangent = metric.getTangentForOffset(metric.length * 0.86);
+        if (tangent != null) {
+          final v = tangent.vector;
+          final dirLen = v.distance;
+          if (dirLen > 0) {
+            final dir = Offset(v.dx / dirLen, v.dy / dirLen);
+            final p = tangent.position;
+            final side = Offset(-dir.dy, dir.dx) * 5.5;
+            final head = Path()
+              ..moveTo(p.dx + dir.dx * 10, p.dy + dir.dy * 10)
+              ..lineTo(p.dx - dir.dx * 2 + side.dx, p.dy - dir.dy * 2 + side.dy)
+              ..lineTo(p.dx - dir.dx * 2 - side.dx, p.dy - dir.dy * 2 - side.dy)
+              ..close();
+            canvas.drawPath(head, headPaint);
+          }
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_OrderArrowsPainter oldDelegate) =>
+      oldDelegate.spots.length != spots.length;
 }

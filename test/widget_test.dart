@@ -10,6 +10,7 @@ import 'package:lovegirl_flutter/providers/home_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/auth/login_screen.dart';
 import 'package:lovegirl_flutter/providers/kitchen_provider.dart';
+import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/screens/kitchen/kitchen_screen.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
@@ -145,7 +146,7 @@ void main() {
     );
     await tester.pump();
     expect(find.text('今天要照顾的事'), findsOneWidget);
-    expect(find.text('投喂她'), findsOneWidget);
+    expect(find.text('情侣厨房'), findsOneWidget);
     expect(find.text('待办清单'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('home_travel_ticket')),
@@ -172,6 +173,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),
@@ -197,6 +199,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: TravelAmapModeScreen()),
       ),
@@ -219,6 +222,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),
@@ -274,6 +278,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
+          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),

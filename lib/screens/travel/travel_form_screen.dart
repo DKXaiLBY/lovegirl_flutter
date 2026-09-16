@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -246,6 +248,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       }
 
       if (mounted) {
+        if (_status == 'visited') {
+          // 打卡仪式感：票根印章落下 + 彩带 + 震动
+          await _playCheckInStamp();
+          if (!mounted) return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isEditing ? '修改成功' : '添加成功'),
@@ -272,6 +279,15 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       }
     }
     if (mounted) setState(() => _saving = false);
+  }
+
+  Future<void> _playCheckInStamp() async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      barrierDismissible: false,
+      builder: (_) => const _CheckInStampOverlay(),
+    );
   }
 
   String get _statusEmoji {
@@ -802,4 +818,191 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       ),
     );
   }
+}
+
+/// 打卡成功印章动画：票根印章落下 + 彩带 + 触觉震动
+class _CheckInStampOverlay extends StatefulWidget {
+  const _CheckInStampOverlay();
+
+  @override
+  State<_CheckInStampOverlay> createState() => _CheckInStampOverlayState();
+}
+
+class _CheckInStampOverlayState extends State<_CheckInStampOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1500));
+  late final List<Offset> _directions;
+  late final List<Color> _confettiColors;
+
+  @override
+  void initState() {
+    super.initState();
+    final rng = Random(7);
+    _directions = List.generate(28, (i) {
+      final angle = (i / 28) * 2 * pi + rng.nextDouble() * 0.3;
+      final speed = 0.55 + rng.nextDouble() * 0.5;
+      return Offset(cos(angle) * speed, sin(angle) * speed - 0.2);
+    });
+    _confettiColors = const [
+      LoveGirlTheme.primary,
+      LoveGirlTheme.orange,
+      LoveGirlTheme.secondary,
+      LoveGirlTheme.red,
+      LoveGirlTheme.accent,
+    ];
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) HapticFeedback.heavyImpact();
+    });
+    _ctrl.forward();
+    Future.delayed(const Duration(milliseconds: 1750), () {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _dismiss() {
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _dismiss,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          final t = _ctrl.value;
+          final drop = Curves.easeInCubic
+              .transform((t / 0.28).clamp(0.0, 1.0).toDouble());
+          var scale = 2.6 - (2.6 - 0.94) * drop;
+          if (t > 0.28) {
+            final settle = (t - 0.28) / 0.72;
+            scale = 0.94 + 0.06 * Curves.elasticOut.transform(settle);
+          }
+          final opacity = (t / 0.18).clamp(0.0, 1.0).toDouble();
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: MediaQuery.of(context).size,
+                painter: _ConfettiPainter(
+                  progress: t,
+                  directions: _directions,
+                  colors: _confettiColors,
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.rotate(
+                    angle: -0.32,
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 26, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50).withAlpha(235),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withAlpha(70),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8)),
+                            ],
+                          ),
+                          child: const Text(
+                            '已打卡 ♥',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  FadeTransition(
+                    opacity: AlwaysStoppedAnimation(
+                        ((t - 0.4) / 0.3).clamp(0.0, 1.0).toDouble()),
+                    child: const Column(
+                      children: [
+                        Text('打卡成功',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
+                        SizedBox(height: 6),
+                        Text('这枚票根已经收进回忆里',
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final double progress;
+  final List<Offset> directions;
+  final List<Color> colors;
+
+  _ConfettiPainter({
+    required this.progress,
+    required this.directions,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress < 0.24) return;
+    final t = ((progress - 0.24) / 0.76).clamp(0.0, 1.0).toDouble();
+    final center = Offset(size.width / 2, size.height / 2 - 40);
+    final paint = Paint();
+    for (var i = 0; i < directions.length; i++) {
+      final dir = directions[i];
+      final dist = pow(t, 1.6).toDouble() * size.width * 0.36;
+      final pos = center + Offset(dir.dx * dist, dir.dy * dist + t * 60);
+      final particleSize = 7.0 * (1 - t * 0.55);
+      paint.color = colors[i % colors.length]
+          .withAlpha((1 - t).clamp(0.0, 1.0).toInt() * 255);
+      canvas.save();
+      canvas.translate(pos.dx, pos.dy);
+      canvas.rotate((i * 1.7) + t * 5);
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: particleSize,
+        height: particleSize * (i.isEven ? 1.8 : 0.7),
+      );
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(2)), paint);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

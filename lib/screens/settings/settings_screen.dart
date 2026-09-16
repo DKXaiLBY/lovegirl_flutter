@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
+import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/theme_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
@@ -188,6 +189,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildSectionHeader('外观设置'),
               const SizedBox(height: 10),
               _buildThemeCard(),
+              const SizedBox(height: 24),
+              _buildSectionHeader('旅行地图'),
+              const SizedBox(height: 10),
+              _buildMapCard(),
               const SizedBox(height: 24),
               _buildSectionHeader('隐私安全'),
               const SizedBox(height: 10),
@@ -417,6 +422,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Icons.dark_mode_rounded, const Color(0xFF7C4DFF), '暗色模式', isDark,
               (v) {
             if (v) themeProvider.setDarkMode(true);
+          }),
+        ],
+      ),
+    );
+  }
+
+  // ========== 旅行地图 ==========
+  Widget _buildMapCard() {
+    final mapPrefs = context.watch<MapPrefsProvider>();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDeco(),
+      child: Column(
+        children: [
+          _buildSwitchRow(
+              Icons.route_rounded, LoveGirlTheme.primary, '顺序箭头连线',
+              mapPrefs.showOrderArrows, (v) {
+            mapPrefs.setShowOrderArrows(v);
+          }),
+          const Divider(height: 24, indent: 40),
+          _buildSwitchRow(
+              Icons.auto_awesome_rounded, LoveGirlTheme.secondary, '界面动效',
+              mapPrefs.motionLevel != 'off', (v) {
+            mapPrefs.setMotionLevel(v ? 'standard' : 'off');
           }),
         ],
       ),
