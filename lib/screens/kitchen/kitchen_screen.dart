@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -1496,24 +1497,7 @@ class _OrderCard extends StatelessWidget {
                       color: LoveGirlTheme.textPrimary)),
               const Spacer(),
               if (isIncoming && order.status == 'placed')
-                GestureDetector(
-                  onTap: () async {
-                    final err = await kitchen
-                        .updateOrderStatus(order.id, 'accepted');
-                    if (context.mounted) {
-                      if (err == null) HapticFeedback.mediumImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(err ?? '已接单，去买菜吧 🛒'),
-                          behavior: SnackBarBehavior.floating));
-                    }
-                  },
-                  child: const LovePill(
-                    text: '接单',
-                    icon: Icons.check_rounded,
-                    color: LoveGirlTheme.primary,
-                    background: LoveGirlTheme.primarySoft,
-                  ),
-                ),
+                _AcceptWithUndo(orderId: order.id),
               if (isIncoming && order.status == 'accepted')
                 GestureDetector(
                   onTap: () => _showFulfillSheet(context, order.id),
@@ -1701,6 +1685,102 @@ class _FulfillSheetState extends State<_FulfillSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 接单（可撤销）：接单成功后 3 秒内出现撤销钮，跟手拖动松手判定
+class _AcceptWithUndo extends StatefulWidget {
+  final int orderId;
+  const _AcceptWithUndo({required this.orderId});
+
+  @override
+  State<_AcceptWithUndo> createState() => _AcceptWithUndoState();
+}
+
+class _AcceptWithUndoState extends State<_AcceptWithUndo> {
+  bool _accepted = false;
+  Timer? _undoTimer;
+  double _dragOffset = -80;
+
+  @override
+  void dispose() {
+    _undoTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _accept() async {
+    final kitchen = context.read<KitchenProvider>();
+    final err = await kitchen.updateOrderStatus(widget.orderId, 'accepted');
+    if (!mounted) return;
+    if (err == null) {
+      HapticFeedback.mediumImpact();
+      setState(() => _accepted = true);
+      _undoTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _dragOffset = -80);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('已接单，3 秒内可撤销'),
+          behavior: SnackBarBehavior.floating));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(err), behavior: SnackBarBehavior.floating));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kitchen = context.read<KitchenProvider>();
+    if (!_accepted) {
+      return GestureDetector(
+        onTap: _accept,
+        child: const LovePill(
+          text: '接单',
+          icon: Icons.check_rounded,
+          color: LoveGirlTheme.primary,
+          background: LoveGirlTheme.primarySoft,
+        ),
+      );
+    }
+    return GestureDetector(
+      onHorizontalDragUpdate: (d) => setState(
+          () => _dragOffset = (_dragOffset + d.delta.dx).clamp(-80.0, 0.0)),
+      onHorizontalDragEnd: (d) async {
+        final undo = _dragOffset > -40;
+        setState(() => _dragOffset = -80);
+        _undoTimer?.cancel();
+        if (undo) {
+          final err =
+              await kitchen.updateOrderStatus(widget.orderId, 'placed');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(err ?? '已撤销接单'),
+                behavior: SnackBarBehavior.floating));
+          }
+        }
+      },
+      child: Transform.translate(
+        offset: Offset(_dragOffset + 80, 0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: LoveGirlTheme.secondarySoft,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.undo_rounded, size: 14, color: LoveGirlTheme.secondary),
+              const SizedBox(width: 4),
+              Text('撤销',
+                  style: TextStyle(
+                      color: LoveGirlTheme.secondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ),
     );

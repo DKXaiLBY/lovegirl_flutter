@@ -461,18 +461,18 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             color: LoveGirlTheme.primary,
           ),
           const Spacer(),
-          LoveIconButton(
+          _MorphIconButton(
             icon: _showSearch ? Icons.close_rounded : Icons.search_rounded,
+            active: _showSearch,
             tooltip: _showSearch ? '关闭搜索' : '搜索',
             onTap: _toggleSearch,
-            isActive: _showSearch,
           ),
           const SizedBox(width: 8),
-          LoveIconButton(
+          _MorphIconButton(
             icon: _starsMode ? Icons.map_rounded : Icons.auto_awesome_rounded,
+            active: _starsMode,
             tooltip: _starsMode ? '回到旅行地图' : '足迹星图',
             onTap: () => setState(() => _starsMode = !_starsMode),
-            isActive: _starsMode,
           ),
           const SizedBox(width: 8),
           _buildSortMenu(provider),
@@ -2575,3 +2575,58 @@ class _SpotDetailSheet extends StatelessWidget {
 }
 
 /// 顺序箭头层：按 routeDay/routeOrder 把地点串成"顺序表"，弓形虚线 + 箭头
+
+/// 图标形变切换钮：旋转+缩放过渡，切换不丢位置感
+class _MorphIconButton extends StatelessWidget {
+  final IconData icon;
+  final bool active;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _MorphIconButton({
+    required this.icon,
+    required this.active,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: active
+                ? LoveGirlTheme.primary.withAlpha(28)
+                : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              switchInCurve: Curves.easeOutBack,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, anim) => RotationTransition(
+                turns: Tween(begin: -0.35, end: 0.0).animate(anim),
+                child: ScaleTransition(scale: anim, child: child),
+              ),
+              child: Icon(
+                icon,
+                key: ValueKey(icon),
+                size: 21,
+                color: active
+                    ? LoveGirlTheme.primary
+                    : LoveGirlTheme.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

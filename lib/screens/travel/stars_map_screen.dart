@@ -34,7 +34,7 @@ class _ProvinceShape {
   const _ProvinceShape(this.name, this.rings);
 }
 
-enum StarsView { dots, routes }
+enum StarsView { dots, routes, photos }
 
 class _StarsMapScreenState extends State<StarsMapScreen>
     with SingleTickerProviderStateMixin {
@@ -224,9 +224,52 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                 aspectRatio: 1.0,
                 child: LayoutBuilder(builder: (context, constraints) {
                   final size = Size(constraints.maxWidth, constraints.maxWidth);
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapUp: (d) => _handleTap(d.localPosition, size),
+                  final photoOverlays = <Widget>[];
+                  if (_view == StarsView.photos) {
+                    for (final c in _visitedCities) {
+                      final key = '${c.province}|${c.name}';
+                      final spot = _visitedByCity[key];
+                      if (spot == null || spot.photos.isEmpty) continue;
+                      final url = spot.photos.first.toString();
+                      final p = _project(c.lng, c.lat, size);
+                      photoOverlays.add(Positioned(
+                        left: p.dx - 26,
+                        top: p.dy - 26,
+                        child: GestureDetector(
+                          onTap: () => _showCitySheet(c, spot),
+                          child: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: const Color(0xFF6FD9F5), width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Color(0x66000000),
+                                    blurRadius: 8)
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                url.startsWith('http')
+                                    ? url
+                                    : '${AppConstants.baseUrl}$url',
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ));
+                    }
+                  }
+                  return Stack(children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (d) => _handleTap(d.localPosition, size),
                     onLongPressStart: (d) =>
                         _handleLongPress(d.localPosition, size),
                     onLongPressEnd: (_) =>
@@ -247,7 +290,10 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                         size: size,
                       ),
                     ),
-                  );
+                  ),
+                  ...photoOverlays,
+                ],
+              );
                 }),
               ),
             ),
@@ -346,14 +392,24 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                 Row(
                   children: [
                     _panelButton(
-                      icon: _view == StarsView.dots
-                          ? Icons.timeline_rounded
-                          : Icons.blur_circular_rounded,
-                      label: _view == StarsView.dots ? '轨迹线' : '光点',
+                      icon: _view == StarsView.routes
+                          ? Icons.blur_circular_rounded
+                          : Icons.timeline_rounded,
+                      label: _view == StarsView.routes ? '光点' : '轨迹线',
                       onTap: () => setState(() {
-                        _view = _view == StarsView.dots
-                            ? StarsView.routes
-                            : StarsView.dots;
+                        _view = _view == StarsView.routes
+                            ? StarsView.dots
+                            : StarsView.routes;
+                      }),
+                    ),
+                    const SizedBox(width: 8),
+                    _panelButton(
+                      icon: Icons.photo_library_outlined,
+                      label: _view == StarsView.photos ? '光点' : '相册',
+                      onTap: () => setState(() {
+                        _view = _view == StarsView.photos
+                            ? StarsView.dots
+                            : StarsView.photos;
                       }),
                     ),
                   ],
@@ -395,12 +451,16 @@ class _StarsMapScreenState extends State<StarsMapScreen>
         borderRadius: BorderRadius.circular(3),
         child: Stack(
           children: [
-            Container(
-                height: 6,
-                color: Colors.white.withAlpha(28)),
-            FractionallySizedBox(
-              widthFactor: frac,
-              child: Container(height: 6, color: color),
+            Container(height: 6, color: Colors.white.withAlpha(28)),
+            // LIQUID：进度、宽度、数值三条动画同频
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: frac),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
+              builder: (context, v, _) => FractionallySizedBox(
+                widthFactor: v,
+                child: Container(height: 6, color: color),
+              ),
             ),
           ],
         ),

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
+import 'package:lovegirl_flutter/widgets/squishy_switch.dart';
 import 'package:lovegirl_flutter/providers/theme_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
@@ -436,11 +437,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(
-              Icons.route_rounded, LoveGirlTheme.primary, '顺序箭头连线',
-              mapPrefs.showOrderArrows, (v) {
-            mapPrefs.setShowOrderArrows(v);
-          }),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.route_rounded,
+                    size: 20, color: LoveGirlTheme.primary),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('顺序箭头连线',
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+              SquishySwitch(
+                value: mapPrefs.showOrderArrows,
+                onChanged: (v) => mapPrefs.setShowOrderArrows(v),
+              ),
+            ],
+          ),
           const Divider(height: 24, indent: 40),
           InkWell(
             onTap: () {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -70,11 +71,63 @@ class TravelTicketScreen extends StatefulWidget {
   State<TravelTicketScreen> createState() => _TravelTicketScreenState();
 }
 
-class _TravelTicketScreenState extends State<TravelTicketScreen> {
+class _TravelTicketScreenState extends State<TravelTicketScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey _ticketKey = GlobalKey();
   bool _capturing = false;
   // 票根版式：postcard 明信片 / stub 入场券 / classic 经典长票
   String _layout = 'postcard';
+  late final AnimationController _flipCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 620));
+
+  @override
+  void dispose() {
+    _flipCtrl.dispose();
+    super.dispose();
+  }
+
+  /// 背面：票根信息详情
+  Widget _buildBackFace() {
+    final cities = _cities.toList();
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF22303F),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('TICKET DETAILS',
+              style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 9,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          ...cities.map((c) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.place_outlined,
+                        size: 14, color: Colors.white60),
+                    const SizedBox(width: 6),
+                    Text(c,
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 13)),
+                  ],
+                ),
+              )),
+          const Spacer(),
+          Text('覆盖 ${cities.length} 个城市 · $_dateRange',
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  letterSpacing: 1)),
+        ],
+      ),
+    );
+  }
 
   List<TravelSpot> get _visited =>
       widget.visitedSpots.where((s) => s.status == 'visited').toList();
@@ -213,9 +266,50 @@ class _TravelTicketScreenState extends State<TravelTicketScreen> {
         padding: const EdgeInsets.all(16),
         child: RepaintBoundary(
           key: _ticketKey,
-          child: _buildTicket(),
+          child: _layout == 'classic'
+              ? _buildTicket()
+              : AnimatedBuilder(
+                  animation: _flipCtrl,
+                  builder: (context, _) {
+                    final v = _flipCtrl.value;
+                    final showBack = v > 0.5;
+                    final face = showBack
+                        ? _buildBackFace()
+                        : SizedBox(height: 260, child: _buildTicket());
+                    return Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.0015)
+                        ..rotateY(v * math.pi),
+                      child: showBack
+                          ? Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.0015)
+                                ..rotateY(math.pi),
+                              child: SizedBox(
+                                  height: 260, child: face),
+                            )
+                          : face,
+                    );
+                  },
+                ),
         ),
       ),
+      floatingActionButton: _layout == 'classic'
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                if (_flipCtrl.isAnimating) return;
+                _flipCtrl.status == AnimationStatus.completed
+                    ? _flipCtrl.reverse()
+                    : _flipCtrl.forward();
+              },
+              backgroundColor: LoveGirlTheme.primary,
+              icon: const Icon(Icons.flip_rounded, color: Colors.white),
+              label: const Text('翻面',
+                  style: TextStyle(color: Colors.white)),
+            ),
     );
   }
 

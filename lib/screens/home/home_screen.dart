@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
+import '../../widgets/shimmer.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../beans/beans_screen.dart';
@@ -52,7 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.zero,
             child: RefreshIndicator(
               onRefresh: home.refresh,
-              child: ListView(
+              child: (home.isLoading && home.today == null)
+                  ? const HomeSkeleton()
+                  : ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
                 children: [

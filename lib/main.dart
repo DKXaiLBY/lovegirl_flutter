@@ -56,6 +56,8 @@ class LoveGirlApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             title: 'LoveGirl',
+          scrollBehavior: const MaterialScrollBehavior()
+              .copyWith(physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast)),
             debugShowCheckedModeBanner: false,
             theme: LoveGirlTheme.lightTheme,
             darkTheme: LoveGirlTheme.darkTheme,
