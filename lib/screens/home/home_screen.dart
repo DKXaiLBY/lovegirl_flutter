@@ -455,692 +455,156 @@ class _TodayCareSection extends StatelessWidget {
     final todoItems = (todo['items'] is List)
         ? (todo['items'] as List).map(_typedMap).toList()
         : const <Map<String, dynamic>>[];
-    final feedingTitle = _asString(
-      feed['title'],
-      fallback: '\u829d\u829d\u6843\u6843',
-    );
-    final feedingShop = _asString(feed['shop'], fallback: '\u559c\u8336');
-    final feedingStatus = _asString(
-      feed['statusLabel'],
-      fallback: '\u5f85\u63a5\u5355',
-    );
-    final feedingPrice = _money(_asDouble(feed['price'], fallback: 25));
-    final feedingOperator =
-        _asString(feed['operator'], fallback: '\u5927\u767d');
     final totalTodos = _positiveInt(todo['total'], fallback: 2);
     final activeTodos = _asInt(todo['active'], fallback: 1);
 
-    return LoveTicketCard(
+    // v3.23 清单化重设计：两个横向条目（厨房/待办），高度减半信息密度更高
+    final badge = feed['statusLabel']?.toString() ?? '还没点单';
+    final careEntries = Column(
       key: const ValueKey('home_today_care'),
-      color: const Color(0xFFFFFCF8),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const LoveStickerIcon(
-                icon: Icons.favorite_outline_rounded,
-                color: LoveGirlTheme.primary,
-                size: 40,
-                iconSize: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        '\u4eca\u5929\u8981\u7167\u987e\u7684\u4e8b',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        '\u7231\u662f\u628a\u5c0f\u4e8b\uff0c\u653e\u5728\u5fc3\u4e0a \u2665',
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 1.4,
-                          color: LoveGirlTheme.textMuted,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              const _CareDecoration(),
-            ],
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked = constraints.maxWidth < 260;
-              final feedingCard = _FeedingCareCard(
-                shop: feedingShop,
-                title: feedingTitle,
-                status: feedingStatus,
-                price: feedingPrice,
-                operatorName: feedingOperator,
-                onTap: onFeedingTap,
-              );
-              final todoCard = _TodoCareCard(
-                totalTodos: totalTodos,
-                activeTodos: activeTodos,
-                items: todoItems,
-                onTap: onTodoTap,
-              );
-
-              if (stacked) {
-                return Column(
-                  children: [
-                    feedingCard,
-                    const SizedBox(height: 10),
-                    todoCard,
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(flex: 5, child: feedingCard),
-                  const SizedBox(width: 10),
-                  Expanded(flex: 6, child: todoCard),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text('今天要照顾的事',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: LoveGirlTheme.textPrimary)),
+        ),
+        _CareEntry(
+          emoji: '🍳',
+          title: '情侣厨房',
+          badge: badge,
+          badgeTone:
+              badge == '还没点单' ? _CareBadgeTone.warn : _CareBadgeTone.ok,
+          subtitle: feed['title']?.toString(),
+          onTap: onFeedingTap,
+        ),
+        const SizedBox(height: 10),
+        _CareEntry(
+          icon: Icons.checklist_rounded,
+          title: '待办清单',
+          badge: '$activeTodos/$totalTodos 完成',
+          badgeTone:
+              activeTodos == 0 ? _CareBadgeTone.ok : _CareBadgeTone.neutral,
+          subtitle: todoItems.isEmpty
+              ? null
+              : todoItems
+                  .map((item) => _asString(item['title']))
+                  .where((t) => t.isNotEmpty)
+                  .join(' · '),
+          onTap: onTodoTap,
+        ),
+      ],
     );
+    return careEntries;
   }
 }
 
-class _CareDecoration extends StatelessWidget {
-  const _CareDecoration();
+/// 清单条目（首页"今天要照顾的事"）
+enum _CareBadgeTone { ok, warn, neutral }
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 106,
-      height: 74,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            right: 0,
-            top: 8,
-            child: Transform.rotate(
-              angle: -0.12,
-              child: Container(
-                width: 46,
-                height: 56,
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFEFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: LoveGirlTheme.primary.withAlpha(28)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(10),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 2,
-                      decoration: BoxDecoration(
-                        color: LoveGirlTheme.primary.withAlpha(90),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: LoveGirlTheme.primarySoft,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.favorite_rounded,
-                        size: 8,
-                        color: LoveGirlTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 18,
-            bottom: 0,
-            child: Container(
-              width: 44,
-              height: 18,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEAD9C8),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(14),
-                  bottom: Radius.circular(6),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            bottom: 10,
-            child: _FlowerDot(
-              size: 16,
-              color: const Color(0xFFF5D6BD),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            bottom: 24,
-            child: _FlowerDot(
-              size: 14,
-              color: const Color(0xFFF7E4C8),
-            ),
-          ),
-          Positioned(
-            left: 28,
-            bottom: 10,
-            child: _FlowerDot(
-              size: 18,
-              color: const Color(0xFFFFE3DD),
-            ),
-          ),
-          Positioned(
-            left: 40,
-            bottom: 26,
-            child: _FlowerDot(
-              size: 14,
-              color: const Color(0xFFF4EAD1),
-            ),
-          ),
-          Positioned(
-            left: 20,
-            bottom: 0,
-            child: Transform.rotate(
-              angle: -0.45,
-              child: Container(
-                width: 2,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.secondary.withAlpha(120),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 32,
-            bottom: 0,
-            child: Transform.rotate(
-              angle: 0.35,
-              child: Container(
-                width: 2,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.secondary.withAlpha(140),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FlowerDot extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _FlowerDot({
-    required this.size,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeedingCareCard extends StatelessWidget {
-  final String shop;
+class _CareEntry extends StatelessWidget {
+  final IconData? icon;
+  final String? emoji;
   final String title;
-  final String status;
-  final String price;
-  final String operatorName;
+  final String badge;
+  final _CareBadgeTone badgeTone;
+  final String? subtitle;
   final VoidCallback onTap;
 
-  const _FeedingCareCard({
-    required this.shop,
+  const _CareEntry({
+    this.icon,
+    this.emoji,
     required this.title,
-    required this.status,
-    required this.price,
-    required this.operatorName,
+    required this.badge,
+    required this.badgeTone,
+    this.subtitle,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 170;
-        final productIcon = Container(
-          width: compact ? 58 : 74,
-          height: compact ? 58 : 92,
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.primary.withAlpha(10),
-            borderRadius: BorderRadius.circular(compact ? 16 : 18),
-          ),
-          child: const Center(
-            child: Text('🍳', style: TextStyle(fontSize: 34)),
-          ),
-        );
-        final productInfo = Column(
-          crossAxisAlignment:
-              compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              maxLines: compact ? 1 : 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: compact ? TextAlign.center : TextAlign.start,
-              style: TextStyle(
-                fontSize: compact ? 15 : 17,
-                height: 1.25,
-                fontWeight: FontWeight.w900,
-                color: LoveGirlTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              shop,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: compact ? TextAlign.center : TextAlign.start,
-              style: const TextStyle(
-                fontSize: 13,
-                color: LoveGirlTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                price == '¥0' ? '❤' : price,
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: compact ? 22 : 24,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  color: LoveGirlTheme.primary,
-                ),
-              ),
-            ),
-          ],
-        );
-
-        final actionButton = OutlinedButton(
-          onPressed: onTap,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: LoveGirlTheme.primary,
-            side: const BorderSide(color: LoveGirlTheme.primary),
-            padding: EdgeInsets.symmetric(
-              horizontal: compact ? 8 : 12,
-              vertical: compact ? 9 : 10,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          child: const FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              '去看看',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        );
-
-        return Container(
-          padding: EdgeInsets.all(compact ? 12 : 14),
+    final badgeColor = switch (badgeTone) {
+      _CareBadgeTone.ok => LoveGirlTheme.secondary,
+      _CareBadgeTone.warn => LoveGirlTheme.orange,
+      _CareBadgeTone.neutral => LoveGirlTheme.textMuted,
+    };
+    return PressableScale(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: LoveGirlTheme.separator),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: const Text(
-                        '情侣厨房',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  _StatusChip(label: status),
-                ],
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.primarySoft,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Center(
+                  child: emoji != null
+                      ? Text(emoji!, style: const TextStyle(fontSize: 20))
+                      : Icon(icon, size: 20, color: LoveGirlTheme.primary),
+                ),
               ),
-              SizedBox(height: compact ? 10 : 12),
-              if (compact) ...[
-                Center(child: productIcon),
-                const SizedBox(height: 8),
-                productInfo,
-              ] else
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    productIcon,
-                    const SizedBox(width: 12),
-                    Expanded(child: productInfo),
-                  ],
-                ),
-              SizedBox(height: compact ? 12 : 14),
-              if (compact) ...[
-                Text(
-                  operatorName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: actionButton),
-              ] else
-                Row(
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: LoveGirlTheme.separator.withAlpha(110),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 18,
-                        color: LoveGirlTheme.textMuted,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            operatorName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: LoveGirlTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            status == '待接单' ? '还在等你接单' : '已经在处理这份小心意',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                    Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: LoveGirlTheme.textPrimary)),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
                               fontSize: 11,
-                              color: LoveGirlTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    actionButton,
+                              color: LoveGirlTheme.textMuted)),
+                    ],
                   ],
                 ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TodoCareCard extends StatelessWidget {
-  final int totalTodos;
-  final int activeTodos;
-  final List<Map<String, dynamic>> items;
-  final VoidCallback onTap;
-
-  const _TodoCareCard({
-    required this.totalTodos,
-    required this.activeTodos,
-    required this.items,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final displayItems = items.isNotEmpty
-        ? items.take(2).toList()
-        : const [
-            {'title': '\u63d0\u9192\u5979\u591a\u559d\u6c34', 'dueDate': ''},
-            {'title': '\u7761\u524d\u8bb2\u6545\u4e8b', 'dueDate': '22:00'},
-          ];
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.separator),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: const Text(
-                    '待办清单',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: LoveGirlTheme.textPrimary,
-                    ),
-                  ),
-                ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                '$activeTodos/$totalTodos \u5b8c\u6210',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: LoveGirlTheme.textMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          for (var index = 0; index < displayItems.length; index++) ...[
-            _TodoItemRow(
-              title: _asString(displayItems[index]['title']),
-              dueDate: _asString(displayItems[index]['dueDate']),
-              completed: index < activeTodos,
-            ),
-            if (index != displayItems.length - 1)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Divider(height: 1),
-              ),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: LoveGirlTheme.secondary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(999),
                 ),
+                child: Text(badge,
+                    style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800)),
               ),
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: const Text(
-                  '\u65b0\u589e\u4e00\u4ef6\u4e8b',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 18, color: LoveGirlTheme.textMuted),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TodoItemRow extends StatelessWidget {
-  final String title;
-  final String dueDate;
-  final bool completed;
-
-  const _TodoItemRow({
-    required this.title,
-    required this.dueDate,
-    required this.completed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          completed
-              ? Icons.check_circle_rounded
-              : Icons.radio_button_unchecked_rounded,
-          size: 22,
-          color: completed
-              ? LoveGirlTheme.secondary.withAlpha(180)
-              : LoveGirlTheme.textMuted.withAlpha(150),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: completed
-                  ? LoveGirlTheme.textSecondary
-                  : LoveGirlTheme.textPrimary,
-            ),
-          ),
-        ),
-        if (dueDate.isNotEmpty)
-          Text(
-            dueDate,
-            style: const TextStyle(
-              fontSize: 12,
-              color: LoveGirlTheme.textMuted,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String label;
-
-  const _StatusChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 78),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: LoveGirlTheme.primary.withAlpha(12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: LoveGirlTheme.primary.withAlpha(60)),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: LoveGirlTheme.primary,
         ),
       ),
     );
   }
 }
-
-// 回忆票根展示（首页"生成回忆票根"按钮弹出；阶段3升级为横/竖版式）
 class _MemoryStubSheet extends StatelessWidget {
   final Map<String, dynamic>? memory;
 
