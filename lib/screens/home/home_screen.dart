@@ -43,13 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final home = context.watch<HomeProvider>();
-    final ambience = timeAmbienceOverlay();
 
     return Scaffold(
       backgroundColor: LoveGirlTheme.bgLight,
-      body: Stack(
-        children: [
-          LovePage(
+      body: LovePage(
             padding: EdgeInsets.zero,
             child: RefreshIndicator(
               onRefresh: home.refresh,
@@ -109,9 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          ),
-          if (ambience != null) Positioned.fill(child: ambience),
-        ],
       ),
     );
   }

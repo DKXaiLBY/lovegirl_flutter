@@ -232,26 +232,11 @@ void main() {
 
     await tester.pump();
 
-    final filterLabels = {
-      'wish': '想去',
-      'planned': '计划中',
-      'visited': '已打卡',
-      'both': '我们都编辑',
-    };
-
-    for (final entry in filterLabels.entries) {
-      final filter = find.byKey(ValueKey('travel_map_filter_${entry.key}'));
-      expect(filter, findsOneWidget);
-      expect(
-        find.descendant(of: filter, matching: find.text(entry.value)),
-        findsOneWidget,
-      );
-    }
-
-    await tester.tap(find.byKey(const ValueKey('travel_map_filter_both')));
-    await tester.pump();
-
-    expect(travelProvider.activeStatus, 'both');
+    // v3.23 地图上的状态筛选条已移除（筛选收敛到列表区，避免与地图浮层重复）
+    expect(find.byKey(const ValueKey('travel_map_filter_wish')), findsNothing);
+    expect(find.byKey(const ValueKey('travel_map_filter_planned')), findsNothing);
+    expect(find.byKey(const ValueKey('travel_map_filter_visited')), findsNothing);
+    expect(find.byKey(const ValueKey('travel_map_filter_both')), findsNothing);
   });
 
   test('amap location style passes rotate tracking mode to native map', () {
@@ -290,7 +275,7 @@ void main() {
 
     // v3.23 行程票已从旅行页移除（功能并入真地图路线预览），防回归断言：
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('travel_map_filter_visited')),
+      find.text('已打卡'),
       300,
       scrollable: find.byType(Scrollable).first,
     );

@@ -95,42 +95,6 @@ class RollingNumber extends StatelessWidget {
   }
 }
 
-/// 时光感知氛围层：清晨/白天/傍晚/深夜给内容盖一层低透明度色调，
-/// 深夜明显变暗。返回 null 表示无需叠加。
-Widget? timeAmbienceOverlay() {
-  final hour = DateTime.now().hour;
-  Gradient? gradient;
-  if (hour >= 23 || hour < 6) {
-    // 深夜：明显压暗
-    gradient = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0x52140F0C), Color(0x6B140F0C)],
-    );
-  } else if (hour >= 17 && hour < 20) {
-    // 傍晚：暖橙
-    gradient = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0x2BE7A25D), Color(0x0DE7A25D)],
-    );
-  } else if (hour >= 5 && hour < 8) {
-    // 清晨：微金
-    gradient = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0x1FFFF3D6), Color(0x00FFF3D6)],
-    );
-  }
-  if (gradient == null) return null;
-  return IgnorePointer(
-    child: DecoratedBox(
-      decoration: BoxDecoration(gradient: gradient),
-      child: const SizedBox.expand(),
-    ),
-  );
-}
-
 /// 按压缩放反馈（动效关闭时不缩放）
 class PressableScale extends StatefulWidget {
   final Widget child;
