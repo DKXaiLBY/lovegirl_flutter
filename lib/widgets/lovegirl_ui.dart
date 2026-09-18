@@ -445,7 +445,15 @@ class _TicketBorderPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = LoveGirlTheme.separator.withAlpha(150);
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withAlpha(210),
+          LoveGirlTheme.separator.withAlpha(150),
+          LoveGirlTheme.separator.withAlpha(120),
+        ],
+      ).createShader(Offset.zero & size);
 
     const notchRadius = 8.0;
     const radius = LoveGirlTheme.radiusLg;

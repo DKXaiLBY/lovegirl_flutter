@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -182,12 +183,16 @@ class _AppShellState extends State<AppShell> {
 
     return SafeArea(
       top: false,
-      child: Container(
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
         height: 74,
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.paper.withAlpha(248),
-          border: const Border(top: BorderSide(color: LoveGirlTheme.separator)),
+          color: LoveGirlTheme.paper.withAlpha(216),
+          border: const Border(
+              top: BorderSide(color: Color(0x33FFFFFF), width: 1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(12),
@@ -208,6 +213,8 @@ class _AppShellState extends State<AppShell> {
               ),
           ],
         ),
+      ),
+      ),
       ),
     );
   }

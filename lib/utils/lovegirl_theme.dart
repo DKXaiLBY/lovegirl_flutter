@@ -68,6 +68,13 @@ class LoveGirlTheme {
   static ThemeData get lightTheme {
     final base = ThemeData(
       useMaterial3: true,
+      splashFactory: InkSparkle.splashFactory,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       brightness: Brightness.light,
       primaryColor: primary,
       scaffoldBackgroundColor: bgLight,

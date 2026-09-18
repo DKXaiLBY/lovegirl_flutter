@@ -556,9 +556,9 @@ class _TodayCareSection extends StatelessWidget {
 
               return Row(
                 children: [
-                  Expanded(child: feedingCard),
+                  Expanded(flex: 5, child: feedingCard),
                   const SizedBox(width: 10),
-                  Expanded(child: todoCard),
+                  Expanded(flex: 6, child: todoCard),
                 ],
               );
             },
