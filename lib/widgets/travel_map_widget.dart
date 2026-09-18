@@ -55,7 +55,8 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   AMapController? _controller;
   TravelMapStyle _style = TravelMapStyle.normal;
-  AMapLocation? _lastLocation;
+  final ValueNotifier<AMapLocation?> _lastLocation =
+      ValueNotifier<AMapLocation?>(null);
   String? _approvalNumber;
   bool _trafficEnabled = false;
   bool _isLocating = false;
@@ -268,13 +269,13 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         return;
       }
 
-      if (_lastLocation == null) {
-        for (var i = 0; i < 8 && mounted && _lastLocation == null; i++) {
+      if (_lastLocation.value == null) {
+        for (var i = 0; i < 8 && mounted && _lastLocation.value == null; i++) {
           await Future<void>.delayed(const Duration(milliseconds: 250));
         }
       }
 
-      final location = _lastLocation;
+      final location = _lastLocation.value;
       if (location != null) {
         await _controller?.moveCamera(
           CameraUpdate.newCameraPosition(
@@ -376,8 +377,8 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           },
           onLongPress: widget.onLongPress,
           onLocationChanged: (location) {
-            if (!mounted) return;
-            setState(() => _lastLocation = location);
+            // 只更新 notifier（左下角徽章局部刷新），避免高频回调触发全页重建
+            _lastLocation.value = location;
           },
         ),
         Positioned(
@@ -430,11 +431,16 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
             ],
           ),
         ),
-        if (_lastLocation != null)
           Positioned(
             left: 12,
             bottom: 12,
-            child: _LocationBadge(location: _lastLocation!),
+            child: ValueListenableBuilder<AMapLocation?>(
+              valueListenable: _lastLocation,
+              builder: (context, location, _) {
+                if (location == null) return const SizedBox.shrink();
+                return _LocationBadge(location: location);
+              },
+            ),
           ),
         if (_approvalNumber != null && _approvalNumber!.isNotEmpty)
           Positioned(

@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
+import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
@@ -11,6 +10,7 @@ import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
+import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 
@@ -40,6 +40,8 @@ class TravelMainScreen extends StatefulWidget {
 
 class _TravelMainScreenState extends State<TravelMainScreen>
     with SingleTickerProviderStateMixin {
+  final GlobalKey<TravelMapWidgetState> _inlineMapKey =
+      GlobalKey<TravelMapWidgetState>();
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
   bool _showSearch = false;
@@ -307,9 +309,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   if (_showSearch) SliverToBoxAdapter(child: _buildSearchBar()),
                   SliverToBoxAdapter(child: _buildMapSection(provider)),
                   SliverToBoxAdapter(child: _buildRoutePreview(provider)),
-                  SliverToBoxAdapter(child: _buildItineraryTicket(provider)),
-                  SliverToBoxAdapter(child: _buildStats(provider)),
-                  SliverToBoxAdapter(child: _buildTicketButton(provider)),
                   SliverToBoxAdapter(child: _buildFilterAndSort(provider)),
                   if (provider.loading && provider.spots.isEmpty)
                     const SliverFillRemaining(
@@ -333,10 +332,57 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final spot = provider.filteredSpots[index];
-                            return _SpotCard(
-                              spot: spot,
-                              index: index,
-                              onTap: () => _onMarkerTap(spot),
+                            return Dismissible(
+                              key: ValueKey('travel_spot_${spot.id}'),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 22),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: LoveGirlTheme.red,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(Icons.delete_outline_rounded,
+                                    color: Colors.white, size: 26),
+                              ),
+                              confirmDismiss: (_) async {
+                                return await showDialog<bool>(
+                                  context: context,
+                                  builder: (dCtx) => AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20)),
+                                    title: const Text('删除地点'),
+                                    content: Text(
+                                      '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dCtx, false),
+                                        child: const Text('取消'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(dCtx, true),
+                                        child: const Text('删除',
+                                            style: TextStyle(
+                                                color: LoveGirlTheme.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              onDismissed: (_) {
+                                context.read<TravelProvider>().deleteSpot(spot.id);
+                              },
+                              child: _SpotCard(
+                                spot: spot,
+                                index: index,
+                                onTap: () => _onMarkerTap(spot),
+                              ),
                             );
                           },
                           childCount: provider.filteredSpots.length,
@@ -543,24 +589,16 @@ class _TravelMainScreenState extends State<TravelMainScreen>
 
   Widget _buildMapSection(TravelProvider provider) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final mapPrefs = context.watch<MapPrefsProvider>();
     final mapHeight = (screenHeight * 0.66).clamp(470.0, 690.0).toDouble();
     final availableSpots = provider.filteredSpots.isNotEmpty
         ? provider.filteredSpots
         : provider.mapSpots;
-    final previewSpots =
-        availableSpots.where(_hasValidCoordinate).take(6).toList();
-    final selectedSpot = previewSpots.isNotEmpty
-        ? previewSpots.first
+    final validMapSpots =
+        availableSpots.where(_hasValidCoordinate).toList();
+    final selectedSpot = validMapSpots.isNotEmpty
+        ? validMapSpots.first
         : (availableSpots.isNotEmpty ? availableSpots.first : null);
-    final alignments = const [
-      Alignment(0.05, -0.36),
-      Alignment(-0.48, -0.08),
-      Alignment(0.66, -0.18),
-      Alignment(-0.28, 0.16),
-      Alignment(0.20, 0.02),
-      Alignment(0.58, 0.20),
-    ];
+    final currentUserId = context.read<AuthProvider>().userId;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -571,27 +609,16 @@ class _TravelMainScreenState extends State<TravelMainScreen>
           child: Stack(
             children: [
               Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF6F3EA),
-                    border: Border.all(
-                      color: LoveGirlTheme.separator.withAlpha(120),
-                    ),
-                    boxShadow: LoveGirlTheme.cardShadow(),
-                  ),
-                  child: CustomPaint(
-                    painter: _TravelMapPreviewPainter(
-                      color: LoveGirlTheme.primary,
-                    ),
-                  ),
+                child: TravelMapWidget(
+                  key: _inlineMapKey,
+                  spots: validMapSpots,
+                  allSpots: provider.spots,
+                  routes: provider.routes,
+                  activeRoute: provider.activeRoute,
+                  currentUserId: currentUserId,
+                  onMarkerTap: _onMarkerTap,
                 ),
               ),
-              if (mapPrefs.showOrderArrows)
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _OrderArrowsPainter(spots: previewSpots),
-                  ),
-                ),
               Positioned(
                 left: 12,
                 top: 12,
@@ -600,34 +627,10 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               ),
               Positioned(
                 left: 12,
-                top: 82,
-                child: Column(
-                  children: [
-                    const _MapToolButton(
-                      icon: Icons.layers_rounded,
-                      label: '标准地图',
-                    ),
-                    const SizedBox(height: 8),
-                    const _MapToolButton(
-                      icon: Icons.my_location_rounded,
-                      label: '定位',
-                    ),
-                    const SizedBox(height: 8),
-                    _MapToolButton(
-                      icon: Icons.alt_route_rounded,
-                      label: '路线',
-                      active: provider.activeRoute != null,
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                right: 14,
                 top: 86,
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  alignment: WrapAlignment.end,
                   children: [
                     _MapMetricChip(
                       icon: Icons.place_rounded,
@@ -640,42 +643,31 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   ],
                 ),
               ),
+              const Positioned(
+                right: 14,
+                bottom: 128,
+                child: _CurrentLocationPreview(),
+              ),
               Positioned(
                 right: 14,
-                top: 144,
+                bottom: 14,
                 child: _MapOpenButton(
                   opening: _openingAmap,
                   onTap: _openingAmap ? null : _openAmapMode,
                 ),
               ),
-              const Positioned(
-                right: 86,
-                top: 170,
-                child: _CurrentLocationPreview(),
-              ),
-              for (var i = 0; i < previewSpots.length; i++)
-                Align(
-                  alignment: alignments[i % alignments.length],
-                  child: _MapPinPreview(
-                    label: _travelDisplayText(previewSpots[i].name, '未命名地点'),
-                    sublabel: _statusLabel(previewSpots[i].status),
-                    color: _statusColor(previewSpots[i].status),
-                    editedByBoth: previewSpots[i].editedByBoth,
-                    selected: i == 0,
-                    onTap: () => _onMarkerTap(previewSpots[i]),
-                  ),
-                ),
-              if (previewSpots.isEmpty)
+              if (validMapSpots.isEmpty)
                 const Align(
                   alignment: Alignment(0, -0.12),
                   child: _EmptyMapHint(),
                 ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: _buildPreviewSpotTicket(selectedSpot),
-              ),
+              if (selectedSpot != null)
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: _buildPreviewSpotTicket(selectedSpot),
+                ),
             ],
           ),
         ),
@@ -1226,297 +1218,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     return '${minutes ~/ 60} \u5c0f\u65f6${minutes % 60} \u5206\u949f';
   }
 
-  Widget _buildItineraryTicket(TravelProvider provider) {
-    final route = provider.activeRoute;
-    final spots = (route?.spots.isNotEmpty == true
-            ? route!.spots
-            : provider.filteredSpots.where((s) => s.lat != 0 || s.lng != 0))
-        .take(6)
-        .toList();
-    if (spots.length < 2) return const SizedBox.shrink();
-
-    final city = route?.city.isNotEmpty == true
-        ? route!.city
-        : (spots.first.city.isNotEmpty ? spots.first.city : '这次旅行');
-    final title = route?.title.isNotEmpty == true ? route!.title : '$city 路线';
-    final status = route == null ? '预览中' : '已规划';
-
-    return LoveTicketCard(
-      key: const ValueKey('travel_itinerary_ticket'),
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      color: const Color(0xFFFFFCF8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const LoveStickerIcon(
-                icon: Icons.luggage_rounded,
-                color: LoveGirlTheme.secondary,
-                size: 36,
-                iconSize: 18,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '$city · ${spots.length} 个地点 · $status',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: LoveGirlTheme.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const LoveBarcode(
-                width: 36,
-                height: 36,
-                color: LoveGirlTheme.textMuted,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 82,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: spots.length,
-              separatorBuilder: (_, __) => const _ItineraryConnector(),
-              itemBuilder: (context, index) {
-                return _ItineraryStop(
-                  spot: spots[index],
-                  index: index,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'visited':
-        return const Color(0xFF4CAF50);
-      case 'wish':
-        return const Color(0xFFFF9800);
-      case 'planned':
-        return const Color(0xFF9C27B0);
-      default:
-        return LoveGirlTheme.primary;
-    }
-  }
-
-  String _statusLabel(String status) {
-    switch (status) {
-      case 'visited':
-        return '已打卡';
-      case 'planned':
-        return '计划中';
-      case 'wish':
-        return '想去';
-      default:
-        return status;
-    }
-  }
-
-  Widget _buildStats(TravelProvider provider) {
-    final stats = provider.computedStats;
-    return LoveTicketCard(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      color: const Color(0xFFFFFBF5),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Text(
-                '\u8fd9\u6b21\u51fa\u884c\u7684\u6536\u85cf\u8fdb\u5ea6',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: LoveGirlTheme.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              if (stats.totalBudget > 0)
-                LovePill(
-                  text:
-                      '\u9884\u7b97 \u00a5${stats.totalBudget.toStringAsFixed(0)}',
-                  icon: Icons.wallet_travel_rounded,
-                  color: LoveGirlTheme.orange,
-                  background: const Color(0xFFFFF3E6),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem('\u53bb\u8fc7', '${stats.visited}',
-                    Icons.check_circle, 'visited', provider),
-              ),
-              const LoveTicketDivider(length: 58),
-              Expanded(
-                child: _buildStatItem('\u60f3\u53bb', '${stats.wish}',
-                    Icons.star, 'wish', provider),
-              ),
-              const LoveTicketDivider(length: 58),
-              Expanded(
-                child: _buildStatItem('\u8ba1\u5212\u4e2d', '${stats.planned}',
-                    Icons.assignment, 'planned', provider),
-              ),
-              const LoveTicketDivider(length: 58),
-              Expanded(
-                child: _buildStatItem('\u57ce\u5e02', '${stats.cities}',
-                    Icons.location_city, '', provider),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon,
-      String status, TravelProvider provider) {
-    final isActive = status.isNotEmpty && provider.activeStatus == status;
-    return GestureDetector(
-      onTap: status.isNotEmpty
-          ? () => provider.setStatus(isActive ? '' : status)
-          : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: isActive
-            ? BoxDecoration(
-                color: LoveGirlTheme.primarySoft,
-                borderRadius: BorderRadius.circular(12),
-              )
-            : null,
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isActive ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
-              size: 20,
-            ),
-            const SizedBox(height: 5),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-                color: isActive
-                    ? LoveGirlTheme.primary
-                    : LoveGirlTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: LoveGirlTheme.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTicketButton(TravelProvider provider) {
-    final visitedCount =
-        provider.spots.where((s) => s.status == 'visited').length;
-    if (visitedCount == 0) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      child: LoveTicketCard(
-        color: const Color(0xFFFFF5EE),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: InkWell(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TravelTicketScreen(
-                  visitedSpots: provider.spots,
-                  stats: provider.computedStats,
-                ),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.confirmation_number_rounded,
-                  color: LoveGirlTheme.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '\u751f\u6210\u65c5\u884c\u7968\u6839',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: LoveGirlTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '\u5df2\u6253\u5361 $visitedCount \u4e2a\u5730\u70b9\uff0c\u805a\u5408\u4f60\u7684\u65c5\u884c\u8bb0\u5fc6',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: LoveGirlTheme.textMuted.withAlpha(200),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: LoveGirlTheme.primary,
-                size: 24,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildFilter(TravelProvider provider) {
     final filters = [
       {'key': 'wish', 'label': '想去'},
@@ -1643,6 +1344,32 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   }
 }
 
+Color _statusColor(String status) {
+  switch (status) {
+    case 'visited':
+      return const Color(0xFF4CAF50);
+    case 'wish':
+      return const Color(0xFFFF9800);
+    case 'planned':
+      return const Color(0xFF9C27B0);
+    default:
+      return LoveGirlTheme.primary;
+  }
+}
+
+String _statusLabel(String status) {
+  switch (status) {
+    case 'wish':
+      return '想去';
+    case 'planned':
+      return '计划中';
+    case 'visited':
+      return '已打卡';
+    default:
+      return '地点';
+  }
+}
+
 class _MapMetricChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1740,54 +1467,6 @@ class _MapOpenButton extends StatelessWidget {
   }
 }
 
-class _MapToolButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-
-  const _MapToolButton({
-    required this.icon,
-    required this.label,
-    this.active = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary;
-    return Container(
-      width: 50,
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(235),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: active
-              ? LoveGirlTheme.primary.withAlpha(90)
-              : LoveGirlTheme.separator.withAlpha(120),
-        ),
-        boxShadow: LoveGirlTheme.cardShadow(),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 9,
-              color: color,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CurrentLocationPreview extends StatelessWidget {
   const _CurrentLocationPreview();
 
@@ -1864,111 +1543,6 @@ class _EmptyMapHint extends StatelessWidget {
                 color: LoveGirlTheme.textPrimary,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapPinPreview extends StatelessWidget {
-  final String label;
-  final String sublabel;
-  final Color color;
-  final bool editedByBoth;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  const _MapPinPreview({
-    required this.label,
-    required this.sublabel,
-    required this.color,
-    this.editedByBoth = false,
-    this.selected = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(selected ? 250 : 232),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: color.withAlpha(selected ? 105 : 52),
-                width: selected ? 1.4 : 1,
-              ),
-              boxShadow: LoveGirlTheme.cardShadow(),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                                color: LoveGirlTheme.textPrimary,
-                              ),
-                            ),
-                          ),
-                          if (editedByBoth) ...[
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.favorite_rounded,
-                              size: 13,
-                              color: LoveGirlTheme.primary.withAlpha(210),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        sublabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            selected ? Icons.location_on_rounded : Icons.place_rounded,
-            color: color,
-            size: selected ? 44 : 34,
-            shadows: const [
-              Shadow(
-                color: Color(0x33000000),
-                offset: Offset(0, 3),
-                blurRadius: 8,
-              ),
-            ],
           ),
         ],
       ),
@@ -2079,155 +1653,6 @@ class _PreviewActionButton extends StatelessWidget {
   }
 }
 
-class _TravelMapPreviewPainter extends CustomPainter {
-  final Color color;
-
-  const _TravelMapPreviewPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final waterPaint = Paint()
-      ..color = const Color(0xFFCFE7F2).withAlpha(190)
-      ..style = PaintingStyle.fill;
-    final waterPath = Path()
-      ..moveTo(size.width * 0.70, -20)
-      ..cubicTo(
-        size.width * 0.56,
-        size.height * 0.20,
-        size.width * 0.84,
-        size.height * 0.38,
-        size.width * 0.68,
-        size.height * 0.62,
-      )
-      ..cubicTo(
-        size.width * 0.52,
-        size.height * 0.84,
-        size.width * 0.66,
-        size.height,
-        size.width * 0.54,
-        size.height + 20,
-      )
-      ..lineTo(size.width + 20, size.height + 20)
-      ..lineTo(size.width + 20, -20)
-      ..close();
-    canvas.drawPath(waterPath, waterPaint);
-
-    final parkPaint = Paint()
-      ..color = const Color(0xFFDDEBD7).withAlpha(150)
-      ..style = PaintingStyle.fill;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * 0.05,
-          size.height * 0.16,
-          size.width * 0.34,
-          size.height * 0.26,
-        ),
-        const Radius.circular(30),
-      ),
-      parkPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          size.width * 0.12,
-          size.height * 0.53,
-          size.width * 0.28,
-          size.height * 0.18,
-        ),
-        const Radius.circular(28),
-      ),
-      parkPaint,
-    );
-
-    final streetPaint = Paint()
-      ..color = Colors.white.withAlpha(210)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round;
-    final minorStreetPaint = Paint()
-      ..color = const Color(0xFFE4DED4).withAlpha(170)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..strokeCap = StrokeCap.round;
-
-    for (var i = 1; i < 6; i++) {
-      final y = size.height * (0.12 + i * 0.12);
-      canvas.drawLine(
-        Offset(-20, y),
-        Offset(size.width + 20, y - size.height * 0.08),
-        minorStreetPaint,
-      );
-    }
-    for (var i = 0; i < 5; i++) {
-      final x = size.width * (0.14 + i * 0.18);
-      canvas.drawLine(
-        Offset(x, -20),
-        Offset(x + size.width * 0.12, size.height + 20),
-        minorStreetPaint,
-      );
-    }
-
-    final path = Path()
-      ..moveTo(size.width * 0.08, size.height * 0.72)
-      ..cubicTo(
-        size.width * 0.28,
-        size.height * 0.42,
-        size.width * 0.46,
-        size.height * 0.84,
-        size.width * 0.66,
-        size.height * 0.48,
-      )
-      ..cubicTo(
-        size.width * 0.76,
-        size.height * 0.28,
-        size.width * 0.88,
-        size.height * 0.36,
-        size.width * 0.94,
-        size.height * 0.22,
-      );
-    canvas.drawPath(path, streetPaint);
-
-    final routePaint = Paint()
-      ..color = color.withAlpha(170)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.2
-      ..strokeCap = StrokeCap.round;
-    _drawDashedPath(canvas, path, routePaint);
-
-    final dotPaint = Paint()
-      ..color = color.withAlpha(130)
-      ..style = PaintingStyle.fill;
-    for (final point in [
-      Offset(size.width * 0.20, size.height * 0.58),
-      Offset(size.width * 0.50, size.height * 0.68),
-      Offset(size.width * 0.74, size.height * 0.38),
-    ]) {
-      canvas.drawCircle(point, 6, dotPaint);
-      canvas.drawCircle(point, 12, dotPaint..color = color.withAlpha(32));
-      dotPaint.color = color.withAlpha(130);
-    }
-  }
-
-  void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      const dashWidth = 10.0;
-      const dashSpace = 8.0;
-      while (distance < metric.length) {
-        final next = (distance + dashWidth).clamp(0.0, metric.length);
-        canvas.drawPath(metric.extractPath(distance, next), paint);
-        distance += dashWidth + dashSpace;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TravelMapPreviewPainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
-}
-
 class _RouteModeButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -2260,110 +1685,6 @@ class _RouteModeButton extends StatelessWidget {
         foregroundColor: LoveGirlTheme.primary,
         side: BorderSide(color: LoveGirlTheme.primary.withAlpha(80)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-}
-
-class _ItineraryStop extends StatelessWidget {
-  final TravelSpot spot;
-  final int index;
-
-  const _ItineraryStop({
-    required this.spot,
-    required this.index,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor(spot.status);
-    final dayText = '第 ${spot.routeDay ?? 1} 天';
-    final timeText = index == 0 ? '上午' : (index == 1 ? '下午' : '晚上');
-
-    return SizedBox(
-      width: 92,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withAlpha(22),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withAlpha(90)),
-            ),
-            child: Icon(_statusIcon(spot.status), size: 18, color: color),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            _travelDisplayText(spot.name, '未命名'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: LoveGirlTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            '$dayText $timeText',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10,
-              color: LoveGirlTheme.textMuted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'visited':
-        return const Color(0xFF5E9E75);
-      case 'planned':
-        return LoveGirlTheme.secondary;
-      case 'wish':
-      default:
-        return LoveGirlTheme.primary;
-    }
-  }
-
-  IconData _statusIcon(String status) {
-    switch (status) {
-      case 'visited':
-        return Icons.check_rounded;
-      case 'planned':
-        return Icons.flag_rounded;
-      case 'wish':
-      default:
-        return Icons.favorite_rounded;
-    }
-  }
-}
-
-class _ItineraryConnector extends StatelessWidget {
-  const _ItineraryConnector();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
-      child: Align(
-        alignment: const Alignment(0, -0.38),
-        child: Container(
-          height: 1,
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.separator,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
       ),
     );
   }
@@ -3227,98 +2548,3 @@ class _SpotDetailSheet extends StatelessWidget {
 }
 
 /// 顺序箭头层：按 routeDay/routeOrder 把地点串成"顺序表"，弓形虚线 + 箭头
-class _OrderArrowsPainter extends CustomPainter {
-  final List<TravelSpot> spots;
-
-  static const List<Alignment> _alignments = [
-    Alignment(0.05, -0.36),
-    Alignment(-0.48, -0.08),
-    Alignment(0.66, -0.18),
-    Alignment(-0.28, 0.16),
-    Alignment(0.20, 0.02),
-    Alignment(0.58, 0.20),
-  ];
-
-  /// 与 _MapPinPreview 估计尺寸接近，用于把锚点从 pin 中心往回校正
-  static const Size _pinSize = Size(96, 66);
-
-  _OrderArrowsPainter({required this.spots});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (spots.length < 2) return;
-    // spots 是显示顺序（与 pin 的 alignments 一一对应），
-    // 箭头要按 routeDay/routeOrder 连，但锚点必须取回各自显示位置
-    final order = List<int>.generate(spots.length, (i) => i)
-      ..sort((a, b) {
-        final day =
-            (spots[a].routeDay ?? 999).compareTo(spots[b].routeDay ?? 999);
-        if (day != 0) return day;
-        final order2 =
-            (spots[a].routeOrder ?? 999).compareTo(spots[b].routeOrder ?? 999);
-        if (order2 != 0) return order2;
-        return spots[a].name.compareTo(spots[b].name);
-      });
-
-    Offset anchor(int i) {
-      final a = _alignments[i % _alignments.length];
-      final cx = size.width / 2 + a.x * (size.width - _pinSize.width) / 2;
-      final cy = size.height / 2 + a.y * (size.height - _pinSize.height) / 2;
-      return Offset(cx, cy);
-    }
-
-    final linePaint = Paint()
-      ..color = LoveGirlTheme.primary.withAlpha(130)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round;
-    final headPaint = Paint()
-      ..color = LoveGirlTheme.primary.withAlpha(185)
-      ..style = PaintingStyle.fill;
-
-    for (var i = 0; i < order.length - 1; i++) {
-      final start = anchor(order[i]);
-      final end = anchor(order[i + 1]);
-      final mid = Offset((start.dx + end.dx) / 2, (start.dy + end.dy) / 2);
-      final normal = Offset(-(end.dy - start.dy), end.dx - start.dx);
-      final len = normal.distance;
-      final ctrl = len == 0
-          ? mid
-          : mid + Offset(normal.dx / len, normal.dy / len) * min(36.0, len * 0.16);
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..quadraticBezierTo(ctrl.dx, ctrl.dy, end.dx, end.dy);
-
-      for (final metric in path.computeMetrics()) {
-        var dist = 0.0;
-        const dashWidth = 7.0;
-        const dashSpace = 6.0;
-        while (dist < metric.length) {
-          final next = min(dist + dashWidth, metric.length);
-          canvas.drawPath(metric.extractPath(dist, next), linePaint);
-          dist = next + dashSpace;
-        }
-        final tangent = metric.getTangentForOffset(metric.length * 0.86);
-        if (tangent != null) {
-          final v = tangent.vector;
-          final dirLen = v.distance;
-          if (dirLen > 0) {
-            final dir = Offset(v.dx / dirLen, v.dy / dirLen);
-            final p = tangent.position;
-            final side = Offset(-dir.dy, dir.dx) * 5.5;
-            final head = Path()
-              ..moveTo(p.dx + dir.dx * 10, p.dy + dir.dy * 10)
-              ..lineTo(p.dx - dir.dx * 2 + side.dx, p.dy - dir.dy * 2 + side.dy)
-              ..lineTo(p.dx - dir.dx * 2 - side.dx, p.dy - dir.dy * 2 - side.dy)
-              ..close();
-            canvas.drawPath(head, headPaint);
-          }
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_OrderArrowsPainter oldDelegate) =>
-      oldDelegate.spots.length != spots.length;
-}

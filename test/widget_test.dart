@@ -288,15 +288,15 @@ void main() {
 
     await tester.pump();
 
+    // v3.23 行程票已从旅行页移除（功能并入真地图路线预览），防回归断言：
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('travel_itinerary_ticket')),
+      find.byKey(const ValueKey('travel_map_filter_visited')),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
 
-    expect(find.textContaining('第 1 天'), findsWidgets);
-    expect(find.textContaining('Day'), findsNothing);
+    expect(find.byKey(const ValueKey('travel_itinerary_ticket')), findsNothing);
   });
 
   test('kitchen order parsing keeps item snapshots and totals', () {
