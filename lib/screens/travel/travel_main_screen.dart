@@ -6,6 +6,7 @@ import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
+import 'package:lovegirl_flutter/screens/travel/stars_map_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
@@ -46,6 +47,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   Timer? _debounce;
   bool _showSearch = false;
   bool _openingAmap = false;
+  bool _starsMode = false;
   late AnimationController _fabAnimCtrl;
 
   @override
@@ -297,6 +299,24 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   Widget build(BuildContext context) {
     return Consumer<TravelProvider>(
       builder: (context, provider, _) {
+        if (_starsMode) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF070B14),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(provider),
+                  Expanded(
+                    child: StarsMapScreen(
+                        spots: provider.spots
+                            .where(_hasValidCoordinate)
+                            .toList()),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         return Scaffold(
           backgroundColor: LoveGirlTheme.bgLight,
           body: LovePage(
@@ -443,9 +463,16 @@ class _TravelMainScreenState extends State<TravelMainScreen>
           const Spacer(),
           LoveIconButton(
             icon: _showSearch ? Icons.close_rounded : Icons.search_rounded,
-            tooltip: _showSearch ? '\u5173\u95ed\u641c\u7d22' : '\u641c\u7d22',
+            tooltip: _showSearch ? '关闭搜索' : '搜索',
             onTap: _toggleSearch,
             isActive: _showSearch,
+          ),
+          const SizedBox(width: 8),
+          LoveIconButton(
+            icon: _starsMode ? Icons.map_rounded : Icons.auto_awesome_rounded,
+            tooltip: _starsMode ? '回到旅行地图' : '足迹星图',
+            onTap: () => setState(() => _starsMode = !_starsMode),
+            isActive: _starsMode,
           ),
           const SizedBox(width: 8),
           _buildSortMenu(provider),
