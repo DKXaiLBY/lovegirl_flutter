@@ -16,8 +16,9 @@ class _HealthScreenState extends State<HealthScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    // 仅女友角色可访问，但已在 AppShell 中处理，这里做个安全兜底
-    if (!auth.isGirl) {
+    // 用原始角色拦截：开发者模式切到"她的视角"也不加载她的私密数据，
+    // 避免拿对方身份请求经期接口报"加载失败"
+    if (!auth.isOriginalGirl) {
       return const Scaffold(
         backgroundColor: LoveGirlTheme.bgLight,
         body: Center(

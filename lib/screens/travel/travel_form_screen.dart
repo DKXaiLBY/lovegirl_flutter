@@ -42,6 +42,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   double _lat = 0;
   double _lng = 0;
   String _address = '';
+  double? _cityFocusLat;
+  double? _cityFocusLng;
   bool _saving = false;
 
   bool get _isEditing => widget.spot != null;
@@ -108,7 +110,23 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   Future<void> _pickCity() async {
     final city = await showCityPicker(context, currentCity: _city);
-    if (city != null) setState(() => _city = city);
+    if (city == null) return;
+    setState(() => _city = city);
+    // 后台解析城市中心坐标：进选点页直接落到该城市，不用在中国地图上找
+    if (_lat == 0 && _lng == 0) {
+      try {
+        final res = await ApiService().geocodeAmap(city);
+        final data = res.data?['data'];
+        if (data is Map && mounted) {
+          setState(() {
+            _cityFocusLat = (data['lat'] as num?)?.toDouble();
+            _cityFocusLng = (data['lng'] as num?)?.toDouble();
+          });
+        }
+      } catch (_) {
+        // 编码失败则选点页退化为全国视角
+      }
+    }
   }
 
   Future<void> _pickLocation() async {
@@ -117,6 +135,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         builder: (_) => MapPickerScreen(
           initialLat: _lat == 0 ? null : _lat,
           initialLng: _lng == 0 ? null : _lng,
+          focusLat: _cityFocusLat,
+          focusLng: _cityFocusLng,
         ),
       ),
     );

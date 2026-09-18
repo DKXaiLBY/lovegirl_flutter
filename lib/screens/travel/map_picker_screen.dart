@@ -12,7 +12,17 @@ class MapPickerScreen extends StatefulWidget {
   final double? initialLat;
   final double? initialLng;
 
-  const MapPickerScreen({super.key, this.initialLat, this.initialLng});
+  /// 城市聚焦点（非选中态）：进页面直接落到该城市上空
+  final double? focusLat;
+  final double? focusLng;
+
+  const MapPickerScreen({
+    super.key,
+    this.initialLat,
+    this.initialLng,
+    this.focusLat,
+    this.focusLng,
+  });
 
   @override
   State<MapPickerScreen> createState() => _MapPickerScreenState();
@@ -211,8 +221,13 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               hasAgree: true,
             ),
             initialCameraPosition: CameraPosition(
-              target: _selectedPoint ?? _defaultCenter,
-              zoom: _selectedPoint == null ? 5 : 16,
+              target: _selectedPoint ??
+                  (widget.focusLat != null && widget.focusLng != null
+                      ? amap.LatLng(widget.focusLat!, widget.focusLng!)
+                      : _defaultCenter),
+              zoom: _selectedPoint != null
+                  ? 16
+                  : (widget.focusLat != null ? 12 : 5),
             ),
             compassEnabled: false,
             scaleEnabled: true,

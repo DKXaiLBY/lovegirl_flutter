@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
@@ -34,9 +35,49 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
   bool _unsupportedNativeMap = false;
   String? _unsupportedReason;
 
+  bool _introDismissed = false;
+
+  Future<void> _loadIntroDismissed() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _introDismissed = prefs.getBool('amap_intro_dismissed') ?? false);
+  }
+
+  Future<void> _dismissIntro() async {
+    setState(() => _introDismissed = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('amap_intro_dismissed', true);
+  }
+
+  /// 一键把全部有坐标地点串成路线预览（介绍卡入口）
+  Future<void> _previewRouteAll() async {
+    final provider = context.read<TravelProvider>();
+    final validSpots = provider.mapSpots.where(_hasValidCoordinate).toList();
+    if (validSpots.length < 2) {
+      _showFloatingMessage('至少还需要一个有坐标的地点，才能把路线串起来。');
+      return;
+    }
+    validSpots.sort((a, b) {
+      final dayCompare = (a.routeDay ?? 999).compareTo(b.routeDay ?? 999);
+      if (dayCompare != 0) return dayCompare;
+      final orderCompare = (a.routeOrder ?? 999).compareTo(b.routeOrder ?? 999);
+      if (orderCompare != 0) return orderCompare;
+      return a.name.compareTo(b.name);
+    });
+    await provider.previewRoute(validSpots, 'walking');
+    if (!mounted) return;
+    if (provider.activeRoute != null && provider.activeRoute!.path.length >= 2) {
+      _mapKey.currentState?.fitBounds();
+      _showFloatingMessage('已按当前地点顺序生成路线预览。');
+    } else {
+      _showFloatingMessage(provider.routeError ?? '路线预览暂时不可用，请稍后再试。');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadIntroDismissed();
     _initNativeMapSupport();
   }
 
@@ -292,12 +333,16 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _TopOverlay(
-                        spotCount: provider.mapSpots.length,
-                        hasRoute: provider.activeRoute != null,
-                        unsupportedReason: _unsupportedReason,
-                        onBack: () => Navigator.of(context).pop(),
-                      ),
+                      if (!_introDismissed)
+                        _TopOverlay(
+                          spotCount: provider.mapSpots.length,
+                          hasRoute: provider.activeRoute != null,
+                          unsupportedReason: _unsupportedReason,
+                          onBack: () => Navigator.of(context).pop(),
+                          onDismiss: _dismissIntro,
+                          onFitSpots: () => _mapKey.currentState?.fitBounds(),
+                          onPreviewRoute: _previewRouteAll,
+                        ),
                       const SizedBox(height: 14),
                       if (!_unsupportedNativeMap) ...[
                         Align(
@@ -378,7 +423,14 @@ class _EmptyMapScaffold extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _TopOverlay(spotCount: 0, hasRoute: false, onBack: onBack),
+              _TopOverlay(
+                        spotCount: 0,
+                        hasRoute: false,
+                        onBack: onBack,
+                        onDismiss: () {},
+                        onFitSpots: () {},
+                        onPreviewRoute: () {},
+                      ),
               const SizedBox(height: 16),
               Expanded(
                 child: LoveTicketCard(
@@ -492,12 +544,18 @@ class _TopOverlay extends StatelessWidget {
   final bool hasRoute;
   final String? unsupportedReason;
   final VoidCallback onBack;
+  final VoidCallback onDismiss;
+  final VoidCallback onFitSpots;
+  final VoidCallback onPreviewRoute;
 
   const _TopOverlay({
     required this.spotCount,
     required this.hasRoute,
     this.unsupportedReason,
     required this.onBack,
+    required this.onDismiss,
+    required this.onFitSpots,
+    required this.onPreviewRoute,
   });
 
   @override
@@ -525,13 +583,28 @@ class _TopOverlay extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '旅行地图',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '旅行地图',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: LoveGirlTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: onDismiss,
+                      borderRadius: BorderRadius.circular(999),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.close_rounded,
+                            size: 18, color: LoveGirlTheme.textMuted),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -547,15 +620,21 @@ class _TopOverlay extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    LovePill(
-                      text: '$spotCount 个地点',
-                      color: LoveGirlTheme.secondary,
+                    GestureDetector(
+                      onTap: onFitSpots,
+                      child: LovePill(
+                        text: '$spotCount 个地点 · 查看全局',
+                        color: LoveGirlTheme.secondary,
+                      ),
                     ),
-                    LovePill(
-                      text: hasRoute ? '已加载路线' : '先选地点再串线',
-                      color: hasRoute
-                          ? LoveGirlTheme.primary
-                          : LoveGirlTheme.textMuted,
+                    GestureDetector(
+                      onTap: onPreviewRoute,
+                      child: LovePill(
+                        text: hasRoute ? '已加载路线 · 查看' : '一键串成路线',
+                        color: hasRoute
+                            ? LoveGirlTheme.primary
+                            : LoveGirlTheme.textMuted,
+                      ),
                     ),
                   ],
                 ),

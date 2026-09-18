@@ -9,6 +9,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
+import '../beans/beans_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../timeline/timeline_screen.dart';
 
@@ -82,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: _MemoryTicket(
                       memory: home.memory,
                       onTap: () => _push(const TimelineScreen()),
+                      onGenerate: () => _showMemoryStubSheet(home.memory),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -113,6 +115,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _push(Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  void _showMemoryStubSheet(Map<String, dynamic>? memory) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _MemoryStubSheet(memory: memory),
+    );
   }
 }
 
@@ -245,7 +256,12 @@ class _BeanBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const BeansScreen()),
+      ),
+      child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -287,6 +303,7 @@ class _BeanBadge extends StatelessWidget {
           color: LoveGirlTheme.textMuted,
         ),
       ],
+      ),
     );
   }
 }
@@ -757,11 +774,7 @@ class _FeedingCareCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
           ),
           child: const Center(
-            child: Icon(
-              Icons.local_drink_rounded,
-              size: 34,
-              color: LoveGirlTheme.primary,
-            ),
+            child: Text('🍳', style: TextStyle(fontSize: 34)),
           ),
         );
         final productInfo = Column(
@@ -795,7 +808,7 @@ class _FeedingCareCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                price,
+                price == '¥0' ? '❤' : price,
                 maxLines: 1,
                 style: TextStyle(
                   fontSize: compact ? 22 : 24,
@@ -1130,13 +1143,168 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
+// 回忆票根展示（首页"生成回忆票根"按钮弹出；阶段3升级为横/竖版式）
+class _MemoryStubSheet extends StatelessWidget {
+  final Map<String, dynamic>? memory;
+
+  const _MemoryStubSheet({required this.memory});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _localizedMemoryTitle(
+      _asString(memory?['title'], fallback: '我们的一件小事'),
+    );
+    final subtitle = _asString(
+      memory?['subtitle'],
+      fallback: '把一起走过的地方、说过的话，慢慢收进这张票根里。',
+    );
+    final eventDate = _asString(memory?['eventDate'], fallback: '');
+    final location = _asString(memory?['location'], fallback: '');
+    final imageUrl = _memoryImageUrl(memory);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: LoveTicketCard(
+        color: LoveGirlTheme.paper,
+        padding: const EdgeInsets.all(18),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LovePill(
+                  text: '回忆票根 · MEMORY STUB',
+                  icon: Icons.confirmation_number_outlined,
+                  color: LoveGirlTheme.primary,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    height: 1.3,
+                    fontWeight: FontWeight.w900,
+                    color: LoveGirlTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 13, color: LoveGirlTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                if (imageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 180),
+                      child: Image.network(
+                        imageUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    height: 110,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          LoveGirlTheme.primarySoft,
+                          LoveGirlTheme.accent.withAlpha(90),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Center(
+                      child: Text('♥', style: TextStyle(fontSize: 40, color: LoveGirlTheme.primary)),
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                const LoveTicketDivider(),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if (location.isNotEmpty)
+                      Expanded(
+                        child: Text(
+                          location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: LoveGirlTheme.textMuted),
+                        ),
+                      ),
+                    Text(
+                      eventDate,
+                      style: const TextStyle(
+                          fontSize: 12, color: LoveGirlTheme.textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const LoveBarcode(width: 90, height: 34),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: LovePrimaryButton(
+                    text: '去时光轴记录更多',
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const TimelineScreen()));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Positioned(
+              right: 0,
+              top: 8,
+              child: Transform.rotate(
+                angle: -0.3,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    border:
+                        Border.all(color: LoveGirlTheme.primary, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                    color: LoveGirlTheme.primarySoft.withAlpha(200),
+                  ),
+                  child: const Text('珍藏 ♥',
+                      style: TextStyle(
+                          color: LoveGirlTheme.primary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MemoryTicket extends StatelessWidget {
   final Map<String, dynamic>? memory;
   final VoidCallback onTap;
+  final VoidCallback? onGenerate;
 
   const _MemoryTicket({
     required this.memory,
     required this.onTap,
+    this.onGenerate,
   });
 
   @override
@@ -1239,6 +1407,7 @@ class _MemoryTicket extends StatelessWidget {
                   child: _MemoryDateRail(
                     eventDate: eventDate,
                     onTap: onTap,
+                    onGenerate: onGenerate,
                   ),
                 ),
               ],
@@ -1257,6 +1426,7 @@ class _MemoryTicket extends StatelessWidget {
               _MemoryDateRail(
                 eventDate: eventDate,
                 onTap: onTap,
+                onGenerate: onGenerate,
               ),
             ],
           );
@@ -1363,10 +1533,12 @@ class _MemoryPreviewFallback extends StatelessWidget {
 class _MemoryDateRail extends StatelessWidget {
   final String eventDate;
   final VoidCallback onTap;
+  final VoidCallback? onGenerate;
 
   const _MemoryDateRail({
     required this.eventDate,
     required this.onTap,
+    this.onGenerate,
   });
 
   @override
@@ -1395,7 +1567,7 @@ class _MemoryDateRail extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: onTap,
+            onPressed: onGenerate ?? onTap,
             style: OutlinedButton.styleFrom(
               foregroundColor: LoveGirlTheme.primary,
               side: const BorderSide(color: LoveGirlTheme.primary),

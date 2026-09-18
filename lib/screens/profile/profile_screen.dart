@@ -13,6 +13,7 @@ import '../couple/couple_binding_screen.dart';
 import '../photo/photo_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
+import '../beans/beans_screen.dart';
 import '../timeline/timeline_screen.dart';
 import '../version/update_dialog.dart';
 
@@ -324,6 +325,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '\u67e5\u770b\u5730\u56fe\u3001\u8def\u7ebf\u548c\u6253\u5361\u56de\u5fc6',
             color: LoveGirlTheme.secondary,
             onTap: () => widget.onNavigateToTab?.call(1),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.volunteer_activism_outlined,
+            title: '\u7231\u5fc3\u8c46',
+            value: '\u7b7e\u5230\u4e0e\u6d41\u6c34',
+            color: LoveGirlTheme.orange,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BeansScreen()),
+            ),
           ),
           const Divider(),
           LoveMenuRow(
