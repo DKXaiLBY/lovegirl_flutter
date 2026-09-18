@@ -12,6 +12,7 @@ import '../../providers/travel_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/ticket_styles.dart';
 
 /// 全宽水平虚线分隔符（解决 LoveTicketDivider.length=double.infinity 在 CustomPaint 中的问题）
 class _FullWidthDashedLine extends StatelessWidget {
@@ -72,6 +73,8 @@ class TravelTicketScreen extends StatefulWidget {
 class _TravelTicketScreenState extends State<TravelTicketScreen> {
   final GlobalKey _ticketKey = GlobalKey();
   bool _capturing = false;
+  // 票根版式：postcard 明信片 / stub 入场券 / classic 经典长票
+  String _layout = 'postcard';
 
   List<TravelSpot> get _visited =>
       widget.visitedSpots.where((s) => s.status == 'visited').toList();
@@ -216,6 +219,53 @@ class _TravelTicketScreenState extends State<TravelTicketScreen> {
     );
   }
 
+  String get _primaryCity {
+    final cities = _cities.toList();
+    return cities.isNotEmpty ? cities.first : 'TRAVEL';
+  }
+
+  String get _primaryPhoto => _photoUrls.isEmpty ? '' : _photoUrls.first;
+
+  String get _primaryQuote {
+    for (final spot in _visited) {
+      final note = (spot.note ?? '').trim();
+      if (note.isNotEmpty) return note;
+      final diary = (spot.diary ?? '').trim();
+      if (diary.isNotEmpty) return diary;
+    }
+    return '把喜欢的地方，一步一步走成回忆';
+  }
+
+  Widget _buildLayoutSwitch() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'postcard', label: Text('明信片')),
+                ButtonSegment(value: 'stub', label: Text('入场券')),
+                ButtonSegment(value: 'classic', label: Text('经典')),
+              ],
+              selected: {_layout},
+              onSelectionChanged: (sel) =>
+                  setState(() => _layout = sel.first),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: LoveGirlTheme.primary,
+                selectedForegroundColor: Colors.white,
+                backgroundColor: Colors.white,
+                foregroundColor: LoveGirlTheme.textSecondary,
+                side: const BorderSide(color: LoveGirlTheme.separator),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTicket() {
     final visited = _visited;
     final cities = _cities;
@@ -226,7 +276,59 @@ class _TravelTicketScreenState extends State<TravelTicketScreen> {
     final ticketNo =
         'LG-${DateFormat('yyyyMMdd').format(now)}-${visited.length.toString().padLeft(3, '0')}';
 
-    return Container(
+    if (_layout != 'classic') {
+      final photo = _primaryPhoto.isEmpty ? null : _primaryPhoto;
+      return Column(
+        children: [
+          _buildLayoutSwitch(),
+          if (_layout == 'postcard')
+            VerticalPostcardTicket(
+              photoUrl: photo,
+              city: _primaryCity,
+              quote: _primaryQuote,
+              date: _dateRange,
+            )
+          else
+            HorizontalTicketStub(
+              photoUrl: photo,
+              city: _primaryCity,
+              quote: _primaryQuote,
+              ticketNo: ticketNo,
+              date: _dateRange,
+            ),
+          if (photo == null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: LoveGirlTheme.paperWarm,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: LoveGirlTheme.separator),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.photo_camera_outlined,
+                      size: 18, color: LoveGirlTheme.primary),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '照片墙还是空的：编辑地点时上传照片，票根会自动用上',
+                      style: TextStyle(
+                          fontSize: 12, color: LoveGirlTheme.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ], // photo==null spread
+        ], // 外层 Column children
+      ); // 外层 Column
+    }
+
+    return Column(
+      children: [
+        _buildLayoutSwitch(),
+        Container(
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8F0),
         borderRadius: BorderRadius.circular(16),
@@ -281,10 +383,12 @@ class _TravelTicketScreenState extends State<TravelTicketScreen> {
               child: _FullWidthDashedLine(),
             ),
             _buildFooter(ticketNo),
-          ],
-        ),
-      ),
-    );
+          ], // 内层 Column children
+        ), // 内层 Column
+      ), // LoveTicketCard
+    ), // Container(decoration)
+        ], // 外层 Column children
+      ); // 外层 Column return
   }
 
   Widget _buildHeader(String ticketNo, String dateStr) {
