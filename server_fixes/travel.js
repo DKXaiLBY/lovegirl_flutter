@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const https = require('https');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
@@ -44,7 +44,7 @@ function amapGet(path, params = {}) {
         try {
           const parsed = JSON.parse(raw);
           if (parsed.status && parsed.status !== '1') {
-            const err = new Error(parsed.info || '高德服务返回失败');
+            const err = new Error(parsed.info || '楂樺痉鏈嶅姟杩斿洖澶辫触');
             err.status = 502;
             err.amapCode = parsed.infocode;
             reject(err);
@@ -58,7 +58,7 @@ function amapGet(path, params = {}) {
       });
     });
     req.setTimeout(10000, () => {
-      req.destroy(new Error('高德服务请求超时'));
+      req.destroy(new Error('楂樺痉鏈嶅姟璇锋眰瓒呮椂'));
     });
     req.on('error', (err) => {
       err.status = err.status || 502;
@@ -102,7 +102,7 @@ function normalizeSpot(row) {
     address: row.address || '',
     lng: Number(row.lng || 0),
     lat: Number(row.lat || 0),
-    emoji: row.emoji || '📍',
+    emoji: row.emoji || '馃搷',
     status: row.status || 'wish',
     note: row.note || null,
     diary: row.diary || null,
@@ -196,7 +196,7 @@ async function handleTravelCheckin(userId, spotId, data) {
       userId,
       amount: 10,
       type: 'travel_checkin',
-      title: '旅行打卡',
+      title: 'Travel check-in',
       sourceModule: 'travel',
       sourceId: spotId,
       description: data.name,
@@ -207,7 +207,7 @@ async function handleTravelCheckin(userId, spotId, data) {
 
   await createTimelineEvent({
     userId,
-    title: `旅行打卡：${data.name}`,
+    title: `Travel check-in: ${data.name}`,
     description: data.diary || data.note || data.city || '',
     eventDate: data.visitedDate || todayString(),
     icon: 'map-pin',
@@ -228,7 +228,7 @@ async function handleTravelCheckin(userId, spotId, data) {
     });
   }
 
-  await unlockTravelAchievement(userId, 'first_checkin', '第一次旅行打卡', data.name, { spotId });
+  await unlockTravelAchievement(userId, 'first_checkin', 'First travel check-in', data.name, { spotId });
   await checkAchievements(userId, 'travel');
 }
 
@@ -335,7 +335,7 @@ router.get('/amap/poi', authRequired, async (req, res) => {
     res.json({ code: 200, data: { list: normalizeAmapPois(data), rawCount: Number(data.count || 0) } });
   } catch (err) {
     console.error('[Travel][AMap] POI search failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '高德服务请求失败' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉鏈嶅姟璇锋眰澶辫触' });
   }
 });
 
@@ -343,7 +343,7 @@ router.get('/amap/geocode', authRequired, async (req, res) => {
   try {
     const address = (req.query.address || '').toString().trim();
     if (!address) {
-      return res.status(400).json({ code: 400, message: '地址不能为空' });
+      return res.status(400).json({ code: 400, message: '鍦板潃涓嶈兘涓虹┖' });
     }
     const data = await amapGet('/v3/geocode/geo', {
       address,
@@ -364,7 +364,7 @@ router.get('/amap/geocode', authRequired, async (req, res) => {
     });
   } catch (err) {
     console.error('[Travel][AMap] geocode failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '高德服务请求失败' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉鏈嶅姟璇锋眰澶辫触' });
   }
 });
 
@@ -373,7 +373,7 @@ router.get('/amap/regeo', authRequired, async (req, res) => {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return res.status(400).json({ code: 400, message: '坐标参数无效' });
+      return res.status(400).json({ code: 400, message: '鍧愭爣鍙傛暟鏃犳晥' });
     }
     const data = await amapGet('/v3/geocode/regeo', {
       location: `${lng},${lat}`,
@@ -391,7 +391,7 @@ router.get('/amap/regeo', authRequired, async (req, res) => {
     });
   } catch (err) {
     console.error('[Travel][AMap] regeo failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '高德服务请求失败' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉鏈嶅姟璇锋眰澶辫触' });
   }
 });
 
@@ -399,7 +399,7 @@ router.get('/amap/weather', authRequired, async (req, res) => {
   try {
     const city = (req.query.city || '').toString().trim();
     if (!city) {
-      return res.status(400).json({ code: 400, message: '城市不能为空' });
+      return res.status(400).json({ code: 400, message: '鍩庡競涓嶈兘涓虹┖' });
     }
     const data = await amapGet('/v3/weather/weatherInfo', {
       city,
@@ -408,7 +408,7 @@ router.get('/amap/weather', authRequired, async (req, res) => {
     res.json({ code: 200, data });
   } catch (err) {
     console.error('[Travel][AMap] weather failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '高德天气请求失败' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉澶╂皵璇锋眰澶辫触' });
   }
 });
 
@@ -418,14 +418,30 @@ router.get('/amap/direction', authRequired, async (req, res) => {
     const origin = (req.query.origin || '').toString();
     const destination = (req.query.destination || '').toString();
     if (!origin || !destination) {
-      return res.status(400).json({ code: 400, message: '起点和终点不能为空' });
+      return res.status(400).json({ code: 400, message: 'origin and destination are required' });
     }
 
-    const path = mode === 'walking'
+    // 步行规划对超长距离（跨省）会返回 OVER_DIRECTION_RANGE(20803)，
+    // 距离超过 90km 时自动降级为驾车规划（现实中也不该步行上百公里）
+    let path = mode === 'walking'
       ? '/v3/direction/walking'
       : mode === 'transit'
         ? '/v3/direction/transit/integrated'
         : '/v3/direction/driving';
+    if (mode === 'walking') {
+      const [oLng, oLat] = origin.split(',').map(Number);
+      const [dLng, dLat] = destination.split(',').map(Number);
+      if ([oLng, oLat, dLng, dLat].every(Number.isFinite)) {
+        const R = 6371000;
+        const rad = (x) => (x * Math.PI) / 180;
+        const dLatRad = rad(dLat - oLat);
+        const dLngRad = rad(dLng - oLng);
+        const a = Math.sin(dLatRad / 2) ** 2 +
+          Math.cos(rad(oLat)) * Math.cos(rad(dLat)) * Math.sin(dLngRad / 2) ** 2;
+        const straight = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        if (straight > 90000) path = '/v3/direction/driving';
+      }
+    }
     const data = await amapGet(path, {
       origin,
       destination,
@@ -438,7 +454,7 @@ router.get('/amap/direction', authRequired, async (req, res) => {
     res.json({ code: 200, data: normalizeDirection(mode, data) });
   } catch (err) {
     console.error('[Travel][AMap] direction failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '高德路线规划请求失败' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉璺緞瑙勫垝璇锋眰澶辫触' });
   }
 });
 
@@ -477,8 +493,8 @@ router.get('/routes', authRequired, async (req, res) => {
     if (err.code === 'ER_NO_SUCH_TABLE') {
       return res.json({ code: 200, data: { list: [], total: 0 } });
     }
-    console.error('[Travel] 获取路线失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 鑾峰彇璺嚎澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -487,7 +503,7 @@ router.post('/routes', authRequired, async (req, res) => {
   try {
     const title = (req.body.title || '').toString().trim();
     if (!title) {
-      return res.status(400).json({ code: 400, message: '路线名称不能为空' });
+      return res.status(400).json({ code: 400, message: '璺嚎鍚嶇О涓嶈兘涓虹┖' });
     }
     const spotIds = Array.isArray(req.body.spotIds) ? req.body.spotIds.map(Number).filter(Number.isFinite) : [];
     const visibleIds = await getVisibleUserIds(req.user.id);
@@ -500,7 +516,7 @@ router.post('/routes', authRequired, async (req, res) => {
         [...spotIds, ...visibleIds]
       );
       if (visibleSpots.length !== spotIds.length) {
-        return res.status(403).json({ code: 403, message: '路线中包含无权限访问的地点' });
+        return res.status(403).json({ code: 403, message: 'route contains inaccessible spots' });
       }
     }
     await conn.beginTransaction();
@@ -527,11 +543,11 @@ router.post('/routes', authRequired, async (req, res) => {
       );
     }
     await conn.commit();
-    res.json({ code: 200, message: '路线保存成功', data: { id: result.insertId } });
+    res.json({ code: 200, message: 'route saved', data: { id: result.insertId } });
   } catch (err) {
     await conn.rollback();
-    console.error('[Travel] 保存路线失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 淇濆瓨璺嚎澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   } finally {
     conn.release();
   }
@@ -542,7 +558,7 @@ async function loadTripSpots(tripIds) {
   const [spotRows] = await pool.query(
     `SELECT ts.trip_id, ts.sort_order, s.*,
             u.nickname AS creator_nickname, u.avatar_url AS creator_avatar
-     FROM trip_spots ts
+     FROM travel_trip_spots ts
      JOIN travel_spots s ON s.id = ts.spot_id
      LEFT JOIN users u ON u.id = COALESCE(s.created_by, s.user_id)
      WHERE ts.trip_id IN (${tripIds.map(() => '?').join(',')})
@@ -559,8 +575,8 @@ async function loadTripSpots(tripIds) {
 
 async function replaceTripSpots(conn, tripId, spotIds, visibleIds) {
   const ids = Array.isArray(spotIds) ? [...new Set(spotIds.map(Number).filter(Number.isFinite))] : [];
-  if (ids.length < 2) {
-    const err = new Error('trip needs at least two spots');
+  if (ids.length < 1) {
+    const err = new Error('trip needs at least one spot');
     err.status = 400;
     throw err;
   }
@@ -576,10 +592,10 @@ async function replaceTripSpots(conn, tripId, spotIds, visibleIds) {
     err.status = 403;
     throw err;
   }
-  await conn.query('DELETE FROM trip_spots WHERE trip_id = ?', [tripId]);
+  await conn.query('DELETE FROM travel_trip_spots WHERE trip_id = ?', [tripId]);
   for (let i = 0; i < ids.length; i += 1) {
     await conn.query(
-      'INSERT INTO trip_spots (trip_id, spot_id, sort_order) VALUES (?, ?, ?)',
+      'INSERT INTO travel_trip_spots (trip_id, spot_id, sort_order) VALUES (?, ?, ?)',
       [tripId, ids[i], i]
     );
   }
@@ -604,7 +620,7 @@ router.get('/trips', authRequired, async (req, res) => {
       return res.json({ code: 200, data: { list: [], total: 0 } });
     }
     console.error('[Travel] get trips failed:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -624,7 +640,7 @@ router.get('/trips/:id', authRequired, async (req, res) => {
     res.json({ code: 200, data: normalizeTrip(rows[0], spotsByTrip.get(rows[0].id) || []) });
   } catch (err) {
     console.error('[Travel] get trip failed:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -656,11 +672,11 @@ router.post('/trips', authRequired, async (req, res) => {
     );
     await replaceTripSpots(conn, result.insertId, req.body.spotIds || req.body.spot_ids, visibleIds);
     await conn.commit();
-    res.json({ code: 200, message: '行程保存成功', data: { id: result.insertId } });
+    res.json({ code: 200, message: 'trip saved', data: { id: result.insertId } });
   } catch (err) {
     await conn.rollback();
     console.error('[Travel] save trip failed:', err);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   } finally {
     conn.release();
   }
@@ -702,11 +718,11 @@ router.put('/trips/:id', authRequired, async (req, res) => {
       await replaceTripSpots(conn, tripId, req.body.spotIds || req.body.spot_ids, visibleIds);
     }
     await conn.commit();
-    res.json({ code: 200, message: '行程更新成功' });
+    res.json({ code: 200, message: 'trip updated' });
   } catch (err) {
     await conn.rollback();
     console.error('[Travel] update trip failed:', err);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   } finally {
     conn.release();
   }
@@ -725,11 +741,11 @@ router.put('/trips/:id/spots', authRequired, async (req, res) => {
     await conn.beginTransaction();
     await replaceTripSpots(conn, tripId, req.body.spotIds || req.body.spot_ids, visibleIds);
     await conn.commit();
-    res.json({ code: 200, message: '行程地点更新成功' });
+    res.json({ code: 200, message: 'trip spots updated' });
   } catch (err) {
     await conn.rollback();
     console.error('[Travel] update trip spots failed:', err);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   } finally {
     conn.release();
   }
@@ -748,13 +764,13 @@ router.delete('/trips/:id', authRequired, async (req, res) => {
       await conn.rollback();
       return res.status(404).json({ code: 404, message: 'trip not found' });
     }
-    await conn.query('DELETE FROM trip_spots WHERE trip_id = ?', [Number(req.params.id)]);
+    await conn.query('DELETE FROM travel_trip_spots WHERE trip_id = ?', [Number(req.params.id)]);
     await conn.commit();
-    res.json({ code: 200, message: '行程删除成功' });
+    res.json({ code: 200, message: 'trip deleted' });
   } catch (err) {
     await conn.rollback();
     console.error('[Travel] delete trip failed:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    res.status(500).json({ code: 500, message: 'server error' });
   } finally {
     conn.release();
   }
@@ -795,8 +811,8 @@ router.get('/spots', authRequired, async (req, res) => {
     if (err.code === 'ER_NO_SUCH_TABLE') {
       return res.json({ code: 200, data: { list: [], total: 0 } });
     }
-    console.error('[Travel] 获取地点失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 鑾峰彇鍦扮偣澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -815,12 +831,12 @@ router.get('/spots/:id', authRequired, async (req, res) => {
       [parseInt(req.params.id), ...visibleIds]
     );
     if (rows.length === 0) {
-      return res.status(404).json({ code: 404, message: '地点不存在' });
+      return res.status(404).json({ code: 404, message: 'spot not found' });
     }
     res.json({ code: 200, data: normalizeSpot(rows[0]) });
   } catch (err) {
-    console.error('[Travel] 获取地点详情失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 鑾峰彇鍦扮偣璇︽儏澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -865,10 +881,10 @@ router.post('/spots', authRequired, async (req, res) => {
       ]
     );
     await handleTravelCheckin(req.user.id, result.insertId, data);
-    res.json({ code: 200, message: '地点保存成功', data: { id: result.insertId } });
+    res.json({ code: 200, message: 'spot saved', data: { id: result.insertId } });
   } catch (err) {
-    console.error('[Travel] 创建地点失败:', err);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+    console.error('[Travel] 鍒涘缓鍦扮偣澶辫触:', err);
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   }
 });
 
@@ -918,13 +934,13 @@ router.put('/spots/:id', authRequired, async (req, res) => {
       ]
     );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ code: 404, message: '地点不存在' });
+      return res.status(404).json({ code: 404, message: 'spot not found' });
     }
     await handleTravelCheckin(req.user.id, id, data);
-    res.json({ code: 200, message: '地点更新成功' });
+    res.json({ code: 200, message: 'spot updated' });
   } catch (err) {
-    console.error('[Travel] 更新地点失败:', err);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+    console.error('[Travel] 鏇存柊鍦扮偣澶辫触:', err);
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   }
 });
 
@@ -938,9 +954,9 @@ router.delete('/spots/:id', authRequired, async (req, res) => {
       [id, ...visibleIds]
     );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ code: 404, message: '地点不存在' });
+      return res.status(404).json({ code: 404, message: 'spot not found' });
     }
-    await pool.query('DELETE FROM trip_spots WHERE spot_id = ?', [id]);
+    await pool.query('DELETE FROM travel_trip_spots WHERE spot_id = ?', [id]);
     await pool.query('DELETE FROM travel_route_spots WHERE spot_id = ?', [id]);
     try {
       const path = require('path');
@@ -951,10 +967,10 @@ router.delete('/spots/:id', authRequired, async (req, res) => {
       }
       await pool.query('DELETE FROM travel_photos WHERE spot_id = ?', [id]);
     } catch (_) {}
-    res.json({ code: 200, message: '地点删除成功' });
+    res.json({ code: 200, message: 'spot deleted' });
   } catch (err) {
-    console.error('[Travel] 删除地点失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 鍒犻櫎鍦扮偣澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
@@ -986,15 +1002,15 @@ router.get('/stats', authRequired, async (req, res) => {
     if (err.code === 'ER_NO_SUCH_TABLE') {
       return res.json({ code: 200, data: { visited: 0, wish: 0, planned: 0, cities: 0, totalBudget: 0 } });
     }
-    console.error('[Travel] 统计失败:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    console.error('[Travel] 缁熻澶辫触:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 
 function spotPayload(body) {
   const name = (body.name || '').toString().trim();
   if (!name) {
-    const err = new Error('地点名称不能为空');
+    const err = new Error('鍦扮偣鍚嶇О涓嶈兘涓虹┖');
     err.status = 400;
     throw err;
   }
@@ -1005,7 +1021,7 @@ function spotPayload(body) {
     address: body.address || '',
     lng: Number(body.lng || body.longitude || 0),
     lat: Number(body.lat || body.latitude || 0),
-    emoji: body.emoji || '📍',
+    emoji: body.emoji || '馃搷',
     status: body.status || 'wish',
     note: body.note || null,
     diary: body.diary || null,
