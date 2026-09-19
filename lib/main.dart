@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/daily_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/kitchen_provider.dart';
 import 'providers/map_prefs_provider.dart';
@@ -52,6 +53,7 @@ class LoveGirlApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MapPrefsProvider()..load()),
         ChangeNotifierProvider(create: (_) => TravelProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => DailyProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
       child: Consumer<ThemeProvider>(

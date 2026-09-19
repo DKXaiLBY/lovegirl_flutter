@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/daily_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -13,6 +14,7 @@ import '../../widgets/shimmer.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../beans/beans_screen.dart';
+import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
 import '../timeline/timeline_screen.dart';
@@ -39,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         context.read<HomeProvider>().refresh();
         context.read<NotificationProvider>().refreshCount();
+        context.read<DailyProvider>().refresh();
       }
     });
   }
@@ -88,6 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 18),
                   StaggerIn(
                     index: 2,
+                    child: _DailyQuestionTicket(onTap: () => _push(const DailyQuestionScreen())),
+                  ),
+                  const SizedBox(height: 18),
+                  StaggerIn(
+                    index: 3,
                     child: _MemoryTicket(
                       memory: home.memory,
                       onTap: () => _push(TimelineScreen()),
@@ -96,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 18),
                   StaggerIn(
-                    index: 3,
+                    index: 4,
                     child: _TravelTicket(
                       preview: _typedMap(home.today?['travelPreview']),
                       onTap: () => widget.onNavigateToTab?.call(1),
@@ -104,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 18),
                   StaggerIn(
-                    index: 4,
+                    index: 5,
                     child: _LifeSummaryTicket(
                       today: home.today,
                       onFinanceTap: () => widget.onNavigateToSubTab?.call(3, 1),
@@ -826,6 +834,132 @@ class _MemoryStubSheet extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                           fontSize: 12)),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 每日一问入口卡：状态三态（待作答 / 等 TA / 已揭晓）
+class _DailyQuestionTicket extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _DailyQuestionTicket({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final daily = context.watch<DailyProvider>();
+    final t = daily.today;
+
+    final String status;
+    final IconData statusIcon;
+    if (t == null) {
+      status = '看看今天的问题';
+      statusIcon = Icons.campaign_outlined;
+    } else if (t.myAnswer == null) {
+      status = '去作答';
+      statusIcon = Icons.edit_rounded;
+    } else if (!t.bothAnswered) {
+      status = '等 TA 揭晓';
+      statusIcon = Icons.hourglass_top_rounded;
+    } else {
+      status = '已揭晓';
+      statusIcon = Icons.auto_awesome_rounded;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        key: const ValueKey('home_daily_question'),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.lgPaperWarm,
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+          border: Border.all(color: context.lgSeparator),
+          boxShadow: LoveGirlTheme.cardShadow(),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: context.lgEmotion,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.quiz_rounded,
+                  size: 20, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        '每日一问',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (t != null && t.streakCurrent > 0) ...[
+                        Icon(Icons.local_fire_department_rounded,
+                            size: 13, color: LoveGirlTheme.orange),
+                        const SizedBox(width: 2),
+                        Text(
+                          '连续${t.streakCurrent}天',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: LoveGirlTheme.orange,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    t?.question ?? '两个人每天答一题，都提交后才互相揭晓',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: context.lgTextSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: context.lgBg,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: context.lgSeparator),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(statusIcon, size: 13, color: context.lgEmotion),
+                  const SizedBox(width: 4),
+                  Text(
+                    status,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: context.lgEmotion,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

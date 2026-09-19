@@ -12,6 +12,7 @@ import 'package:lovegirl_flutter/screens/auth/login_screen.dart';
 import 'package:lovegirl_flutter/providers/kitchen_provider.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/notification_provider.dart';
+import 'package:lovegirl_flutter/providers/daily_provider.dart';
 import 'package:lovegirl_flutter/screens/kitchen/kitchen_screen.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
@@ -98,6 +99,7 @@ void main() {
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -136,6 +138,7 @@ void main() {
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ),
@@ -179,6 +182,7 @@ void main() {
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),
@@ -206,6 +210,7 @@ void main() {
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelAmapModeScreen()),
       ),
@@ -230,6 +235,7 @@ void main() {
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),
@@ -272,6 +278,7 @@ void main() {
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
           ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
           ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
       ),

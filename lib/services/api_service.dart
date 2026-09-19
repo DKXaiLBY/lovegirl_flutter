@@ -342,6 +342,13 @@ class ApiService {
       put('/api/notifications/$id/read');
   Future markAllNotificationsRead() => put('/api/notifications/read-all');
 
+  // ========== 每日一问 ==========
+  Future getDailyToday() => get('/api/daily/today');
+  Future answerDailyQuestion(String answer) =>
+      post('/api/daily/answer', data: {'answer': answer});
+  Future getDailyHistory({int size = 14}) =>
+      get('/api/daily/history', query: {'size': size});
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});
