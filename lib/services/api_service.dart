@@ -366,6 +366,10 @@ class ApiService {
       post('/api/letter',
           data: {'title': title, 'content': content, 'unlockDate': unlockDate});
 
+  // ========== 年度报告 ==========
+  Future getLoveReport({int? year}) =>
+      get('/api/report', query: {'year': year});
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

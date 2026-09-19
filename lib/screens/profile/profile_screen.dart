@@ -13,6 +13,7 @@ import '../couple/couple_binding_screen.dart';
 import '../kiss/thumb_kiss_screen.dart';
 import '../letter/slow_letter_screen.dart';
 import '../photo/photo_screen.dart';
+import '../report/annual_report_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../beans/beans_screen.dart';
@@ -360,6 +361,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SlowLetterScreen()),
+            ),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.auto_awesome_rounded,
+            title: '年度报告',
+            value: '这一年，你们一起做过的事',
+            color: LoveGirlTheme.brandEmotion,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AnnualReportScreen()),
             ),
           ),
           const Divider(),
