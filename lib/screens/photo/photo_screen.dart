@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import 'photo_flipbook_screen.dart';
 import '../../utils/constants.dart';
 
 /// 云端相册页面
@@ -189,6 +190,24 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   onPressed: _pickAndUpload,
                   tooltip: '上传照片',
                 ),
+                if (_photos.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.auto_stories_rounded),
+                    tooltip: '翻页书',
+                    onPressed: () {
+                      final urls = _photos
+                          .map((p) => (p['url'] ?? p['image'] ?? '').toString())
+                          .map((u) =>
+                              u.startsWith('http') ? u : '${AppConstants.baseUrl}$u')
+                          .toList();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                PhotoFlipbookScreen(photoUrls: urls)),
+                      );
+                    },
+                  ),
         ],
       ),
       body: _uploading && _photos.isEmpty
