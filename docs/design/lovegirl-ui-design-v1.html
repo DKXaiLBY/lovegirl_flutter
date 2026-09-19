@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LoveGirl UI 设计稿 v1.0 · Design System</title>
+<style>
+/* ============================================================
+   LoveGirl Design Tokens —— 与 docs/DESIGN_SYSTEM.md 一一对应
+   ============================================================ */
+:root{
+  --lg-primary:#B85C38; --lg-primary-light:#D4876B; --lg-primary-soft:#FBE3E3;
+  --lg-secondary:#7A9E7E; --lg-secondary-soft:#F0F5EC;
+  --lg-accent:#E7B78A; --lg-orange:#E7A25D; --lg-red:#E95B4E;
+  --lg-bg:#FFF9F5; --lg-paper:#FFFFFF; --lg-paper-warm:#FFF5EC;
+  --lg-separator:#EAE4DC;
+  --lg-text-primary:#333333; --lg-text-secondary:#888888; --lg-text-muted:#999999;
+  --lg-visited:#4CAF50; --lg-planned:#9C27B0; --lg-wish:#FF9800;
+  --lg-dark-bg:#070B14; --lg-dark-panel:rgba(18,32,58,.75); --lg-glow:#6FD9F5; --lg-glow-text:#BFEFFF;
+  --lg-r-xs:8px; --lg-r-sm:14px; --lg-r-md:18px; --lg-r-lg:26px; --lg-r-pill:999px;
+  --lg-s-xs:4px; --lg-s-sm:8px; --lg-s-md:12px; --lg-s-lg:16px; --lg-s-xl:24px; --lg-page:18px;
+  --lg-sh-sm:0 2px 8px rgba(0,0,0,.10); --lg-sh-md:0 4px 12px rgba(0,0,0,.10);
+  --lg-font:MiSans,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:var(--lg-font);background:#EFEAE3;display:flex;gap:28px;padding:32px;color:var(--lg-text-primary)}
+/* ============ 侧栏导航 ============ */
+nav{position:sticky;top:32px;align-self:flex-start;width:210px;background:#fff;border-radius:var(--lg-r-md);padding:18px 0;box-shadow:var(--lg-sh-sm);max-height:calc(100vh - 64px);overflow:auto}
+nav h1{font-size:17px;font-weight:900;padding:0 18px 4px;color:var(--lg-primary)}
+nav .sub{font-size:10px;color:var(--lg-text-muted);padding:0 18px 12px;border-bottom:1px solid var(--lg-separator)}
+nav a{display:block;padding:8px 18px;font-size:13px;font-weight:600;color:var(--lg-text-secondary);text-decoration:none;border-left:3px solid transparent}
+nav a:hover{color:var(--lg-primary);background:var(--lg-primary-soft)}
+nav .group{font-size:10px;font-weight:800;color:var(--lg-text-muted);padding:14px 18px 4px;letter-spacing:1px}
+/* ============ 版面 ============ */
+main{flex:1;max-width:1400px}
+.board{margin-bottom:56px}
+.board>h2{font-size:22px;font-weight:900;margin-bottom:4px}
+.board>h2 small{font-size:12px;font-weight:600;color:var(--lg-text-muted);margin-left:10px}
+.board>p.desc{font-size:13px;color:var(--lg-text-secondary);margin-bottom:16px;max-width:720px;line-height:1.7}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+/* ============ 手机框 ============ */
+.phone{width:360px;height:800px;background:var(--lg-bg);border:10px solid #1d1917;border-radius:44px;overflow:hidden;position:relative;flex-shrink:0;box-shadow:var(--lg-sh-md)}
+.phone .statusbar{height:28px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-size:11px;font-weight:700;color:var(--lg-text-primary)}
+.phone .statusbar.dark{color:#fff}
+.phone.dark{background:var(--lg-dark-bg)}
+.phone.dark .statusbar{color:#fff}
+/* ============ 通用组件（按规范） ============ */
+.header{display:flex;align-items:center;padding:10px var(--lg-page) 8px}
+.header h3{font-size:25px;font-weight:900}
+.header .tools{margin-left:auto;display:flex;gap:8px}
+.icobtn{width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--lg-text-primary);font-size:16px;border:none}
+.icobtn.active{background:var(--lg-primary-soft);color:var(--lg-primary)}
+.card{background:var(--lg-paper);border:1px solid var(--lg-separator);border-radius:var(--lg-r-md)}
+.card.warm{background:var(--lg-paper-warm)}
+.chip{display:inline-block;padding:3px 8px;border-radius:var(--lg-r-pill);font-size:11px;font-weight:800}
+.chip.warn{background:rgba(231,162,93,.1);color:var(--lg-orange)}
+.chip.ok{background:rgba(122,158,126,.1);color:var(--lg-secondary)}
+.chip.neutral{background:rgba(153,153,153,.1);color:var(--lg-text-muted)}
+.chip.primary{background:var(--lg-primary-soft);color:var(--lg-primary)}
+.entry{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border:1px solid var(--lg-separator);border-radius:var(--lg-r-md)}
+.entry .ico{width:40px;height:40px;border-radius:13px;background:var(--lg-primary-soft);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.entry .ico.green{background:var(--lg-secondary-soft)}
+.entry .ico .material{color:var(--lg-primary);font-size:18px}
+.entry .txt{flex:1;min-width:0}
+.entry .txt b{display:block;font-size:15px;font-weight:900;color:var(--lg-text-primary)}
+.entry .txt span{display:block;font-size:11px;color:var(--lg-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.entry .chev{color:var(--lg-text-muted);font-size:16px}
+.sect{font-size:15px;font-weight:900;padding:0 4px 8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border-radius:var(--lg-r-pill);font-weight:800;cursor:pointer;user-select:none}
+.btn.primary{background:var(--lg-primary);color:#fff;padding:9px 20px;font-size:13px}
+.btn.primary.press{transform:scale(.965);background:#A05030}
+.btn.primary.disable{background:var(--lg-separator);color:var(--lg-text-muted)}
+.btn.primary.loading{background:#CF9C86}
+.btn.outline{border:1.5px solid var(--lg-primary);color:var(--lg-primary);background:#fff;padding:8px 20px;font-size:12px}
+.btn.soft{background:var(--lg-secondary-soft);color:var(--lg-secondary);padding:7px 16px;font-size:12px}
+.btn.ghost{background:transparent;color:var(--lg-text-muted);border:1px solid var(--lg-separator);padding:7px 16px;font-size:12px}
+.field{background:#fff;border:1px solid var(--lg-separator);border-radius:var(--lg-r-sm);padding:10px 12px;font-size:14px;color:var(--lg-text-primary)}
+.field.focus{border:1.5px solid var(--lg-primary)}
+.field.error{border:1.5px solid var(--lg-red)}
+.field.disable{background:var(--lg-bg);color:var(--lg-text-muted)}
+.field .hint{font-size:13px;color:var(--lg-text-muted)}
+.label{font-size:12px;color:var(--lg-text-secondary);margin-bottom:6px;font-weight:600}
+.divider{height:1px;background:var(--lg-separator);margin:10px 0}
+.dashed{border-top:1.5px dashed var(--lg-separator)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:var(--lg-r-pill);font-size:12px;font-weight:800}
+.todo-row{display:flex;align-items:center;gap:8px;padding-top:8px}
+.todo-circle{width:26px;height:26px;border-radius:50%;border:1.6px solid var(--lg-text-muted);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
+.todo-circle.done{border:none;background:var(--lg-secondary)}
+.todo-title{flex:1;font-size:13px;color:var(--lg-text-primary)}
+.todo-title.done{text-decoration:line-through;color:var(--lg-text-muted)}
+.shimmer{background:linear-gradient(90deg,#F2EDE6 25%,#FAF6F0 50%,#F2EDE6 75%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:10px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.stat-tile{flex:1;background:#fff;border-radius:13px;padding:10px;text-align:center;border:1px solid var(--lg-separator)}
+.stat-tile b{display:block;font-size:16px;font-weight:900}
+.stat-tile span{font-size:10px;color:var(--lg-text-muted)}
+.note{font-size:11px;color:var(--lg-text-muted);max-width:360px;line-height:1.7;margin-top:10px}
+.note b{color:var(--lg-primary)}
+/* 状态展示卡 */
+.states{display:flex;gap:14px;flex-wrap:wrap;max-width:820px}
+.state-card{background:#fff;border-radius:var(--lg-r-sm);padding:14px;border:1px solid var(--lg-separator);min-width:130px}
+.state-card h4{font-size:11px;font-weight:800;color:var(--lg-text-muted);margin-bottom:10px;letter-spacing:1px}
+/* tokens 展示 */
+.tokens{display:flex;gap:10px;flex-wrap:wrap}
+.tok{width:96px}
+.tok .sw{height:52px;border-radius:10px;border:1px solid rgba(0,0,0,.06)}
+.tok code{font-size:10px;color:var(--lg-text-secondary)}
+.tok .nm{font-size:11px;font-weight:800;margin-top:4px}
+.type-row{display:flex;align-items:baseline;gap:14px;padding:7px 0;border-bottom:1px dashed var(--lg-separator)}
+.type-row code{font-size:10px;color:var(--lg-text-muted);width:150px;flex-shrink:0}
+h2#page {scroll-margin-top:20px}
+</style>
+</head>
+<body>
+<nav>
+  <h1>LoveGirl</h1><div class="sub">UI 设计稿 v1.0 · DS v1.0</div>
+  <div class="group">设计基座</div>
+  <a href="#tokens">色彩 Tokens</a>
+  <a href="#type">字体字阶</a>
+  <a href="#components">组件库 · 四态</a>
+  <div class="group">主要页面</div>
+  <a href="#p-home">首页</a>
+  <a href="#p-home2">首页 · 下半屏</a>
+  <a href="#p-travel">旅行 · 真地图</a>
+  <a href="#p-travel-list">旅行 · 地点列表</a>
+  <a href="#p-stars">足迹星图</a>
+  <a href="#p-kitchen-menu">情侣厨房 · 点菜单</a>
+  <a href="#p-kitchen-order">情侣厨房 · 订单</a>
+  <a href="#p-kitchen-mine">情侣厨房 · 我的厨房</a>
+  <a href="#p-kitchen-records">情侣厨房 · 开饭记录</a>
+  <a href="#p-beans">爱心豆</a>
+  <a href="#p-memo">回忆票根弹层</a>
+  <a href="#p-ticket">旅行票根 · 三版式</a>
+  <a href="#p-album">相册 · 翻页书</a>
+  <a href="#p-life">生活</a>
+  <a href="#p-profile">我的</a>
+  <a href="#p-bind">伴侣绑定</a>
+  <a href="#p-health">健康 · 视角拦截</a>
+  <a href="#p-settings">设置</a>
+  <a href="#p-picker">地图选点</a>
+  <div class="group">状态与规范</div>
+  <a href="#s-states">交互四态总览</a>
+  <a href="#s-load">加载/空态/反馈</a>
+</nav>
+<main>
+
+<!-- ================= 设计基座：色彩 ================= -->
+<div class="board" id="tokens">
+<h2>色彩 Tokens <small>品牌 + 中性 + 状态 + 星图深色</small></h2>
+<p class="desc">整屏同现彩色 ≤ 3 种：陶土橘只给「爱与主行动」，灰绿只给「完成/健康」，红色只给删除与警示。禁止纯黑文字（用 #333）。</p>
+<div class="tokens">
+  <div class="tok"><div class="sw" style="background:#B85C38"></div><div class="nm">primary</div><code>#B85C38</code></div>
+  <div class="tok"><div class="sw" style="background:#D4876B"></div><div class="nm">primary-light</div><code>#D4876B</code></div>
+  <div class="tok"><div class="sw" style="background:#FBE3E3"></div><div class="nm">primary-soft</div><code>#FBE3E3</code></div>
+  <div class="tok"><div class="sw" style="background:#7A9E7E"></div><div class="nm">secondary</div><code>#7A9E7E</code></div>
+  <div class="tok"><div class="sw" style="background:#F0F5EC"></div><div class="nm">secondary-soft</div><code>#F0F5EC</code></div>
+  <div class="tok"><div class="sw" style="background:#E7B78A"></div><div class="nm">accent</div><code>#E7B78A</code></div>
+  <div class="tok"><div class="sw" style="background:#E7A25D"></div><div class="nm">orange</div><code>#E7A25D</code></div>
+  <div class="tok"><div class="sw" style="background:#E95B4E"></div><div class="nm">red</div><code>#E95B4E</code></div>
+  <div class="tok"><div class="sw" style="background:#FFF9F5"></div><div class="nm">bg</div><code>#FFF9F5</code></div>
+  <div class="tok"><div class="sw" style="background:#FFF5EC"></div><div class="nm">paper-warm</div><code>#FFF5EC</code></div>
+  <div class="tok"><div class="sw" style="background:#EAE4DC"></div><div class="nm">separator</div><code>#EAE4DC</code></div>
+  <div class="tok"><div class="sw" style="background:#333"></div><div class="nm">text-primary</div><code>#333333</code></div>
+  <div class="tok"><div class="sw" style="background:#4CAF50"></div><div class="nm">visited</div><code>#4CAF50</code></div>
+  <div class="tok"><div class="sw" style="background:#9C27B0"></div><div class="nm">planned</div><code>#9C27B0</code></div>
+  <div class="tok"><div class="sw" style="background:#FF9800"></div><div class="nm">wish</div><code>#FF9800</code></div>
+  <div class="tok"><div class="sw" style="background:#070B14"></div><div class="nm">dark-bg</div><code>#070B14</code></div>
+  <div class="tok"><div class="sw" style="background:#6FD9F5"></div><div class="nm">glow(星图)</div><code>#6FD9F5</code></div>
+</div>
+</div>
+
+<!-- ================= 字体字阶 ================= -->
+<div class="board" id="type">
+<h2>字体字阶 <small>7 档 · 字族 MiSans → PingFang SC → MS YaHei</small></h2>
+<p class="desc">中文标题用重字重制造「手写用力」感。游离字号（8/9/11/19/22/24）为新代码禁用值，存量逐步替换。</p>
+<div style="background:#fff;border-radius:var(--lg-r-sm);padding:6px 20px;max-width:820px">
+  <div class="type-row"><code>display 34/w700</code><span style="font-size:34px;font-weight:700">LoveGirl</span></div>
+  <div class="type-row"><code>h1 25/w900</code><span style="font-size:25px;font-weight:900">旅行地图</span></div>
+  <div class="type-row"><code>h2 20/w900</code><span style="font-size:20px;font-weight:900">确认订单</span></div>
+  <div class="type-row"><code>h3 17/w900</code><span style="font-size:17px;font-weight:900">今天要照顾的事</span></div>
+  <div class="type-row"><code>body 14/w600</code><span style="font-size:14px;font-weight:600">爱是把小事，放在心上</span></div>
+  <div class="type-row"><code>caption 12/w600</code><span style="font-size:12px;font-weight:600">已经收藏了 3 个地点，随时可以安排行程</span></div>
+  <div class="type-row"><code>micro 10/w700</code><span style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--lg-text-muted)">TRAVEL MEMORY</span></div>
+</div>
+</div>
+
+<!-- ================= 组件库四态 ================= -->
+<div class="board" id="components">
+<h2>组件库 · 交互四态 <small>正常 / 点击 / 禁用 / 加载</small></h2>
+<p class="desc">点击 = 按压缩放 0.965 + InkSparkle 水波；加载 = 内容替换转圈并禁点；禁用 = separator 底 + muted 字。四态必须同时给出，缺一不可入册。</p>
+<div class="states">
+  <div class="state-card"><h4>主按钮</h4>
+    <div class="btn primary" style="margin-bottom:8px">下单 · 等主厨开火</div>
+    <div class="btn primary press" style="margin-bottom:8px">下单 · 等主厨开火</div>
+    <div class="btn primary loading" style="margin-bottom:8px">上传中…</div>
+    <div class="btn primary disable">下单 · 等主厨开火</div>
+  </div>
+  <div class="state-card"><h4>输入框</h4>
+    <div class="field" style="margin-bottom:8px">例如：故宫博物院</div>
+    <div class="field focus" style="margin-bottom:8px">成<cursor>|</cursor></div>
+    <div class="field error" style="margin-bottom:8px">菜名不能为空</div>
+    <div class="field disable">不可编辑</div>
+  </div>
+  <div class="state-card"><h4>待办圆圈 DRAW</h4>
+    <div class="todo-row" style="margin-bottom:8px"><div class="todo-circle"></div><span class="todo-title">提醒她多喝水</span></div>
+    <div class="todo-row" style="margin-bottom:8px"><div class="todo-circle" style="border:2px solid var(--lg-secondary);width:20px;height:20px;margin:3px"></div><span class="todo-title">提醒她多喝水</span></div>
+    <div class="todo-row"><div class="todo-circle done">✓</div><span class="todo-title done">提醒她多喝水</span></div>
+  </div>
+  <div class="state-card"><h4>弹性开关</h4>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px">
+      <div style="width:46px;height:28px;border-radius:999px;background:var(--lg-primary);position:relative"><div style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></div></div><span style="font-size:12px;font-weight:800;color:var(--lg-primary)">开</span>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center">
+      <div style="width:46px;height:28px;border-radius:999px;background:var(--lg-separator);position:relative"><div style="position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid #ddd"></div></div><span style="font-size:12px;color:var(--lg-text-muted)">关</span>
+    </div>
+  </div>
+  <div class="state-card"><h4>状态徽章</h4>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="badge" style="background:rgba(231,162,93,.1);color:var(--lg-orange)">待接单</span>
+      <span class="badge" style="background:rgba(184,92,56,.1);color:var(--lg-primary)">烹饪中</span>
+      <span class="badge" style="background:rgba(122,158,126,.1);color:var(--lg-secondary)">已完成</span>
+      <span class="badge" style="background:rgba(153,153,153,.1);color:var(--lg-text-muted)">已取消</span>
+    </div>
+  </div>
+  <div class="state-card"><h4>加载骨架</h4>
+    <div class="shimmer" style="height:18px;width:120px;margin-bottom:8px"></div>
+    <div class="shimmer" style="height:54px;margin-bottom:8px"></div>
+    <div class="shimmer" style="height:14px;width:200px"></div>
+  </div>
+</div>
+</div>
+
+<!-- ================= 首页 上半 ================= -->
+<div class="board" id="p-home">
+<h2>首页 · 上半屏 <small>清单化条目 · 时光感知已移除（不再发灰）</small></h2>
+<p class="desc">跳转：厨房条 → 情侣厨房；待办条 → 待办页；待办圆圈 → 首页直接勾选（DRAW 描边 + 划线 + 震动）。徽章语义：橘 = 待行动，灰 = 无事。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶 14.4 K/s</span><span>🔩 ⚡ 100 | 09:29</span></div>
+  <div class="header"><h3>LoveGirl<span style="color:var(--lg-primary)">❤</span></h3>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <div style="text-align:right"><b style="font-size:16px;font-weight:900">45</b><div style="font-size:10px;color:var(--lg-text-muted)">爱心豆</div></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#FFF0D9;border:1px solid #F1D4B1;display:flex;align-items:center;justify-content:center;font-size:14px">🫘</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 18px 8px;gap:8px">
+    <div style="font-size:11px;font-weight:800;color:var(--lg-text-secondary)">我们在一起的第 <span style="color:var(--lg-primary);font-size:18px;font-weight:900">1661</span> 天 ❤</div>
+  </div>
+  <div style="padding:0 var(--lg-page)">
+    <div class="sect">今天要照顾的事</div>
+    <div class="entry" style="margin-bottom:10px">
+      <div class="ico">🍳</div>
+      <div class="txt"><b>情侣厨房</b><span>今晚想吃什么</span></div>
+      <span class="chip warn">还没点单</span><span class="chev">›</span>
+    </div>
+    <div class="entry">
+      <div class="ico green"><span style="color:var(--lg-secondary);font-size:16px;font-weight:900">✓</span></div>
+      <div class="txt"><b>待办清单</b><span>提醒她多喝水 · 睡前讲…</span></div>
+      <span class="chip neutral">0/2 完成</span><span class="chev">›</span>
+    </div>
+    <div style="margin-top:14px" class="card warm">
+      <div style="display:flex;gap:12px;padding:12px;align-items:center">
+        <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#FBE3E3,#FFF5EC);display:flex;align-items:center;justify-content:center;color:var(--lg-primary);font-size:22px">❤</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">那天很期待</div>
+          <div style="font-size:11px;color:var(--lg-text-muted);margin-top:3px">2 个月前的今天 · 杭州</div>
+        </div>
+        <div class="btn outline" style="padding:6px 10px;font-size:11px">生成票根</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div>
+  <div class="note"><b>交互</b>：三条目整卡可点（PressableScale 按压缩放）；「生成票根」按钮独立弹出回忆票根弹层（见回忆票根页）。<br><b>不要</b>：条目内再嵌按钮组；徽章不要用红色。</div>
+</div>
+</div>
+
+<!-- ================= 首页 下半 ================= -->
+<div class="board" id="p-home2">
+<h2>首页 · 下半屏 <small>出发计划 / 本月小账本</small></h2>
+<p class="desc">出发计划为绿色系紧凑条（点击 → 旅行 tab）；小账本保留双面板（财务 + 课程）。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:30</span></div>
+  <div style="padding:0 var(--lg-page)">
+    <div class="card" style="background:#F6FBF4;border-color:#DDEBD7;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
+        <div style="width:46px;height:46px;border-radius:14px;background:var(--lg-secondary-soft);display:flex;align-items:center;justify-content:center;color:var(--lg-secondary);font-size:20px">🧭</div>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:800;color:var(--lg-secondary)">出发计划</div>
+          <div style="font-size:17px;font-weight:900;margin-top:1px">六盘水市</div>
+          <div style="font-size:11px;color:var(--lg-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">已经收藏了 3 个地点，随时可以…</div>
+        </div>
+        <span class="chev" style="color:var(--lg-text-muted)">›</span>
+      </div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--lg-primary)">💳</span><b style="font-size:16px;font-weight:900">本月小账本</b></div>
+      <div style="display:flex;gap:14px">
+        <div style="flex:1">
+          <div class="label">总支出</div>
+          <div style="font-size:22px;font-weight:900;color:var(--lg-primary)">¥128</div>
+          <div class="label" style="margin-top:8px">剩余预算</div>
+          <div style="font-size:22px;font-weight:900">¥872</div>
+        </div>
+        <div style="width:88px;height:88px;border-radius:50%;background:conic-gradient(var(--lg-primary) 0 40%,var(--lg-accent) 40% 70%,var(--lg-secondary) 70% 100%)"></div>
+      </div>
+      <div class="divider" style="margin:14px 0"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span>📖</span><b style="font-size:15px;font-weight:900">本周课程</b></div>
+      <div style="font-size:16px;font-weight:800">明天 周四 14:00</div>
+      <div style="font-size:13px;color:var(--lg-text-secondary)">设计心理学 · 教二楼 302</div>
+      <div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--lg-text-primary)">去记一笔 › &nbsp;&nbsp; 查看课表 ›</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>规范</b>：出发计划使用 secondary 绿系（语义 = 计划/自然）；数字用 RollingNumber 滚动；两卡均为可点条目。</div>
+</div>
+
+<!-- ================= 旅行 真地图 ================= -->
+<div class="board" id="p-travel">
+<h2>旅行 · 真地图 <small>v3.23 真地图直进 · 已减负</small></h2>
+<p class="desc">打开即高德真地图。地图上只保留：票根 pin（状态配色）+ 顺序箭头线 + 工具钮（图层/路况）+ 全屏按钮。筛选收敛到列表区；状态筛选条已从地图移除。</p>
+<div class="phone">
+  <div class="statusbar dark"><span>📶</span><span>10:20</span></div>
+  <div style="position:relative;height:calc(100% - 28px);background:#E8EAED">
+    <!-- 模拟地图 -->
+    <div style="position:absolute;inset:0;background:linear-gradient(160deg,#E8EAED 60%,#AADAFF 60.5%)"></div>
+    <div style="position:absolute;left:40px;top:120px;color:#B8A9A0;font-size:11px">四川</div>
+    <div style="position:absolute;left:150px;top:150px;color:#B8A9A0;font-size:11px">重庆</div>
+    <div style="position:absolute;left:250px;top:110px;color:#B8A9A0;font-size:11px">湖北</div>
+    <div style="position:absolute;left:80px;top:250px;color:#B8A9A0;font-size:11px">贵州</div>
+    <div style="position:absolute;left:210px;top:230px;color:#B8A9A0;font-size:11px">湖南</div>
+    <div style="position:absolute;left:300px;top:200px;color:#B8A9A0;font-size:11px">江西</div>
+    <!-- 顺序箭头线 -->
+    <svg style="position:absolute;inset:0" width="360" height="772">
+      <path d="M110 330 Q 180 380 250 300 T 300 380" stroke="#B85C38" stroke-width="3" fill="none" stroke-dasharray="7 6" stroke-linecap="round" opacity=".8"/>
+    </svg>
+    <!-- pin ×3 -->
+    <div style="position:absolute;left:88px;top:280px;text-align:center"><div style="width:30px;height:30px;border-radius:8px;background:#9C27B0;border:2.5px solid #fff;box-shadow:0 3px 6px rgba(0,0,0,.3);margin:0 auto;transform:rotate(45deg)"></div><div style="font-size:10px;background:#fff;border-radius:6px;padding:2px 6px;margin-top:4px;font-weight:800;color:#9C27B0;box-shadow:var(--lg-sh-sm)">他 · 计划中</div></div>
+    <div style="position:absolute;left:236px;top:250px;text-align:center"><div style="width:30px;height:30px;border-radius:8px;background:#9C27B0;border:2.5px solid #fff;box-shadow:0 3px 6px rgba(0,0,0,.3);margin:0 auto;transform:rotate(45deg)"></div><div style="font-size:10px;background:#fff;border-radius:6px;padding:2px 6px;margin-top:4px;font-weight:800;color:#9C27B0;box-shadow:var(--lg-sh-sm)">雷波县 · 计划中</div></div>
+    <div style="position:absolute;left:290px;top:330px;text-align:center"><div style="width:30px;height:30px;border-radius:8px;background:#4CAF50;border:2.5px solid #fff;box-shadow:0 3px 6px rgba(0,0,0,.3);margin:0 auto;transform:rotate(45deg)"></div><div style="font-size:10px;background:#fff;border-radius:6px;padding:2px 6px;margin-top:4px;font-weight:800;color:#4CAF50;box-shadow:var(--lg-sh-sm)">回到家 · 已打卡</div></div>
+    <!-- 工具钮 -->
+    <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:10px">
+      <div class="icobtn" style="box-shadow:var(--lg-sh-sm)">🗺</div>
+      <div class="icobtn" style="box-shadow:var(--lg-sh-sm)">🚦</div>
+    </div>
+    <!-- 全屏按钮 -->
+    <div style="position:absolute;right:14px;bottom:14px;background:var(--lg-primary);color:#fff;border-radius:var(--lg-r-md);padding:10px 14px;font-size:12px;font-weight:800">⤢ 全屏地图</div>
+    <!-- FAB -->
+    <div style="position:absolute;right:18px;bottom:24px;width:56px;height:56px;border-radius:18px;background:var(--lg-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:var(--lg-sh-md)">+</div>
+    <!-- 定位徽章 -->
+    <div style="position:absolute;left:12px;bottom:12px;background:#fff;border-radius:999px;padding:4px 10px;font-size:10px;color:var(--lg-text-muted);box-shadow:var(--lg-sh-sm)">📍 广东省广州市</div>
+    <!-- header 覆盖（浅色） -->
+    <div style="position:absolute;left:0;right:0;top:0" class="header"><h3>旅行地图 <span style="color:var(--lg-primary);font-size:18px">❤</span></h3><div class="tools"><div class="icobtn">🔍</div><div class="icobtn active">✨</div><div class="icobtn">☰</div></div></div>
+  </div>
+</div>
+<div class="note"><b>交互</b>：点 pin → 三段式镜头飞行（拉升→巡航→落地）→ 弹出地点详情面板；pin 长按无动作；地点列表在下方滚动区（左滑删除）。<br><b>已移除</b>：状态筛选条、统计芯片、底部常驻票根卡——均收敛到列表区。<br><b>性能</b>：定位回调 ValueNotifier 局部刷新，不触发全页重建。</div>
+</div>
+
+<!-- ================= 旅行 列表+左滑 ================= -->
+<div class="board" id="p-travel-list">
+<h2>旅行 · 地点列表 <small>左滑删除 · 确认弹窗</small></h2>
+<p class="desc">列表筛选（想去/计划中/已打卡/城市/排序）收敛于此。左滑露出红色删除背景 → 确认弹窗（地图和路线同步更新）。</p>
+<div class="row">
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:22</span></div>
+  <div style="padding:0 16px">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <span class="chip" style="border:1px solid var(--lg-separator);padding:6px 14px;font-size:13px">想去</span>
+      <span class="chip" style="border:1px solid var(--lg-separator);padding:6px 14px;font-size:13px">计划中</span>
+      <span class="chip" style="border:1px solid var(--lg-separator);padding:6px 14px;font-size:13px">已打卡</span>
+      <span class="chip" style="border:1px solid var(--lg-separator);padding:6px 14px;font-size:13px">城市 ▾</span>
+    </div>
+    <div class="entry" style="margin-bottom:10px">
+      <div class="ico" style="background:rgba(156,39,176,.08)"><span style="color:#9C27B0;font-weight:900">📋</span></div>
+      <div class="txt"><b>他</b><span>📍 六盘水市</span></div>
+      <span class="chip primary">计划中</span>
+    </div>
+    <div class="entry" style="margin-bottom:10px">
+      <div class="ico green">✅</div>
+      <div class="txt"><b>回到家</b><span>📍 河源市 · 打卡 2026-09-18</span></div>
+      <span class="chip ok">已打卡</span>
+    </div>
+    <!-- 左滑中 -->
+    <div style="position:relative;border-radius:var(--lg-r-md);overflow:hidden;margin-bottom:10px">
+      <div style="position:absolute;inset:0;background:var(--lg-red);display:flex;align-items:center;justify-content:flex-end;padding-right:22px;color:#fff;font-size:22px">🗑</div>
+      <div style="position:relative;transform:translateX(-60px)" class="entry" style2="background:#fff">
+        <div class="ico" style="background:rgba(156,39,176,.08)"><span style="color:#9C27B0;font-weight:900">❓</span></div>
+        <div class="txt"><b>未命名地点</b><span>计划 2026-07-20 · 预算 ¥88</span></div>
+        <span class="chip primary">计划中</span>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--lg-text-muted);padding:6px">← 左滑删除 · 松手弹确认 →</div>
+  </div>
+</div>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:23</span></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"></div>
+  <div style="position:absolute;left:40px;right:40px;top:300px;background:#fff;border-radius:20px;padding:24px;text-align:center">
+    <div style="font-size:20px;font-weight:900;margin-bottom:12px">删除地点</div>
+    <div style="font-size:14px;color:var(--lg-text-secondary);line-height:1.6;margin-bottom:22px">确定要删除"未命名地点"吗？<br>地图和路线会同步更新。</div>
+    <div style="display:flex;justify-content:center;gap:32px;font-size:15px;font-weight:800"><span style="color:var(--lg-text-secondary)">取消</span><span style="color:var(--lg-red)">删除</span></div>
+  </div>
+</div>
+</div>
+<div class="note"><b>数据同步</b>：确认后走 deleteSpot → 地图 pin、路线预览、列表三处同步刷新（路线自动重算）。<br><b>不要</b>：无确认直接删；删除成功后不刷新地图。</div>
+</div>
+
+<!-- ================= 足迹星图 ================= -->
+<div class="board" id="p-stars">
+<h2>足迹星图 <small>唯一深色页 · 旅行页 ✨ 切换进入</small></h2>
+<p class="desc">深黑蓝星空 + 中国地图发光省界 + 475 城市灰点 + 去过城市青色呼吸光点。毛玻璃面板统计进度。点击光点弹城市详情；长按高亮聚焦。深色 token 只在此页使用。</p>
+<div class="phone dark">
+  <div class="statusbar"><span>📶</span><span>10:12</span></div>
+  <div style="position:relative;height:calc(100% - 28px)">
+    <!-- 星点 -->
+    <div style="position:absolute;inset:0;background:
+      radial-gradient(1.5px 1.5px at 60px 120px,#fff 60%,transparent),
+      radial-gradient(1px 1px at 150px 60px,#fff 60%,transparent),
+      radial-gradient(2px 2px at 260px 200px,#fff 60%,transparent),
+      radial-gradient(1px 1px at 320px 90px,#fff 60%,transparent),
+      radial-gradient(1.5px 1.5px at 90px 300px,#fff 60%,transparent),
+      linear-gradient(180deg,#070B14,#0B1526 50%,#070B14)"></div>
+    <!-- 中国轮廓（示意发光描边） -->
+    <svg style="position:absolute;left:170px;top:150px" width="230" height="330" viewBox="0 0 100 130">
+      <path d="M20 15 L45 8 L60 20 L70 35 L62 50 L75 62 L65 85 L45 95 L25 88 L15 60 L8 35 Z" fill="rgba(61,126,166,.14)" stroke="#7FD4FF" stroke-width="1" opacity=".85"/>
+      <path d="M25 20 L48 14 M30 40 L55 30 M20 60 L50 55" stroke="#7FD4FF" stroke-width=".5" opacity=".4"/>
+    </svg>
+    <!-- 光点 -->
+    <div style="position:absolute;left:275px;top:355px;width:14px;height:14px;border-radius:50%;background:#BFEFFF;box-shadow:0 0 12px 4px rgba(111,217,245,.55)"></div>
+    <div style="position:absolute;left:320px;top:420px;width:14px;height:14px;border-radius:50%;background:#BFEFFF;box-shadow:0 0 12px 4px rgba(111,217,245,.55)"></div>
+    <!-- 灰点（示意） -->
+    <div style="position:absolute;left:250px;top:330px;width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.25)"></div>
+    <div style="position:absolute;left:300px;top:360px;width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,.25)"></div>
+    <!-- 轨迹线 -->
+    <svg style="position:absolute;inset:0" width="360" height="772"><line x1="282" y1="362" x2="327" y2="427" stroke="#6FD9F5" stroke-width="1.6" opacity=".9"/></svg>
+    <!-- 毛玻璃面板 -->
+    <div style="position:absolute;left:14px;top:14px;width:228px;background:var(--lg-dark-panel);backdrop-filter:blur(12px);border:1px solid rgba(111,217,245,.35);border-radius:var(--lg-r-md);padding:14px">
+      <div style="color:var(--lg-glow-text);font-size:17px;font-weight:900">我的足迹</div>
+      <div style="color:rgba(255,255,255,.6);font-size:10px;margin:2px 0 10px">走过的城市 拼成一张星空图</div>
+      <div style="display:flex;align-items:baseline"><span style="color:rgba(255,255,255,.67);font-size:11px">点亮城市</span><span style="flex:1"></span><span style="color:var(--lg-glow);font-size:18px;font-weight:900">2</span><span style="color:rgba(255,255,255,.55);font-size:10px">/ 475</span></div>
+      <div style="height:6px;background:rgba(255,255,255,.11);border-radius:3px;margin-top:4px"><div style="width:1%;height:6px;background:var(--lg-glow);border-radius:3px"></div></div>
+      <div style="display:flex;align-items:baseline;margin-top:8px"><span style="color:rgba(255,255,255,.67);font-size:11px">覆盖省份</span><span style="flex:1"></span><span style="color:var(--lg-glow);font-size:18px;font-weight:900">2</span><span style="color:rgba(255,255,255,.55);font-size:10px">/ 34</span></div>
+      <div style="height:6px;background:rgba(255,255,255,.11);border-radius:3px;margin-top:4px"><div style="width:6%;height:6px;background:#9CE7C4;border-radius:3px"></div></div>
+      <div style="margin-top:12px;display:inline-block;padding:5px 12px;border-radius:999px;border:1px solid rgba(111,217,245,.35);background:rgba(111,217,245,.14);color:var(--lg-glow-text);font-size:11px;font-weight:800">〽 轨迹线</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>入口</b>：旅行页 header ✨ 按钮切换（地图 ⟷ 星图）。<br><b>红线</b>：本页为唯一深色页；浅色 token（paper/separator）禁止入内；光点呼吸/星闪为常驻动画（低帧率设备自动降级）。</div>
+</div>
+
+<!-- ================= 厨房 点菜单 ================= -->
+<div class="board" id="p-kitchen-menu">
+<h2>情侣厨房 · 点菜单 <small>外卖交互 · 左分类右菜品</small></h2>
+<p class="desc">TA 的菜单。左侧分类锚点，右侧菜品卡（emoji/照片 + 名称 + 推荐语 + 趣味价 + 加购）。底部购物车条实时合计。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:42</span></div>
+  <div class="header"><span class="icobtn" style="background:transparent">‹</span><div><b style="font-size:22px;font-weight:900">情侣厨房 ❤</b><div style="font-size:11px;color:var(--lg-text-muted)">主厨：TestGirl · 想吃就点</div></div><div style="margin-left:auto;position:relative"><span style="font-size:19px">🧾</span><span style="position:absolute;right:-4px;top:-2px;background:var(--lg-red);color:#fff;font-size:9px;font-weight:800;border-radius:8px;padding:1px 4px">1</span></div></div>
+  <div style="font-size:15px;font-weight:900;padding:0 20px 6px">今晚想吃什么？由 TA 掌勺</div>
+  <div style="display:flex;height:calc(100% - 210px)">
+    <div style="width:92px;background:var(--lg-paper-warm)">
+      <div style="padding:14px;font-size:13px;background:var(--lg-bg);border-left:3px solid var(--lg-primary);font-weight:800;color:var(--lg-primary)">全部</div>
+      <div style="padding:14px;font-size:13px;color:var(--lg-text-secondary);border-left:3px solid transparent">硬菜</div>
+      <div style="padding:14px;font-size:13px;color:var(--lg-text-secondary);border-left:3px solid transparent">家常菜</div>
+      <div style="padding:14px;font-size:13px;color:var(--lg-text-secondary);border-left:3px solid transparent">汤羹</div>
+      <div style="padding:14px;font-size:13px;color:var(--lg-text-secondary);border-left:3px solid transparent">甜品</div>
+    </div>
+    <div style="flex:1;padding:12px 16px 12px 12px">
+      <div class="card" style="padding:12px;display:flex;gap:10px;margin-bottom:10px;align-items:center">
+        <div style="width:56px;height:56px;border-radius:12px;background:var(--lg-primary-soft);display:flex;align-items:center;justify-content:center;font-size:28px">🥦</div>
+        <div style="flex:1;min-width:0">
+          <b style="font-size:15px;font-weight:800">蒜蓉西兰花</b>
+          <div style="font-size:12px;color:var(--lg-text-muted)">¥15 · 家常菜</div>
+        </div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--lg-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px">+</div>
+      </div>
+      <div class="card" style="padding:12px;display:flex;gap:10px;align-items:center">
+        <div style="width:56px;height:56px;border-radius:12px;background:var(--lg-primary-soft);display:flex;align-items:center;justify-content:center;font-size:28px">🥩</div>
+        <div style="flex:1;min-width:0">
+          <b style="font-size:15px;font-weight:800">番茄牛腩</b>
+          <div style="font-size:12px;color:var(--lg-text-muted)">炖了两小时的…</div>
+          <div style="margin-top:4px"><span style="color:var(--lg-red);font-weight:800;font-size:14px">¥42</span> <span style="font-size:11px;color:var(--lg-text-muted)">· 硬菜</span></div>
+        </div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--lg-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px">+</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:16px;background:var(--lg-text-muted);border-radius:999px;padding:12px 18px;display:flex;align-items:center;color:#fff;font-weight:800;font-size:14px">🛍 看看 TA 能做什么菜<span style="margin-left:auto">先逛逛 ›</span></div>
+</div>
+<div class="note"><b>交互</b>：+ 加购（震动 selectionClick）→ 底部条变深色显示合计 → 点开确认单 → 留言下单。下单成功后 3 秒内可撤销（接单侧同理）。</div>
+</div>
+
+<!-- ================= 厨房 购物车确认 + 订单 ================= -->
+<div class="board" id="p-kitchen-order">
+<h2>情侣厨房 · 购物车确认 与 订单状态 <small>待接单 / 烹饪中（3 秒撤销）/ 已完成</small></h2>
+<p class="desc">订单状态机：placed → accepted → done（完成必须拍成品照）。接单成功后出现 3 秒撤销钮（跟手拖动判定）。完成自动 +5 爱心豆并生成投喂小票。</p>
+<div class="row">
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:44</span></div>
+  <div style="padding:12px 16px">
+    <div style="font-size:18px;font-weight:900;margin-bottom:12px">订单</div>
+    <div style="display:flex;gap:16px;font-size:14px;font-weight:800;margin-bottom:14px">
+      <span style="color:var(--lg-primary);border-bottom:2px solid var(--lg-primary);padding-bottom:6px">收到的订单</span>
+      <span style="color:var(--lg-text-muted)">我下的订单</span>
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;margin-bottom:8px"><b>#2</b><span style="font-size:12px;color:var(--lg-text-muted);margin-left:8px;flex:1">TA 想吃：</span><span class="chip warn">待接单</span></div>
+      <div style="font-size:14px;margin:6px 0">🍗 可乐鸡翅 ×2</div>
+      <div style="font-size:12px;color:var(--lg-text-muted)">留言：今晚想吃这个！</div>
+      <div style="display:flex;align-items:center;margin-top:10px"><b>合计 ¥56</b><span style="margin-left:auto" class="btn primary" style="padding:6px 14px;font-size:12px">✓ 接单</span></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="display:flex;align-items:center;margin-bottom:8px"><b>#1</b><span style="font-size:12px;color:var(--lg-text-muted);margin-left:8px;flex:1">TA 想吃：</span><span class="chip primary">烹饪中</span></div>
+      <div style="font-size:14px;margin:6px 0">🍖 红烧肉 ×1</div>
+      <div style="display:flex;align-items:center;margin-top:10px"><b>合计 ¥35</b><span style="margin-left:auto" class="btn soft">📸 完成并拍照</span></div>
+    </div>
+  </div>
+</div>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:45</span></div>
+  <div style="padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:24px">🫘</span><b style="font-size:22px;font-weight:900">45</b><span style="font-size:12px;color:var(--lg-text-muted)">完成订单 +5 豆</span></div>
+    <div class="card warm" style="padding:14px;position:relative">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><b style="font-size:14px;font-weight:900">🔥 投喂小票</b><span style="margin-left:auto;font-size:11px;color:var(--lg-text-muted)">#2</span></div>
+      <div class="dashed"></div>
+      <div style="padding:10px 0;font-size:13px">🍗 可乐鸡翅 ×2 <span style="float:right;font-weight:800">¥56</span></div>
+      <div class="dashed"></div>
+      <div style="display:flex;align-items:center;margin-top:8px;font-size:11px;color:var(--lg-text-muted)"><span>2026-09-19 09:45</span><span style="margin-left:auto;font-weight:800;color:var(--lg-text-primary)">合计 ¥56</span></div>
+      <div style="display:flex;gap:3px;margin-top:8px;align-items:flex-end;height:26px"><i style="width:3px;height:16px;background:#ccc"></i><i style="width:2px;height:26px;background:#999"></i><i style="width:4px;height:20px;background:#ccc"></i><i style="width:2px;height:12px;background:#bbb"></i><i style="width:3px;height:22px;background:#ccc"></i></div>
+      <div style="position:absolute;right:12px;top:34px;transform:rotate(-14deg);border:2px solid var(--lg-primary);border-radius:8px;color:var(--lg-primary);font-weight:900;padding:3px 10px;background:var(--lg-primary-soft)">已开火 ♥</div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note"><b>完成必拍照</b>：无成品照服务端拒绝 done（400），App 引导拍摄。<b>撤销</b>：接单后 3 秒内按钮滑出「撤销」，拖回判定恢复 placed。</div>
+</div>
+
+<!-- ================= 厨房 我的厨房 ================= -->
+<div class="board" id="p-kitchen-mine">
+<h2>情侣厨房 · 我的厨房 <small>菜品管理 · 添加表单</small></h2>
+<p class="desc">菜单是「我会为你做的事」。每道菜：照片或 emoji + 分类 + 趣味价 + 推荐语；可编辑/下架（下架不影响历史订单快照）。</p>
+<div class="row">
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:46</span></div>
+  <div style="padding:16px">
+    <div class="card" style="padding:12px;display:flex;align-items:center;margin-bottom:10px">
+      <div style="width:56px;height:56px;border-radius:12px;background:var(--lg-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:28px">🍗</div>
+      <div style="flex:1;margin-left:12px"><b style="font-size:15px">可乐鸡翅</b><div style="font-size:12px;color:var(--lg-text-muted)">硬菜 · ¥28 · 甜咸口，下饭神器</div></div>
+      <span style="color:var(--lg-text-secondary);margin-right:4px">✎</span><span style="color:var(--lg-red)">🗑</span>
+    </div>
+    <div class="card" style="padding:12px;display:flex;align-items:center">
+      <div style="width:56px;height:56px;border-radius:12px;background:var(--lg-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:28px">🍲</div>
+      <div style="flex:1;margin-left:12px"><b style="font-size:15px">番茄蛋花汤</b><div style="font-size:12px;color:var(--lg-text-muted)">汤羹 · 心意价</div></div>
+      <span style="color:var(--lg-text-secondary);margin-right:4px">✎</span><span style="color:var(--lg-red)">🗑</span>
+    </div>
+    <div style="position:absolute;left:16px;right:16px;bottom:16px" class="btn primary">+ 添加一道拿手菜</div>
+  </div>
+</div>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:47</span></div>
+  <div style="padding:20px">
+    <b style="font-size:18px;font-weight:900">添加拿手菜</b>
+    <div style="display:flex;gap:12px;margin:16px 0">
+      <div style="width:64px;height:64px;border-radius:12px;background:var(--lg-primary-soft);display:flex;align-items:center;justify-content:center;color:var(--lg-primary);font-size:20px">📷</div>
+      <div class="field" style="flex:1">菜名（必填）</div>
+      <div class="field" style="width:56px;text-align:center">🍳</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="chip" style="border:1px solid var(--lg-separator)">硬菜</span><span class="chip primary" style="border:1px solid var(--lg-primary)">家常菜</span><span class="chip" style="border:1px solid var(--lg-separator)">汤羹</span><span class="chip" style="border:1px solid var(--lg-separator)">主食</span><span class="chip" style="border:1px solid var(--lg-separator)">甜品</span>
+    </div>
+    <div class="field" style="margin-bottom:12px">趣味价（¥，可不填）</div>
+    <div class="field" style="margin-bottom:18px">一句推荐语（可不填）</div>
+    <div class="btn primary" style="width:100%">挂上菜单</div>
+  </div>
+</div>
+</div>
+<div class="note"><b>规范</b>：分类 chip 选中 = primarySoft 底 + primary 字；照片上传压缩至 1200px/82%；emoji 字段限 2 字符（兼容老设备字体，禁用 Emoji 13+ 新字符如 🫘）。</div>
+</div>
+
+<!-- ================= 开饭记录 ================= -->
+<div class="board" id="p-kitchen-records">
+<h2>情侣厨房 · 开饭记录 <small>投喂小票</small></h2>
+<p class="desc">完成订单自动生成投喂小票：明细 + 合计 + 日期 + 条码 + 旋转「已开火」印章。历史永久留存。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:48</span></div>
+  <div style="padding:16px">
+    <div class="card warm" style="padding:14px;position:relative;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><b style="font-weight:900">🔥 投喂小票</b><span style="margin-left:auto;color:var(--lg-text-muted);font-size:11px">#2</span></div>
+      <div class="dashed"></div>
+      <div style="padding:10px 0;font-size:13px">🍗 可乐鸡翅 ×2<span style="float:right;font-weight:800">¥56</span></div>
+      <div class="dashed"></div>
+      <div style="display:flex;margin-top:8px;font-size:11px;color:var(--lg-text-muted)"><span>2026-09-19 09:45</span><span style="margin-left:auto;font-weight:800;color:var(--lg-text-primary)">合计 ¥56</span></div>
+      <div style="position:absolute;right:14px;top:30px;transform:rotate(-14deg);border:2px solid var(--lg-primary);border-radius:8px;color:var(--lg-primary);font-weight:900;padding:3px 10px;background:var(--lg-primary-soft)">已开火 ♥</div>
+    </div>
+    <div class="card warm" style="padding:14px;position:relative">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><b style="font-weight:900">🔥 投喂小票</b><span style="margin-left:auto;color:var(--lg-text-muted);font-size:11px">#1</span></div>
+      <div class="dashed"></div>
+      <div style="padding:10px 0;font-size:13px">🥦 蒜蓉西兰花 ×1<span style="float:right;font-weight:800">¥15</span></div>
+      <div class="dashed"></div>
+      <div style="display:flex;margin-top:8px;font-size:11px;color:var(--lg-text-muted)"><span>2026-09-18</span><span style="margin-left:auto;font-weight:800;color:var(--lg-text-primary)">合计 ¥15</span></div>
+      <div style="position:absolute;right:14px;top:30px;transform:rotate(10deg);border:2px solid var(--lg-secondary);border-radius:8px;color:var(--lg-secondary);font-weight:900;padding:3px 10px;background:var(--lg-secondary-soft)">已开火 ♥</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>规范</b>：印章旋转角 -14°/+10° 交替；印章底色 = 完成绿；金额 w800；票根纸用 paperWarm。空态：「还没有开火记录，完成第一单后这里会留下投喂小票」。</div>
+</div>
+
+<!-- ================= 爱心豆 ================= -->
+<div class="board" id="p-beans">
+<h2>爱心豆 <small>余额滚动 + 签到 DRAW/BURST + 流水</small></h2>
+<p class="desc">签到点击链：勾选描边（DRAW）→ 金豆爆散（BURST）→ 余额滚动（COUNT）→ 连签进度填充（LIQUID）→ 震动。入口：首页徽章 + 我的页。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:50</span></div>
+  <div style="padding:16px">
+    <div class="card warm" style="padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <div style="width:54px;height:54px;border-radius:50%;background:#FFF0D9;border:1px solid #F1D4B1;display:flex;align-items:center;justify-content:center;font-size:24px;color:#B8860B">●</div>
+      <div style="flex:1"><div style="font-size:12px;color:var(--lg-text-muted)">当前余额</div><div style="font-size:34px;font-weight:900">45</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:var(--lg-text-muted)">连续签到</div><div style="font-size:16px;font-weight:900;color:var(--lg-primary)">2 天</div><div style="font-size:10px;color:var(--lg-text-muted)">再签 5 天有奖励</div></div>
+    </div>
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:46px;height:46px;border-radius:50%;border:2.5px solid var(--lg-secondary);display:flex;align-items:center;justify-content:center"><span style="color:var(--lg-secondary);font-size:20px;font-weight:900">✓</span></div>
+        <div style="flex:1"><b style="font-size:15px">今天已签到</b><div style="font-size:12px;color:var(--lg-text-muted)">明天再来，爱你 ❤</div></div>
+        <div class="btn ghost disable">已签到</div>
+      </div>
+      <div style="height:6px;background:var(--lg-bg);border-radius:3px;margin-top:12px"><div style="width:28%;height:6px;border-radius:3px;background:var(--lg-accent)"></div></div>
+    </div>
+    <div class="sect">豆子流水</div>
+    <div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px"><span style="color:#B8860B;font-size:18px">●</span><div style="flex:1"><b style="font-size:13px">每日签到</b><div style="font-size:11px;color:var(--lg-text-muted)">2026-09-19 02:12</div></div><b style="color:var(--lg-secondary)">+5</b></div>
+    <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px"><span style="color:#B8860B;font-size:18px">●</span><div style="flex:1"><b style="font-size:13px">Travel check-in</b><div style="font-size:11px;color:var(--lg-text-muted)">2026-09-18 12:46</div></div><b style="color:var(--lg-secondary)">+10</b></div>
+  </div>
+</div>
+<div class="note"><b>动效编排</b>：点击签到 → 勾选圆环 0.5s 描边 → 14 颗金豆抛物线爆散 → 余额数字 950ms easeOutCubic 滚动 +5 → 进度条 700ms 同频填充 → mediumImpact 震动。失败回滚余额。<b>不要</b>：签到按钮可重复点（置灰）。</div>
+</div>
+
+<!-- ================= 回忆票根弹层 ================= -->
+<div class="board" id="p-memo">
+<h2>回忆票根弹层 <small>首页「生成票根」按钮</small></h2>
+<p class="desc">点击首页回忆卡「生成票根」→ 底部弹层展示票根（阶段 3 升级为横/竖版式 + 主色提取）。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:52</span></div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.4)"></div>
+  <div style="position:absolute;left:14px;right:14px;bottom:20px" class="card warm" style="padding:16px;position:relative">
+    <div style="position:absolute;inset:0;background:var(--lg-paper-warm);border-radius:var(--lg-r-md)"></div>
+    <div style="position:relative;padding:4px">
+      <div style="display:flex;align-items:center;gap:6px"><span class="chip primary">🎟 回忆票根 · MEMORY STUB</span></div>
+      <div style="font-size:19px;font-weight:900;margin:10px 0 4px">那天很期待</div>
+      <div style="font-size:12px;color:var(--lg-text-muted)">2 个月前的今天 · 杭州</div>
+      <div style="height:100px;border-radius:12px;background:linear-gradient(135deg,var(--lg-primary-soft),rgba(231,183,138,.35));display:flex;align-items:center;justify-content:center;color:var(--lg-primary);font-size:34px;margin:12px 0">❤</div>
+      <div class="dashed"></div>
+      <div style="display:flex;align-items:flex-end;gap:6px;margin-top:8px;height:30px"><i style="width:3px;height:24px;background:#ccc"></i><i style="width:2px;height:30px;background:#999"></i><i style="width:4px;height:20px;background:#ccc"></i><i style="width:2px;height:14px;background:#bbb"></i></div>
+      <div style="text-align:center;font-size:12px;font-weight:800;color:var(--lg-text-secondary);margin:10px 0">去时光轴记录更多</div>
+    </div>
+    <div style="position:absolute;right:16px;top:14px;transform:rotate(-10deg);border:2px solid var(--lg-primary);border-radius:8px;color:var(--lg-primary);font-weight:900;padding:2px 10px;background:var(--lg-primary-soft)">珍藏 ♥</div>
+  </div>
+</div>
+<div class="note"><b>跳转</b>：卡片本体 → 时光轴；「去时光轴记录更多」→ 关弹层并进时光轴。<b>阶段 3+ 升级</b>：此弹层将替换为竖版明信片版式（照片 + 主色提取）。</div>
+</div>
+
+<!-- ================= 旅行票根 三版式 ================= -->
+<div class="board" id="p-ticket">
+<h2>旅行票根 · 三版式 <small>明信片 / 入场券 / 经典</small></h2>
+<p class="desc">入口：已打卡地点详情「生成票根」。竖版明信片（上文字下照片 3:4）；横版入场券（左60%照片 + 右40% 主色深底：TRAVEL STUB/城市/感悟/编号/撕票线）；经典长票（保留）。照片主色自动提取驱动票根区背景。无照片时显示引导卡。</p>
+<div class="row">
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:55</span></div>
+  <div style="padding:14px">
+    <div style="display:flex;background:#fff;border-radius:999px;padding:3px;margin-bottom:12px;border:1px solid var(--lg-separator)">
+      <div style="flex:1;text-align:center;padding:7px;background:var(--lg-primary);color:#fff;border-radius:999px;font-size:12px;font-weight:800">明信片</div>
+      <div style="flex:1;text-align:center;padding:7px;font-size:12px;color:var(--lg-text-secondary)">入场券</div>
+      <div style="flex:1;text-align:center;padding:7px;font-size:12px;color:var(--lg-text-secondary)">经典</div>
+    </div>
+    <div style="border-radius:var(--lg-r-md);overflow:hidden;box-shadow:var(--lg-sh-md)">
+      <div style="background:#F4F0E8;padding:14px">
+        <div style="font-size:9px;letter-spacing:2px;color:var(--lg-text-muted);font-weight:700">TRAVEL MEMORY</div>
+        <div style="font-size:26px;font-weight:900;margin:8px 0 2px">回到家</div>
+        <div style="font-size:11px;color:var(--lg-text-muted)">2026.09.18</div>
+      </div>
+      <div class="dashed"></div>
+      <div style="height:230px;background:linear-gradient(160deg,#7FB2D9,#4C7FA6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px">🏡 回到家的那张照片</div>
+    </div>
+  </div>
+</div>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>09:56</span></div>
+  <div style="padding:14px">
+    <div style="display:flex;background:#fff;border-radius:999px;padding:3px;margin-bottom:12px;border:1px solid var(--lg-separator)">
+      <div style="flex:1;text-align:center;padding:7px;font-size:12px;color:var(--lg-text-secondary)">明信片</div>
+      <div style="flex:1;text-align:center;padding:7px;background:var(--lg-primary);color:#fff;border-radius:999px;font-size:12px;font-weight:800">入场券</div>
+      <div style="flex:1;text-align:center;padding:7px;font-size:12px;color:var(--lg-text-secondary)">经典</div>
+    </div>
+    <div style="display:flex;border-radius:var(--lg-r-md);overflow:hidden;box-shadow:var(--lg-sh-md)">
+      <div style="flex:6;height:210px;background:linear-gradient(160deg,#7FB2D9,#4C7FA6);display:flex;align-items:center;justify-content:center;color:#fff">🏡</div>
+      <div style="width:10px;background:#fff;border-left:1.5px dashed var(--lg-separator);border-right:1.5px dashed var(--lg-separator)"></div>
+      <div style="flex:4;background:linear-gradient(180deg,#2C3A47,#1A2530);padding:12px 10px;display:flex;flex-direction:column">
+        <div style="color:rgba(255,255,255,.7);font-size:8px;letter-spacing:2px;font-weight:700">TRAVEL STUB</div>
+        <div style="color:#fff;font-size:17px;font-weight:900;margin:4px 0">回家</div>
+        <div style="margin-top:auto">
+          <div style="color:rgba(255,255,255,.7);font-size:8px">2026.09.18</div>
+          <div style="color:#fff;font-size:9px;margin:3px 0">第一次带我回家见家人</div>
+          <div style="color:rgba(255,255,255,.6);font-size:8px;letter-spacing:1px">NO.LG-20260918-001</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:12px;display:flex;gap:8px;align-items:center;margin-top:12px">
+      <span>📷</span><span style="font-size:12px;color:var(--lg-text-secondary)">照片墙还是空的：编辑地点时上传照片，票根会自动用上</span>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note"><b>照片规则</b>：照片完整保留不裁内容（cover 适配）；无照片地点不出现裸条形码——显示引导「上传照片，票根会自动用上」。<b>不要</b>用 AI 生成照片内容。</div>
+</div>
+
+<!-- ================= 相册 + 翻页书 ================= -->
+<div class="board" id="p-album">
+<h2>相册 · 翻页书 <small>3D 翻页浏览 · book_page_flip</small></h2>
+<p class="desc">云端相册网格 → 右上「翻页书」→ 深色装订视图。照片预解码后交给 3D 翻页引擎，拖动翻页、双页摊开。</p>
+<div class="row">
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:10</span></div>
+  <div class="header"><b style="font-size:20px;font-weight:900;margin-left:8px">云端相册</b><div class="tools" style="margin-left:auto"><span style="font-size:18px">🖼+</span></div></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px">
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#F4A0A0,#F4CBA0)"></div>
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#A0C4F4,#C4A0F4)"></div>
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#A0F4C4,#C4F4A0)"></div>
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#F4E0A0,#F4B0A0)"></div>
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#C4B0F4,#A0E0F4)"></div>
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#F4C4B0,#B0E0C4)"></div>
+  </div>
+  <div style="position:absolute;right:18px;top:64px;background:var(--lg-primary);color:#fff;font-size:11px;font-weight:800;padding:6px 10px;border-radius:10px">📖 翻页书</div>
+</div>
+<div class="phone dark">
+  <div class="statusbar"><span>📶</span><span>10:11</span></div>
+  <div style="position:absolute;inset:0;background:#171310"></div>
+  <div class="header" style="position:absolute;left:0;right:0;top:28px"><b style="font-size:20px;font-weight:900;color:#fff;margin-left:8px">翻页相册</b></div>
+  <!-- 摊开的双页 -->
+  <div style="position:absolute;left:10px;right:10px;top:200px;display:flex;height:420px">
+    <div style="flex:1;background:linear-gradient(135deg,#F4A0A0,#F4CBA0)"></div>
+    <div style="width:6px;background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(0,0,0,.1),rgba(0,0,0,.35))"></div>
+    <div style="flex:1;background:linear-gradient(135deg,#A0C4F4,#C4B0F4)"></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;top:640px;text-align:center;color:rgba(255,255,255,.5);font-size:12px">← 拖动翻页 · 双页摊开 →</div>
+</div>
+</div>
+<div class="note"><b>规范</b>：翻页书为深色装订域（同星图红线）；照片预解码后交引擎（禁止直接网络图栅格化）；少于 2 张显示「再上传一张照片就能翻开相册啦」。</div>
+</div>
+
+<!-- ================= 生活 ================= -->
+<div class="board" id="p-life">
+<h2>生活 <small>待办 / 记账 / 课程 三分区</small></h2>
+<p class="desc">玻璃走查结论：卡片风格已随全局高光统一，结构清晰，保持现状。待办支持首页直接勾选（第 2 段闭环）。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:25</span></div>
+  <div class="card" style="margin:10px 18px;padding:14px;background:var(--lg-secondary-soft);border:none;display:flex;align-items:center;gap:12px">
+    <div style="width:38px;height:38px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:17px">🧩</div>
+    <div><b style="font-size:20px;font-weight:900">生活</b><div style="font-size:11px;color:var(--lg-text-muted)">两个人的小生活面板</div></div>
+    <span style="margin-left:auto" class="chip ok">♡ 清单</span>
+  </div>
+  <div style="margin:0 18px;background:#fff;border-radius:var(--lg-r-sm);padding:4px;display:flex">
+    <div style="flex:1;text-align:center;background:var(--lg-primary);border-radius:var(--lg-r-sm);padding:10px;color:#fff;font-weight:800;font-size:14px">☑ 待办</div>
+    <div style="flex:1;text-align:center;padding:10px;color:var(--lg-text-secondary);font-size:14px">💳 记账</div>
+    <div style="flex:1;text-align:center;padding:10px;color:var(--lg-text-secondary);font-size:14px">📅 课程</div>
+  </div>
+  <div style="margin:14px 18px 0" class="card" style="padding:40px 20px;text-align:center;background:#fff;border-radius:var(--lg-r-md);border:1px solid var(--lg-separator)">
+    <div style="font-size:40px;color:var(--lg-separator)">✔✔</div>
+    <div style="margin-top:12px;color:var(--lg-text-secondary);font-size:14px">还没有待办事项</div>
+    <div style="margin-top:6px;color:var(--lg-text-muted);font-size:12px">点击右下角按钮添加</div>
+  </div>
+  <div style="position:absolute;right:18px;bottom:24px;width:56px;height:56px;border-radius:18px;background:var(--lg-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:var(--lg-sh-md)">+</div>
+</div>
+<div class="note"><b>走查结论</b>：生活页结构无冗余；三 tab 分段控件为标准组件；玻璃高光由全局卡片边框层统一生效。</div>
+</div>
+
+<!-- ================= 我的 ================= -->
+<div class="board" id="p-profile">
+<h2>我的 <small>关系资料夹</small></h2>
+<p class="desc">档案式分组：关系资料夹头卡 → 关系档案 → 回忆与管理 → 版本与诊断 → 退出。爱心豆入口已加入（签到与流水）。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:09</span></div>
+  <div class="header"><h3>关系资料夹 <span style="color:var(--lg-primary)">❤</span></h3><div class="tools"><div class="icobtn">📈</div><div class="icobtn">⚙</div></div></div>
+  <div style="padding:0 var(--lg-page)">
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <div style="display:flex;gap:10px;align-items:center"><span class="chip ok">📒 关系资料夹</span><span style="margin-left:auto" class="chip primary">🫘 45 爱心豆</span></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+        <div style="display:flex"><div style="width:44px;height:44px;border-radius:50%;background:var(--lg-secondary-soft);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:17px">👦</div><div style="width:44px;height:44px;border-radius:50%;background:var(--lg-primary-soft);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:17px;margin-left:-14px">👧</div></div>
+        <div><b style="font-size:19px;font-weight:900">小可爱</b><div style="font-size:12px;color:var(--lg-text-secondary)">我们在一起的第 <span style="color:var(--lg-primary);font-weight:900">1661</span> 天</div></div>
+      </div>
+      <div style="background:var(--lg-bg);border-radius:12px;padding:10px;margin-top:12px;font-size:12px;color:var(--lg-text-secondary)">📒 还没有绑定伴侣，但回忆已经先被好好收起来了</div>
+    </div>
+    <b style="font-size:16px;font-weight:900">关系档案</b>
+    <div class="card" style="padding:4px 16px;margin-top:8px">
+      <div class="entry" style="border:none;border-bottom:1px solid var(--lg-separator);border-radius:0;padding:13px 0"><span style="font-size:17px">📅</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">纪念日与倒数</b></div><span class="chev">›</span></div>
+      <div class="entry" style="border:none;border-bottom:1px solid var(--lg-separator);border-radius:0;padding:13px 0"><span style="font-size:17px">🔗</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">伴侣绑定</b></div><span style="font-size:12px;color:var(--lg-text-muted)">还没有绑定伴侣</span><span class="chev">›</span></div>
+      <div class="entry" style="border:none;border-radius:0;padding:13px 0"><span style="font-size:17px">📈</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">时光轴</b></div><span class="chev">›</span></div>
+    </div>
+    <b style="font-size:16px;font-weight:900;display:block;margin:14px 0 8px;padding-left:4px">回忆与管理</b>
+    <div class="card" style="padding:4px 16px">
+      <div class="entry" style="border:none;border-bottom:1px solid var(--lg-separator);border-radius:0;padding:13px 0"><span style="font-size:17px">🖼</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">相册与回忆照片</b></div><span class="chev">›</span></div>
+      <div class="entry" style="border:none;border-bottom:1px solid var(--lg-separator);border-radius:0;padding:13px 0"><span style="font-size:17px">🎟</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">旅行票根</b></div><span class="chev">›</span></div>
+      <div class="entry" style="border:none;border-bottom:1px solid var(--lg-separator);border-radius:0;padding:13px 0"><span style="font-size:17px">🤝</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">爱心豆</b></div><span class="chev">›</span></div>
+      <div class="entry" style="border:none;border-radius:0;padding:13px 0"><span style="font-size:17px">⚙</span><div class="txt" style="margin-left:12px"><b style="font-size:14px">设置</b></div><span class="chev">›</span></div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>规范</b>：分组标题 16/w900 独立行；行高 66 标准；未绑定状态如实显示（不误导）。</div>
+</div>
+
+<!-- ================= 伴侣绑定 ================= -->
+<div class="board" id="p-bind">
+<h2>伴侣绑定 <small>未绑定态</small></h2>
+<p class="desc">绑定是情侣功能的前置条件（厨房下单/足迹共享/待办协同均依赖）。未绑定页给出清晰的双路径：生成邀请码 / 输入对方邀请码。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:30</span></div>
+  <div class="header"><span class="icobtn" style="background:transparent">‹</span><div style="margin-left:8px"><b style="font-size:20px;font-weight:900">伴侣绑定</b><div style="font-size:11px;color:var(--lg-text-muted)">把这份 App 连接成两个人的</div></div><span style="margin-left:auto" class="chip warn">未绑定</span></div>
+  <div style="padding:0 18px">
+    <div class="card" style="padding:22px;text-align:center;background:var(--lg-paper-warm);border:none">
+      <div style="font-size:36px">❤️</div>
+      <div style="font-size:19px;font-weight:900;margin-top:8px">绑定你的另一半</div>
+      <div style="font-size:12px;color:var(--lg-text-muted);margin-top:4px">绑定后可以享受完整的双人功能体验</div>
+    </div>
+    <div style="margin-top:16px;font-size:14px;font-weight:800;color:var(--lg-text-secondary)">│ 方式一：邀请对方绑定</div>
+    <div class="card" style="padding:16px;margin-top:8px;text-align:center">
+      <div style="font-size:12px;color:var(--lg-text-muted);margin-bottom:10px">生成一个 6 位邀请码，发给 TA 输入即可</div>
+      <div class="btn primary" style="width:100%">生成邀请码</div>
+    </div>
+    <div style="margin-top:16px;font-size:14px;font-weight:800;color:var(--lg-text-secondary)">│ 方式二：输入对方的邀请码</div>
+    <div class="card" style="padding:16px;margin-top:8px">
+      <div class="field" style="text-align:center;font-size:22px;letter-spacing:12px;font-weight:900">000000</div>
+      <div style="height:10px"></div>
+      <div class="btn primary" style="width:100%">立即绑定</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>规范</b>：邀请码 6 位等宽大字；生成后 10 分钟有效并显示倒计时。<b>不要</b>：在未绑定时展示任何伴侣数据（厨房菜单只读、足迹不共享）。</div>
+</div>
+
+<!-- ================= 健康拦截 ================= -->
+<div class="board" id="p-health">
+<h2>健康 · 视角拦截 <small>隐私安全</small></h2>
+<p class="desc">健康模块（经期/体重等）仅限女友本人。男友视角（含开发者切换）在门口拦截，显示友好锁定页——绝不让请求飞出去返回「加载失败」。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:33</span></div>
+  <div style="display:flex;flex-direction:column;height:calc(100% - 28px)">
+    <div style="display:flex;justify-content:center;padding:14px 0 20px"><b style="font-size:20px;font-weight:900">健康</b></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center">
+      <div class="card" style="padding:32px 28px;text-align:center;max-width:280px;border-radius:var(--lg-r-lg)">
+        <div style="font-size:48px">🔒</div>
+        <div style="font-size:17px;font-weight:800;margin-top:12px">健康页只给她看</div>
+        <div style="font-size:13px;color:var(--lg-text-muted);margin-top:6px">这里会保护她的私密记录</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>规则</b>：用原始角色（isOriginalGirl）判断，开发者视角翻转不改变拦截结果。<b>不要</b>：显示「加载失败」等技术错误。</div>
+</div>
+
+<!-- ================= 设置 ================= -->
+<div class="board" id="p-settings">
+<h2>设置 <small>含旅行地图卡与动效档位</small></h2>
+<p class="desc">旅行地图卡：顺序箭头连线开关（SQUASH 弹性开关）+ 界面动效三档（关/标准/增强，点按循环）。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:36</span></div>
+  <div class="header"><b style="font-size:20px;font-weight:900;margin-left:8px">设置</b></div>
+  <div style="padding:0 18px">
+    <div class="sect">外观设置</div>
+    <div class="card" style="padding:8px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <span style="font-size:17px">☀️</span><span style="flex:1;font-size:14px;font-weight:600">亮色模式</span>
+      <div style="width:46px;height:28px;border-radius:999px;background:var(--lg-primary);position:relative"><div style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></div></div>
+    </div>
+    <div class="sect" style="margin-top:16px">旅行地图</div>
+    <div class="card" style="padding:8px 16px">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--lg-primary-soft);display:flex;align-items:center;justify-content:center;font-size:17px">🛣</div>
+        <span style="flex:1;font-size:14px;font-weight:600">顺序箭头连线</span>
+        <div style="width:46px;height:28px;border-radius:999px;background:var(--lg-primary);position:relative"><div style="position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff"></div></div>
+      </div>
+      <div class="divider" style="margin:8px 0"></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--lg-secondary-soft);display:flex;align-items:center;justify-content:center;font-size:17px">✨</div>
+        <span style="flex:1;font-size:14px;font-weight:600">界面动效</span>
+        <span style="color:var(--lg-primary);font-weight:800;font-size:14px">标准 ›</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>动效三档</b>：关（全部动画停用）/ 标准（默认，错峰 50ms）/ 增强（错峰 85ms + 全部粒子）。点按循环切换并持久化。</div>
+</div>
+
+<!-- ================= 选点页 ================= -->
+<div class="board" id="p-picker">
+<h2>地图选点 <small>城市直达 + 搜索 + 确认</small></h2>
+<p class="desc">表单选定城市后自动落到该城市上空（zoom 12）；支持搜索 POI 与点选；选中后底部信息卡确认。</p>
+<div class="phone">
+  <div class="statusbar"><span>📶</span><span>10:40</span></div>
+  <div style="position:relative;height:calc(100% - 28px);background:#E8EAED">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,#E8EAED 40%,#C7DFF2 41%)"></div>
+    <div style="position:absolute;left:12px;top:12px;right:12px;display:flex;gap:8px">
+      <div class="icobtn">‹</div>
+      <div class="field focus" style="flex:1;border-radius:999px;display:flex;align-items:center;gap:8px"><span>🔍</span>搜索地点、商圈或景点</div>
+    </div>
+    <div style="position:absolute;left:340px;top:660px"><div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:var(--lg-primary);transform:rotate(-45deg);box-shadow:0 4px 8px rgba(0,0,0,.3)"></div></div>
+    <div style="position:absolute;right:14px;bottom:120px" class="icobtn" style="box-shadow:var(--lg-sh-sm)">◎</div>
+    <div style="position:absolute;left:12px;right:12px;bottom:12px" class="card" style="padding:14px">
+      <div style="display:flex;gap:8px;align-items:center"><span>📍</span><b style="font-size:16px;font-weight:900">成都</b></div>
+      <div style="font-size:12px;color:var(--lg-text-muted);margin-top:4px">四川省成都市武侯区…</div>
+      <div style="font-size:11px;color:var(--lg-text-muted);margin-top:2px">30.585937, 104.062498</div>
+      <div class="btn primary" style="width:100%;margin-top:12px">确认这个地点</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>城市直达</b>：表单选完城市 → 后台地理编码 → 进入选点页直接落在城市中心（zoom 12），不再从中国全图手动缩放。<b>不要</b>：城市未选时也可直接进选点（保持先城市后点位的心智顺序）。</div>
+</div>
+
+<!-- ================= 状态与反馈总览 ================= -->
+<div class="board" id="s-states">
+<h2>状态与反馈总览 <small>加载 / 空 / 错误 / 反馈文案</small></h2>
+<p class="desc">四大异步状态（骨架/空/错误/正常）+ 反馈文案语气表。全部页面共用同一套模式。</p>
+<div class="states">
+  <div class="state-card"><h4>加载 · 骨架</h4>
+    <div class="shimmer" style="height:16px;width:100px;margin-bottom:8px"></div>
+    <div class="shimmer" style="height:64px;margin-bottom:8px"></div>
+    <div class="shimmer" style="height:12px;width:180px"></div>
+  </div>
+  <div class="state-card"><h4>空态</h4>
+    <div style="text-align:center;padding:16px 0"><div style="font-size:34px">🍳</div><div style="font-size:13px;font-weight:700;margin-top:8px">TA 的菜单还是空的</div><div style="font-size:11px;color:var(--lg-text-muted);margin-top:4px">提醒 TA 把会做的菜挂上来</div></div>
+  </div>
+  <div class="state-card"><h4>错误 + 重试</h4>
+    <div style="text-align:center;padding:12px 0"><div style="font-size:28px;color:var(--lg-text-muted)">⚠️</div><div style="font-size:12px;color:var(--lg-text-muted);margin:8px 0 10px">菜单加载失败，请稍后再试</div><span class="btn soft">重试</span></div>
+  </div>
+  <div class="state-card"><h4>Toast 反馈</h4>
+    <div style="background:rgba(51,51,51,.9);color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;margin-bottom:8px;text-align:center">下单成功！等 TA 开火啦 🔥</div>
+    <div style="background:rgba(51,51,51,.9);color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;text-align:center">已接单，3 秒内可撤销</div>
+  </div>
+</div>
+<div class="note"><b>文案语气</b>：成功 = 动作结果+表情（「下单成功！等 TA 开火啦 🔥」）；失败 = 原因+行动（「有菜品刚被下架了，刷新一下菜单」）；禁止「操作成功」「请求失败」这类机器话。<b>跳转</b>：二级页全部支持跟手滑退；弹窗带把手可下拉关闭；删除类操作必须二次确认。</div>
+</div>
+
+</main>
+</body>
+</html>
