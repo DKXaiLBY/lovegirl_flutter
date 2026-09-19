@@ -349,6 +349,10 @@ class ApiService {
   Future getDailyHistory({int size = 14}) =>
       get('/api/daily/history', query: {'size': size});
 
+  // ========== 爱情树 ==========
+  Future getLoveTree() => get('/api/tree');
+  Future waterLoveTree() => post('/api/tree/water');
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

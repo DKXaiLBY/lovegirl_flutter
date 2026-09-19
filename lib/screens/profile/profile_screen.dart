@@ -15,6 +15,7 @@ import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../beans/beans_screen.dart';
 import '../timeline/timeline_screen.dart';
+import '../tree/love_tree_screen.dart';
 import '../version/update_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -325,6 +326,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '\u67e5\u770b\u5730\u56fe\u3001\u8def\u7ebf\u548c\u6253\u5361\u56de\u5fc6',
             color: LoveGirlTheme.secondary,
             onTap: () => widget.onNavigateToTab?.call(1),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.park_outlined,
+            title: '爱情树',
+            value: '两个人每天浇一次，一起看它长大',
+            color: LoveGirlTheme.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoveTreeScreen()),
+            ),
           ),
           const Divider(),
           LoveMenuRow(

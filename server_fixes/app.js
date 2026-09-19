@@ -103,6 +103,7 @@ app.use('/api/beans', require('./routes/beans'));
 app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/daily', require('./routes/daily_question'));
+app.use('/api/tree', require('./routes/love_tree'));
 app.use('/api/sync', require('./routes/sync'));
 app.use('/api/activity', require('./routes/activity'));
 app.use('/api/admin', require('./routes/admin_products'));
