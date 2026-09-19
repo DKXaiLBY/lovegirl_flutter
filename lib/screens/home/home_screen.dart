@@ -771,285 +771,82 @@ class _MemoryTicket extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = _localizedMemoryTitle(
-      _asString(
-        memory?['title'],
-        fallback: '留一张回忆票根，把喜欢的小事存下来',
-      ),
+      _asString(memory?['title'], fallback: '留一张回忆票根'),
     );
-    final subtitle = _asString(
-      memory?['subtitle'],
-      fallback:
-          '\u628a\u4e00\u8d77\u8d70\u8fc7\u7684\u5730\u65b9\u3001\u8bf4\u8fc7\u7684\u8bdd\uff0c\u6162\u6162\u6536\u8fdb\u8fd9\u5f20\u7968\u6839\u91cc\u3002',
-    );
-    final eventDate = _asString(memory?['eventDate'], fallback: '2025-02-14');
-    final location = _asString(
-      memory?['location'],
-      fallback: '\u676d\u5dde \u00b7 \u94b1\u5858\u6c5f\u8fb9',
-    );
+    final eventDate = _asString(memory?['eventDate'], fallback: '');
+    final location = _asString(memory?['location'], fallback: '');
     final imageUrl = _memoryImageUrl(memory);
+    final dateLabel = eventDate.isEmpty ? '' : _relativeDayLabel(eventDate);
 
     return LoveTicketCard(
       key: const ValueKey('home_memory_ticket'),
       color: LoveGirlTheme.paperWarm,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stacked = constraints.maxWidth < 332;
-
-          final content = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              LovePill(
-                text: _relativeDayLabel(eventDate),
-                icon: Icons.history_toggle_off_rounded,
-                color: LoveGirlTheme.primary,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  height: 1.35,
-                  fontWeight: FontWeight.w900,
-                  color: LoveGirlTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.place_outlined,
-                    size: 16,
-                    color: LoveGirlTheme.textMuted,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      location,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: LoveGirlTheme.textMuted,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  height: 1.6,
-                  color: LoveGirlTheme.textSecondary,
-                ),
-              ),
-            ],
-          );
-
-          if (stacked) {
-            return Column(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 64,
+              height: 64,
+              child: imageUrl.isNotEmpty
+                  ? Image.network(imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _memPlaceholder())
+                  : _memPlaceholder(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _MemoryPreviewCard(imageUrl: imageUrl),
-                    const SizedBox(width: 14),
-                    Expanded(child: content),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const LoveTicketDivider(axis: Axis.horizontal, length: 260),
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: _MemoryDateRail(
-                    eventDate: eventDate,
-                    onTap: onTap,
-                    onGenerate: onGenerate,
-                  ),
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: LoveGirlTheme.textPrimary)),
+                const SizedBox(height: 3),
+                Text(
+                  [
+                    if (dateLabel.isNotEmpty) dateLabel,
+                    if (location.isNotEmpty) location,
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 11, color: LoveGirlTheme.textMuted),
                 ),
               ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _MemoryPreviewCard(imageUrl: imageUrl),
-              const SizedBox(width: 14),
-              Expanded(child: content),
-              const SizedBox(width: 12),
-              const LoveTicketDivider(length: 132),
-              const SizedBox(width: 12),
-              _MemoryDateRail(
-                eventDate: eventDate,
-                onTap: onTap,
-                onGenerate: onGenerate,
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _MemoryPreviewCard extends StatelessWidget {
-  final String imageUrl;
-
-  const _MemoryPreviewCard({required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        width: 108,
-        height: 126,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF7D8CB),
-              Color(0xFFDADFEA),
-            ],
-          ),
-        ),
-        child: imageUrl.isNotEmpty
-            ? Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const _MemoryPreviewFallback(),
-              )
-            : const _MemoryPreviewFallback(),
-      ),
-    );
-  }
-}
-
-class _MemoryPreviewFallback extends StatelessWidget {
-  const _MemoryPreviewFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            height: 34,
-            color: const Color(0xFFB9C8DB).withAlpha(170),
-          ),
-        ),
-        Positioned(
-          right: -10,
-          bottom: 12,
-          child: Icon(
-            Icons.location_city_rounded,
-            size: 56,
-            color: Colors.white.withAlpha(90),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 14,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Icon(
-                Icons.waves_rounded,
-                size: 20,
-                color: Colors.white.withAlpha(170),
-              ),
-              const Spacer(),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(145),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.favorite_border_rounded,
-                  size: 15,
-                  color: LoveGirlTheme.primary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MemoryDateRail extends StatelessWidget {
-  final String eventDate;
-  final VoidCallback onTap;
-  final VoidCallback? onGenerate;
-
-  const _MemoryDateRail({
-    required this.eventDate,
-    required this.onTap,
-    this.onGenerate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 116,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            _yearText(eventDate),
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: LoveGirlTheme.textMuted,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            _monthDayText(eventDate),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: LoveGirlTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(width: 6),
           OutlinedButton(
             onPressed: onGenerate ?? onTap,
             style: OutlinedButton.styleFrom(
               foregroundColor: LoveGirlTheme.primary,
               side: const BorderSide(color: LoveGirlTheme.primary),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+                  borderRadius: BorderRadius.circular(999)),
             ),
-            child: const Text(
-              '\u751f\u6210\u56de\u5fc6\u7968\u6839',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            child: const Text('生成票根',
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
     );
   }
+
+  Widget _memPlaceholder() => Container(
+        color: LoveGirlTheme.primarySoft,
+        child: const Center(
+            child: Text('♥', style: TextStyle(fontSize: 22, color: LoveGirlTheme.primary))),
+      );
 }
 
 class _TravelTicket extends StatelessWidget {
@@ -1063,278 +860,82 @@ class _TravelTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        _asString(preview['title'], fallback: '\u65c5\u884c\u8ba1\u5212');
-    final city =
-        _asString(preview['city'], fallback: '\u53a6\u95e8\u4e4b\u65c5');
+    final title = _asString(preview['title'], fallback: '旅行计划');
+    final city = _asString(preview['city'], fallback: '厦门之旅');
     final subtitle = _asString(
       preview['subtitle'],
-      fallback: '\u4e00\u8d77\u53bb\u770b\u6d77\u5440\uff5e',
+      fallback: '一起去看海呀～',
     );
-    final startDate = _asString(preview['startDate'], fallback: '05.20');
-    final endDate = _asString(preview['endDate'], fallback: '05.24');
-    final duration = _asString(
-      preview['duration'],
-      fallback: '4 \u5929 3 \u665a',
-    );
-    final progress = _asString(
-      preview['progress'],
-      fallback: '\u5df2\u89c4\u5212 3/6',
-    );
+    final startDate = _asString(preview['startDate'], fallback: '');
+    final endDate = _asString(preview['endDate'], fallback: '');
+    final progress = _asString(preview['progress'], fallback: '');
     final people = _asInt(preview['people'], fallback: 2);
-    final travelLabel = title == '\u65c5\u884c\u8ba1\u5212'
-        ? '\u51fa\u53d1\u8ba1\u5212'
-        : title;
-
-    final mainContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 5,
-          ),
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.secondary.withAlpha(16),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            travelLabel,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: LoveGirlTheme.secondary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          city,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: LoveGirlTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 13,
-            color: LoveGirlTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const CircleAvatar(
-              radius: 15,
-              backgroundColor: Color(0xFFE8E0D9),
-              child: Icon(Icons.person, size: 16),
-            ),
-            const CircleAvatar(
-              radius: 15,
-              backgroundColor: Color(0xFFF3DDD4),
-              child: Icon(Icons.person_2_rounded, size: 16),
-            ),
-            Text(
-              '$people \u4eba',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: LoveGirlTheme.textMuted,
-              ),
-            ),
-            const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  size: 16,
-                  color: LoveGirlTheme.secondary,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  '\u8fdb\u884c\u4e2d',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: LoveGirlTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFDF9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: LoveGirlTheme.separator.withAlpha(120),
-            ),
-          ),
-          child: const Row(
-            children: [
-              SizedBox(width: 12),
-              Icon(
-                Icons.airplanemode_active_rounded,
-                size: 16,
-                color: LoveGirlTheme.primary,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '把想去的地方慢慢串起来，出发的时候会更顺。',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textSecondary,
-                  ),
-                ),
-              ),
-              SizedBox(width: 12),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    final routeRail = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$startDate - $endDate',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: LoveGirlTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          duration,
-          style: const TextStyle(
-            fontSize: 12,
-            color: LoveGirlTheme.textMuted,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          width: 74,
-          height: 6,
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.separator,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          alignment: Alignment.centerLeft,
-          child: Container(
-            width: 42,
-            height: 6,
-            decoration: BoxDecoration(
-              color: LoveGirlTheme.secondary,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          progress,
-          style: const TextStyle(
-            fontSize: 12,
-            color: LoveGirlTheme.textMuted,
-          ),
-        ),
-        const SizedBox(height: 14),
-        OutlinedButton(
-          onPressed: onTap,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: LoveGirlTheme.secondary,
-            side: BorderSide(
-              color: LoveGirlTheme.secondary.withAlpha(120),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          child: const Text(
-            '\u67e5\u770b\u8def\u7ebf',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            RotatedBox(
-              quarterTurns: 1,
-              child: LoveBarcode(
-                width: 42,
-                height: 18,
-                color: LoveGirlTheme.textMuted,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                '\u65c5\u884c\n\u7968\u6839',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 9.5,
-                  height: 1.15,
-                  fontWeight: FontWeight.w700,
-                  color: LoveGirlTheme.textMuted,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+    final travelLabel = title == '旅行计划' ? '出发计划' : title;
+    final dateRange = [
+      if (startDate.isNotEmpty) startDate,
+      if (endDate.isNotEmpty && endDate != startDate) endDate,
+    ].join(' - ');
 
     return LoveTicketCard(
       key: const ValueKey('home_travel_ticket'),
-      color: const Color(0xFFFFFCF8),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 340) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                mainContent,
-                const SizedBox(height: 14),
-                const LoveTicketDivider(
-                  axis: Axis.horizontal,
-                  length: 260,
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: routeRail),
-                  ],
-                ),
-              ],
-            );
-          }
-
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: mainContent),
-              const SizedBox(width: 12),
-              const LoveTicketDivider(length: 164),
-              const SizedBox(width: 12),
-              SizedBox(width: 108, child: routeRail),
-            ],
-          );
-        },
+      color: const Color(0xFFF6FBF4),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: LoveGirlTheme.secondarySoft,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Center(
+                child: Icon(Icons.travel_explore_rounded,
+                    size: 22, color: LoveGirlTheme.secondary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(travelLabel,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: LoveGirlTheme.secondary)),
+                  const SizedBox(height: 2),
+                  Text(city,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          color: LoveGirlTheme.textPrimary)),
+                  const SizedBox(height: 2),
+                  Text(
+                    [
+                      subtitle,
+                      if (dateRange.isNotEmpty) dateRange,
+                      '$people 人',
+                      if (progress.isNotEmpty) progress,
+                    ].where((t) => t.isNotEmpty).join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11, color: LoveGirlTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: LoveGirlTheme.textMuted),
+          ],
+        ),
       ),
     );
   }
@@ -1736,15 +1337,4 @@ String _relativeDayLabel(String value) {
   return '$years \u5e74\u524d\u7684\u4eca\u5929';
 }
 
-String _yearText(String value) {
-  final date = _parseDate(value);
-  return date == null ? '2025' : '${date.year}';
-}
 
-String _monthDayText(String value) {
-  final date = _parseDate(value);
-  if (date == null) return '02.14';
-  final month = date.month.toString().padLeft(2, '0');
-  final day = date.day.toString().padLeft(2, '0');
-  return '$month.$day';
-}

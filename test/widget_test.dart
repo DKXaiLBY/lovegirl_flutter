@@ -157,8 +157,7 @@ void main() {
     );
     await tester.pump();
     expect(find.byKey(const ValueKey('home_travel_ticket')), findsOneWidget);
-    expect(find.text('旅行\n票根'), findsOneWidget);
-    expect(find.text('查看路线'), findsOneWidget);
+    expect(find.text('出发计划'), findsOneWidget);
     expect(find.text('LOVEGIRL\nTRIP'), findsNothing);
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
