@@ -198,7 +198,7 @@ class _HomeHeader extends StatelessWidget {
                                 child: Icon(
                                   Icons.favorite_rounded,
                                   size: 16,
-                                  color: context.lgInk,
+                                  color: context.lgEmotion,
                                 ),
                               ),
                             ],
@@ -227,7 +227,7 @@ class _HomeHeader extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w900,
-                                      color: context.lgInk,
+                                      color: context.lgEmotion,
                                     ),
                                   ),
                                 ),

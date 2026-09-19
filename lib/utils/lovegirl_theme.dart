@@ -10,7 +10,7 @@ class LoveGirlTheme {
   // v3.24 新风格：主行动黑白化（参考 AI Agents 市场风格），品牌橘退位
   static const Color primary = Color(0xFF1A1A1A);
   static const Color primaryLight = Color(0xFF4A4A4A);
-  static const Color primarySoft = Color(0xFFF0EFEC);
+  static const Color primarySoft = Color(0xFFF6EFE8);
   static const Color secondary = Color(0xFF7A9E7E);
   static const Color secondarySoft = Color(0xFFF0F5EC);
   static const Color accent = Color(0xFFE7B78A);
@@ -19,9 +19,13 @@ class LoveGirlTheme {
   static const Color pink = primary;
   static const Color pinkLight = primaryLight;
 
-  static const Color bgLight = Color(0xFFF5F4F1);
+  // v3.27 温度回归：陶土橘只给"和 TA 有关"的情感元素（恋爱天数/爱心/对方动态），
+  // 主行动语言仍是黑底白字（DESIGN_SYSTEM §1"情绪色克制"）
+  static const Color brandEmotion = Color(0xFFB85C38);
+
+  static const Color bgLight = Color(0xFFFFF8F3);
   static const Color paper = Color(0xFFFFFFFF);
-  static const Color paperWarm = Color(0xFFFAF9F7);
+  static const Color paperWarm = Color(0xFFFFF5EC);
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color bgDark = Color(0xFF1D1917);
   static const Color cardDark = Color(0xFF2A2421);
@@ -322,4 +326,8 @@ extension LoveGirlSemanticColors on BuildContext {
   /// 用于文字/图标/描边等原本写死 primary 的位置（黑底座容器勿用）。
   Color get lgInk =>
       lgIsDark ? LoveGirlTheme.textPrimaryDark : LoveGirlTheme.primary;
+
+  /// “情感色”：浅色=陶土橘（恋爱天数/爱心/对方相关），深色=米白（dark 红线：不引入暖色文字）
+  Color get lgEmotion =>
+      lgIsDark ? LoveGirlTheme.textPrimaryDark : LoveGirlTheme.brandEmotion;
 }

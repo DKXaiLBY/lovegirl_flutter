@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Icon(
                       Icons.favorite_rounded,
                       size: 14,
-                      color: context.lgInk,
+                      color: context.lgEmotion,
                     ),
                   ),
                 ],
