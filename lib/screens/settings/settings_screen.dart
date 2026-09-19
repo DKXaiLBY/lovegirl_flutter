@@ -370,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? LoveGirlTheme.accent
                               : context.lgInk)
                           .withAlpha(25),
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(14)),
                   child: Text(_isEditing ? '保存' : '编辑',
                       style: TextStyle(
                           fontSize: 14,
@@ -471,10 +471,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               };
               mapPrefs.setMotionLevel(next);
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                children: [
+            child: Row(
+              children: [
                   Container(
                     width: 40,
                     height: 40,
@@ -504,8 +502,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 4),
                   Icon(Icons.chevron_right_rounded,
                       size: 18, color: context.lgTextMuted),
-                ],
-              ),
+              ],
             ),
           ),
         ],
@@ -533,7 +530,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
             LogService().userAction('隐私:相册可见=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(
               Icons.mood_outlined, LoveGirlTheme.orange, '心情可见', _moodVisible,
               (v) {
@@ -548,7 +545,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
             LogService().userAction('隐私:心情可见=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(
               Icons.map_outlined, LoveGirlTheme.visited, '行程可见', _travelVisible,
               (v) {
@@ -563,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
             LogService().userAction('隐私:行程可见=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(Icons.chat_bubble_outline, LoveGirlTheme.planned,
               '聊天记录可见', _chatVisible, (v) {
             setState(() => _chatVisible = v);
@@ -596,7 +593,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             NotificationService().setPushEnabled(v);
             LogService().userAction('推送:总开关=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(Icons.water_drop_outlined, context.lgInk, '姨妈提醒',
               _pushPeriod, (v) {
             setState(() => _pushPeriod = v);
@@ -604,7 +601,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             NotificationService.setPeriodEnabled(v);
             LogService().userAction('推送:姨妈提醒=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(Icons.favorite_outline, LoveGirlTheme.red, '纪念日提醒',
               _pushAnniversary, (v) {
             setState(() => _pushAnniversary = v);
@@ -612,7 +609,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             NotificationService.setAnniversaryEnabled(v);
             LogService().userAction('推送:纪念日=$v');
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildSwitchRow(
               Icons.checklist_outlined, LoveGirlTheme.accent, '待办提醒', _pushTodo,
               (v) {
@@ -642,14 +639,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   content: Text('缓存已清除'), duration: Duration(seconds: 1)));
             }
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildTapRow(Icons.file_download_outlined, context.lgInk,
               '导出数据', 'JSON格式', () {
             LogService().userAction('数据:导出');
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                 content: Text('数据导出功能开发中'), duration: Duration(seconds: 1)));
           }),
-          const Divider(height: 20, indent: 40),
+          const Divider(height: 24, indent: 40),
           _buildTapRow(
               Icons.delete_sweep_outlined, LoveGirlTheme.red, '重置所有数据', '谨慎操作',
               () {
@@ -711,11 +708,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                       color: LoveGirlTheme.orange.withAlpha(40),
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(14)),
                   child: const Icon(Icons.swap_horiz_rounded,
                       color: LoveGirlTheme.orange, size: 20),
                 ),
@@ -876,11 +873,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Row(
       children: [
         Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
                 color: iconColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(14)),
             child: Icon(icon, color: iconColor, size: 20)),
         SizedBox(width: 12),
         Expanded(
@@ -904,11 +901,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Row(
         children: [
           Container(
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                   color: iconColor.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(14)),
               child: Icon(icon, color: iconColor, size: 20)),
           SizedBox(width: 12),
           Expanded(
@@ -931,12 +928,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Row(
       children: [
         Container(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
                 color: (isHeartRow ? context.lgInk : context.lgInk)
                     .withAlpha(isHeartRow ? 25 : 20),
-                borderRadius: BorderRadius.circular(8)),
+                borderRadius: BorderRadius.circular(14)),
             child: Icon(icon,
                 color: isHeartRow ? context.lgInk : context.lgInk,
                 size: 20)),
