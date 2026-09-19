@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:book_page_flip/book_page_flip.dart';
@@ -13,6 +14,11 @@ import '../../utils/lovegirl_theme.dart';
 /// 同一批照片在两个候选引擎间切换，真机对比手感后择优保留。
 /// A = book_page_flip（摊开书跨页，预解码位图）
 /// B = page_flip（单页翻动，widget 直接当页）
+
+/// A 引擎要求所有页同尺寸：照片解码后统一合成到该尺寸纸面画布（contain），
+/// 原图比例不同则留纸色边，避免拉伸变形。
+const int _kPageW = 720;
+const int _kPageH = 960;
 enum _FlipEngine { bookPageFlip, pageFlip }
 
 /// 翻页相册：照片以 3D 翻页书的方式浏览
@@ -58,9 +64,11 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
         final data =
             (await NetworkAssetBundle(Uri.parse(url)).load('')).buffer.asUint8List();
         final codec = await ui.instantiateImageCodec(data,
-            targetWidth: 720); // 控制纹理尺寸，避免超出 atlas 上限
+            targetWidth: 720); // 控制解码尺寸，合成前足够清晰即可
         final frame = await codec.getNextFrame();
-        _images.add(frame.image);
+        final page = await _normalizeToPage(frame.image);
+        frame.image.dispose();
+        _images.add(page);
         if (mounted) setState(() => _loaded++);
       } catch (e) {
         if (!mounted) return;
@@ -73,6 +81,34 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
     }
     if (!mounted) return;
     setState(() => _loading = false);
+  }
+
+  /// 把任意比例的照片合成到统一尺寸的纸面画布上（contain 居中，留纸色边）
+  Future<ui.Image> _normalizeToPage(ui.Image src) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    final pageRect = ui.Rect.fromLTWH(
+        0, 0, _kPageW.toDouble(), _kPageH.toDouble());
+    canvas.drawRect(
+        pageRect, ui.Paint()..color = LoveGirlTheme.paperWarm);
+    final sw = src.width.toDouble();
+    final sh = src.height.toDouble();
+    final scale = math.min(_kPageW / sw, _kPageH / sh);
+    final dst = ui.Rect.fromCenter(
+      center: pageRect.center,
+      width: sw * scale,
+      height: sh * scale,
+    );
+    canvas.drawImageRect(
+      src,
+      ui.Rect.fromLTWH(0, 0, sw, sh),
+      dst,
+      ui.Paint()..filterQuality = ui.FilterQuality.medium,
+    );
+    final picture = recorder.endRecording();
+    final out = await picture.toImage(_kPageW, _kPageH);
+    picture.dispose();
+    return out;
   }
 
   String _absoluteUrl(String raw) =>
@@ -105,7 +141,8 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(widget.title,
-            style: const TextStyle(fontWeight: FontWeight.w900)),
+            style: const TextStyle(
+                fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
       ),
       body: _loading
@@ -113,7 +150,7 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(color: LoveGirlTheme.primary),
+                  const CircularProgressIndicator(color: Colors.white70),
                   const SizedBox(height: 14),
                   Text('正在装订相册 $_loaded/${widget.photoUrls.length}',
                       style: const TextStyle(color: Colors.white54)),
