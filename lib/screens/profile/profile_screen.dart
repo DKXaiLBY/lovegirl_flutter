@@ -10,6 +10,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
+import '../kiss/thumb_kiss_screen.dart';
 import '../photo/photo_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
@@ -336,6 +337,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LoveTreeScreen()),
+            ),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.touch_app_outlined,
+            title: '拇指之吻',
+            value: '双机同触同一点，会一起震动',
+            color: LoveGirlTheme.brandEmotion,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ThumbKissScreen()),
             ),
           ),
           const Divider(),

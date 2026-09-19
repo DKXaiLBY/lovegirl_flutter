@@ -353,6 +353,12 @@ class ApiService {
   Future getLoveTree() => get('/api/tree');
   Future waterLoveTree() => post('/api/tree/water');
 
+  // ========== 拇指之吻 ==========
+  Future getKissState() => get('/api/kiss/state');
+  Future sendKissPosition(double x, double y, bool touching) =>
+      post('/api/kiss/position', data: {'x': x, 'y': y, 'touching': touching});
+  Future leaveKissRoom() => post('/api/kiss/leave');
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});
