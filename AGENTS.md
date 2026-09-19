@@ -5,16 +5,16 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.25.0+153。视觉风格：**灰白浮起卡片 + 黑色图标底座 + 荧光角标**（参考 "Explore AI Agents" 市场风格，品牌橘 #B85C38 已于 v3.25 退位）。
+当前版本 v3.26.0+154。视觉风格：**灰白浮起卡片 + 黑色图标底座 + 荧光角标**（参考 "Explore AI Agents" 市场风格，品牌橘 #B85C38 已于 v3.25 退位）。
 
 - 前端仓库：`D:\lovegirl_flutter`（git，remote = github.com/DKXaiLBY/lovegirl_flutter，master）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
-- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（header `x-deploy-token: 123062bfa3d9e621940a2511a5eab7ef`，字段 apk/v/c/s/l）→ 修正 app_versions 表的 version_name/changelog（见下"发布坑"）
+- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）（header `x-deploy-token: 123062bfa3d9e621940a2511a5eab7ef`，字段 apk/v/c/s/l）→ 修正 app_versions 表的 version_name/changelog（见下"发布坑"）
 
 ## 必读文档（按优先级）
 
 1. `docs/DESIGN_SYSTEM.md` — 设计规范 v1.0（色板/字阶/圆角/组件/状态/文案/dark 红线/tokens）。**注意第 13 节不一致清单与 v3.25 后的现状差异**：品牌橘已退位（primary=#1A1A1A），色板中橘色标注以文档内说明为准
-2. `docs/BACKLOG.md` — 待办：**翻页相册（用户明确要求下轮做，选型已完成）**、通知中心（暂缓）
+2. `docs/BACKLOG.md` — 待办：通知中心（暂缓，触发条件未到）；翻页相册/深色模式/§13 收敛均已完成（v3.26）
 3. `docs/implementation/v3.25-spec.md` 等 — 历史规格书（验收条款格式沿用）
 4. `docs/design/lovegirl-ui-design-v1.html` — v1 设计稿（旧暖橘风，仅参考布局；新风格见下）
 
@@ -55,8 +55,7 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:/flutter-sdk/bin/flutter.bat" 
 
 ## 待办 / 未竟
 
-- 翻页相册（见 BACKLOG）
-- 深色模式全局接线（用户确认过方向"光影通透"，token 已备）
-- DESIGN_SYSTEM 第 13 节清单残余（圆角/字号游离值收敛）
+- 通知中心（暂缓，用户觉得需要翻历史通知时再做）
 - 动效 3 项依赖横滑轮播场景（方向锁定/落点预览/动画接管，PageView 自带）
-- 服务器代码无 git（仅有 tar 快照）——建议未来建 server 仓库
+- 深色模式 v1 已接线（v3.26）——残余打磨：我的页纸质票根卡暖白底在深色下仍为浅色（纸票隐喻，可接受），后续可按需精修
+- 服务器已建 git（2026-09-19 /opt/love-girl/love-girl-server，gitignore: node_modules/uploads/.env），仅本地无 remote
