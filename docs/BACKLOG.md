@@ -1,14 +1,12 @@
 # LoveGirl 产品待办（Backlog）
 
-## 翻页相册（flipbook）—— 下次做，勿忘
-- 状态：调研完成，未动手（2026-09-17 用户拍板"下次再做"）
-- 用途：照片翻书浏览视图，加在相册/回忆入口，与网格模式并存，照片手动挑选排序
-- 候选包（pub.dev）：
-  1. book_page_flip（首选实测：摊开书+3D 卷页+软阴影）
-  2. turnable_page（次选）
-  3. page_flip（178 赞/140 分，上个会话初选）
-  4. 兜底：Code With Andrea 教程自写（AnimationController+3D 矩阵）
-- 选型方式：前两名做进同一个 demo 页，真机对比手感择优
+## 翻页相册（flipbook）—— A/B 对比页已就绪，待真机择优
+- 状态：对比 demo 已进主干（2026-09-19），从云端相册右上角"翻页书"入口进入
+- 页面：`lib/screens/photo/photo_flipbook_screen.dart`，底部分段切换 A/B 引擎，同批照片对比
+  - A = book_page_flip：摊开书跨页 + 3D 卷页，预解码位图（targetWidth 720 控 atlas）
+  - B = page_flip：单页翻动，widget 直接当页（CachedNetworkImage，无需预解码）
+- 选型变化（2026-09-19）：**turnable_page（原候选②）出局**——TPPL 专有许可证禁止未经书面许可的一切使用；替补 **page_flip**（MIT，0.2.5+1）进对比
+- 下一步：真机对比手感择优 → 删除落选引擎与切换 UI → 加"手动挑选 + 排序"选片功能
 - 设计语言：借"create-photo-flipbook-ui" skill 的纸感/硬壳封面/书脊阴影（借魂不借壳，勿用 WebView）
 - 隐私约束：不让 AI 挑选用户私密照片，选片排序全由用户手动
 

@@ -33,6 +33,7 @@ dependencies:
   open_filex: ^4.5.0
   geolocator: ^11.0.0
   book_page_flip: ^0.1.0
+  page_flip: ^0.2.5+1
 
 dependency_overrides:
   amap_flutter_base:

@@ -1,11 +1,19 @@
 import 'dart:ui' as ui;
 
 import 'package:book_page_flip/book_page_flip.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show NetworkAssetBundle;
+import 'package:page_flip/page_flip.dart';
 
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
+
+/// 翻页相册·选型对比页（BACKLOG 翻页相册轮）：
+/// 同一批照片在两个候选引擎间切换，真机对比手感后择优保留。
+/// A = book_page_flip（摊开书跨页，预解码位图）
+/// B = page_flip（单页翻动，widget 直接当页）
+enum _FlipEngine { bookPageFlip, pageFlip }
 
 /// 翻页相册：照片以 3D 翻页书的方式浏览
 class PhotoFlipbookScreen extends StatefulWidget {
@@ -24,9 +32,12 @@ class PhotoFlipbookScreen extends StatefulWidget {
 
 class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
   final List<ui.Image> _images = [];
+  final GlobalKey<PageFlipWidgetState> _pageFlipKey = GlobalKey();
   String? _error;
   bool _loading = true;
   int _loaded = 0;
+  _FlipEngine _engine = _FlipEngine.bookPageFlip;
+  int _position = 1; // A=跨页序号 / B=页码，均从 1 起
 
   @override
   void initState() {
@@ -42,7 +53,7 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
       _loaded = 0;
     });
     for (final raw in widget.photoUrls) {
-      final url = raw.startsWith('http') ? raw : '${AppConstants.baseUrl}$raw';
+      final url = _absoluteUrl(raw);
       try {
         final data =
             (await NetworkAssetBundle(Uri.parse(url)).load('')).buffer.asUint8List();
@@ -62,6 +73,19 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
     }
     if (!mounted) return;
     setState(() => _loading = false);
+  }
+
+  String _absoluteUrl(String raw) =>
+      raw.startsWith('http') ? raw : '${AppConstants.baseUrl}$raw';
+
+  int get _spreadTotal => (_images.length / 2).ceil();
+
+  void _switchEngine(_FlipEngine e) {
+    if (e == _engine) return;
+    setState(() {
+      _engine = e;
+      _position = 1;
+    });
   }
 
   @override
@@ -109,9 +133,86 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
                       child: Text('再上传一张照片就能翻开相册啦',
                           style: TextStyle(color: Colors.white54)),
                     )
-                  : Center(
-                      child: BookFlip(pages: _images),
+                  : Column(
+                      children: [
+                        Expanded(child: _buildBook()),
+                        _buildCompareBar(),
+                      ],
                     ),
+    );
+  }
+
+  Widget _buildBook() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Center(
+        child: _engine == _FlipEngine.bookPageFlip
+            ? BookFlip(
+                pages: _images,
+                onSpreadChanged: (spread) =>
+                    setState(() => _position = spread + 1),
+              )
+            : PageFlipWidget(
+                key: _pageFlipKey,
+                backgroundColor: const Color(0xFF171310),
+                onPageFlipped: (page) => setState(() {
+                  _position = (page + 1).clamp(1, widget.photoUrls.length);
+                }),
+                lastPage: Container(
+                  color: LoveGirlTheme.paperWarm,
+                  alignment: Alignment.center,
+                  child: const Text('— 未完待续 —',
+                      style: TextStyle(color: LoveGirlTheme.textMuted)),
+                ),
+                children: [
+                  for (final raw in widget.photoUrls)
+                    Image(
+                      image: CachedNetworkImageProvider(_absoluteUrl(raw)),
+                      fit: BoxFit.cover,
+                    ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildCompareBar() {
+    final isSpread = _engine == _FlipEngine.bookPageFlip;
+    final total = isSpread ? _spreadTotal : widget.photoUrls.length;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isSpread ? '跨页 $_position/$total' : '第 $_position/$total 张',
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<_FlipEngine>(
+              segments: const [
+                ButtonSegment(
+                    value: _FlipEngine.bookPageFlip,
+                    label: Text('A book_page_flip')),
+                ButtonSegment(
+                    value: _FlipEngine.pageFlip, label: Text('B page_flip')),
+              ],
+              selected: {_engine},
+              onSelectionChanged: (sel) => _switchEngine(sel.first),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: Colors.white,
+                selectedForegroundColor: Colors.black,
+                backgroundColor: Colors.white10,
+                foregroundColor: Colors.white60,
+                side: const BorderSide(color: Colors.white24),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
