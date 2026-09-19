@@ -6,6 +6,7 @@ import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'photo_flipbook_screen.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_icon.dart';
 
 /// 云端相册页面
 class PhotoScreen extends StatefulWidget {
@@ -172,7 +173,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           color: LoveGirlTheme.textPrimary,
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: AppIcon('back'),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -192,7 +193,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                 ),
                 if (_photos.isNotEmpty)
                   IconButton(
-                    icon: const Icon(Icons.auto_stories_rounded),
+                    icon: AppIcon('auto_stories'),
                     tooltip: '翻页书',
                     onPressed: () {
                       final urls = _photos
@@ -299,7 +300,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: _loadPhotos,
-            icon: const Icon(Icons.refresh),
+            icon: AppIcon('refresh'),
             label: const Text('重试'),
           ),
         ],

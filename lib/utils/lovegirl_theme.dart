@@ -7,9 +7,10 @@ class LoveGirlTheme {
   static const double radiusLg = 16.0;
   static const double radiusXl = 26.0;
 
-  static const Color primary = Color(0xFFB85C38);
-  static const Color primaryLight = Color(0xFFD4876B);
-  static const Color primarySoft = Color(0xFFFBE3E3);
+  // v3.24 新风格：主行动黑白化（参考 AI Agents 市场风格），品牌橘退位
+  static const Color primary = Color(0xFF1A1A1A);
+  static const Color primaryLight = Color(0xFF4A4A4A);
+  static const Color primarySoft = Color(0xFFF0EFEC);
   static const Color secondary = Color(0xFF7A9E7E);
   static const Color secondarySoft = Color(0xFFF0F5EC);
   static const Color accent = Color(0xFFE7B78A);
@@ -18,9 +19,9 @@ class LoveGirlTheme {
   static const Color pink = primary;
   static const Color pinkLight = primaryLight;
 
-  static const Color bgLight = Color(0xFFFFF9F5);
+  static const Color bgLight = Color(0xFFF5F4F1);
   static const Color paper = Color(0xFFFFFFFF);
-  static const Color paperWarm = Color(0xFFFFF5EC);
+  static const Color paperWarm = Color(0xFFFAF9F7);
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color bgDark = Color(0xFF1D1917);
   static const Color cardDark = Color(0xFF2A2421);

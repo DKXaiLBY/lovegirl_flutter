@@ -215,6 +215,10 @@ class _StarsMapScreenState extends State<StarsMapScreen>
               child: CircularProgressIndicator(color: Color(0xFF6FD9F5)),
             )
           else ...[
+            Positioned.fill(
+              child: Image.asset('assets/images/icons/bg_stars.png',
+                  fit: BoxFit.cover),
+            ),
             InteractiveViewer(
               transformationController: _transform,
               maxScale: 6,
@@ -570,15 +574,6 @@ class _StarsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _initStars(size);
 
-    // 背景渐变
-    canvas.drawRect(
-        Offset.zero & size,
-        Paint()
-          ..shader = const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF070B14), Color(0xFF0B1526), Color(0xFF070B14)],
-          ).createShader(Offset.zero & size));
 
     // 星星闪烁
     final starPaint = Paint()..style = PaintingStyle.fill;

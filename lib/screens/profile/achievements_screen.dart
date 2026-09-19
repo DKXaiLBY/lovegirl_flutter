@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/app_icon.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -91,7 +92,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   IconButton(
                     tooltip: '刷新',
                     onPressed: _loading ? null : _load,
-                    icon: const Icon(Icons.refresh_rounded),
+                    icon: AppIcon('refresh'),
                   ),
                 ],
               ),

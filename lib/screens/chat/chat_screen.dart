@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/app_icon.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -237,7 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
         const SizedBox(height: 16),
         TextButton.icon(
             onPressed: () => _loadMessages(refresh: true),
-            icon: const Icon(Icons.refresh),
+            icon: AppIcon('refresh'),
             label: const Text('重试')),
       ]));
 

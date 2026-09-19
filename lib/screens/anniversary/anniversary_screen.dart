@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/app_icon.dart';
 
 class AnniversaryScreen extends StatefulWidget {
   const AnniversaryScreen({super.key});
@@ -530,7 +531,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
         onPressed: () => _showAddEditSheet(),
         backgroundColor: LoveGirlTheme.primary,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
+        icon: AppIcon('plus'),
         label: const Text(_addTitle),
       ),
       body: LovePage(

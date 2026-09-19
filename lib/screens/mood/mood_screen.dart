@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_icon.dart';
 
 class MoodScreen extends StatefulWidget {
   const MoodScreen({super.key});
@@ -312,7 +313,7 @@ class _MoodScreenState extends State<MoodScreen> {
           color: LoveGirlTheme.textPrimary,
         ),
         leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            icon: AppIcon('back'),
             onPressed: () => Navigator.pop(context)),
       ),
       body: _loading
@@ -337,7 +338,7 @@ class _MoodScreenState extends State<MoodScreen> {
           const SizedBox(height: 16),
           TextButton.icon(
               onPressed: _loadData,
-              icon: const Icon(Icons.refresh),
+              icon: AppIcon('refresh'),
               label: const Text('重试')),
         ]),
       );

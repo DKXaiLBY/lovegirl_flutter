@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'register_screen.dart';
+import '../../widgets/app_icon.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -103,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _userCtrl,
                     decoration: const InputDecoration(
                       hintText: '用户名',
-                      prefixIcon: Icon(Icons.person_outline),
+                      prefixIcon: AppIcon('profile'),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {

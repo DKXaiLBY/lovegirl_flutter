@@ -12,6 +12,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
+import '../../widgets/app_icon.dart';
 
 /// 情侣厨房：TA 的菜单点菜 / 我的厨房 / 开饭记录
 class KitchenScreen extends StatelessWidget {
@@ -117,7 +118,7 @@ class _KitchenViewState extends State<_KitchenView>
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
+            icon: AppIcon('back'),
             color: LoveGirlTheme.textPrimary,
           ),
           const SizedBox(width: 4),
@@ -148,7 +149,7 @@ class _KitchenViewState extends State<_KitchenView>
             children: [
               IconButton(
                 onPressed: () => _openOrders(context),
-                icon: const Icon(Icons.receipt_long_rounded),
+                icon: AppIcon('ticket'),
                 color: LoveGirlTheme.textPrimary,
               ),
               if (kitchen.incomingNew > 0)

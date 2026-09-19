@@ -10,6 +10,7 @@ import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:intl/intl.dart';
+import '../../widgets/app_icon.dart';
 
 /// 添加/编辑旅行地点 — 完整表单
 class TravelFormScreen extends StatefulWidget {
@@ -329,7 +330,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       appBar: AppBar(
         title: Text(_isEditing ? '编辑地点' : '添加地点'),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: AppIcon('close'),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [

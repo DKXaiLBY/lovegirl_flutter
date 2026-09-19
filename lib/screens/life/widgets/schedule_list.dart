@@ -3,6 +3,7 @@ import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
+import '../../../widgets/app_icon.dart';
 
 /// ===== 课程表 =====
 class ScheduleListWidget extends StatefulWidget {
@@ -610,7 +611,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _loadCourses,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: AppIcon('refresh'),
               label: const Text('重试'),
             ),
           ],

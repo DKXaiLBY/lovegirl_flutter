@@ -846,10 +846,9 @@ class _MemoryTicket extends StatelessWidget {
     );
   }
 
-  Widget _memPlaceholder() => Container(
-        color: LoveGirlTheme.primarySoft,
-        child: const Center(
-            child: Text('♥', style: TextStyle(fontSize: 22, color: LoveGirlTheme.primary))),
+  Widget _memPlaceholder() => Image.asset(
+        'assets/images/icons/placeholder_memory.png',
+        fit: BoxFit.cover,
       );
 }
 

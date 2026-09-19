@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/constants.dart';
+import '../../widgets/app_icon.dart';
 
 /// 恋爱时光轴页面
 class TimelineScreen extends StatefulWidget {
@@ -245,7 +246,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           color: LoveGirlTheme.textPrimary,
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: AppIcon('back'),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -418,7 +419,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           const SizedBox(height: 16),
           TextButton.icon(
               onPressed: _loadTimeline,
-              icon: const Icon(Icons.refresh),
+              icon: AppIcon('refresh'),
               label: const Text('重试')),
         ],
       ),
