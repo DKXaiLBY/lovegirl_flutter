@@ -43,7 +43,7 @@ void main() {
       expect(item.id, 0);
       expect(item.title, '');
       expect(item.payload, isEmpty);
-      expect(item.isToday, isTrue); // epoch 兜底也能算，不抛异常
+      expect(item.isToday, isFalse); // epoch 兜底值不是今天，但不抛异常
     });
   });
 
@@ -63,7 +63,8 @@ void main() {
       expect(at(now.subtract(const Duration(minutes: 5))).relativeTime(now: now), '5分钟前');
       expect(at(now.subtract(const Duration(hours: 3))).relativeTime(now: now), '3小时前');
       expect(at(now.subtract(const Duration(days: 1))).relativeTime(now: now), '昨天');
-      expect(at(DateTime(2026, 9, 10)).relativeTime(now: now), '10天前');
+      expect(at(DateTime(2026, 9, 16)).relativeTime(now: now), '4天前');
+      expect(at(DateTime(2026, 9, 10)).relativeTime(now: now), '09-10');
       expect(at(DateTime(2026, 8, 31)).relativeTime(now: now), '08-31');
       expect(at(DateTime(2025, 12, 31)).relativeTime(now: now), '2025/12-31');
     });

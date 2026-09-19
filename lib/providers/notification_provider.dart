@@ -38,8 +38,14 @@ class NotificationItem {
       return const {};
     }
 
+    // 脏数据兜底：id 可能来成字符串
+    final rawId = json['id'];
+    final id = rawId is num
+        ? rawId.toInt()
+        : int.tryParse(rawId?.toString() ?? '') ?? 0;
+
     return NotificationItem(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: id,
       type: (json['type'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       content: (json['content'] ?? '').toString(),
@@ -50,15 +56,22 @@ class NotificationItem {
     );
   }
 
-  /// 相对时间文案："刚刚 / 5分钟前 / 3小时前 / 昨天 / 09-12"
+  /// 相对时间文案："刚刚 / 5分钟前 / 3小时前 / 昨天 / 3天前 / 09-12"
+  /// 按日历天分档，凌晨跨点不会把昨天的通知误报成"40分钟前"
   String relativeTime({DateTime? now}) {
     final ref = now ?? DateTime.now();
-    final diff = ref.difference(createdAt);
-    if (diff.inSeconds < 60) return '刚刚';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
-    if (diff.inHours < 24 && ref.day == createdAt.day) return '${diff.inHours}小时前';
-    if (diff.inDays == 1) return '昨天';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
+    final calendarDays = DateTime(ref.year, ref.month, ref.day)
+        .difference(DateTime(createdAt.year, createdAt.month, createdAt.day))
+        .inDays;
+
+    if (calendarDays == 0) {
+      final diff = ref.difference(createdAt);
+      if (diff.inSeconds < 60) return '刚刚';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+      return '${diff.inHours}小时前';
+    }
+    if (calendarDays == 1) return '昨天';
+    if (calendarDays < 7) return '$calendarDays天前';
     final m = createdAt.month.toString().padLeft(2, '0');
     final d = createdAt.day.toString().padLeft(2, '0');
     return '${createdAt.year == ref.year ? '' : '${createdAt.year}/'}$m-$d';
