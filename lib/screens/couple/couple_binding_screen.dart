@@ -139,7 +139,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('解除绑定'),
         content: const Text('确定要解除与TA的绑定关系吗？\n解除后，隐私设置和投喂站将受影响。'),
         actions: [
@@ -185,7 +185,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -216,30 +216,30 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
             tooltip: '返回',
             onTap: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primarySoft,
-              borderRadius: BorderRadius.circular(15),
+              color: context.lgPrimarySoft,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.link_rounded,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '伴侣绑定',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -247,7 +247,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                   '把这份 App 连接成两个人的',
                   style: TextStyle(
                     fontSize: 12,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
               ],
@@ -255,7 +255,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
           ),
           LovePill(
             text: _coupled ? '已连接' : '未绑定',
-            color: _coupled ? LoveGirlTheme.secondary : LoveGirlTheme.primary,
+            color: _coupled ? LoveGirlTheme.secondary : context.lgInk,
           ),
         ],
       ),
@@ -280,28 +280,28 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildAvatar('我', LoveGirlTheme.primary),
-                  const Padding(
+                  _buildAvatar('我', context.lgInk),
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Icon(Icons.favorite_rounded,
-                        color: LoveGirlTheme.primary, size: 32),
+                        color: context.lgInk, size: 32),
                   ),
                   _buildAvatar(nickname, LoveGirlTheme.secondary),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Text(
                 '$nickname · $role',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: LoveGirlTheme.textPrimary),
+                    color: context.lgTextPrimary),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 '已绑定${_coupledAt != null ? " · ${_coupledAt!.substring(0, 10)}" : ""}',
-                style: const TextStyle(
-                    fontSize: 14, color: LoveGirlTheme.textMuted),
+                style: TextStyle(
+                    fontSize: 14, color: context.lgTextMuted),
               ),
             ],
           ),
@@ -368,11 +368,11 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.primarySoft,
+                  color: context.lgPrimarySoft,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.favorite_rounded,
-                    color: LoveGirlTheme.primary, size: 36),
+                child: Icon(Icons.favorite_rounded,
+                    color: context.lgInk, size: 36),
               ),
               const SizedBox(height: 16),
               const Text('绑定你的另一半',
@@ -380,7 +380,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
               const SizedBox(height: 8),
               Text(
                 '绑定后可以享受完整的功能体验',
-                style: TextStyle(fontSize: 14, color: LoveGirlTheme.textMuted),
+                style: TextStyle(fontSize: 14, color: context.lgTextMuted),
               ),
             ],
           ),
@@ -395,9 +395,9 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
           child: Column(
             children: [
               if (_inviteCode == null) ...[
-                const Text('生成一个6位邀请码，发给TA输入即可',
+                Text('生成一个6位邀请码，发给TA输入即可',
                     style: TextStyle(
-                        fontSize: 13, color: LoveGirlTheme.textMuted)),
+                        fontSize: 13, color: context.lgTextMuted)),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -413,7 +413,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                         : const Icon(Icons.qr_code_rounded),
                     label: const Text('生成邀请码'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LoveGirlTheme.primary,
+                      backgroundColor: context.lgInk,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
@@ -421,9 +421,9 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                   ),
                 ),
               ] else ...[
-                const Text('请将此邀请码发给TA',
+                Text('请将此邀请码发给TA',
                     style: TextStyle(
-                        fontSize: 13, color: LoveGirlTheme.textMuted)),
+                        fontSize: 13, color: context.lgTextMuted)),
                 const SizedBox(height: 16),
                 // 邀请码展示
                 GestureDetector(
@@ -440,8 +440,8 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 28, vertical: 16),
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.primarySoft,
-                      borderRadius: BorderRadius.circular(16),
+                      color: context.lgPrimarySoft,
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: LoveGirlTheme.primaryLight),
                     ),
                     child: Row(
@@ -449,16 +449,16 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                       children: [
                         Text(
                           _inviteCode!,
-                          style: const TextStyle(
-                              fontSize: 36,
+                          style: TextStyle(
+                              fontSize: 34,
                               fontWeight: FontWeight.bold,
-                              color: LoveGirlTheme.primary,
+                              color: context.lgInk,
                               letterSpacing: 12,
                               fontFamily: 'monospace'),
                         ),
                         const SizedBox(width: 12),
-                        const Icon(Icons.copy_rounded,
-                            color: LoveGirlTheme.primary, size: 20),
+                        Icon(Icons.copy_rounded,
+                            color: context.lgInk, size: 20),
                       ],
                     ),
                   ),
@@ -470,7 +470,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                       fontSize: 13,
                       color: _expiresIn < 60
                           ? LoveGirlTheme.red
-                          : LoveGirlTheme.textMuted),
+                          : context.lgTextMuted),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -496,20 +496,20 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                 maxLength: 6,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 28,
+                    fontSize: 25,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 12,
                     fontFamily: 'monospace'),
                 decoration: InputDecoration(
                   hintText: '000000',
                   hintStyle: TextStyle(
-                      fontSize: 28,
-                      color: LoveGirlTheme.textMuted.withAlpha(80),
+                      fontSize: 25,
+                      color: context.lgTextMuted.withAlpha(80),
                       letterSpacing: 12,
                       fontFamily: 'monospace'),
                   counterText: '',
                   filled: true,
-                  fillColor: LoveGirlTheme.bgLight,
+                  fillColor: context.lgBg,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -517,7 +517,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                 ),
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -560,13 +560,13 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
             child: Text(
               name.isNotEmpty ? name[0] : '?',
               style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 25,
                   fontWeight: FontWeight.bold,
                   color: Colors.white),
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(name, style: const TextStyle(fontSize: 12, color: Colors.white70)),
       ],
     );
@@ -581,14 +581,14 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
               width: 3,
               height: 16,
               decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                   borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: LoveGirlTheme.textSecondary)),
+                  color: context.lgTextSecondary)),
         ],
       ),
     );
@@ -599,19 +599,19 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: LoveGirlTheme.primary),
-          const SizedBox(width: 10),
+          Icon(icon, size: 18, color: context.lgInk),
+          SizedBox(width: 10),
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: const TextStyle(
-                    fontSize: 13, color: LoveGirlTheme.textSecondary),
+                style: TextStyle(
+                    fontSize: 13, color: context.lgTextSecondary),
                 children: [
                   TextSpan(
                       text: title,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: LoveGirlTheme.textPrimary)),
+                          color: context.lgTextPrimary)),
                   const TextSpan(text: '  '),
                   TextSpan(text: desc),
                 ],

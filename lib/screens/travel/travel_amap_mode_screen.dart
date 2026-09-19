@@ -381,13 +381,13 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
     List<TravelSpot> validMapSpots,
   ) {
     if (_checkingNativeSupport) {
-      return const _MapMountPlaceholder();
+      return _MapMountPlaceholder();
     }
     if (_unsupportedNativeMap) {
       return const _UnsupportedMapPlaceholder();
     }
     if (!_mountMap) {
-      return const _MapMountPlaceholder();
+      return _MapMountPlaceholder();
     }
     return TravelMapWidget(
       key: _mapKey,
@@ -416,7 +416,7 @@ class _EmptyMapScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
@@ -431,7 +431,7 @@ class _EmptyMapScaffold extends StatelessWidget {
                         onFitSpots: () {},
                         onPreviewRoute: () {},
                       ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Expanded(
                 child: LoveTicketCard(
                   color: const Color(0xFFFFFCF8),
@@ -443,10 +443,10 @@ class _EmptyMapScaffold extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: LoveGirlTheme.secondarySoft,
-                          borderRadius: BorderRadius.circular(22),
+                          color: context.lgSecondarySoft,
+                          borderRadius: BorderRadius.circular(26),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -462,9 +462,9 @@ class _EmptyMapScaffold extends StatelessWidget {
                                   child: Text(
                                     '先放一个想去的地方进来',
                                     style: TextStyle(
-                                      fontSize: 19,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w900,
-                                      color: LoveGirlTheme.textPrimary,
+                                      color: context.lgTextPrimary,
                                     ),
                                   ),
                                 ),
@@ -477,7 +477,7 @@ class _EmptyMapScaffold extends StatelessWidget {
                                 fontSize: 13,
                                 height: 1.5,
                                 fontWeight: FontWeight.w600,
-                                color: LoveGirlTheme.textSecondary,
+                                color: context.lgTextSecondary,
                               ),
                             ),
                           ],
@@ -492,9 +492,9 @@ class _EmptyMapScaffold extends StatelessWidget {
                             child: OutlinedButton(
                               onPressed: onBack,
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: LoveGirlTheme.textPrimary,
+                                foregroundColor: context.lgTextPrimary,
                                 side: BorderSide(
-                                  color: LoveGirlTheme.separator.withAlpha(180),
+                                  color: context.lgSeparator.withAlpha(180),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18),
@@ -521,7 +521,7 @@ class _EmptyMapScaffold extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                    EdgeInsets.symmetric(vertical: 14),
                               ),
                             ),
                           ),
@@ -570,13 +570,13 @@ class _TopOverlay extends StatelessWidget {
           tooltip: '返回',
           onTap: onBack,
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
               color: Colors.white.withAlpha(232),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withAlpha(120)),
               boxShadow: LoveGirlTheme.cardShadow(),
             ),
@@ -585,34 +585,34 @@ class _TopOverlay extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         '旅行地图',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary,
+                          color: context.lgTextPrimary,
                         ),
                       ),
                     ),
                     InkWell(
                       onTap: onDismiss,
                       borderRadius: BorderRadius.circular(999),
-                      child: const Padding(
+                      child: Padding(
                         padding: EdgeInsets.all(4),
                         child: Icon(Icons.close_rounded,
-                            size: 18, color: LoveGirlTheme.textMuted),
+                            size: 18, color: context.lgTextMuted),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   summaryText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     height: 1.4,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -632,8 +632,8 @@ class _TopOverlay extends StatelessWidget {
                       child: LovePill(
                         text: hasRoute ? '已加载路线 · 查看' : '一键串成路线',
                         color: hasRoute
-                            ? LoveGirlTheme.primary
-                            : LoveGirlTheme.textMuted,
+                            ? context.lgInk
+                            : context.lgTextMuted,
                       ),
                     ),
                   ],
@@ -719,7 +719,7 @@ class _BottomOverlay extends StatelessWidget {
                 label: const Text('新增地点'),
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: LoveGirlTheme.textPrimary,
+                  foregroundColor: context.lgTextPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(18),
                   ),
@@ -727,7 +727,7 @@ class _BottomOverlay extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: FilledButton.icon(
                 onPressed: onFitBounds,
@@ -772,7 +772,7 @@ class _RouteTicket extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(238),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(26),
         boxShadow: LoveGirlTheme.cardShadow(),
       ),
       child: Row(
@@ -781,15 +781,15 @@ class _RouteTicket extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primary.withAlpha(18),
+              color: context.lgInk.withAlpha(18),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.alt_route_rounded,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,21 +798,21 @@ class _RouteTicket extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 if (meta.isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     meta,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: LoveGirlTheme.textSecondary,
+                      color: context.lgTextSecondary,
                     ),
                   ),
                 ],
@@ -866,17 +866,17 @@ class _SpotSheet extends StatelessWidget {
                     width: 42,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.separator,
+                      color: context.lgSeparator,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _SpotCover(spot: spot),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -888,31 +888,31 @@ class _SpotSheet extends StatelessWidget {
                             children: [
                               _StatusBadge(status: spot.status),
                               if (spot.editedByBoth)
-                                const LovePill(
+                                LovePill(
                                   text: '我们都编辑',
                                   icon: Icons.favorite_rounded,
-                                  color: LoveGirlTheme.primary,
+                                  color: context.lgInk,
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
                             spot.name.isEmpty ? '未命名地点' : spot.name,
-                            style: const TextStyle(
-                              fontSize: 22,
+                            style: TextStyle(
+                              fontSize: 20,
                               fontWeight: FontWeight.w900,
-                              color: LoveGirlTheme.textPrimary,
+                              color: context.lgTextPrimary,
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6),
                           Text(
                             _spotAddress,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               height: 1.4,
-                              color: LoveGirlTheme.textSecondary,
+                              color: context.lgTextSecondary,
                             ),
                           ),
                         ],
@@ -920,34 +920,34 @@ class _SpotSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 _InfoGrid(spot: spot),
                 if (notes.isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   LovePaper(
                     elevated: false,
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           '想对她说',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: LoveGirlTheme.textMuted,
+                            color: context.lgTextMuted,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8),
                         ...notes.map(
                           (note) => Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(
                               note,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 height: 1.45,
-                                color: LoveGirlTheme.textPrimary,
+                                color: context.lgTextPrimary,
                               ),
                             ),
                           ),
@@ -1080,35 +1080,35 @@ class _InfoCell extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7EE),
-        border: Border.all(color: LoveGirlTheme.separator.withAlpha(170)),
+        border: Border.all(color: context.lgSeparator.withAlpha(170)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(item.icon, size: 17, color: LoveGirlTheme.textMuted),
-          const SizedBox(width: 8),
+          Icon(item.icon, size: 17, color: context.lgTextMuted),
+          SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: LoveGirlTheme.textMuted,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.lgTextMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: 5),
                 Text(
                   item.value,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     height: 1.2,
                     fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
               ],
@@ -1133,12 +1133,12 @@ class _SpotCover extends StatelessWidget {
       decoration: BoxDecoration(
         color: LoveGirlTheme.secondary.withAlpha(18),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.separator.withAlpha(180)),
+        border: Border.all(color: context.lgSeparator.withAlpha(180)),
       ),
       child: Center(
         child: Text(
           spot.emoji.isEmpty ? '📍' : spot.emoji,
-          style: const TextStyle(fontSize: 32),
+          style: const TextStyle(fontSize: 34),
         ),
       ),
     );
@@ -1164,7 +1164,7 @@ class _SheetButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Text(label),
       ],
     );
@@ -1184,7 +1184,7 @@ class _SheetButton extends StatelessWidget {
     return FilledButton(
       onPressed: onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: LoveGirlTheme.primary,
+        backgroundColor: context.lgInk,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
@@ -1208,7 +1208,7 @@ class _MapMountPlaceholder extends StatelessWidget {
           color: Colors.white.withAlpha(232),
           borderRadius: BorderRadius.circular(18),
         ),
-        child: const Row(
+        child: Row(
           key: ValueKey('travel_amap_placeholder'),
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1223,7 +1223,7 @@ class _MapMountPlaceholder extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
           ],
@@ -1260,7 +1260,7 @@ class _MissingCoordinateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _NoticeCard(
+    return _NoticeCard(
       title: '这些地点还没有地图坐标',
       text: '地点信息已经保存了，但缺少经纬度，真地图暂时无法把它们标出来。回到预览页补一下地址或坐标会更省心。',
     );
@@ -1304,7 +1304,8 @@ class _UnsupportedMapPlaceholder extends StatelessWidget {
           Positioned.fill(
             child: Opacity(
               opacity: 0.16,
-              child: CustomPaint(painter: _FallbackMapPainter()),
+              child: CustomPaint(
+                painter: _FallbackMapPainter(routeColor: context.lgInk)),
             ),
           ),
           Center(
@@ -1312,7 +1313,7 @@ class _UnsupportedMapPlaceholder extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(18),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(26),
                 border: Border.all(color: Colors.white.withAlpha(28)),
               ),
               child: const Row(
@@ -1327,7 +1328,7 @@ class _UnsupportedMapPlaceholder extends StatelessWidget {
                   Text(
                     '模拟器预览',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                       color: Colors.white70,
                     ),
@@ -1343,6 +1344,10 @@ class _UnsupportedMapPlaceholder extends StatelessWidget {
 }
 
 class _FallbackMapPainter extends CustomPainter {
+  final Color routeColor;
+
+  _FallbackMapPainter({required this.routeColor});
+
   @override
   void paint(Canvas canvas, Size size) {
     final roadPaint = Paint()
@@ -1350,7 +1355,7 @@ class _FallbackMapPainter extends CustomPainter {
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
     final routePaint = Paint()
-      ..color = LoveGirlTheme.primary
+      ..color = routeColor
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -1421,23 +1426,23 @@ class _NoticeCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               height: 1.45,
-              color: LoveGirlTheme.textSecondary,
+              color: context.lgTextSecondary,
             ),
           ),
           if (actions.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Row(
               children: actions
                   .map((action) => Expanded(child: action))
@@ -1465,14 +1470,14 @@ class _SmallNotice extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4EC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LoveGirlTheme.primary.withAlpha(48)),
+        border: Border.all(color: context.lgInk.withAlpha(48)),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 11,
+        style: TextStyle(
+          fontSize: 12,
           height: 1.45,
-          color: LoveGirlTheme.textSecondary,
+          color: context.lgTextSecondary,
         ),
       ),
     );
@@ -1505,7 +1510,7 @@ class _CircleButton extends StatelessWidget {
             shape: BoxShape.circle,
             boxShadow: LoveGirlTheme.cardShadow(),
           ),
-          child: Icon(icon, color: LoveGirlTheme.textPrimary),
+          child: Icon(icon, color: context.lgTextPrimary),
         ),
       ),
     );
@@ -1541,16 +1546,16 @@ class _RailButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 20, color: LoveGirlTheme.textPrimary),
-              const SizedBox(height: 2),
+              Icon(icon, size: 20, color: context.lgTextPrimary),
+              SizedBox(height: 2),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.clip,
-                style: const TextStyle(
-                  fontSize: 9,
+                style: TextStyle(
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: LoveGirlTheme.textSecondary,
+                  color: context.lgTextSecondary,
                 ),
               ),
             ],
@@ -1583,7 +1588,7 @@ class _StatusBadge extends StatelessWidget {
       case 'wish':
       default:
         text = '想去';
-        color = LoveGirlTheme.primary;
+        color = context.lgInk;
         break;
     }
 
@@ -1596,7 +1601,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w800,
           color: color,
         ),

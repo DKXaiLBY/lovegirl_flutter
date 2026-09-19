@@ -24,7 +24,7 @@ class _LogScreenState extends State<LogScreen> {
       case 'WARN':
         return LoveGirlTheme.orange;
       default:
-        return LoveGirlTheme.textMuted;
+        return context.lgTextMuted;
     }
   }
 
@@ -32,16 +32,16 @@ class _LogScreenState extends State<LogScreen> {
   Widget build(BuildContext context) {
     final logs = _filtered;
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('开发者日志'),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: LoveGirlTheme.textPrimary,
+          color: context.lgTextPrimary,
         ),
         actions: [
           // 一键复制
@@ -52,7 +52,7 @@ class _LogScreenState extends State<LogScreen> {
               Clipboard.setData(
                   ClipboardData(text: LogService().exportAsText()));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                     content: Text('日志已复制到剪贴板'), duration: Duration(seconds: 1)),
               );
             },
@@ -66,7 +66,7 @@ class _LogScreenState extends State<LogScreen> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(18)),
                   title: const Text('清除日志'),
                   content: const Text('确定清除全部开发者日志吗？此操作不可撤销。'),
                   actions: [
@@ -75,8 +75,8 @@ class _LogScreenState extends State<LogScreen> {
                         child: const Text('取消')),
                     TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('清除',
-                            style: TextStyle(color: LoveGirlTheme.pink))),
+                        child: Text('清除',
+                            style: TextStyle(color: context.lgInk))),
                   ],
                 ),
               );
@@ -85,7 +85,7 @@ class _LogScreenState extends State<LogScreen> {
                 if (!context.mounted) return;
                 setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                       content: Text('日志已清除'),
                       behavior: SnackBarBehavior.floating,
                       duration: Duration(seconds: 1)),
@@ -119,13 +119,13 @@ class _LogScreenState extends State<LogScreen> {
               }).toList(),
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1),
           // 日志列表
           Expanded(
             child: logs.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text('暂无日志',
-                        style: TextStyle(color: LoveGirlTheme.textMuted)))
+                        style: TextStyle(color: context.lgTextMuted)))
                 : ListView.builder(
                     itemCount: logs.length,
                     itemBuilder: (context, i) {
@@ -139,7 +139,7 @@ class _LogScreenState extends State<LogScreen> {
                             border: Border(
                                 bottom: BorderSide(
                                     color:
-                                        LoveGirlTheme.separator.withAlpha(80),
+                                        context.lgSeparator.withAlpha(80),
                                     width: 0.5)),
                           ),
                           child: Row(
@@ -165,20 +165,20 @@ class _LogScreenState extends State<LogScreen> {
                                                 fontSize: 10,
                                                 color: _levelColor(entry.level),
                                                 fontWeight: FontWeight.w600)),
-                                        const SizedBox(width: 8),
+                                        SizedBox(width: 8),
                                         Text(
                                           '${entry.timestamp.hour.toString().padLeft(2, '0')}:${entry.timestamp.minute.toString().padLeft(2, '0')}:${entry.timestamp.second.toString().padLeft(2, '0')}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                               fontSize: 10,
-                                              color: LoveGirlTheme.textMuted),
+                                              color: context.lgTextMuted),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 2),
+                                    SizedBox(height: 2),
                                     Text(entry.message,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 13,
-                                            color: LoveGirlTheme.textPrimary),
+                                            color: context.lgTextPrimary),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis),
                                   ],
@@ -202,9 +202,9 @@ class _LogScreenState extends State<LogScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.cardLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: context.lgCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -214,45 +214,45 @@ class _LogScreenState extends State<LogScreen> {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                       color: _levelColor(entry.level).withAlpha(20),
-                      borderRadius: BorderRadius.circular(4)),
+                      borderRadius: BorderRadius.circular(8)),
                   child: Text(entry.level,
                       style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _levelColor(entry.level))),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(entry.type,
-                    style: const TextStyle(
-                        fontSize: 11, color: LoveGirlTheme.textMuted)),
-                const Spacer(),
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextMuted)),
+                Spacer(),
                 Text(entry.timestamp.toString().substring(0, 19),
-                    style: const TextStyle(
-                        fontSize: 11, color: LoveGirlTheme.textMuted)),
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextMuted)),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(entry.message,
-                style: const TextStyle(
-                    fontSize: 16,
+                style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary)),
+                    color: context.lgTextPrimary)),
             if (entry.detail.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: LoveGirlTheme.bgLight,
-                    borderRadius: BorderRadius.circular(10)),
+                    color: context.lgBg,
+                    borderRadius: BorderRadius.circular(8)),
                 child: SelectableText(entry.detail,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        color: LoveGirlTheme.textSecondary)),
+                        color: context.lgTextSecondary)),
               ),
             ],
             const SizedBox(height: 16),

@@ -114,7 +114,7 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
     final pageRect = ui.Rect.fromLTWH(
         0, 0, _kPageW.toDouble(), _kPageH.toDouble());
     canvas.drawRect(
-        pageRect, ui.Paint()..color = LoveGirlTheme.paperWarm);
+        pageRect, ui.Paint()..color = context.lgPaperWarm);
     final sw = src.width.toDouble();
     final sh = src.height.toDouble();
     final scale = math.min(_kPageW / sw, _kPageH / sh);
@@ -141,7 +141,7 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
       backgroundColor: const Color(0xFF211C18),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (_) => _PhotoPickerSheet(
         allUrls: widget.photoUrls,
@@ -285,7 +285,7 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
                     style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        fontSize: 16)),
+                        fontSize: 17)),
                 const SizedBox(width: 8),
                 Text('点选顺序 = 页序',
                     style:
@@ -324,7 +324,7 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
                       fit: StackFit.expand,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           child: CachedNetworkImage(
                             imageUrl: url,
                             fit: BoxFit.cover,

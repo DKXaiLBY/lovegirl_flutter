@@ -45,11 +45,10 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
       '\u8fd8\u6ca1\u6709\u7eaa\u5ff5\u65e5\uff0c\u5148\u628a\u6700\u91cd\u8981\u7684\u90a3\u4e00\u5929\u8bb0\u4e0b\u6765\u5427\u3002';
   static const String _allTitle = '\u5168\u90e8\u7eaa\u5ff5\u65e5';
 
-  static const Map<String, _AnniversaryTypeMeta> _typeConfig = {
+  static final Map<String, _AnniversaryTypeMeta> _typeConfig = {
     'love': _AnniversaryTypeMeta(
       label: '\u604b\u7231',
       icon: Icons.favorite_rounded,
-      color: LoveGirlTheme.primary,
       token: 'love',
     ),
     'birthday': _AnniversaryTypeMeta(
@@ -190,28 +189,28 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: LoveGirlTheme.separator,
+                            color: context.lgSeparator,
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Row(
                         children: [
                           LoveStickerIcon(
                             icon: meta.icon,
-                            color: meta.color,
+                            color: meta.color ?? context.lgInk,
                             size: 42,
                             iconSize: 20,
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               isEdit ? _editTitle : _addTitle,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
-                                color: LoveGirlTheme.textPrimary,
+                                color: context.lgTextPrimary,
                               ),
                             ),
                           ),
@@ -237,15 +236,15 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      const Text(
+                      Text(
                         _typeLabel,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -258,19 +257,19 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                               entry.value.icon,
                               size: 16,
                               color:
-                                  selected ? Colors.white : entry.value.color,
+                                  selected ? Colors.white : entry.value.color ?? context.lgInk,
                             ),
-                            selectedColor: entry.value.color,
-                            backgroundColor: entry.value.color.withAlpha(20),
+                            selectedColor: entry.value.color ?? context.lgInk,
+                            backgroundColor: (entry.value.color ?? context.lgInk).withAlpha(20),
                             labelStyle: TextStyle(
                               fontWeight: FontWeight.w700,
                               color:
-                                  selected ? Colors.white : entry.value.color,
+                                  selected ? Colors.white : entry.value.color ?? context.lgInk,
                             ),
                             side: BorderSide(
                               color: selected
-                                  ? entry.value.color
-                                  : entry.value.color.withAlpha(40),
+                                  ? entry.value.color ?? context.lgInk
+                                  : (entry.value.color ?? context.lgInk).withAlpha(40),
                             ),
                             onSelected: (_) {
                               setSheetState(() => selectedType = entry.key);
@@ -278,16 +277,16 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 18),
-                      const Text(
+                      SizedBox(height: 18),
+                      Text(
                         _dateLabel,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       InkWell(
                         onTap: () async {
                           final picked = await showDatePicker(
@@ -300,7 +299,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                             setSheetState(() => selectedDate = picked);
                           }
                         },
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
@@ -308,39 +307,38 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                             vertical: 14,
                           ),
                           decoration: BoxDecoration(
-                            color: LoveGirlTheme.paperWarm,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: LoveGirlTheme.separator),
+                            color: context.lgPaperWarm,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: context.lgSeparator),
                           ),
                           child: Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.event_rounded,
-                                color: LoveGirlTheme.primary,
-                              ),
-                              const SizedBox(width: 10),
+                                                        ),
+                              SizedBox(width: 10),
                               Text(
                                 _formatDate(selectedDate, withYear: true),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: LoveGirlTheme.textPrimary,
+                                  color: context.lgTextPrimary,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      const Text(
+                      SizedBox(height: 18),
+                      Text(
                         _repeatLabelTitle,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -350,7 +348,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                             label: Text(entry.value),
                             selected: selected,
                             selectedColor: LoveGirlTheme.secondary,
-                            backgroundColor: LoveGirlTheme.secondarySoft,
+                            backgroundColor: context.lgSecondarySoft,
                             labelStyle: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: selected
@@ -368,26 +366,26 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                           );
                         }).toList(),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       SwitchListTile.adaptive(
                         value: isLunar,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text(
+                        title: Text(
                           _lunarTitle,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: LoveGirlTheme.textPrimary,
+                            color: context.lgTextPrimary,
                           ),
                         ),
-                        subtitle: const Text(
+                        subtitle: Text(
                           _lunarHint,
                           style: TextStyle(
                             fontSize: 12,
-                            color: LoveGirlTheme.textMuted,
+                            color: context.lgTextMuted,
                           ),
                         ),
-                        activeColor: LoveGirlTheme.primary,
+                        activeColor: context.lgInk,
                         onChanged: (value) {
                           setSheetState(() => isLunar = value);
                         },
@@ -481,7 +479,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('\u5220\u9664\u7eaa\u5ff5\u65e5'),
         content: Text(
           '\u786e\u5b9a\u5220\u9664\u300c${item['title']}\u300d\u5417\uff1f',
@@ -525,11 +523,11 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(title: const Text(_pageTitle)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddEditSheet(),
-        backgroundColor: LoveGirlTheme.primary,
+        backgroundColor: context.lgInk,
         foregroundColor: Colors.white,
         icon: AppIcon('plus'),
         label: const Text(_addTitle),
@@ -549,9 +547,9 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                 const SizedBox(height: 16),
               ],
               _buildSectionHeader(),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               if (_loading)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 36),
                   child: Center(child: CircularProgressIndicator()),
                 )
@@ -583,12 +581,12 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
             children: [
               LoveStickerIcon(
                 icon: meta.icon,
-                color: meta.color,
+                color: meta.color ?? context.lgInk,
                 size: 44,
                 iconSize: 20,
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -597,7 +595,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -605,7 +603,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                       _heroBody,
                       style: TextStyle(
                         fontSize: 12,
-                        color: LoveGirlTheme.textSecondary,
+                        color: context.lgTextSecondary,
                       ),
                     ),
                   ],
@@ -613,7 +611,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           if (next == null)
             Container(
               width: double.infinity,
@@ -621,14 +619,14 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(180),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: LoveGirlTheme.separator),
+                border: Border.all(color: context.lgSeparator),
               ),
-              child: const Text(
+              child: Text(
                 _heroEmpty,
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: LoveGirlTheme.textSecondary,
+                  color: context.lgTextSecondary,
                 ),
               ),
             )
@@ -640,21 +638,21 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                   width: 104,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: meta.color,
-                    borderRadius: BorderRadius.circular(22),
+                    color: meta.color ?? context.lgInk,
+                    borderRadius: BorderRadius.circular(26),
                   ),
                   child: Column(
                     children: [
                       Text(
                         '$_nextDays',
                         style: const TextStyle(
-                          fontSize: 38,
+                          fontSize: 34,
                           height: 1,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         _nextDays == 0
                             ? '\u5c31\u662f\u4eca\u5929'
@@ -668,34 +666,34 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                     decoration: BoxDecoration(
                       color: Colors.white.withAlpha(180),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: LoveGirlTheme.separator),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: context.lgSeparator),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _text(next['title'], fallback: _pageTitle),
-                          style: const TextStyle(
-                            fontSize: 18,
+                          style: TextStyle(
+                            fontSize: 17,
                             fontWeight: FontWeight.w900,
-                            color: LoveGirlTheme.textPrimary,
+                            color: context.lgTextPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           nextDate == null
                               ? _text(next['eventDate'])
                               : _formatDate(nextDate, withYear: true),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: LoveGirlTheme.textSecondary,
+                            color: context.lgTextSecondary,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -706,18 +704,18 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                             LovePill(
                               text: meta.label,
                               icon: meta.icon,
-                              color: meta.color,
+                              color: meta.color ?? context.lgInk,
                             ),
                             LovePill(
                               text: _repeatLabel(next['repeatType']),
                               color: LoveGirlTheme.secondary,
-                              background: LoveGirlTheme.secondarySoft,
+                              background: context.lgSecondarySoft,
                             ),
                             if (next['isLunar'] == true)
-                              const LovePill(
+                              LovePill(
                                 text: '\u519c\u5386\u6807\u8bb0',
                                 icon: Icons.nights_stay_outlined,
-                                color: LoveGirlTheme.textMuted,
+                                color: context.lgTextMuted,
                               ),
                           ],
                         ),
@@ -735,12 +733,12 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   Widget _buildSectionHeader() {
     return Row(
       children: [
-        const Text(
+        Text(
           _allTitle,
           style: TextStyle(
-            fontSize: 19,
+            fontSize: 20,
             fontWeight: FontWeight.w900,
-            color: LoveGirlTheme.textPrimary,
+            color: context.lgTextPrimary,
           ),
         ),
         const Spacer(),
@@ -748,7 +746,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
           text: '${_anniversaries.length} \u4e2a',
           icon: Icons.event_note_rounded,
           color: LoveGirlTheme.secondary,
-          background: LoveGirlTheme.secondarySoft,
+          background: context.lgSecondarySoft,
         ),
       ],
     );
@@ -763,35 +761,34 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
             width: 78,
             height: 78,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primary.withAlpha(16),
+              color: context.lgInk.withAlpha(16),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.favorite_border_rounded,
               size: 36,
-              color: LoveGirlTheme.primary,
-            ),
+                    ),
           ),
-          const SizedBox(height: 16),
-          const Text(
+          SizedBox(height: 16),
+          Text(
             _emptyTitle,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             _emptyBody,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
-              color: LoveGirlTheme.textSecondary,
+              color: context.lgTextSecondary,
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           FilledButton.icon(
             onPressed: () => _showAddEditSheet(),
             icon: const Icon(Icons.add_rounded, size: 18),
@@ -822,29 +819,29 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               children: [
                 LoveStickerIcon(
                   icon: meta.icon,
-                  color: meta.color,
+                  color: meta.color ?? context.lgInk,
                   size: 40,
                   iconSize: 18,
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         _text(item['title'], fallback: _pageTitle),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary,
+                          color: context.lgTextPrimary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         _formatDate(nextDate, withYear: true),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12.5,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
                       ),
                     ],
@@ -855,8 +852,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: daysUntil == 0
-                        ? LoveGirlTheme.primary
-                        : LoveGirlTheme.paperWarm,
+                        ? context.lgInk
+                        : context.lgPaperWarm,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(
@@ -864,22 +861,22 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                       Text(
                         daysUntil == 0 ? '\u4eca\u5929' : '$daysUntil',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 17,
                           fontWeight: FontWeight.w900,
                           color: daysUntil == 0
                               ? Colors.white
-                              : LoveGirlTheme.textPrimary,
+                              : context.lgTextPrimary,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         daysUntil == 0 ? '\u5230\u5566' : '\u5929',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: daysUntil == 0
                               ? Colors.white
-                              : LoveGirlTheme.textMuted,
+                              : context.lgTextMuted,
                         ),
                       ),
                     ],
@@ -888,13 +885,13 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               ],
             ),
             if (description.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
-                  color: LoveGirlTheme.textSecondary,
+                  color: context.lgTextSecondary,
                 ),
               ),
             ],
@@ -906,18 +903,18 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                 LovePill(
                   text: meta.label,
                   icon: meta.icon,
-                  color: meta.color,
+                  color: meta.color ?? context.lgInk,
                 ),
                 LovePill(
                   text: _repeatLabel(item['repeatType']),
                   color: LoveGirlTheme.secondary,
-                  background: LoveGirlTheme.secondarySoft,
+                  background: context.lgSecondarySoft,
                 ),
                 if (item['isLunar'] == true)
-                  const LovePill(
+                  LovePill(
                     text: '\u519c\u5386\u6807\u8bb0',
                     icon: Icons.nights_stay_outlined,
-                    color: LoveGirlTheme.textMuted,
+                    color: context.lgTextMuted,
                   ),
               ],
             ),
@@ -1044,23 +1041,22 @@ class _ErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3EE),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.primary.withAlpha(40)),
+        border: Border.all(color: context.lgInk.withAlpha(40)),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
-            color: LoveGirlTheme.primary,
-            size: 18,
+                  size: 18,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 height: 1.45,
-                color: LoveGirlTheme.textSecondary,
+                color: context.lgTextSecondary,
               ),
             ),
           ),
@@ -1077,13 +1073,13 @@ class _ErrorBanner extends StatelessWidget {
 class _AnniversaryTypeMeta {
   final String label;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final String token;
 
   const _AnniversaryTypeMeta({
     required this.label,
     required this.icon,
-    required this.color,
+    this.color,
     required this.token,
   });
 }

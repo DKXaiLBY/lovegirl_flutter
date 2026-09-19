@@ -119,10 +119,10 @@ class _BeansScreenState extends State<BeansScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: LoveGirlTheme.bgLight,
-        foregroundColor: LoveGirlTheme.textPrimary,
+        backgroundColor: context.lgBg,
+        foregroundColor: context.lgTextPrimary,
         elevation: 0,
         title: const Text('爱心豆',
             style: TextStyle(fontWeight: FontWeight.w900)),
@@ -138,19 +138,19 @@ class _BeansScreenState extends State<BeansScreen>
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                     children: [
                       _buildBalanceCard(),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       _buildCheckInCard(),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       _buildSectionTitle('豆子流水'),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       ..._transactions.map(_buildTxRow),
                       if (_transactions.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.all(28),
                           child: Center(
                             child: Text('还没有流水，签到赚第一颗豆吧',
                                 style: TextStyle(
-                                    color: LoveGirlTheme.textMuted,
+                                    color: context.lgTextMuted,
                                     fontSize: 13)),
                           ),
                         ),
@@ -165,12 +165,12 @@ class _BeansScreenState extends State<BeansScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 44, color: LoveGirlTheme.textMuted),
-          const SizedBox(height: 10),
+          Icon(Icons.error_outline_rounded,
+              size: 44, color: context.lgTextMuted),
+          SizedBox(height: 10),
           Text(_error ?? '加载失败',
-              style: const TextStyle(color: LoveGirlTheme.textMuted)),
-          const SizedBox(height: 14),
+              style: TextStyle(color: context.lgTextMuted)),
+          SizedBox(height: 14),
           LovePrimaryButton(text: '重试', onPressed: _loadAll),
         ],
       ),
@@ -179,7 +179,7 @@ class _BeansScreenState extends State<BeansScreen>
 
   Widget _buildBalanceCard() {
     return LoveTicketCard(
-      color: LoveGirlTheme.paperWarm,
+      color: context.lgPaperWarm,
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
@@ -188,28 +188,28 @@ class _BeansScreenState extends State<BeansScreen>
             height: 54,
             decoration: BoxDecoration(
               color: const Color(0xFFFFF0D9),
-              borderRadius: BorderRadius.circular(27),
+              borderRadius: BorderRadius.circular(26),
               border: Border.all(color: const Color(0xFFF1D4B1)),
             ),
             child: const Center(
                 child: Icon(Icons.savings_rounded,
                     size: 28, color: Color(0xFFB8860B))),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('当前余额',
+                Text('当前余额',
                     style: TextStyle(
-                        fontSize: 12, color: LoveGirlTheme.textMuted)),
-                const SizedBox(height: 2),
+                        fontSize: 12, color: context.lgTextMuted)),
+                SizedBox(height: 2),
                 RollingNumber(
                   value: _balance,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 34,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
               ],
@@ -218,19 +218,19 @@ class _BeansScreenState extends State<BeansScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text('连续签到',
+              Text('连续签到',
                   style: TextStyle(
-                      fontSize: 11, color: LoveGirlTheme.textMuted)),
-              const SizedBox(height: 2),
+                      fontSize: 12, color: context.lgTextMuted)),
+              SizedBox(height: 2),
               Text('$_streak 天',
-                  style: const TextStyle(
-                      fontSize: 16,
+                  style: TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      color: LoveGirlTheme.primary)),
-              const SizedBox(height: 2),
+                      color: context.lgInk)),
+              SizedBox(height: 2),
               Text('再签 $_nextBonusIn 天有奖励',
-                  style: const TextStyle(
-                      fontSize: 10, color: LoveGirlTheme.textMuted)),
+                  style: TextStyle(
+                      fontSize: 10, color: context.lgTextMuted)),
             ],
           ),
         ],
@@ -274,7 +274,7 @@ class _BeansScreenState extends State<BeansScreen>
                 },
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,16 +282,16 @@ class _BeansScreenState extends State<BeansScreen>
                 children: [
                   Text(
                     _checkedIn ? '今天已签到' : '每日签到',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: LoveGirlTheme.textPrimary),
+                        color: context.lgTextPrimary),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     _checkedIn ? '明天再来，爱你 ♥' : '签到得 5 颗爱心豆',
-                    style: const TextStyle(
-                        fontSize: 12, color: LoveGirlTheme.textMuted),
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextMuted),
                   ),
                 ],
               ),
@@ -312,10 +312,10 @@ class _BeansScreenState extends State<BeansScreen>
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(title,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: LoveGirlTheme.textPrimary)),
+              color: context.lgTextPrimary)),
     );
   }
 
@@ -331,9 +331,9 @@ class _BeansScreenState extends State<BeansScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.paper,
+          color: context.lgPaper,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: LoveGirlTheme.separator.withAlpha(90)),
+          border: Border.all(color: context.lgSeparator.withAlpha(90)),
         ),
         child: Row(
           children: [
@@ -342,9 +342,9 @@ class _BeansScreenState extends State<BeansScreen>
                   ? Icons.savings_rounded
                   : Icons.shopping_bag_outlined,
               size: 20,
-              color: positive ? const Color(0xFFB8860B) : LoveGirlTheme.textMuted,
+              color: positive ? const Color(0xFFB8860B) : context.lgTextMuted,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,15 +353,15 @@ class _BeansScreenState extends State<BeansScreen>
                     (tx['title'] ?? tx['description'] ?? '爱心豆变动').toString(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: LoveGirlTheme.textPrimary),
+                        color: context.lgTextPrimary),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(dateText,
-                      style: const TextStyle(
-                          fontSize: 11, color: LoveGirlTheme.textMuted)),
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextMuted)),
                 ],
               ),
             ),
@@ -465,8 +465,8 @@ class _CheckInButton extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: enabled
-                  ? LoveGirlTheme.primary
-                  : LoveGirlTheme.separator,
+                  ? context.lgInk
+                  : context.lgSeparator,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
@@ -474,7 +474,7 @@ class _CheckInButton extends StatelessWidget {
               style: TextStyle(
                 color: enabled
                     ? Colors.white
-                    : LoveGirlTheme.textMuted,
+                    : context.lgTextMuted,
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),

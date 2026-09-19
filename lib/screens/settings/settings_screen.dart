@@ -171,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? LoveGirlTheme.bgDark : LoveGirlTheme.bgLight;
+    final bgColor = isDark ? LoveGirlTheme.bgDark : context.lgBg;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -239,8 +239,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.secondarySoft,
-              borderRadius: BorderRadius.circular(15),
+              color: context.lgSecondarySoft,
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
               Icons.folder_special_rounded,
@@ -248,16 +248,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '资料夹管理',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -265,7 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   '账号、安全、通知和数据',
                   style: TextStyle(
                     fontSize: 12,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
               ],
@@ -299,7 +299,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: LoveGirlTheme.primary.withAlpha(50),
+                              color: context.lgInk.withAlpha(50),
                               width: 2)),
                       child: ClipOval(
                         child: auth.user?['avatar'] != null &&
@@ -322,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                 child: _isEditing
                     ? TextField(
@@ -332,13 +332,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide(
-                                  color: LoveGirlTheme.primary.withAlpha(60))),
+                                  color: context.lgInk.withAlpha(60))),
                           focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: LoveGirlTheme.primary)),
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                  color: context.lgInk)),
                         ),
                         style: const TextStyle(fontSize: 15),
                       )
@@ -346,15 +346,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(auth.user?['nickname'] ?? '未设置',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
-                                  color: LoveGirlTheme.textPrimary)),
-                          const SizedBox(height: 2),
+                                  color: context.lgTextPrimary)),
+                          SizedBox(height: 2),
                           Text(auth.isGirl ? '女友' : '男友',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 13,
-                                  color: LoveGirlTheme.textMuted)),
+                                  color: context.lgTextMuted)),
                         ],
                       ),
               ),
@@ -368,16 +368,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                       color: (_isEditing
                               ? LoveGirlTheme.accent
-                              : LoveGirlTheme.primary)
+                              : context.lgInk)
                           .withAlpha(25),
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(8)),
                   child: Text(_isEditing ? '保存' : '编辑',
                       style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: _isEditing
                               ? LoveGirlTheme.accent
-                              : LoveGirlTheme.primary)),
+                              : context.lgInk)),
                 ),
               ),
             ],
@@ -391,14 +391,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final name = auth.user?['nickname'] ?? '?';
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     return Container(
-      color: LoveGirlTheme.primary.withAlpha(30),
+      color: context.lgInk.withAlpha(30),
       child: Center(
         child: Text(
           initial,
-          style: const TextStyle(
-            fontSize: 26,
+          style: TextStyle(
+            fontSize: 25,
             fontWeight: FontWeight.bold,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
         ),
       ),
@@ -443,11 +443,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
+                  color: context.lgPrimarySoft,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.route_rounded,
-                    size: 20, color: LoveGirlTheme.primary),
+                child: Icon(Icons.route_rounded,
+                    size: 20, color: context.lgInk),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -479,8 +479,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.secondarySoft,
-                      borderRadius: BorderRadius.circular(12),
+                      color: context.lgSecondarySoft,
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(Icons.auto_awesome_rounded,
                         size: 20, color: LoveGirlTheme.secondary),
@@ -497,13 +497,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'rich' => '增强',
                       _ => '标准',
                     },
-                    style: const TextStyle(
-                        color: LoveGirlTheme.primary,
+                    style: TextStyle(
+                        color: context.lgInk,
                         fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded,
-                      size: 18, color: LoveGirlTheme.textMuted),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 18, color: context.lgTextMuted),
                 ],
               ),
             ),
@@ -520,7 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.photo_library_outlined, LoveGirlTheme.primary,
+          _buildSwitchRow(Icons.photo_library_outlined, context.lgInk,
               '相册可见', _photoVisible, (v) {
             setState(() => _photoVisible = v);
             ApiService().updatePrivacy({'photo_visible': v}).catchError((e) {
@@ -589,7 +589,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.notifications_outlined, LoveGirlTheme.primary,
+          _buildSwitchRow(Icons.notifications_outlined, context.lgInk,
               '推送总开关', _pushEnabled, (v) {
             setState(() => _pushEnabled = v);
             _savePushSetting('push_enabled', v);
@@ -597,7 +597,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             LogService().userAction('推送:总开关=$v');
           }),
           const Divider(height: 20, indent: 40),
-          _buildSwitchRow(Icons.water_drop_outlined, LoveGirlTheme.pink, '姨妈提醒',
+          _buildSwitchRow(Icons.water_drop_outlined, context.lgInk, '姨妈提醒',
               _pushPeriod, (v) {
             setState(() => _pushPeriod = v);
             _savePushSetting('push_period', v);
@@ -643,7 +643,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
           }),
           const Divider(height: 20, indent: 40),
-          _buildTapRow(Icons.file_download_outlined, LoveGirlTheme.primary,
+          _buildTapRow(Icons.file_download_outlined, context.lgInk,
               '导出数据', 'JSON格式', () {
             LogService().userAction('数据:导出');
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -669,10 +669,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: _cardDeco(),
-        child: _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted,
+        child: _buildTapRow(Icons.bug_report_outlined, context.lgTextMuted,
             '开发者日志', '查看API调用记录', () {
           Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const LogScreen()));
+              context, MaterialPageRoute(builder: (_) => LogScreen()));
         }),
       );
     }
@@ -706,7 +706,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: LoveGirlTheme.orange.withAlpha(20),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               children: [
@@ -715,12 +715,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   height: 36,
                   decoration: BoxDecoration(
                       color: LoveGirlTheme.orange.withAlpha(40),
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(8)),
                   child: const Icon(Icons.swap_horiz_rounded,
                       color: LoveGirlTheme.orange, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -728,10 +728,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
-                              color: LoveGirlTheme.textPrimary)),
+                              color: context.lgTextPrimary)),
                       Text('调试用，翻转男/女友端视角',
                           style: TextStyle(
-                              fontSize: 12, color: LoveGirlTheme.textMuted)),
+                              fontSize: 12, color: context.lgTextMuted)),
                     ],
                   ),
                 ),
@@ -759,13 +759,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontSize: 13,
                 color: auth.isDevRoleOverridden
                     ? LoveGirlTheme.orange
-                    : LoveGirlTheme.textMuted),
+                    : context.lgTextMuted),
           ),
           const Divider(height: 24, indent: 40),
-          _buildTapRow(Icons.bug_report_outlined, LoveGirlTheme.textMuted,
+          _buildTapRow(Icons.bug_report_outlined, context.lgTextMuted,
               '开发者日志', '查看API/错误记录', () {
             Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const LogScreen()));
+                context, MaterialPageRoute(builder: (_) => LogScreen()));
           }),
         ],
       ),
@@ -814,19 +814,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         children: [
           _buildInfoRow(Icons.info_outline, '应用名称', AppConstants.appName),
-          const Divider(height: 24, indent: 40),
+          Divider(height: 24, indent: 40),
           // 版本号 — 可点击（7次连击开启开发者模式）
           GestureDetector(
             onTap: _onVersionTap,
             child: _buildInfoRow(Icons.tag, '当前版本',
                 'v${AppConstants.versionName} (build ${AppConstants.versionCode})'),
           ),
-          const Divider(height: 24, indent: 40),
+          Divider(height: 24, indent: 40),
           _buildTapRow(Icons.system_update_outlined, LoveGirlTheme.accent,
               '检查更新', '点击检查', () {
             manualCheckVersion(context);
           }),
-          const Divider(height: 24, indent: 40),
+          Divider(height: 24, indent: 40),
           _buildInfoRow(Icons.favorite_outline, '用心打造', '给最爱的你 💕'),
         ],
       ),
@@ -845,13 +845,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.logout,
-                size: 20, color: LoveGirlTheme.pink.withAlpha(200)),
-            const SizedBox(width: 8),
+                size: 20, color: context.lgInk.withAlpha(200)),
+            SizedBox(width: 8),
             Text('退出登录',
                 style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.pink.withAlpha(220))),
+                    color: context.lgInk.withAlpha(220))),
           ],
         ),
       ),
@@ -862,10 +862,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   BoxDecoration _cardDeco() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: isDark ? LoveGirlTheme.cardDark : LoveGirlTheme.paper,
+      color: isDark ? LoveGirlTheme.cardDark : context.lgPaper,
       borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
       border: Border.all(
-        color: isDark ? Colors.white.withAlpha(18) : LoveGirlTheme.separator,
+        color: isDark ? Colors.white.withAlpha(18) : context.lgSeparator,
       ),
       boxShadow: isDark ? null : LoveGirlTheme.cardShadow(),
     );
@@ -880,18 +880,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             height: 36,
             decoration: BoxDecoration(
                 color: iconColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: iconColor, size: 20)),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
             child: Text(label,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: LoveGirlTheme.textPrimary))),
+                    color: context.lgTextPrimary))),
         Switch.adaptive(
             value: value,
-            activeColor: LoveGirlTheme.primary,
+            activeColor: context.lgInk,
             onChanged: onChanged),
       ],
     );
@@ -908,19 +908,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               height: 36,
               decoration: BoxDecoration(
                   color: iconColor.withAlpha(25),
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(8)),
               child: Icon(icon, color: iconColor, size: 20)),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 15, color: LoveGirlTheme.textPrimary))),
+                  style: TextStyle(
+                      fontSize: 15, color: context.lgTextPrimary))),
           Text(trailing,
-              style: const TextStyle(
-                  fontSize: 13, color: LoveGirlTheme.textMuted)),
-          const SizedBox(width: 4),
-          const Icon(Icons.chevron_right,
-              size: 18, color: LoveGirlTheme.textMuted),
+              style: TextStyle(
+                  fontSize: 13, color: context.lgTextMuted)),
+          SizedBox(width: 4),
+          Icon(Icons.chevron_right,
+              size: 18, color: context.lgTextMuted),
         ],
       ),
     );
@@ -934,22 +934,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-                color: (isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary)
+                color: (isHeartRow ? context.lgInk : context.lgInk)
                     .withAlpha(isHeartRow ? 25 : 20),
-                borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(8)),
             child: Icon(icon,
-                color: isHeartRow ? LoveGirlTheme.pink : LoveGirlTheme.primary,
+                color: isHeartRow ? context.lgInk : context.lgInk,
                 size: 20)),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Text(label,
-            style: const TextStyle(
-                fontSize: 15, color: LoveGirlTheme.textSecondary)),
-        const Spacer(),
+            style: TextStyle(
+                fontSize: 15, color: context.lgTextSecondary)),
+        Spacer(),
         Text(value,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: LoveGirlTheme.textPrimary)),
+                color: context.lgTextPrimary)),
       ],
     );
   }
@@ -962,9 +962,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-        decoration: const BoxDecoration(
-            color: LoveGirlTheme.cardLight,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+            color: context.lgCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -974,22 +974,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 decoration: BoxDecoration(
                     color: Colors.black12,
                     borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            const Text('更换头像',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
+            SizedBox(height: 24),
+            Text('更换头像',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
             ListTile(
               leading: Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                      color: LoveGirlTheme.primary.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.photo_library_outlined,
-                      color: LoveGirlTheme.primary)),
+                      color: context.lgInk.withAlpha(20),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Icon(Icons.photo_library_outlined,
+                      color: context.lgInk)),
               title: const Text('从相册选择'),
-              trailing: const Icon(Icons.chevron_right,
-                  color: LoveGirlTheme.textMuted),
+              trailing: Icon(Icons.chevron_right,
+                  color: context.lgTextMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
@@ -1007,19 +1007,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 }
               },
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             ListTile(
               leading: Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                      color: LoveGirlTheme.primary.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.camera_alt_outlined,
-                      color: LoveGirlTheme.primary)),
+                      color: context.lgInk.withAlpha(20),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Icon(Icons.camera_alt_outlined,
+                      color: context.lgInk)),
               title: const Text('拍照'),
-              trailing: const Icon(Icons.chevron_right,
-                  color: LoveGirlTheme.textMuted),
+              trailing: Icon(Icons.chevron_right,
+                  color: context.lgTextMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
@@ -1108,7 +1108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
             const Text('确认重置', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('将清除所有本地数据，包括缓存和登录状态。此操作不可撤销。'),
@@ -1136,7 +1136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? LoveGirlTheme.cardDark : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
             const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('退出后需要重新登录哦~'),
@@ -1151,7 +1151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               LogService().userAction('退出登录');
             },
             child: Text('退出',
-                style: TextStyle(color: LoveGirlTheme.pink.withAlpha(220))),
+                style: TextStyle(color: context.lgInk.withAlpha(220))),
           ),
         ],
       ),

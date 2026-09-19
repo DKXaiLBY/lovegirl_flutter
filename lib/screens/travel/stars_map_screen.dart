@@ -245,7 +245,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                   color: const Color(0xFF6FD9F5), width: 2),
                               boxShadow: const [
@@ -255,7 +255,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                               child: Image.network(
                                 url.startsWith('http')
                                     ? url
@@ -433,12 +433,12 @@ class _StarsMapScreenState extends State<StarsMapScreen>
       children: [
         Text(label,
             style: TextStyle(
-                color: Colors.white.withAlpha(170), fontSize: 11)),
+                color: Colors.white.withAlpha(170), fontSize: 12)),
         const Spacer(),
         Text(value,
             style: const TextStyle(
                 color: Color(0xFF6FD9F5),
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w900)),
         Text(suffix,
             style: TextStyle(
@@ -452,7 +452,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(8),
         child: Stack(
           children: [
             Container(height: 6, color: Colors.white.withAlpha(28)),
@@ -493,7 +493,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
             Text(label,
                 style: const TextStyle(
                     color: Color(0xFFBFEFFF),
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800)),
           ],
         ),
@@ -737,14 +737,14 @@ class _CitySheet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 22),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(26),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
           child: Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: const Color(0xFF101B30).withAlpha(235),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(26),
               border:
                   Border.all(color: const Color(0xFF6FD9F5).withAlpha(90)),
             ),
@@ -757,7 +757,7 @@ class _CitySheet extends StatelessWidget {
                     Text(city.name,
                         style: const TextStyle(
                             color: Color(0xFFBFEFFF),
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.w900)),
                     const SizedBox(width: 8),
                     Container(
@@ -772,7 +772,7 @@ class _CitySheet extends StatelessWidget {
                       child: Text(
                         s != null ? '已点亮' : '还没去过',
                         style: const TextStyle(
-                            color: Color(0xFFBFEFFF), fontSize: 11),
+                            color: Color(0xFFBFEFFF), fontSize: 12),
                       ),
                     ),
                     const Spacer(),

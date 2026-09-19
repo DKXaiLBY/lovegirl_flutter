@@ -318,7 +318,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<KitchenProvider>.value(value: kitchen),
         ],
-        child: const MaterialApp(home: KitchenOrdersScreen()),
+        child: MaterialApp(home: KitchenOrdersScreen()),
       ),
     );
     await tester.pump();

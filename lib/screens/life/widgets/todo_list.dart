@@ -9,13 +9,13 @@ import '../../../widgets/app_icon.dart';
 /// ===== 手绘风格复选框 =====
 class HandDrawnCheckbox extends StatelessWidget {
   final bool checked;
-  final Color color;
+  final Color? color;
   final double size;
 
   const HandDrawnCheckbox({
     super.key,
     this.checked = false,
-    this.color = LoveGirlTheme.primary,
+    this.color,
     this.size = 24.0,
   });
 
@@ -28,7 +28,7 @@ class HandDrawnCheckbox extends StatelessWidget {
         size: Size(size, size),
         painter: _HandDrawnCheckboxPainter(
           checked: checked,
-          color: color,
+          color: color ?? context.lgInk,
         ),
       ),
     );
@@ -230,7 +230,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
               top: 24,
             ),
             decoration: BoxDecoration(
-              color: LoveGirlTheme.cardLight,
+              color: context.lgCard,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha(15),
@@ -249,30 +249,30 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.textMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(3),
+                      color: context.lgTextMuted.withAlpha(60),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '添加待办',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
                 TextField(
                   controller: titleCtrl,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '待办内容',
                     hintText: '输入待办事项...',
                     prefixIcon: Icon(
                       Icons.task_alt_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ),
@@ -288,8 +288,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                       lastDate: DateTime(2035),
                       builder: (context, child) => Theme(
                         data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: LoveGirlTheme.primary,
+                          colorScheme: ColorScheme.light(
+                            primary: context.lgInk,
                           ),
                         ),
                         child: child!,
@@ -302,11 +302,11 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                       });
                     }
                   },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '日期',
                     prefixIcon: Icon(
                       Icons.calendar_today_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ),
@@ -323,22 +323,22 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                               label: Text(c),
                               selected: selectedCategory == c,
                               selectedColor:
-                                  LoveGirlTheme.primary.withAlpha(30),
+                                  context.lgInk.withAlpha(30),
                               labelStyle: TextStyle(
                                 color: selectedCategory == c
-                                    ? LoveGirlTheme.primary
-                                    : LoveGirlTheme.textSecondary,
+                                    ? context.lgInk
+                                    : context.lgTextSecondary,
                                 fontWeight: selectedCategory == c
                                     ? FontWeight.w600
                                     : FontWeight.w400,
                               ),
                               side: BorderSide(
                                 color: selectedCategory == c
-                                    ? LoveGirlTheme.primary.withAlpha(80)
-                                    : LoveGirlTheme.textMuted.withAlpha(40),
+                                    ? context.lgInk.withAlpha(80)
+                                    : context.lgTextMuted.withAlpha(40),
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                               ),
                               onSelected: (_) =>
                                   setSheetState(() => selectedCategory = c),
@@ -348,7 +348,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                         .toList(),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -379,7 +379,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LoveGirlTheme.primary,
+                      backgroundColor: context.lgInk,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -389,7 +389,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                     child: const Text(
                       '确定添加',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -408,23 +408,23 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
         ),
         title: const Text('删除待办'),
         content: Text('确定删除 "$title" 吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               '取消',
-              style: TextStyle(color: LoveGirlTheme.textSecondary),
+              style: TextStyle(color: context.lgTextSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
+            child: Text(
               '删除',
-              style: TextStyle(color: LoveGirlTheme.pink),
+              style: TextStyle(color: context.lgInk),
             ),
           ),
         ],
@@ -485,8 +485,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: LoveGirlTheme.primary),
+      return Center(
+        child: CircularProgressIndicator(color: context.lgInk),
       );
     }
 
@@ -498,12 +498,12 @@ class _TodoListWidgetState extends State<TodoListWidget> {
             Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color: LoveGirlTheme.textMuted.withAlpha(100),
+              color: context.lgTextMuted.withAlpha(100),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               _error!,
-              style: const TextStyle(color: LoveGirlTheme.textMuted),
+              style: TextStyle(color: context.lgTextMuted),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
@@ -520,7 +520,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       children: [
         RefreshIndicator(
           onRefresh: _loadTodos,
-          color: LoveGirlTheme.primary,
+          color: context.lgInk,
           child: _todos.isEmpty
               ? ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -555,21 +555,21 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           Icon(
             Icons.checklist_rounded,
             size: 64,
-            color: LoveGirlTheme.textMuted.withAlpha(60),
+            color: context.lgTextMuted.withAlpha(60),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '还没有待办事项',
             style: TextStyle(
-              color: LoveGirlTheme.textMuted,
-              fontSize: 16,
+              color: context.lgTextMuted,
+              fontSize: 17,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             '点击右下角按钮添加',
             style: TextStyle(
-              color: LoveGirlTheme.textMuted,
+              color: context.lgTextMuted,
               fontSize: 14,
             ),
           ),
@@ -601,14 +601,14 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           padding: const EdgeInsets.only(right: 24),
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [LoveGirlTheme.pink, LoveGirlTheme.pinkLight],
+            gradient: LinearGradient(
+              colors: [context.lgInk, LoveGirlTheme.pinkLight],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             boxShadow: [
               BoxShadow(
-                color: LoveGirlTheme.pink.withAlpha(40),
+                color: context.lgInk.withAlpha(40),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -658,8 +658,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                         color: completed
-                            ? LoveGirlTheme.textMuted
-                            : LoveGirlTheme.textPrimary,
+                            ? context.lgTextMuted
+                            : context.lgTextPrimary,
                         decoration:
                             completed ? TextDecoration.lineThrough : null,
                       ),
@@ -671,14 +671,14 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(120),
+                            color: context.lgTextMuted.withAlpha(120),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             date,
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted.withAlpha(150),
+                              color: context.lgTextMuted.withAlpha(150),
                             ),
                           ),
                         ],
@@ -695,7 +695,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                 ),
                 decoration: BoxDecoration(
                   color: categoryColor.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -727,19 +727,19 @@ class _TodoListWidgetState extends State<TodoListWidget> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [LoveGirlTheme.primary, LoveGirlTheme.primaryLight],
+          gradient: LinearGradient(
+            colors: [context.lgInk, LoveGirlTheme.primaryLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(60),
+              color: context.lgInk.withAlpha(60),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(30),
+              color: context.lgInk.withAlpha(30),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

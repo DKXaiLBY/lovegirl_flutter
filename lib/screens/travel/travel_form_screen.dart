@@ -371,14 +371,14 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.bgLight,
-                borderRadius: BorderRadius.circular(10),
+                color: context.lgBg,
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.black.withAlpha(15)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_city,
-                      size: 20, color: LoveGirlTheme.textMuted),
+                  Icon(Icons.location_city,
+                      size: 20, color: context.lgTextMuted),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -386,13 +386,13 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                       style: TextStyle(
                         fontSize: 15,
                         color: _city.isEmpty
-                            ? LoveGirlTheme.textMuted
-                            : LoveGirlTheme.textPrimary,
+                            ? context.lgTextMuted
+                            : context.lgTextPrimary,
                       ),
                     ),
                   ),
-                  const Icon(Icons.chevron_right,
-                      size: 20, color: LoveGirlTheme.textMuted),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: context.lgTextMuted),
                 ],
               ),
             ),
@@ -433,22 +433,22 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.bgLight,
-                  borderRadius: BorderRadius.circular(10),
+                  color: context.lgBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.black.withAlpha(15)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today,
-                        size: 18, color: LoveGirlTheme.primary),
+                    Icon(Icons.calendar_today,
+                        size: 18, color: context.lgInk),
                     const SizedBox(width: 10),
                     Text(
                       _visitedDate ?? '点击选择日期（默认今天）',
                       style: TextStyle(
                         fontSize: 15,
                         color: _visitedDate != null
-                            ? LoveGirlTheme.textPrimary
-                            : LoveGirlTheme.textMuted,
+                            ? context.lgTextPrimary
+                            : context.lgTextMuted,
                       ),
                     ),
                   ],
@@ -473,12 +473,12 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: active
-                          ? LoveGirlTheme.primary.withAlpha(20)
-                          : LoveGirlTheme.bgLight,
-                      borderRadius: BorderRadius.circular(20),
+                          ? context.lgInk.withAlpha(20)
+                          : context.lgBg,
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: active
-                            ? LoveGirlTheme.primary
+                            ? context.lgInk
                             : Colors.black.withAlpha(10),
                       ),
                     ),
@@ -486,8 +486,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           color: active
-                              ? LoveGirlTheme.primary
-                              : LoveGirlTheme.textSecondary,
+                              ? context.lgInk
+                              : context.lgTextSecondary,
                           fontWeight:
                               active ? FontWeight.w600 : FontWeight.normal,
                         )),
@@ -513,12 +513,12 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: active
-                          ? LoveGirlTheme.pink.withAlpha(20)
-                          : LoveGirlTheme.bgLight,
-                      borderRadius: BorderRadius.circular(20),
+                          ? context.lgInk.withAlpha(20)
+                          : context.lgBg,
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: active
-                            ? LoveGirlTheme.pink
+                            ? context.lgInk
                             : Colors.black.withAlpha(10),
                       ),
                     ),
@@ -526,8 +526,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           color: active
-                              ? LoveGirlTheme.pink
-                              : LoveGirlTheme.textSecondary,
+                              ? context.lgInk
+                              : context.lgTextSecondary,
                           fontWeight:
                               active ? FontWeight.w600 : FontWeight.normal,
                         )),
@@ -551,7 +551,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                       starIdx <= _rating ? Icons.star : Icons.star_border,
                       color: starIdx <= _rating
                           ? const Color(0xFFFFB800)
-                          : LoveGirlTheme.textMuted,
+                          : context.lgTextMuted,
                       size: 32,
                     ),
                   ),
@@ -568,74 +568,74 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               maxLines: 5,
               decoration: _inputDecoration('写下你们的旅行故事...'),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ===== 心愿单专属 =====
           if (_status == 'wish') ...[
             _sectionTitle('心愿详情'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _label('想去的理由'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             TextField(
               controller: _reasonCtrl,
               maxLines: 3,
               decoration: _inputDecoration('为什么想去这里？'),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ===== 规划中专属 =====
           if (_status == 'planned') ...[
             _sectionTitle('规划详情'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _label('计划日期'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             GestureDetector(
               onTap: _pickPlannedDate,
               child: Container(
                 width: double.infinity,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.bgLight,
-                  borderRadius: BorderRadius.circular(10),
+                  color: context.lgBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.black.withAlpha(15)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.event, size: 18, color: Color(0xFF9C27B0)),
-                    const SizedBox(width: 10),
+                    Icon(Icons.event, size: 18, color: Color(0xFF9C27B0)),
+                    SizedBox(width: 10),
                     Text(
                       _plannedDate ?? '点击选择计划日期',
                       style: TextStyle(
                         fontSize: 15,
                         color: _plannedDate != null
-                            ? LoveGirlTheme.textPrimary
-                            : LoveGirlTheme.textMuted,
+                            ? context.lgTextPrimary
+                            : context.lgTextMuted,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _label('行程安排'),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             TextField(
               controller: _itineraryCtrl,
               maxLines: 4,
               decoration: _inputDecoration('Day1: ...\nDay2: ...'),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
           ],
 
           // ===== 预算（所有状态通用） =====
           _sectionTitle('其他信息'),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           _label('预算（元）'),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           TextField(
             controller: _budgetCtrl,
             keyboardType: TextInputType.number,
@@ -643,8 +643,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
             ],
             decoration: _inputDecoration('例如：5000').copyWith(
-              prefixIcon: const Icon(Icons.account_balance_wallet_outlined,
-                  size: 20, color: LoveGirlTheme.textMuted),
+              prefixIcon: Icon(Icons.account_balance_wallet_outlined,
+                  size: 20, color: context.lgTextMuted),
             ),
           ),
           const SizedBox(height: 16),
@@ -666,36 +666,36 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           const SizedBox(height: 16),
 
           _label('小提示'),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           TextField(
             controller: _tipsCtrl,
             maxLines: 2,
             decoration: _inputDecoration('预约、营业时间或注意事项'),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // 备注
           _label('备注'),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           TextField(
             controller: _noteCtrl,
             maxLines: 3,
             decoration: _inputDecoration('补充说明...'),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // ===== 照片管理（编辑模式） =====
           if (_isEditing) ...[
             _sectionTitle('照片'),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TravelPhotoGrid(
               spotId: widget.spot!.id,
               editable: true,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
 
-          const SizedBox(height: 32),
+          SizedBox(height: 32),
         ],
       ),
     );
@@ -709,8 +709,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(10),
+          color: context.lgBg,
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.black.withAlpha(15)),
         ),
         child: Row(
@@ -719,9 +719,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               hasLocation ? Icons.location_on_rounded : Icons.add_location_alt,
               size: 20,
               color:
-                  hasLocation ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
+                  hasLocation ? context.lgInk : context.lgTextMuted,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -732,29 +732,29 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: hasLocation
-                          ? LoveGirlTheme.textPrimary
-                          : LoveGirlTheme.textMuted,
+                          ? context.lgTextPrimary
+                          : context.lgTextMuted,
                     ),
                   ),
                   if (hasLocation) ...[
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(
                       _address.isNotEmpty
                           ? _address
                           : '${_lat.toStringAsFixed(6)}, ${_lng.toStringAsFixed(6)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right,
-                size: 20, color: LoveGirlTheme.textMuted),
+            Icon(Icons.chevron_right,
+                size: 20, color: context.lgTextMuted),
           ],
         ),
       ),
@@ -768,16 +768,16 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           width: 3,
           height: 16,
           decoration: BoxDecoration(
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Text(title,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textSecondary)),
+                color: context.lgTextSecondary)),
       ],
     );
   }
@@ -796,21 +796,21 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: LoveGirlTheme.textMuted.withAlpha(150)),
+      hintStyle: TextStyle(color: context.lgTextMuted.withAlpha(150)),
       filled: true,
-      fillColor: LoveGirlTheme.bgLight,
+      fillColor: context.lgBg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: Colors.black.withAlpha(15)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: Colors.black.withAlpha(15)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: LoveGirlTheme.primary, width: 1.5),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: context.lgInk, width: 1.5),
       ),
     );
   }
@@ -822,8 +822,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: active ? color.withAlpha(30) : LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(20),
+          color: active ? color.withAlpha(30) : context.lgBg,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: active ? color : Colors.black.withAlpha(10),
           ),
@@ -832,7 +832,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: active ? color : LoveGirlTheme.textSecondary,
+            color: active ? color : context.lgTextSecondary,
             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -865,8 +865,8 @@ class _CheckInStampOverlayState extends State<_CheckInStampOverlay>
       final speed = 0.55 + rng.nextDouble() * 0.5;
       return Offset(cos(angle) * speed, sin(angle) * speed - 0.2);
     });
-    _confettiColors = const [
-      LoveGirlTheme.primary,
+    _confettiColors = [
+      context.lgInk,
       LoveGirlTheme.orange,
       LoveGirlTheme.secondary,
       LoveGirlTheme.red,
@@ -934,7 +934,7 @@ class _CheckInStampOverlayState extends State<_CheckInStampOverlay>
                               horizontal: 26, vertical: 14),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4CAF50).withAlpha(235),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                                 color: Colors.white, width: 4),
                             boxShadow: [
@@ -948,7 +948,7 @@ class _CheckInStampOverlayState extends State<_CheckInStampOverlay>
                             '已打卡 ♥',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 30,
+                              fontSize: 34,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 2,
                             ),

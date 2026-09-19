@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/lovegirl_theme.dart';
+
 /// 骨架屏扫光占位块（SHIMMER）：高度与真实内容对齐，带扫光渐变位移
 class ShimmerBox extends StatefulWidget {
   final double width;
@@ -10,7 +12,7 @@ class ShimmerBox extends StatefulWidget {
     super.key,
     this.width = double.infinity,
     required this.height,
-    this.radius = const BorderRadius.all(Radius.circular(10)),
+    this.radius = const BorderRadius.all(Radius.circular(8)),
   });
 
   @override
@@ -93,8 +95,8 @@ class HomeSkeleton extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 18),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
+            color: context.lgCard,
+            borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +114,7 @@ class HomeSkeleton extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
       child: Column(
         children: [
-          ShimmerBox(height: 46, radius: BorderRadius.circular(16)),
+          ShimmerBox(height: 46, radius: BorderRadius.circular(18)),
           const SizedBox(height: 18),
           card(180),
           card(150),

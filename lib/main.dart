@@ -54,6 +54,12 @@ class LoveGirlApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
+          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: themeProvider.isDark
+                ? Brightness.light
+                : Brightness.dark,
+          ));
           return MaterialApp(
             title: 'LoveGirl',
           scrollBehavior: const MaterialScrollBehavior()
@@ -147,7 +153,7 @@ class _AppShellState extends State<AppShell> {
       case 1:
         return const TravelMainScreen();
       case 2:
-        return const HealthScreen();
+        return HealthScreen();
       case 3:
         return LifeScreen(
           key: ValueKey('life_$_lifeSubTab'),
@@ -192,7 +198,7 @@ class _AppShellState extends State<AppShell> {
         height: 74,
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.paper.withAlpha(216),
+          color: context.lgPaper.withAlpha(216),
           border: const Border(
               top: BorderSide(color: Color(0x33FFFFFF), width: 1)),
           boxShadow: [
@@ -266,7 +272,7 @@ class _LoveBottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? LoveGirlTheme.primary : LoveGirlTheme.textMuted;
+    final color = selected ? LoveGirlTheme.primary : context.lgTextMuted;
     return Semantics(
       button: true,
       selected: selected,
@@ -285,7 +291,7 @@ class _LoveBottomNavButton extends StatelessWidget {
                 height: selected ? 30 : 28,
                 decoration: BoxDecoration(
                   color: selected ? LoveGirlTheme.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   selected ? item.activeIcon : item.icon,
@@ -299,7 +305,7 @@ class _LoveBottomNavButton extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   height: 1,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   color: color,
@@ -319,7 +325,7 @@ class _AppBootScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -329,8 +335,8 @@ class _AppBootScreen extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 420),
               padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.paperWarm,
-                borderRadius: BorderRadius.circular(28),
+                color: context.lgPaperWarm,
+                borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
                     color: LoveGirlTheme.primary.withAlpha(10),
@@ -339,7 +345,7 @@ class _AppBootScreen extends StatelessWidget {
                   ),
                 ],
                 border: Border.all(
-                  color: LoveGirlTheme.separator.withAlpha(140),
+                  color: context.lgSeparator.withAlpha(140),
                 ),
               ),
               child: Column(
@@ -353,7 +359,7 @@ class _AppBootScreen extends StatelessWidget {
                         height: 48,
                         decoration: BoxDecoration(
                           color: LoveGirlTheme.primary.withAlpha(16),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                         ),
                         alignment: Alignment.center,
                         child: const Icon(
@@ -363,7 +369,7 @@ class _AppBootScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 14),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -372,7 +378,7 @@ class _AppBootScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
-                                color: LoveGirlTheme.textPrimary,
+                                color: context.lgTextPrimary,
                               ),
                             ),
                             SizedBox(height: 4),
@@ -381,7 +387,7 @@ class _AppBootScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: LoveGirlTheme.textSecondary,
+                                color: context.lgTextSecondary,
                               ),
                             ),
                           ],
@@ -390,21 +396,21 @@ class _AppBootScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  const ClipRRect(
+                  ClipRRect(
                     borderRadius: BorderRadius.all(Radius.circular(999)),
                     child: LinearProgressIndicator(
                       minHeight: 6,
-                      backgroundColor: LoveGirlTheme.separator,
+                      backgroundColor: context.lgSeparator,
                       valueColor: AlwaysStoppedAnimation(LoveGirlTheme.primary),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     '等一下下，专属票根和今天的安排马上就好。',
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.5,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ],

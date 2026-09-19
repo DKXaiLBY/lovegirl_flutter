@@ -19,8 +19,8 @@ class LovePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = Container(
-      decoration: const BoxDecoration(
-        color: LoveGirlTheme.bgLight,
+      decoration: BoxDecoration(
+        color: context.lgBg,
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -32,7 +32,7 @@ class LovePaper extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
-  final Color color;
+  final Color? color;
   final double radius;
   final bool elevated;
   final Border? border;
@@ -42,7 +42,7 @@ class LovePaper extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.margin = EdgeInsets.zero,
-    this.color = LoveGirlTheme.paper,
+    this.color,
     this.radius = LoveGirlTheme.radiusLg,
     this.elevated = true,
     this.border,
@@ -54,9 +54,9 @@ class LovePaper extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? context.lgPaper,
         borderRadius: BorderRadius.circular(radius),
-        border: border ?? Border.all(color: LoveGirlTheme.separator),
+        border: border ?? Border.all(color: context.lgSeparator),
         boxShadow: elevated ? LoveGirlTheme.cardShadow() : null,
       ),
       child: child,
@@ -66,7 +66,7 @@ class LovePaper extends StatelessWidget {
 
 class LoveStickerIcon extends StatelessWidget {
   final IconData icon;
-  final Color color;
+  final Color? color;
   final double size;
   final double iconSize;
   final Color? background;
@@ -74,7 +74,7 @@ class LoveStickerIcon extends StatelessWidget {
   const LoveStickerIcon({
     super.key,
     required this.icon,
-    this.color = LoveGirlTheme.primary,
+    this.color,
     this.size = 46,
     this.iconSize = 24,
     this.background,
@@ -86,11 +86,11 @@ class LoveStickerIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: background ?? color.withAlpha(20),
+        color: background ?? (color ?? context.lgInk).withAlpha(20),
         borderRadius: BorderRadius.circular(size * 0.34),
-        border: Border.all(color: color.withAlpha(35)),
+        border: Border.all(color: (color ?? context.lgInk).withAlpha(35)),
       ),
-      child: Icon(icon, color: color, size: iconSize),
+      child: Icon(icon, color: color ?? context.lgInk, size: iconSize),
     );
   }
 }
@@ -99,20 +99,20 @@ class LoveTicketCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry margin;
-  final Color color;
+  final Color? color;
 
   const LoveTicketCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.margin = EdgeInsets.zero,
-    this.color = LoveGirlTheme.paper,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _TicketBorderPainter(),
+      painter: _TicketBorderPainter(separator: context.lgSeparator),
       child: LovePaper(
         padding: padding,
         margin: margin,
@@ -158,13 +158,13 @@ class LoveTicketDivider extends StatelessWidget {
 }
 
 class LoveBarcode extends StatelessWidget {
-  final Color color;
+  final Color? color;
   final double width;
   final double height;
 
   const LoveBarcode({
     super.key,
-    this.color = LoveGirlTheme.textMuted,
+    this.color,
     this.width = 52,
     this.height = 38,
   });
@@ -186,7 +186,9 @@ class LoveBarcode extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final bar in pattern) ...[
-                Container(width: bar * scale, color: color.withAlpha(150)),
+                Container(
+                    width: bar * scale,
+                    color: (color ?? context.lgTextMuted).withAlpha(150),),
                 SizedBox(width: gap * scale),
               ],
             ],
@@ -201,20 +203,20 @@ class LovePrimaryButton extends StatelessWidget {
   final String text;
   final IconData? icon;
   final VoidCallback? onPressed;
-  final Color color;
+  final Color? color;
 
   const LovePrimaryButton({
     super.key,
     required this.text,
     this.icon,
     this.onPressed,
-    this.color = LoveGirlTheme.primary,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final style = FilledButton.styleFrom(
-      backgroundColor: color,
+      backgroundColor: color ?? context.lgInk,
       foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
@@ -254,10 +256,10 @@ class LoveSectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: LoveGirlTheme.textPrimary,
+            color: context.lgTextPrimary,
           ),
         ),
         const Spacer(),
@@ -265,7 +267,7 @@ class LoveSectionTitle extends StatelessWidget {
           TextButton(
             onPressed: onActionTap,
             style: TextButton.styleFrom(
-              foregroundColor: LoveGirlTheme.primary,
+              foregroundColor: context.lgInk,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               minimumSize: const Size(0, 34),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -280,14 +282,14 @@ class LoveSectionTitle extends StatelessWidget {
 class LovePill extends StatelessWidget {
   final String text;
   final IconData? icon;
-  final Color color;
+  final Color? color;
   final Color? background;
 
   const LovePill({
     super.key,
     required this.text,
     this.icon,
-    this.color = LoveGirlTheme.primary,
+    this.color,
     this.background,
   });
 
@@ -297,15 +299,15 @@ class LovePill extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: background ?? color.withAlpha(18),
+        color: background ?? (color ?? context.lgInk).withAlpha(18),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withAlpha(45)),
+        border: Border.all(color: (color ?? context.lgInk).withAlpha(45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
+            Icon(icon, size: 14, color: color ?? context.lgInk),
             const SizedBox(width: 4),
           ],
           Flexible(
@@ -316,7 +318,7 @@ class LovePill extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: color,
+                color: color ?? context.lgInk,
               ),
             ),
           ),
@@ -330,7 +332,7 @@ class LoveIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
   final String? tooltip;
-  final Color color;
+  final Color? color;
   final bool isActive;
 
   const LoveIconButton({
@@ -338,7 +340,7 @@ class LoveIconButton extends StatelessWidget {
     required this.icon,
     this.onTap,
     this.tooltip,
-    this.color = LoveGirlTheme.textPrimary,
+    this.color,
     this.isActive = false,
   });
 
@@ -346,22 +348,24 @@ class LoveIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: isActive ? LoveGirlTheme.primarySoft : LoveGirlTheme.paper,
-          borderRadius: BorderRadius.circular(16),
+          color: isActive ? context.lgPrimarySoft : context.lgPaper,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color:
-                isActive ? LoveGirlTheme.primaryLight : LoveGirlTheme.separator,
+                isActive ? LoveGirlTheme.primaryLight : context.lgSeparator,
           ),
           boxShadow: LoveGirlTheme.cardShadow(),
         ),
         child: Icon(
           icon,
-          color: isActive ? LoveGirlTheme.primary : color,
+          color: isActive
+              ? context.lgInk
+              : (color ?? context.lgTextPrimary),
           size: 22,
         ),
       ),
@@ -375,7 +379,7 @@ class LoveMenuRow extends StatelessWidget {
   final String title;
   final String? value;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? color;
 
   const LoveMenuRow({
     super.key,
@@ -383,35 +387,35 @@ class LoveMenuRow extends StatelessWidget {
     required this.title,
     this.value,
     this.onTap,
-    this.color = LoveGirlTheme.primary,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(width: 13),
+            Icon(icon, size: 22, color: color ?? context.lgInk),
+            SizedBox(width: 13),
             Flexible(
               flex: 0,
               child: Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: LoveGirlTheme.textPrimary,
+                  color: context.lgTextPrimary,
                 ),
               ),
             ),
             if (value != null) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Flexible(
                 flex: 2,
                 child: Text(
@@ -419,18 +423,18 @@ class LoveMenuRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: LoveGirlTheme.textMuted,
+                    color: context.lgTextMuted,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
             ],
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 20,
-              color: LoveGirlTheme.textMuted,
+              color: context.lgTextMuted,
             ),
           ],
         ),
@@ -440,6 +444,10 @@ class LoveMenuRow extends StatelessWidget {
 }
 
 class _TicketBorderPainter extends CustomPainter {
+  final Color separator;
+
+  _TicketBorderPainter({required this.separator});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -450,8 +458,8 @@ class _TicketBorderPainter extends CustomPainter {
         end: Alignment.bottomCenter,
         colors: [
           Colors.white.withAlpha(210),
-          LoveGirlTheme.separator.withAlpha(150),
-          LoveGirlTheme.separator.withAlpha(120),
+          separator.withAlpha(150),
+          separator.withAlpha(120),
         ],
       ).createShader(Offset.zero & size);
 

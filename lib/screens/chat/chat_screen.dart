@@ -132,7 +132,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         child: Column(children: [
           Padding(
@@ -181,31 +181,31 @@ class _ChatScreenState extends State<ChatScreen> {
             tooltip: '返回',
             onTap: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Container(
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primarySoft,
-              borderRadius: BorderRadius.circular(15),
+              color: context.lgPrimarySoft,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.mark_chat_unread_rounded,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
               size: 21,
             ),
           ),
-          const SizedBox(width: 12),
-          const Expanded(
+          SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '私密聊天',
                   style: TextStyle(
-                    fontSize: 19,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 SizedBox(height: 2),
@@ -213,7 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   '只属于你们的小纸条',
                   style: TextStyle(
                     fontSize: 12,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
               ],
@@ -231,10 +231,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildError() => Center(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
-        const SizedBox(height: 12),
+        Icon(Icons.cloud_off, size: 48, color: context.lgTextMuted),
+        SizedBox(height: 12),
         Text(_error!,
-            style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+            style: TextStyle(color: context.lgTextSecondary)),
         const SizedBox(height: 16),
         TextButton.icon(
             onPressed: () => _loadMessages(refresh: true),
@@ -260,11 +260,11 @@ class _ChatScreenState extends State<ChatScreen> {
             BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isMine ? LoveGirlTheme.primary : LoveGirlTheme.paper,
-          borderRadius: BorderRadius.circular(20).copyWith(
-              bottomRight: isMine ? const Radius.circular(6) : null,
-              bottomLeft: isMine ? null : const Radius.circular(6)),
-          border: isMine ? null : Border.all(color: LoveGirlTheme.separator),
+          color: isMine ? context.lgInk : context.lgPaper,
+          borderRadius: BorderRadius.circular(18).copyWith(
+              bottomRight: isMine ? const Radius.circular(8) : null,
+              bottomLeft: isMine ? null : const Radius.circular(8)),
+          border: isMine ? null : Border.all(color: context.lgSeparator),
           boxShadow: isMine
               ? LoveGirlTheme.cardShadow()
               : [
@@ -282,14 +282,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: TextStyle(
                       fontSize: 15,
                       color:
-                          isMine ? Colors.white : LoveGirlTheme.textPrimary)),
+                          isMine ? Colors.white : context.lgTextPrimary)),
               if (time.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(time,
                     style: TextStyle(
                         fontSize: 10,
                         color:
-                            isMine ? Colors.white60 : LoveGirlTheme.textMuted))
+                            isMine ? Colors.white60 : context.lgTextMuted))
               ],
             ]),
       ),
@@ -301,9 +301,9 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: EdgeInsets.fromLTRB(
           12, 8, 12, MediaQuery.of(context).padding.bottom + 10),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.paperWarm,
+        color: context.lgPaperWarm,
         border: Border(
-          top: BorderSide(color: LoveGirlTheme.separator.withAlpha(180)),
+          top: BorderSide(color: context.lgSeparator.withAlpha(180)),
         ),
       ),
       child: Row(children: [
@@ -315,11 +315,11 @@ class _ChatScreenState extends State<ChatScreen> {
             decoration: InputDecoration(
                 hintText: '发送消息...',
                 filled: true,
-                fillColor: LoveGirlTheme.paper,
+                fillColor: context.lgPaper,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(26),
                     borderSide: BorderSide.none)),
           ),
         ),
@@ -330,7 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: LoveGirlTheme.cardShadow()),
               child: _sending

@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final loading = context.watch<AuthProvider>().isLoading;
 
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -68,10 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(26),
                       boxShadow: [
                         BoxShadow(
-                          color: LoveGirlTheme.primary.withAlpha(60),
+                          color: context.lgInk.withAlpha(60),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -87,16 +87,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'LoveGirl',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 25,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '登录你的账号',
                     style: TextStyle(
                       fontSize: 14,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -152,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : const Text(
                               '登录',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(fontSize: 17),
                             ),
                     ),
                   ),
@@ -160,10 +160,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         '还没有账号？',
                         style: TextStyle(
-                          color: LoveGirlTheme.textMuted,
+                          color: context.lgTextMuted,
                           fontSize: 14,
                         ),
                       ),
@@ -176,10 +176,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           );
                         },
-                        child: const Text(
+                        child: Text(
                           '立即注册',
                           style: TextStyle(
-                            color: LoveGirlTheme.primary,
+                            color: context.lgInk,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),

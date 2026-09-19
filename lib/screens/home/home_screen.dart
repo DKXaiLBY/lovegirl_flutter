@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final home = context.watch<HomeProvider>();
 
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: LovePage(
             padding: EdgeInsets.zero,
             child: RefreshIndicator(
@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     index: 2,
                     child: _MemoryTicket(
                       memory: home.memory,
-                      onTap: () => _push(const TimelineScreen()),
+                      onTap: () => _push(TimelineScreen()),
                       onGenerate: () => _showMemoryStubSheet(home.memory),
                     ),
                   ),
@@ -149,11 +149,11 @@ class _HomeHeader extends StatelessWidget {
             runSpacing: 10,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const WeatherWidget(compact: true),
+              WeatherWidget(compact: true),
               Container(
                 width: 1,
                 height: 42,
-                color: LoveGirlTheme.separator,
+                color: context.lgSeparator,
               ),
               _BeanBadge(balance: beanBalance),
             ],
@@ -174,7 +174,7 @@ class _HomeHeader extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Text(
                                 'LoveGirl',
                                 style: TextStyle(
@@ -182,7 +182,7 @@ class _HomeHeader extends StatelessWidget {
                                   fontSize: 34,
                                   height: 1,
                                   fontWeight: FontWeight.w700,
-                                  color: LoveGirlTheme.textPrimary,
+                                  color: context.lgTextPrimary,
                                 ),
                               ),
                               SizedBox(width: 6),
@@ -191,25 +191,25 @@ class _HomeHeader extends StatelessWidget {
                                 child: Icon(
                                   Icons.favorite_rounded,
                                   size: 16,
-                                  color: LoveGirlTheme.primary,
+                                  color: context.lgInk,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 7),
+                        SizedBox(height: 7),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
                           child: Text.rich(
                             TextSpan(
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: LoveGirlTheme.textSecondary,
+                                color: context.lgTextSecondary,
                               ),
                               children: [
-                                const TextSpan(
+                                TextSpan(
                                   text:
                                       '\u6211\u4eec\u5728\u4e00\u8d77\u7684\u7b2c ',
                                 ),
@@ -217,14 +217,14 @@ class _HomeHeader extends StatelessWidget {
                                   alignment: PlaceholderAlignment.middle,
                                   child: RollingNumber(
                                     value: loveDays,
-                                    style: const TextStyle(
-                                      fontSize: 18,
+                                    style: TextStyle(
+                                      fontSize: 17,
                                       fontWeight: FontWeight.w900,
-                                      color: LoveGirlTheme.primary,
+                                      color: context.lgInk,
                                     ),
                                   ),
                                 ),
-                                const TextSpan(text: ' \u5929 \u2665'),
+                                TextSpan(text: ' \u5929 \u2665'),
                               ],
                             ),
                           ),
@@ -233,13 +233,13 @@ class _HomeHeader extends StatelessWidget {
                     ),
                   ),
                   if (!stackMetrics) ...[
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     metrics,
                   ],
                 ],
               ),
               if (stackMetrics) ...[
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 metrics,
               ],
             ],
@@ -270,38 +270,38 @@ class _BeanBadge extends StatelessWidget {
           height: 30,
           decoration: BoxDecoration(
             color: const Color(0xFFFFF0D9),
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: const Color(0xFFF1D4B1)),
           ),
           child: const Center(child: _LoveBeanIcon(size: 22)),
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             RollingNumber(
               value: balance,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
-            const Text(
+            Text(
               '\u7231\u5fc3\u8c46',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: LoveGirlTheme.textMuted,
+                color: context.lgTextMuted,
               ),
             ),
           ],
         ),
         const SizedBox(width: 2),
-        const Icon(
+        Icon(
           Icons.chevron_right_rounded,
           size: 14,
-          color: LoveGirlTheme.textMuted,
+          color: context.lgTextMuted,
         ),
       ],
       ),
@@ -400,24 +400,24 @@ class _ErrorBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3EE),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.primary.withAlpha(40)),
+        border: Border.all(color: context.lgInk.withAlpha(40)),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.cloud_off_rounded,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             size: 18,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Text(
               safeMessage,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: LoveGirlTheme.textSecondary,
+                color: context.lgTextSecondary,
               ),
             ),
           ),
@@ -476,7 +476,7 @@ class _TodayCareSection extends StatelessWidget {
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: LoveGirlTheme.textPrimary)),
+                  color: context.lgTextPrimary)),
         ),
         _CareEntry(
           emoji: '🍳',
@@ -532,7 +532,7 @@ class _CareEntry extends StatelessWidget {
     final badgeColor = switch (badgeTone) {
       _CareBadgeTone.ok => LoveGirlTheme.secondary,
       _CareBadgeTone.warn => LoveGirlTheme.orange,
-      _CareBadgeTone.neutral => LoveGirlTheme.textMuted,
+      _CareBadgeTone.neutral => context.lgTextMuted,
     };
     return PressableScale(
       child: GestureDetector(
@@ -541,9 +541,9 @@ class _CareEntry extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.lgCard,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: LoveGirlTheme.separator),
+            border: Border.all(color: context.lgSeparator),
           ),
           child: Row(
             children: [
@@ -551,17 +551,17 @@ class _CareEntry extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.primarySoft,
-                  borderRadius: BorderRadius.circular(13),
+                  color: context.lgPrimarySoft,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
                   child: emoji != null
                       ? Text(emoji!, style: const TextStyle(fontSize: 20))
                       : Icon(Icons.star_rounded,
-                          size: 20, color: LoveGirlTheme.primary),
+                          size: 20, color: context.lgInk),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,26 +569,26 @@ class _CareEntry extends StatelessWidget {
                     Text(title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
-                            color: LoveGirlTheme.textPrimary)),
+                            color: context.lgTextPrimary)),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(subtitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: LoveGirlTheme.textMuted)),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: context.lgTextMuted)),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: badgeColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(999),
@@ -596,12 +596,12 @@ class _CareEntry extends StatelessWidget {
                 child: Text(badge,
                     style: TextStyle(
                         color: badgeColor,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800)),
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 18, color: LoveGirlTheme.textMuted),
+              SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded,
+                  size: 18, color: context.lgTextMuted),
             ],
           ),
         ),
@@ -630,7 +630,7 @@ class _MemoryStubSheet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: LoveTicketCard(
-        color: LoveGirlTheme.paper,
+        color: context.lgPaper,
         padding: const EdgeInsets.all(18),
         child: Stack(
           children: [
@@ -641,27 +641,27 @@ class _MemoryStubSheet extends StatelessWidget {
                 LovePill(
                   text: '回忆票根 · MEMORY STUB',
                   icon: Icons.confirmation_number_outlined,
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     height: 1.3,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   subtitle,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13, color: LoveGirlTheme.textSecondary),
+                  style: TextStyle(
+                      fontSize: 13, color: context.lgTextSecondary),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 if (imageUrl.isNotEmpty)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
@@ -684,19 +684,19 @@ class _MemoryStubSheet extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          LoveGirlTheme.primarySoft,
+                          context.lgPrimarySoft,
                           LoveGirlTheme.accent.withAlpha(90),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Center(
-                      child: Text('♥', style: TextStyle(fontSize: 40, color: LoveGirlTheme.primary)),
+                    child: Center(
+                      child: Text('♥', style: TextStyle(fontSize: 34, color: context.lgInk)),
                     ),
                   ),
-                const SizedBox(height: 12),
-                const LoveTicketDivider(),
-                const SizedBox(height: 10),
+                SizedBox(height: 12),
+                LoveTicketDivider(),
+                SizedBox(height: 10),
                 Row(
                   children: [
                     if (location.isNotEmpty)
@@ -705,14 +705,14 @@ class _MemoryStubSheet extends StatelessWidget {
                           location,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 12, color: LoveGirlTheme.textMuted),
+                          style: TextStyle(
+                              fontSize: 12, color: context.lgTextMuted),
                         ),
                       ),
                     Text(
                       eventDate,
-                      style: const TextStyle(
-                          fontSize: 12, color: LoveGirlTheme.textMuted),
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextMuted),
                     ),
                   ],
                 ),
@@ -726,7 +726,7 @@ class _MemoryStubSheet extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).pop();
                       Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => const TimelineScreen()));
+                          builder: (_) => TimelineScreen()));
                     },
                   ),
                 ),
@@ -739,16 +739,16 @@ class _MemoryStubSheet extends StatelessWidget {
                 angle: -0.3,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     border:
-                        Border.all(color: LoveGirlTheme.primary, width: 2),
+                        Border.all(color: context.lgInk, width: 2),
                     borderRadius: BorderRadius.circular(8),
-                    color: LoveGirlTheme.primarySoft.withAlpha(200),
+                    color: context.lgPrimarySoft.withAlpha(200),
                   ),
-                  child: const Text('珍藏 ♥',
+                  child: Text('珍藏 ♥',
                       style: TextStyle(
-                          color: LoveGirlTheme.primary,
+                          color: context.lgInk,
                           fontWeight: FontWeight.w900,
                           fontSize: 12)),
                 ),
@@ -784,12 +784,12 @@ class _MemoryTicket extends StatelessWidget {
 
     return LoveTicketCard(
       key: const ValueKey('home_memory_ticket'),
-      color: LoveGirlTheme.paperWarm,
+      color: context.lgPaperWarm,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             child: SizedBox(
               width: 64,
               height: 64,
@@ -800,7 +800,7 @@ class _MemoryTicket extends StatelessWidget {
                   : _memPlaceholder(),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -808,11 +808,11 @@ class _MemoryTicket extends StatelessWidget {
                 Text(title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary)),
-                const SizedBox(height: 3),
+                        color: context.lgTextPrimary)),
+                SizedBox(height: 3),
                 Text(
                   [
                     if (dateLabel.isNotEmpty) dateLabel,
@@ -820,8 +820,8 @@ class _MemoryTicket extends StatelessWidget {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 11, color: LoveGirlTheme.textMuted),
+                  style: TextStyle(
+                      fontSize: 12, color: context.lgTextMuted),
                 ),
               ],
             ),
@@ -830,8 +830,8 @@ class _MemoryTicket extends StatelessWidget {
           OutlinedButton(
             onPressed: onGenerate ?? onTap,
             style: OutlinedButton.styleFrom(
-              foregroundColor: LoveGirlTheme.primary,
-              side: const BorderSide(color: LoveGirlTheme.primary),
+              foregroundColor: context.lgInk,
+              side: BorderSide(color: context.lgInk),
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               shape: RoundedRectangleBorder(
@@ -839,7 +839,7 @@ class _MemoryTicket extends StatelessWidget {
             ),
             child: const Text('生成票根',
                 style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w800)),
+                    fontSize: 12, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -881,7 +881,7 @@ class _TravelTicket extends StatelessWidget {
 
     return LoveTicketCard(
       key: const ValueKey('home_travel_ticket'),
-      color: const Color(0xFFF6FBF4),
+      color: context.lgSecondarySoft,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -892,7 +892,7 @@ class _TravelTicket extends StatelessWidget {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: LoveGirlTheme.secondarySoft,
+                color: context.lgSecondarySoft,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: const Center(
@@ -900,25 +900,25 @@ class _TravelTicket extends StatelessWidget {
                     size: 22, color: LoveGirlTheme.secondary),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(travelLabel,
                       style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: LoveGirlTheme.secondary)),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(city,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary)),
-                  const SizedBox(height: 2),
+                          color: context.lgTextPrimary)),
+                  SizedBox(height: 2),
                   Text(
                     [
                       subtitle,
@@ -928,15 +928,15 @@ class _TravelTicket extends StatelessWidget {
                     ].where((t) => t.isNotEmpty).join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 11, color: LoveGirlTheme.textMuted),
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextMuted),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded,
-                size: 18, color: LoveGirlTheme.textMuted),
+            Icon(Icons.chevron_right_rounded,
+                size: 18, color: context.lgTextMuted),
           ],
         ),
       ),
@@ -979,7 +979,7 @@ class _LifeSummaryTicket extends StatelessWidget {
         final financePanel = _LifePanel(
           icon: Icons.wallet_outlined,
           title: '\u672c\u6708\u5c0f\u8d26\u672c',
-          accent: LoveGirlTheme.primary,
+          accent: context.lgInk,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -987,45 +987,45 @@ class _LifeSummaryTicket extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '\u603b\u652f\u51fa',
                       style: TextStyle(
                         fontSize: 12,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       _money(totalSpent),
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: TextStyle(
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.primary,
+                        color: context.lgInk,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    const Text(
+                    SizedBox(height: 14),
+                    Text(
                       '\u5269\u4f59\u9884\u7b97',
                       style: TextStyle(
                         fontSize: 12,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(
                       _money(remaining),
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: LoveGirlTheme.secondary,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     TextButton(
                       onPressed: onFinanceTap,
                       style: TextButton.styleFrom(
-                        foregroundColor: LoveGirlTheme.textPrimary,
+                        foregroundColor: context.lgTextPrimary,
                         padding: EdgeInsets.zero,
                       ),
                       child: const Text(
@@ -1036,8 +1036,8 @@ class _LifeSummaryTicket extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              const SizedBox(
+              SizedBox(width: 10),
+              SizedBox(
                 width: 96,
                 height: 110,
                 child: Center(
@@ -1058,52 +1058,52 @@ class _LifeSummaryTicket extends StatelessWidget {
                 children: [
                   Text(
                     '\u660e\u5929 $weekday',
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
-                  const Spacer(),
+                  Spacer(),
                   Text(
                     '\u5171 $totalCourses \u8282\u8bfe',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(
                 time,
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.w900,
-                  color: LoveGirlTheme.textPrimary,
+                  color: context.lgTextPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
-                  color: LoveGirlTheme.textPrimary,
+                  color: context.lgTextPrimary,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 location,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: LoveGirlTheme.textSecondary,
+                  color: context.lgTextSecondary,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               TextButton(
                 onPressed: onCourseTap,
                 style: TextButton.styleFrom(
-                  foregroundColor: LoveGirlTheme.textPrimary,
+                  foregroundColor: context.lgTextPrimary,
                   padding: EdgeInsets.zero,
                 ),
                 child: const Text(
@@ -1117,19 +1117,19 @@ class _LifeSummaryTicket extends StatelessWidget {
 
         return LoveTicketCard(
           key: const ValueKey('home_life_summary'),
-          color: LoveGirlTheme.paper,
+          color: context.lgPaper,
           padding: const EdgeInsets.all(16),
           child: stacked
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     financePanel,
-                    const SizedBox(height: 14),
-                    const LoveTicketDivider(
+                    SizedBox(height: 14),
+                    LoveTicketDivider(
                       axis: Axis.horizontal,
                       length: 260,
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     coursePanel,
                   ],
                 )
@@ -1137,9 +1137,9 @@ class _LifeSummaryTicket extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: financePanel),
-                    const SizedBox(width: 14),
-                    const LoveTicketDivider(length: 182),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
+                    LoveTicketDivider(length: 182),
+                    SizedBox(width: 14),
                     Expanded(child: coursePanel),
                   ],
                 ),
@@ -1170,13 +1170,13 @@ class _LifePanel extends StatelessWidget {
         Row(
           children: [
             Icon(icon, size: 18, color: accent),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
           ],
@@ -1367,9 +1367,9 @@ class _TodoCareTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.lgCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.separator),
+        border: Border.all(color: context.lgSeparator),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1383,21 +1383,21 @@ class _TodoCareTile extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.primarySoft,
-                    borderRadius: BorderRadius.circular(13),
+                    color: context.lgPrimarySoft,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(Icons.checklist_rounded,
-                        size: 20, color: LoveGirlTheme.primary),
+                        size: 20, color: context.lgInk),
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text('待办清单',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary)),
+                          color: context.lgTextPrimary)),
                 ),
                 Container(
                   padding:
@@ -1405,7 +1405,7 @@ class _TodoCareTile extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: (allDone
                             ? LoveGirlTheme.secondary
-                            : LoveGirlTheme.textMuted)
+                            : context.lgTextMuted)
                         .withAlpha(26),
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -1413,13 +1413,13 @@ class _TodoCareTile extends StatelessWidget {
                       style: TextStyle(
                           color: allDone
                               ? LoveGirlTheme.secondary
-                              : LoveGirlTheme.textMuted,
-                          fontSize: 11,
+                              : context.lgTextMuted,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800)),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded,
-                    size: 18, color: LoveGirlTheme.textMuted),
+                Icon(Icons.chevron_right_rounded,
+                    size: 18, color: context.lgTextMuted),
               ],
             ),
           ),
@@ -1502,15 +1502,15 @@ class _HomeTodoRowState extends State<_HomeTodoRow>
                     painter: _CheckDrawPainter(
                         progress: p, color: LoveGirlTheme.secondary),
                     child: p == 0
-                        ? const Icon(Icons.radio_button_unchecked,
-                            size: 20, color: LoveGirlTheme.textMuted)
+                        ? Icon(Icons.radio_button_unchecked,
+                            size: 20, color: context.lgTextMuted)
                         : const SizedBox.shrink(),
                   );
                 },
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               widget.title,
@@ -1519,7 +1519,7 @@ class _HomeTodoRowState extends State<_HomeTodoRow>
               style: TextStyle(
                 fontSize: 13,
                 color:
-                    _done ? LoveGirlTheme.textMuted : LoveGirlTheme.textPrimary,
+                    _done ? context.lgTextMuted : context.lgTextPrimary,
                 decoration:
                     _done ? TextDecoration.lineThrough : TextDecoration.none,
               ),
@@ -1527,8 +1527,8 @@ class _HomeTodoRowState extends State<_HomeTodoRow>
           ),
           if (widget.dueDate.isNotEmpty)
             Text(widget.dueDate,
-                style: const TextStyle(
-                    fontSize: 11, color: LoveGirlTheme.textMuted)),
+                style: TextStyle(
+                    fontSize: 12, color: context.lgTextMuted)),
         ],
       ),
     );

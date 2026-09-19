@@ -92,7 +92,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
   }
 
   Color _getIconColor(int codePoint) {
-    return _iconColors[codePoint] ?? LoveGirlTheme.primary;
+    return _iconColors[codePoint] ?? context.lgInk;
   }
 
   void _navigateToForm({Map<String, dynamic>? item}) async {
@@ -129,7 +129,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('删除倒计时'),
         content: Text('确定删除「${item['name'] ?? ''}」吗？'),
         actions: [
@@ -155,7 +155,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: const Text('倒计时'),
         leading: IconButton(
@@ -176,7 +176,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToForm(),
-        backgroundColor: LoveGirlTheme.primary,
+        backgroundColor: context.lgInk,
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
     );
@@ -204,13 +204,13 @@ class _CountdownScreenState extends State<CountdownScreen> {
     Color daysColor;
     if (days > 0) {
       daysText = '还有 $days 天';
-      daysColor = LoveGirlTheme.primary;
+      daysColor = context.lgInk;
     } else if (days == 0) {
       daysText = '就是今天！🎉';
       daysColor = LoveGirlTheme.secondary;
     } else {
       daysText = '已过 ${-days} 天';
-      daysColor = LoveGirlTheme.textMuted;
+      daysColor = context.lgTextMuted;
     }
 
     return GestureDetector(
@@ -220,7 +220,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: LoveGirlTheme.cardLight,
+          color: context.lgCard,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           boxShadow: LoveGirlTheme.cardShadow(),
         ),
@@ -236,7 +236,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
               ),
               child: Icon(_getIcon(iconCodePoint), color: iconColor, size: 24),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             // 信息
             Expanded(
               child: Column(
@@ -244,20 +244,20 @@ class _CountdownScreenState extends State<CountdownScreen> {
                 children: [
                   Text(
                     name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     dateSubtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: LoveGirlTheme.textSecondary,
+                      color: context.lgTextSecondary,
                     ),
                   ),
                 ],
@@ -271,7 +271,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
                 Text(
                   days == 0 ? '今天' : '${days.abs()}',
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w300,
                     color: daysColor,
                     height: 1,
@@ -285,7 +285,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
               ],
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 18, color: LoveGirlTheme.textMuted),
+            Icon(Icons.chevron_right, size: 18, color: context.lgTextMuted),
           ],
         ),
       ),
@@ -302,22 +302,22 @@ class _CountdownScreenState extends State<CountdownScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primary.withAlpha(20),
+              color: context.lgInk.withAlpha(20),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.timer_outlined, size: 40, color: LoveGirlTheme.primary),
+            child: Icon(Icons.timer_outlined, size: 40, color: context.lgInk),
           ),
           const SizedBox(height: 16),
-          const Text('还没有倒计时', style: TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
+          Text('还没有倒计时', style: TextStyle(fontSize: 17, color: context.lgTextSecondary)),
           const SizedBox(height: 4),
-          const Text('添加一个重要的日子开始倒计时吧~', style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+          Text('添加一个重要的日子开始倒计时吧~', style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => _navigateToForm(),
             icon: const Icon(Icons.add_rounded, size: 18),
             label: const Text('添加倒计时'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: LoveGirlTheme.primary,
+              backgroundColor: context.lgInk,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

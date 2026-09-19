@@ -61,12 +61,12 @@ class PhotoPalette {
 /// 撕票线：虚线 + 两端半圆缺口
 class TicketNotchLine extends StatelessWidget {
   final Axis axis;
-  final Color color;
+  final Color? color;
 
   const TicketNotchLine({
     super.key,
     this.axis = Axis.horizontal,
-    this.color = LoveGirlTheme.separator,
+    this.color,
   });
 
   @override
@@ -79,11 +79,13 @@ class TicketNotchLine extends StatelessWidget {
     final line = axis == Axis.horizontal
         ? SizedBox(
             height: 1,
-            child: CustomPaint(painter: _DashPainter(color: color)),
+            child: CustomPaint(
+            painter: _DashPainter(color: color ?? context.lgSeparator)),
           )
         : SizedBox(
             width: 1,
-            child: CustomPaint(painter: _DashPainter(color: color, vertical: true)),
+            child: CustomPaint(
+              painter: _DashPainter(color: color ?? context.lgSeparator, vertical: true)),
           );
     if (axis == Axis.horizontal) {
       return SizedBox(
@@ -187,10 +189,10 @@ class HorizontalTicketStub extends StatelessWidget {
                 flex: 6,
                 child: image ??
                     Container(
-                        color: LoveGirlTheme.primarySoft,
-                        child: const Center(
+                        color: context.lgPrimarySoft,
+                        child: Center(
                           child: Icon(Icons.photo_outlined,
-                              size: 40, color: LoveGirlTheme.primary),
+                              size: 40, color: context.lgInk),
                         ),
                       ),
               ),
@@ -224,7 +226,7 @@ class HorizontalTicketStub extends StatelessWidget {
                           const Text('TRAVEL STUB',
                               style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 8,
+                                  fontSize: 10,
                                   letterSpacing: 2,
                                   fontWeight: FontWeight.w700)),
                           const SizedBox(height: 4),
@@ -243,20 +245,20 @@ class HorizontalTicketStub extends StatelessWidget {
                           if (date != null && date!.isNotEmpty)
                             Text(date!,
                                 style: const TextStyle(
-                                    color: Colors.white70, fontSize: 8)),
+                                    color: Colors.white70, fontSize: 10)),
                           const SizedBox(height: 4),
                           Text(
                             quote,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 9, height: 1.3),
+                                color: Colors.white, fontSize: 10, height: 1.3),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text('NO.$ticketNo',
                               style: const TextStyle(
                                   color: Colors.white60,
-                                  fontSize: 8,
+                                  fontSize: 10,
                                   letterSpacing: 1)),
                         ],
                       ),
@@ -316,37 +318,37 @@ class VerticalPostcardTicket extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TRAVEL MEMORY',
+                      Text('TRAVEL MEMORY',
                           style: TextStyle(
-                              color: LoveGirlTheme.textMuted,
-                              fontSize: 9,
+                              color: context.lgTextMuted,
+                              fontSize: 10,
                               letterSpacing: 2,
                               fontWeight: FontWeight.w700)),
-                      const Spacer(),
+                      Spacer(),
                       Text(
                         city,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: LoveGirlTheme.textPrimary,
-                            fontSize: 24,
+                        style: TextStyle(
+                            color: context.lgTextPrimary,
+                            fontSize: 25,
                             fontWeight: FontWeight.w900),
                       ),
                       if (quote.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(quote,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: LoveGirlTheme.textSecondary,
+                            style: TextStyle(
+                                color: context.lgTextSecondary,
                                 fontSize: 10)),
                       ],
                       if (date != null && date!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(date!,
-                            style: const TextStyle(
-                                color: LoveGirlTheme.textMuted,
-                                fontSize: 9,
+                            style: TextStyle(
+                                color: context.lgTextMuted,
+                                fontSize: 10,
                                 letterSpacing: 1)),
                       ],
                     ],
@@ -361,12 +363,12 @@ class VerticalPostcardTicket extends StatelessWidget {
                     ? Image.network(photoUrl!,
                         fit: BoxFit.cover, width: double.infinity,
                         errorBuilder: (_, __, ___) =>
-                            Container(color: LoveGirlTheme.primarySoft))
+                            Container(color: context.lgPrimarySoft))
                     : Container(
-                        color: LoveGirlTheme.primarySoft,
-                        child: const Center(
+                        color: context.lgPrimarySoft,
+                        child: Center(
                           child: Icon(Icons.photo_outlined,
-                              size: 44, color: LoveGirlTheme.primary),
+                              size: 44, color: context.lgInk),
                         ),
                       ),
               ),

@@ -107,16 +107,16 @@ class _TasksScreenState extends State<TasksScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               '取消',
-              style: TextStyle(color: LoveGirlTheme.textSecondary),
+              style: TextStyle(color: context.lgTextSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
+            child: Text(
               '删除',
-              style: TextStyle(color: LoveGirlTheme.pink),
+              style: TextStyle(color: context.lgInk),
             ),
           ),
         ],
@@ -190,7 +190,7 @@ class _TasksScreenState extends State<TasksScreen>
     }
   }
 
-  Color _catColor(String? cat) => _categoryColors[cat] ?? LoveGirlTheme.primary;
+  Color _catColor(String? cat) => _categoryColors[cat] ?? context.lgInk;
 
   IconData _catIcon(String? cat) =>
       _categoryIcons[cat] ?? Icons.checklist_rounded;
@@ -200,15 +200,15 @@ class _TasksScreenState extends State<TasksScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: const Text('愿望清单'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          labelColor: LoveGirlTheme.primary,
-          unselectedLabelColor: LoveGirlTheme.textMuted,
-          indicatorColor: LoveGirlTheme.primary,
+          labelColor: context.lgInk,
+          unselectedLabelColor: context.lgTextMuted,
+          indicatorColor: context.lgInk,
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: const TextStyle(
             fontSize: 14,
@@ -222,8 +222,8 @@ class _TasksScreenState extends State<TasksScreen>
         ),
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: LoveGirlTheme.primary),
+          ? Center(
+              child: CircularProgressIndicator(color: context.lgInk),
             )
           : _buildBody(),
       floatingActionButton: _buildFab(),
@@ -273,55 +273,55 @@ class _TasksScreenState extends State<TasksScreen>
                     child: CircularProgressIndicator(
                       value: progress,
                       strokeWidth: 6,
-                      backgroundColor: LoveGirlTheme.separator,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        LoveGirlTheme.primary,
+                      backgroundColor: context.lgSeparator,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        context.lgInk,
                       ),
                       strokeCap: StrokeCap.round,
                     ),
                   ),
                   Text(
                     total > 0 ? '${(progress * 100).round()}%' : '0%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 20),
+            SizedBox(width: 20),
             // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '完成进度',
                     style: TextStyle(
                       fontSize: 13,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text.rich(
                     TextSpan(
                       children: [
                         TextSpan(
                           text: '已完成 $completed',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: LoveGirlTheme.primary,
+                            color: context.lgInk,
                           ),
                         ),
                         TextSpan(
                           text: ' / $total',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w400,
-                            color: LoveGirlTheme.textMuted,
+                            color: context.lgTextMuted,
                           ),
                         ),
                       ],
@@ -333,7 +333,7 @@ class _TasksScreenState extends State<TasksScreen>
             // Decorative hearts
             Icon(
               Icons.favorite_rounded,
-              color: LoveGirlTheme.primary.withAlpha(30),
+              color: context.lgInk.withAlpha(30),
               size: 36,
             ),
           ],
@@ -350,21 +350,21 @@ class _TasksScreenState extends State<TasksScreen>
           Icon(
             Icons.auto_awesome_rounded,
             size: 64,
-            color: LoveGirlTheme.textMuted.withAlpha(60),
+            color: context.lgTextMuted.withAlpha(60),
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '还没有愿望',
             style: TextStyle(
-              color: LoveGirlTheme.textMuted,
-              fontSize: 16,
+              color: context.lgTextMuted,
+              fontSize: 17,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             '点击右下角按钮添加',
             style: TextStyle(
-              color: LoveGirlTheme.textMuted,
+              color: context.lgTextMuted,
               fontSize: 14,
             ),
           ),
@@ -397,14 +397,14 @@ class _TasksScreenState extends State<TasksScreen>
           padding: const EdgeInsets.only(right: 24),
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [LoveGirlTheme.pink, LoveGirlTheme.pinkLight],
+            gradient: LinearGradient(
+              colors: [context.lgInk, LoveGirlTheme.pinkLight],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
             boxShadow: [
               BoxShadow(
-                color: LoveGirlTheme.pink.withAlpha(40),
+                color: context.lgInk.withAlpha(40),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -446,8 +446,8 @@ class _TasksScreenState extends State<TasksScreen>
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: completed
-                              ? LoveGirlTheme.textMuted
-                              : LoveGirlTheme.textPrimary,
+                              ? context.lgTextMuted
+                              : context.lgTextPrimary,
                           decoration:
                               completed ? TextDecoration.lineThrough : null,
                         ),
@@ -460,7 +460,7 @@ class _TasksScreenState extends State<TasksScreen>
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(150),
+                            color: context.lgTextMuted.withAlpha(150),
                           ),
                         ),
                       ],
@@ -470,14 +470,14 @@ class _TasksScreenState extends State<TasksScreen>
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(120),
+                            color: context.lgTextMuted.withAlpha(120),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             _formatDate(completed ? completedAt : createdAt),
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted.withAlpha(150),
+                              color: context.lgTextMuted.withAlpha(150),
                             ),
                           ),
                         ],
@@ -493,7 +493,7 @@ class _TasksScreenState extends State<TasksScreen>
                   ),
                   decoration: BoxDecoration(
                     color: color.withAlpha(20),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -526,19 +526,19 @@ class _TasksScreenState extends State<TasksScreen>
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [LoveGirlTheme.primary, LoveGirlTheme.primaryLight],
+          gradient: LinearGradient(
+            colors: [context.lgInk, LoveGirlTheme.primaryLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(60),
+              color: context.lgInk.withAlpha(60),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(30),
+              color: context.lgInk.withAlpha(30),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -562,12 +562,12 @@ class _TasksScreenState extends State<TasksScreen>
 /// Hand-drawn style checkbox (self-contained copy from todo_list)
 class _HandDrawnCheckbox extends StatelessWidget {
   final bool checked;
-  final Color color;
+  final Color? color;
   static const double _size = 24.0;
 
   const _HandDrawnCheckbox({
     this.checked = false,
-    this.color = LoveGirlTheme.primary,
+    this.color,
   });
 
   @override
@@ -579,7 +579,7 @@ class _HandDrawnCheckbox extends StatelessWidget {
         size: const Size(_size, _size),
         painter: _HandDrawnCheckboxPainter(
           checked: checked,
-          color: color,
+          color: color ?? context.lgInk,
         ),
       ),
     );

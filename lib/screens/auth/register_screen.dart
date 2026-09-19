@@ -58,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: Colors.red.shade400,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
           ),
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           duration: const Duration(seconds: 2),
@@ -138,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const Text(
           '创建账号',
           style: TextStyle(
-            fontSize: 28,
+            fontSize: 25,
             fontWeight: FontWeight.bold,
             color: Colors.white,
             letterSpacing: 2,
@@ -163,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(245),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(28),
@@ -177,12 +177,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               '填写信息',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
                 height: 1.2,
               ),
             ),
@@ -228,7 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _obscurePassword
                       ? Icons.visibility_off_rounded
                       : Icons.visibility_rounded,
-                  color: LoveGirlTheme.textMuted,
+                  color: context.lgTextMuted,
                   size: 20,
                 ),
                 onPressed: () =>
@@ -253,7 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _obscureConfirm
                       ? Icons.visibility_off_rounded
                       : Icons.visibility_rounded,
-                  color: LoveGirlTheme.textMuted,
+                  color: context.lgTextMuted,
                   size: 20,
                 ),
                 onPressed: () =>
@@ -265,14 +265,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
 
             // 注册按钮
             SizedBox(
               height: 54,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   gradient: const LinearGradient(
                     colors: [Color(0xFFFF6B8A), Color(0xFFFF8FA8)],
                   ),
@@ -291,7 +291,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shadowColor: Colors.transparent,
                     disabledBackgroundColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                   child: _isLoading
@@ -333,42 +333,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
-      style: const TextStyle(
-        fontSize: 16,
-        color: LoveGirlTheme.textPrimary,
+      style: TextStyle(
+        fontSize: 17,
+        color: context.lgTextPrimary,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          color: LoveGirlTheme.textMuted.withAlpha(160),
+          color: context.lgTextMuted.withAlpha(160),
           fontSize: 15,
         ),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 16, right: 10),
-          child: Icon(icon, color: LoveGirlTheme.textMuted, size: 22),
+          child: Icon(icon, color: context.lgTextMuted, size: 22),
         ),
         suffixIcon: suffix,
         filled: true,
-        fillColor: LoveGirlTheme.bgLight,
+        fillColor: context.lgBg,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: LoveGirlTheme.primary,
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: context.lgInk,
             width: 1.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: Colors.red.shade300, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
         ),
       ),
@@ -381,16 +381,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final selected = _gender == gender;
       return Expanded(
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           onTap: () => setState(() => _gender = gender),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
               color: selected
-                  ? LoveGirlTheme.primary.withAlpha(24)
-                  : LoveGirlTheme.bgLight,
-              borderRadius: BorderRadius.circular(16),
+                  ? context.lgInk.withAlpha(24)
+                  : context.lgBg,
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: selected ? LoveGirlTheme.primary : Colors.transparent,
                 width: 1.5,
@@ -403,8 +403,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon,
                   size: 20,
                   color: selected
-                      ? LoveGirlTheme.primary
-                      : LoveGirlTheme.textMuted,
+                      ? context.lgInk
+                      : context.lgTextMuted,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -413,8 +413,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: selected
-                          ? LoveGirlTheme.primary
-                          : LoveGirlTheme.textPrimary,
+                          ? context.lgInk
+                          : context.lgTextPrimary,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
@@ -441,7 +441,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           color: Colors.white.withAlpha(30),
         ),
         child: Row(

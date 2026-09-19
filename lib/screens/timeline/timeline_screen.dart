@@ -80,9 +80,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
             right: 20,
             top: 24,
           ),
-          decoration: const BoxDecoration(
-            color: LoveGirlTheme.cardLight,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: context.lgCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -93,44 +93,44 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.textMuted.withAlpha(60),
+                    color: context.lgTextMuted.withAlpha(60),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              const Text('添加时刻',
+              SizedBox(height: 20),
+              Text('添加时刻',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: LoveGirlTheme.textPrimary)),
-              const SizedBox(height: 20),
+                      color: context.lgTextPrimary)),
+              SizedBox(height: 20),
               TextField(
                 controller: titleCtrl,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '标题',
                   hintText: '例如：第一次见面',
-                  prefixIcon: Icon(Icons.title, color: LoveGirlTheme.primary),
+                  prefixIcon: Icon(Icons.title, color: context.lgInk),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
                 maxLines: 3,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '描述（选填）',
                   hintText: '记录这个美好的时刻...',
                   prefixIcon:
-                      Icon(Icons.description, color: LoveGirlTheme.textMuted),
+                      Icon(Icons.description, color: context.lgTextMuted),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // 类型选择
-              const Text('事件类型',
+              Text('事件类型',
                   style: TextStyle(
-                      fontSize: 14, color: LoveGirlTheme.textSecondary)),
-              const SizedBox(height: 8),
+                      fontSize: 14, color: context.lgTextSecondary)),
+              SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -142,15 +142,15 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     selectedColor: LoveGirlTheme.primary.withAlpha(30),
                     labelStyle: TextStyle(
                         color: selected
-                            ? LoveGirlTheme.primary
-                            : LoveGirlTheme.textSecondary,
+                            ? context.lgInk
+                            : context.lgTextSecondary,
                         fontSize: 13),
                     onSelected: (_) =>
                         setSheetState(() => eventType = types[i]),
                   );
                 }),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // 日期选择
               GestureDetector(
                 onTap: () async {
@@ -166,27 +166,27 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 },
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.bgLight,
-                    borderRadius: BorderRadius.circular(12),
+                    color: context.lgBg,
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.black.withAlpha(10)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today,
-                          size: 16, color: LoveGirlTheme.primary),
-                      const SizedBox(width: 10),
+                      Icon(Icons.calendar_today,
+                          size: 16, color: context.lgInk),
+                      SizedBox(width: 10),
                       Text(
                         DateFormat('yyyy年M月d日').format(selectedDate),
-                        style: const TextStyle(
-                            fontSize: 15, color: LoveGirlTheme.textPrimary),
+                        style: TextStyle(
+                            fontSize: 15, color: context.lgTextPrimary),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -217,7 +217,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   },
                   child: const Text('保存',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -234,16 +234,16 @@ class _TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('恋爱时光轴'),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: LoveGirlTheme.textPrimary,
+          color: context.lgTextPrimary,
         ),
         leading: IconButton(
           icon: AppIcon('back'),
@@ -292,7 +292,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
-        backgroundColor: LoveGirlTheme.primary,
+        backgroundColor: context.lgInk,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -326,29 +326,29 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.primary.withAlpha(20),
+                    color: context.lgInk.withAlpha(20),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, size: 20, color: LoveGirlTheme.primary),
+                  child: Icon(icon, size: 20, color: context.lgInk),
                 ),
                 if (!isLast)
                   Expanded(
                     child: Container(
                       width: 2,
-                      color: LoveGirlTheme.separator,
+                      color: context.lgSeparator,
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
           // 右侧内容
           Expanded(
             child: Container(
               margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.cardLight,
+                color: context.lgCard,
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               ),
               child: Column(
@@ -358,10 +358,10 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     children: [
                       Expanded(
                         child: Text(title,
-                            style: const TextStyle(
-                                fontSize: 16,
+                            style: TextStyle(
+                                fontSize: 17,
                                 fontWeight: FontWeight.w600,
-                                color: LoveGirlTheme.textPrimary)),
+                                color: context.lgTextPrimary)),
                       ),
                       GestureDetector(
                         onTap: () async {
@@ -372,7 +372,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                       content: Text('删除失败'),
                                       behavior: SnackBarBehavior.floating,
                                       duration: Duration(seconds: 2)),
@@ -381,22 +381,22 @@ class _TimelineScreenState extends State<TimelineScreen> {
                             }
                           }
                         },
-                        child: const Icon(Icons.delete_outline,
-                            size: 16, color: LoveGirlTheme.textMuted),
+                        child: Icon(Icons.delete_outline,
+                            size: 16, color: context.lgTextMuted),
                       ),
                     ],
                   ),
                   if (description.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6),
                     Text(description,
-                        style: const TextStyle(
-                            fontSize: 14, color: LoveGirlTheme.textSecondary)),
+                        style: TextStyle(
+                            fontSize: 14, color: context.lgTextSecondary)),
                   ],
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(formattedDate,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12,
-                          color: LoveGirlTheme.pink,
+                          color: context.lgInk,
                           fontWeight: FontWeight.w500)),
                 ],
               ),
@@ -412,10 +412,10 @@ class _TimelineScreenState extends State<TimelineScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
-          const SizedBox(height: 12),
+          Icon(Icons.cloud_off, size: 48, color: context.lgTextMuted),
+          SizedBox(height: 12),
           Text(_error!,
-              style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+              style: TextStyle(color: context.lgTextSecondary)),
           const SizedBox(height: 16),
           TextButton.icon(
               onPressed: _loadTimeline,
@@ -431,14 +431,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.auto_awesome_outlined,
-              size: 64, color: LoveGirlTheme.textMuted),
+          Icon(Icons.auto_awesome_outlined,
+              size: 64, color: context.lgTextMuted),
           const SizedBox(height: 12),
-          const Text('还没有时刻记录',
+          Text('还没有时刻记录',
               style:
-                  TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
-          const Text('点击右下角添加你们的恋爱时刻',
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+                  TextStyle(fontSize: 17, color: context.lgTextSecondary)),
+          Text('点击右下角添加你们的恋爱时刻',
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
         ],
       ),
     );

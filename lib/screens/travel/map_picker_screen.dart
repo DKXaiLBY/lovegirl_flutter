@@ -341,7 +341,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           hintText:
               '\u641c\u7d22\u5730\u70b9\u3001\u5546\u5708\u6216\u666f\u70b9',
           prefixIcon:
-              const Icon(Icons.search_rounded, color: LoveGirlTheme.textMuted),
+              Icon(Icons.search_rounded, color: context.lgTextMuted),
           suffixIcon: _searchCtrl.text.isEmpty
               ? null
               : IconButton(
@@ -371,8 +371,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     return Container(
       constraints: const BoxConstraints(maxHeight: 330),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: context.lgCard,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(28), blurRadius: 16),
         ],
@@ -400,9 +400,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   itemBuilder: (context, index) {
                     final poi = _searchResults[index];
                     return ListTile(
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.place_rounded,
-                        color: LoveGirlTheme.primary,
+                        color: context.lgInk,
                       ),
                       title: Text(
                         poi.name,
@@ -429,7 +429,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.lgCard,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -445,9 +445,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.location_on_rounded,
-                  color: LoveGirlTheme.primary, size: 22),
-              const SizedBox(width: 8),
+              Icon(Icons.location_on_rounded,
+                  color: context.lgInk, size: 22),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _selectedName.isEmpty
@@ -455,10 +455,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       : _selectedName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
               ),
@@ -471,15 +471,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style:
-                  const TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+                  TextStyle(fontSize: 13, color: context.lgTextMuted),
             ),
           ],
           const SizedBox(height: 6),
           Text(
             '${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}',
             style: TextStyle(
-              fontSize: 11,
-              color: LoveGirlTheme.textMuted.withAlpha(170),
+              fontSize: 12,
+              color: context.lgTextMuted.withAlpha(170),
             ),
           ),
           const SizedBox(height: 14),
@@ -490,11 +490,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               icon: const Icon(Icons.check_rounded, size: 20),
               label: const Text('\u786e\u8ba4\u8fd9\u4e2a\u5730\u70b9'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: LoveGirlTheme.primary,
+                backgroundColor: context.lgInk,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
             ),
@@ -546,7 +546,7 @@ class _RoundButton extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Icon(icon, size: 21, color: LoveGirlTheme.textPrimary),
+                : Icon(icon, size: 21, color: context.lgTextPrimary),
           ),
         ),
       ),

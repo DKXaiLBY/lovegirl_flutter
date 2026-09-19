@@ -48,7 +48,7 @@ class _TaskFormState extends State<TaskForm> {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('请输入任务名称'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 2),
@@ -76,17 +76,17 @@ class _TaskFormState extends State<TaskForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: Text(_isEdit ? '编辑愿望' : '添加愿望'),
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text(
+            child: Text(
               '保存',
               style: TextStyle(
-                color: LoveGirlTheme.primary,
-                fontSize: 16,
+                color: context.lgInk,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -99,73 +99,73 @@ class _TaskFormState extends State<TaskForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 任务名称
-            const Text(
+            Text(
               '任务名称',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
-            const SizedBox(height: LoveGirlTheme.spaceXs),
+            SizedBox(height: LoveGirlTheme.spaceXs),
             TextField(
               controller: _nameCtrl,
               autofocus: !_isEdit,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 hintText: '输入愿望名称...',
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.auto_awesome_rounded,
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                 ),
                 filled: true,
-                fillColor: LoveGirlTheme.cardLight,
+                fillColor: context.lgCard,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                  borderSide: const BorderSide(color: LoveGirlTheme.separator),
+                  borderSide: BorderSide(color: context.lgSeparator),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                  borderSide: const BorderSide(
-                    color: LoveGirlTheme.primary,
+                  borderSide: BorderSide(
+                    color: context.lgInk,
                     width: 1.5,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: LoveGirlTheme.spaceLg),
+            SizedBox(height: LoveGirlTheme.spaceLg),
 
             // 分类
-            const Text(
+            Text(
               '分类',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
-            const SizedBox(height: LoveGirlTheme.spaceXs),
+            SizedBox(height: LoveGirlTheme.spaceXs),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.cardLight,
+                color: context.lgCard,
                 borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                border: Border.all(color: LoveGirlTheme.separator),
+                border: Border.all(color: context.lgSeparator),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _category,
                   isExpanded: true,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: LoveGirlTheme.textMuted,
+                    color: context.lgTextMuted,
                   ),
                   items: _categories.map((c) {
-                    final color = _categoryColors[c] ?? LoveGirlTheme.primary;
+                    final color = _categoryColors[c] ?? context.lgInk;
                     return DropdownMenuItem(
                       value: c,
                       child: Row(
@@ -178,7 +178,7 @@ class _TaskFormState extends State<TaskForm> {
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Text(c),
                         ],
                       ),
@@ -190,18 +190,18 @@ class _TaskFormState extends State<TaskForm> {
                 ),
               ),
             ),
-            const SizedBox(height: LoveGirlTheme.spaceLg),
+            SizedBox(height: LoveGirlTheme.spaceLg),
 
             // 备注
-            const Text(
+            Text(
               '备注',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
-            const SizedBox(height: LoveGirlTheme.spaceXs),
+            SizedBox(height: LoveGirlTheme.spaceXs),
             TextField(
               controller: _notesCtrl,
               maxLines: 5,
@@ -209,19 +209,19 @@ class _TaskFormState extends State<TaskForm> {
               decoration: InputDecoration(
                 hintText: '添加备注（可选）...',
                 filled: true,
-                fillColor: LoveGirlTheme.cardLight,
+                fillColor: context.lgCard,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                  borderSide: const BorderSide(color: LoveGirlTheme.separator),
+                  borderSide: BorderSide(color: context.lgSeparator),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                  borderSide: const BorderSide(
-                    color: LoveGirlTheme.primary,
+                  borderSide: BorderSide(
+                    color: context.lgInk,
                     width: 1.5,
                   ),
                 ),

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// warm ivory paper, ticket cards, coral accents and soft sage status color.
 class LoveGirlTheme {
   static const double radius = 14.0;
-  static const double radiusLg = 16.0;
+  static const double radiusLg = 18.0;
   static const double radiusXl = 26.0;
 
   // v3.24 新风格：主行动黑白化（参考 AI Agents 市场风格），品牌橘退位
@@ -30,6 +30,14 @@ class LoveGirlTheme {
   static const Color textSecondary = Color(0xFF888888);
   static const Color textMuted = Color(0xFF999999);
   static const Color separator = Color(0xFFEAE4DC);
+
+  // v3.26 深色模式 token（DESIGN_SYSTEM §8：textPrimary→#E8E0D9, separator→#3A342E, paper→#2A2421，主色不变）
+  static const Color textPrimaryDark = Color(0xFFE8E0D9);
+  static const Color textSecondaryDark = Color(0xFFA69F96);
+  static const Color textMutedDark = Color(0xFF8A847C);
+  static const Color separatorDark = Color(0xFF3A342E);
+  static const Color primarySoftDark = Color(0xFF2E2C29);
+  static const Color secondarySoftDark = Color(0xFF24312A);
 
   static const Color visited = Color(0xFF4CAF50); // 与 travel 模块状态绿统一
   static const Color wish = accent;
@@ -121,9 +129,9 @@ class LoveGirlTheme {
         elevation: 0,
         type: BottomNavigationBarType.fixed,
         selectedLabelStyle:
-            TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
         unselectedLabelStyle:
-            TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -165,6 +173,13 @@ class LoveGirlTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
+      splashFactory: InkSparkle.splashFactory,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       brightness: Brightness.dark,
       primaryColor: primaryLight,
       scaffoldBackgroundColor: bgDark,
@@ -173,6 +188,24 @@ class LoveGirlTheme {
         secondary: secondary,
         surface: cardDark,
         error: red,
+      ),
+      fontFamilyFallback: const [
+        'MiSans',
+        'PingFang SC',
+        'Microsoft YaHei',
+        'Noto Sans CJK SC',
+      ],
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        foregroundColor: textPrimaryDark,
+        titleTextStyle: TextStyle(
+          color: textPrimaryDark,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
@@ -188,6 +221,45 @@ class LoveGirlTheme {
         unselectedItemColor: Colors.white38,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
+        selectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: cardDark,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: const TextStyle(color: textMutedDark),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius),
+          borderSide: const BorderSide(color: separatorDark),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius),
+          borderSide: const BorderSide(color: separatorDark),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(radius),
+          borderSide: const BorderSide(color: textPrimaryDark, width: 1.4),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: textPrimaryDark,
+          foregroundColor: bgDark,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radius),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: separatorDark,
+        thickness: 0.7,
+        space: 0,
       ),
     );
   }
@@ -205,4 +277,49 @@ class LoveGirlTheme {
       boxShadow: cardShadow(),
     );
   }
+}
+
+/// v3.26 深色模式接线：语义色按当前亮度解析。
+/// 页面代码用 `context.lgXxx` 取代硬编码浅色 token，深浅模式自动切换。
+extension LoveGirlSemanticColors on BuildContext {
+  bool get lgIsDark => Theme.of(this).brightness == Brightness.dark;
+
+  Color get lgBg =>
+      lgIsDark ? LoveGirlTheme.bgDark : LoveGirlTheme.bgLight;
+
+  Color get lgCard =>
+      lgIsDark ? LoveGirlTheme.cardDark : LoveGirlTheme.cardLight;
+
+  Color get lgPaper =>
+      lgIsDark ? LoveGirlTheme.cardDark : LoveGirlTheme.paper;
+
+  Color get lgPaperWarm =>
+      lgIsDark ? LoveGirlTheme.cardDark : LoveGirlTheme.paperWarm;
+
+  Color get lgSeparator =>
+      lgIsDark ? LoveGirlTheme.separatorDark : LoveGirlTheme.separator;
+
+  Color get lgTextPrimary => lgIsDark
+      ? LoveGirlTheme.textPrimaryDark
+      : LoveGirlTheme.textPrimary;
+
+  Color get lgTextSecondary => lgIsDark
+      ? LoveGirlTheme.textSecondaryDark
+      : LoveGirlTheme.textSecondary;
+
+  Color get lgTextMuted =>
+      lgIsDark ? LoveGirlTheme.textMutedDark : LoveGirlTheme.textMuted;
+
+  Color get lgPrimarySoft => lgIsDark
+      ? LoveGirlTheme.primarySoftDark
+      : LoveGirlTheme.primarySoft;
+
+  Color get lgSecondarySoft => lgIsDark
+      ? LoveGirlTheme.secondarySoftDark
+      : LoveGirlTheme.secondarySoft;
+
+  /// “墨色”：浅色=品牌黑 primary，深色=米白 textPrimaryDark。
+  /// 用于文字/图标/描边等原本写死 primary 的位置（黑底座容器勿用）。
+  Color get lgInk =>
+      lgIsDark ? LoveGirlTheme.textPrimaryDark : LoveGirlTheme.primary;
 }

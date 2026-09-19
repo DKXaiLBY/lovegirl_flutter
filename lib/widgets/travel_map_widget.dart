@@ -516,7 +516,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         Polyline(
           points: points,
           width: 12,
-          color: LoveGirlTheme.primary.withAlpha(70),
+          color: context.lgInk.withAlpha(70),
           capType: CapType.round,
           joinType: JoinType.round,
         ),
@@ -525,7 +525,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         Polyline(
           points: points,
           width: 7,
-          color: LoveGirlTheme.primary,
+          color: context.lgInk,
           capType: CapType.round,
           joinType: JoinType.round,
         ),
@@ -542,7 +542,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         Polyline(
           points: visited.map((s) => LatLng(s.lat, s.lng)).toList(),
           width: 5,
-          color: LoveGirlTheme.primary.withAlpha(150),
+          color: context.lgInk.withAlpha(150),
           capType: CapType.round,
           joinType: JoinType.round,
         ),
@@ -569,7 +569,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
             Polyline(
               points: ordered.map((s) => LatLng(s.lat, s.lng)).toList(),
               width: 10,
-              color: LoveGirlTheme.primary.withAlpha(230),
+              color: context.lgInk.withAlpha(230),
               customTexture: _arrowTexture,
               capType: CapType.round,
               joinType: JoinType.round,
@@ -581,7 +581,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
             Polyline(
               points: ordered.map((s) => LatLng(s.lat, s.lng)).toList(),
               width: 5,
-              color: LoveGirlTheme.primary.withAlpha(170),
+              color: context.lgInk.withAlpha(170),
               dashLineType: DashLineType.square,
               capType: CapType.round,
               joinType: JoinType.round,
@@ -646,18 +646,18 @@ class _LocationBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.navigation_rounded,
             size: 14,
             color: Color(0xFF1677FF),
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             '\u5f53\u524d\u4f4d\u7f6e$accuracy$bearing',
-            style: const TextStyle(
-              fontSize: 11,
+            style: TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
             ),
           ),
         ],
@@ -681,7 +681,7 @@ class _ApprovalBadge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 10, color: LoveGirlTheme.textMuted),
+        style: TextStyle(fontSize: 10, color: context.lgTextMuted),
       ),
     );
   }
@@ -726,18 +726,18 @@ class _MapButton extends StatelessWidget {
           ),
           child: Center(
             child: isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   )
                 : Icon(
                     icon,
                     size: 20,
-                    color: isActive ? Colors.white : LoveGirlTheme.textPrimary,
+                    color: isActive ? Colors.white : context.lgTextPrimary,
                   ),
           ),
         ),

@@ -77,7 +77,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('删除照片'),
         content: const Text('确定删除这张照片吗？'),
         actions: [
@@ -128,9 +128,9 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
                 imageUrl: fullUrl,
                 fit: BoxFit.contain,
                 placeholder: (_, __) =>
-                    const Center(child: CircularProgressIndicator(color: Colors.white)),
+                    Center(child: CircularProgressIndicator(color: Colors.white)),
                 errorWidget: (_, __, ___) =>
-                    const Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                    Icon(Icons.broken_image, color: Colors.white54, size: 64),
               ),
             ),
           ),
@@ -175,7 +175,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
                 onLongPress:
                     widget.editable && id != null ? () => _deletePhoto(id) : null,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -183,11 +183,11 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
                         imageUrl: fullUrl,
                         fit: BoxFit.cover,
                         placeholder: (_, __) =>
-                            Container(color: LoveGirlTheme.bgLight),
+                            Container(color: context.lgBg),
                         errorWidget: (_, __, ___) => Container(
-                          color: LoveGirlTheme.bgLight,
-                          child: const Icon(Icons.broken_image,
-                              color: LoveGirlTheme.textMuted),
+                          color: context.lgBg,
+                          child: Icon(Icons.broken_image,
+                              color: context.lgTextMuted),
                         ),
                       ),
                       // 删除按钮（编辑模式）
@@ -226,10 +226,10 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
               child: Container(
                 height: 80,
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.bgLight,
-                  borderRadius: BorderRadius.circular(10),
+                  color: context.lgBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: LoveGirlTheme.primary.withAlpha(40),
+                    color: context.lgInk.withAlpha(40),
                     style: BorderStyle.solid,
                   ),
                 ),
@@ -244,13 +244,13 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.add_photo_alternate_outlined,
-                                color: LoveGirlTheme.primary.withAlpha(150),
+                                color: context.lgInk.withAlpha(150),
                                 size: 24),
                             const SizedBox(height: 4),
                             Text('添加照片',
                                 style: TextStyle(
                                     fontSize: 12,
-                                    color: LoveGirlTheme.primary
+                                    color: context.lgInk
                                         .withAlpha(150))),
                           ],
                         ),

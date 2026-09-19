@@ -178,7 +178,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       return const Color(0xFF7A9BB8);
     }
     if (weather.contains('\u96ea')) return const Color(0xFF9DBED0);
-    return LoveGirlTheme.primary;
+    return context.lgInk;
   }
 
   @override
@@ -191,7 +191,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
     return LovePaper(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      color: LoveGirlTheme.paper,
+      color: context.lgPaper,
       child: _loading
           ? _buildLoading()
           : _errorType != null
@@ -201,7 +201,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   }
 
   Widget _buildLoading() {
-    return const SizedBox(
+    return SizedBox(
       height: 58,
       child: Row(
         children: [
@@ -213,7 +213,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
           SizedBox(width: 12),
           Text(
             '\u6b63\u5728\u52a0\u8f7d\u5929\u6c14...',
-            style: TextStyle(color: LoveGirlTheme.textSecondary),
+            style: TextStyle(color: context.lgTextSecondary),
           ),
         ],
       ),
@@ -274,7 +274,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: SizedBox(
         width: 118,
         height: 72,
@@ -287,12 +287,12 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(12),
+                  color: context.lgInk.withAlpha(12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 16, color: LoveGirlTheme.textMuted),
+                child: Icon(icon, size: 16, color: context.lgTextMuted),
               ),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -302,21 +302,21 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    SizedBox(height: 3),
                     Text(
                       subLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 8.5,
+                      style: TextStyle(
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                       ),
                     ),
                   ],
@@ -365,13 +365,13 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                   ? Icons.settings_rounded
                   : Icons.refresh_rounded,
               size: 20,
-              color: LoveGirlTheme.textMuted,
+              color: context.lgTextMuted,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: LoveGirlTheme.textSecondary),
+                style: TextStyle(color: context.lgTextSecondary),
               ),
             ),
           ],
@@ -423,7 +423,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
           ),
           child: Icon(_iconForWeather(weather), color: color, size: 28),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -433,14 +433,14 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 children: [
                   Text(
                     _formatDegree(_temperature),
-                    style: const TextStyle(
-                      fontSize: 30,
+                    style: TextStyle(
+                      fontSize: 34,
                       height: 1,
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 1),
@@ -448,16 +448,16 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                         '${_city ?? '\u5f53\u524d\u4f4d\u7f6e'} \u00b7 $weather',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
+              SizedBox(height: 5),
               Wrap(
                 spacing: 7,
                 runSpacing: 7,
@@ -496,7 +496,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
               ),
               child: Icon(_iconForWeather(weather), color: color, size: 16),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -509,35 +509,35 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                         _formatDegree(_temperature),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
+                        style: TextStyle(
+                          fontSize: 17,
                           fontWeight: FontWeight.w900,
-                          color: LoveGirlTheme.textPrimary,
+                          color: context.lgTextPrimary,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           weather,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 9,
+                          style: TextStyle(
+                            fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: LoveGirlTheme.textSecondary,
+                            color: context.lgTextSecondary,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     city,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 8.5,
-                      color: LoveGirlTheme.textMuted,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: context.lgTextMuted,
                     ),
                   ),
                   if (feelsLike != null) ...[
@@ -558,7 +558,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 8,
+                            fontSize: 10,
                             fontWeight: FontWeight.w800,
                             color: color,
                           ),
@@ -600,7 +600,7 @@ class _WeatherChipData {
   final IconData icon;
   final String label;
 
-  const _WeatherChipData(this.icon, this.label);
+  _WeatherChipData(this.icon, this.label);
 }
 
 class _WeatherDetailChip extends StatelessWidget {
@@ -613,20 +613,20 @@ class _WeatherDetailChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.paperWarm,
+        color: context.lgPaperWarm,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(data.icon, size: 13, color: LoveGirlTheme.textMuted),
-          const SizedBox(width: 4),
+          Icon(data.icon, size: 13, color: context.lgTextMuted),
+          SizedBox(width: 4),
           Text(
             data.label,
-            style: const TextStyle(
-              fontSize: 11,
+            style: TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: LoveGirlTheme.textSecondary,
+              color: context.lgTextSecondary,
             ),
           ),
         ],

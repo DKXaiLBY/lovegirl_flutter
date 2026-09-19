@@ -173,7 +173,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             context: context,
             builder: (dCtx) => AlertDialog(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                  borderRadius: BorderRadius.circular(18)),
               title: const Text('\u5220\u9664\u5730\u70b9'),
               content: Text(
                 '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？',
@@ -318,7 +318,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
           );
         }
         return Scaffold(
-          backgroundColor: LoveGirlTheme.bgLight,
+          backgroundColor: context.lgBg,
           body: LovePage(
             padding: EdgeInsets.zero,
             child: RefreshIndicator(
@@ -362,7 +362,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                                     horizontal: 16, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: LoveGirlTheme.red,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: const Icon(Icons.delete_outline_rounded,
                                     color: Colors.white, size: 26),
@@ -373,7 +373,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                                   builder: (dCtx) => AlertDialog(
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(20)),
+                                            BorderRadius.circular(18)),
                                     title: const Text('删除地点'),
                                     content: Text(
                                       '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
@@ -431,7 +431,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   travelProvider.refreshAll();
                 }
               },
-              backgroundColor: LoveGirlTheme.primary,
+              backgroundColor: context.lgInk,
               child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
@@ -446,19 +446,19 @@ class _TravelMainScreenState extends State<TravelMainScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             '\u65c5\u884c\u5730\u56fe',
             style: TextStyle(
               fontSize: 25,
               fontWeight: FontWeight.w900,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
             ),
           ),
           const SizedBox(width: 5),
-          const Icon(
+          Icon(
             Icons.favorite_border_rounded,
             size: 22,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
           const Spacer(),
           _MorphIconButton(
@@ -495,9 +495,9 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             hintText:
                 '\u641c\u7d22\u5730\u70b9\u3001\u57ce\u5e02\u3001\u5907\u6ce8...',
             hintStyle: TextStyle(
-                color: LoveGirlTheme.textMuted.withAlpha(150), fontSize: 14),
-            prefixIcon: const Icon(Icons.search_rounded,
-                color: LoveGirlTheme.primary, size: 20),
+                color: context.lgTextMuted.withAlpha(150), fontSize: 14),
+            prefixIcon: Icon(Icons.search_rounded,
+                color: context.lgInk, size: 20),
             suffixIcon: _searchCtrl.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear_rounded, size: 18),
@@ -508,11 +508,11 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   )
                 : null,
             filled: true,
-            fillColor: LoveGirlTheme.cardLight,
+            fillColor: context.lgCard,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
             ),
           ),
@@ -539,7 +539,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
 
     return PopupMenuButton<String>(
       tooltip: '\u6392\u5e8f',
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) => provider.setSortBy(value),
       itemBuilder: (ctx) => sortLabels.entries.map((e) {
         final isActive = provider.sortBy == e.key;
@@ -550,19 +550,19 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               Icon(sortIcons[e.key],
                   size: 18,
                   color: isActive
-                      ? LoveGirlTheme.primary
-                      : LoveGirlTheme.textSecondary),
+                      ? context.lgInk
+                      : context.lgTextSecondary),
               const SizedBox(width: 10),
               Text(e.value,
                   style: TextStyle(
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                     color: isActive
-                        ? LoveGirlTheme.primary
-                        : LoveGirlTheme.textPrimary,
+                        ? context.lgInk
+                        : context.lgTextPrimary,
                   )),
               if (isActive) ...[
                 const Spacer(),
-                const Icon(Icons.check, size: 16, color: LoveGirlTheme.primary),
+                Icon(Icons.check, size: 16, color: context.lgInk),
               ],
             ],
           ),
@@ -585,24 +585,24 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.primary.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
+                color: context.lgInk.withAlpha(20),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.search_rounded,
-                      size: 14, color: LoveGirlTheme.primary),
+                  Icon(Icons.search_rounded,
+                      size: 14, color: context.lgInk),
                   const SizedBox(width: 4),
                   Text('\u201c${provider.searchQuery}\u201d',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12,
-                          color: LoveGirlTheme.primary,
+                          color: context.lgInk,
                           fontWeight: FontWeight.w500)),
                   const SizedBox(width: 4),
                   Text('${provider.filteredSpots.length} \u4e2a\u7ed3\u679c',
                       style: TextStyle(
-                          fontSize: 12, color: LoveGirlTheme.textMuted)),
+                          fontSize: 12, color: context.lgTextMuted)),
                 ],
               ),
             ),
@@ -654,7 +654,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 ),
               ),
               if (validMapSpots.isEmpty)
-                const Align(
+                Align(
                   alignment: Alignment(0, -0.12),
                   child: _EmptyMapHint(),
                 ),
@@ -677,23 +677,23 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     return LoveTicketCard(
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 2),
       padding: const EdgeInsets.all(14),
-      color: LoveGirlTheme.paper,
+      color: context.lgPaper,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.route_rounded,
-                  size: 18, color: LoveGirlTheme.primary),
-              const SizedBox(width: 8),
+              Icon(Icons.route_rounded,
+                  size: 18, color: context.lgInk),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   route?.title ??
                       '\u628a\u5f53\u524d\u5730\u70b9\u4e32\u6210\u8def\u7ebf',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
               ),
@@ -706,15 +706,15 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                     : Icons.alt_route_rounded,
                 color: route == null
                     ? LoveGirlTheme.secondary
-                    : LoveGirlTheme.primary,
+                    : context.lgInk,
                 background: route == null
                     ? const Color(0xFFEAF7EF)
-                    : LoveGirlTheme.primary.withAlpha(16),
+                    : context.lgInk.withAlpha(16),
               ),
               if (route != null)
                 Row(
                   children: [
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.close_rounded, size: 18),
@@ -724,13 +724,13 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBF7),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: LoveGirlTheme.separator),
+              border: Border.all(color: context.lgSeparator),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -743,19 +743,19 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                         route == null
                             ? '\u5148\u7528\u5f53\u524d\u7b5b\u9009\u7684\u5730\u70b9\u8bd5\u8dd1\u4e00\u4e0b\u8def\u7ebf\uff0c\u770b\u770b\u987a\u4e0d\u987a\u8def\u3002'
                             : '${_routeModeLabel(route.mode)} \u00b7 ${_formatDistance(route.distance)} \u00b7 ${_formatDuration(route.duration)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           height: 1.45,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: validSpots.take(4).map((spot) {
-                          final statusColor = _statusColor(spot.status);
+                          final statusColor = _statusColor(context, spot.status);
                           return LovePill(
                             text: _travelDisplayText(spot.name, '未命名地点'),
                             icon: Icons.place_rounded,
@@ -765,12 +765,12 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                         }).toList(),
                       ),
                       if (validSpots.length > 4) ...[
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Text(
                           '\u8fd8\u6709 ${validSpots.length - 4} \u4e2a\u5730\u70b9\u6ca1\u5c55\u5f00',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: LoveGirlTheme.textMuted,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.lgTextMuted,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -781,21 +781,21 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 const SizedBox(width: 12),
                 const LoveTicketDivider(length: 76),
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     LoveBarcode(
                       width: 42,
                       height: 34,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                     SizedBox(height: 6),
                     Text(
                       '路线',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                       ),
                     ),
                   ],
@@ -919,8 +919,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               labelStyle: TextStyle(
                 fontSize: 12,
                 color: active
-                    ? LoveGirlTheme.primary
-                    : LoveGirlTheme.textSecondary,
+                    ? context.lgInk
+                    : context.lgTextSecondary,
                 fontWeight: active ? FontWeight.w600 : FontWeight.normal,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -941,25 +941,25 @@ class _TravelMainScreenState extends State<TravelMainScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const LoveStickerIcon(
+            LoveStickerIcon(
               icon: Icons.cloud_off_rounded,
               color: LoveGirlTheme.orange,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               provider.error ?? '\u52a0\u8f7d\u5931\u8d25',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textSecondary,
+                color: context.lgTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             LovePrimaryButton(
               text: '\u91cd\u65b0\u52a0\u8f7d',
               icon: Icons.refresh_rounded,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
               onPressed: () => provider.refreshAll(),
             ),
           ],
@@ -1002,23 +1002,23 @@ class _TravelMainScreenState extends State<TravelMainScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 48)),
-          const SizedBox(height: 16),
+          Text(emoji, style: const TextStyle(fontSize: 34)),
+          SizedBox(height: 16),
           Text(msg,
-              style: const TextStyle(
-                  fontSize: 16,
+              style: TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: LoveGirlTheme.textSecondary)),
+                  color: context.lgTextSecondary)),
           const SizedBox(height: 6),
           Text(hint,
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
         ],
       ),
     );
   }
 }
 
-Color _statusColor(String status) {
+Color _statusColor(BuildContext context, String status) {
   switch (status) {
     case 'visited':
       return const Color(0xFF4CAF50);
@@ -1027,7 +1027,7 @@ Color _statusColor(String status) {
     case 'planned':
       return const Color(0xFF9C27B0);
     default:
-      return LoveGirlTheme.primary;
+      return context.lgInk;
   }
 }
 
@@ -1061,7 +1061,7 @@ class _MapOpenButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (opening)
-                const SizedBox(
+                SizedBox(
                   width: 15,
                   height: 15,
                   child: CircularProgressIndicator(
@@ -1070,13 +1070,13 @@ class _MapOpenButton extends StatelessWidget {
                   ),
                 )
               else
-                const Icon(
+                Icon(
                   Icons.near_me_rounded,
                   size: 15,
                   color: Colors.white,
                 ),
-              const SizedBox(width: 5),
-              const Text(
+              SizedBox(width: 5),
+              Text(
                 '真地图',
                 style: TextStyle(
                   fontSize: 12,
@@ -1103,16 +1103,16 @@ class _EmptyMapHint extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(235),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: LoveGirlTheme.separator.withAlpha(130)),
+        border: Border.all(color: context.lgSeparator.withAlpha(130)),
         boxShadow: LoveGirlTheme.cardShadow(),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.add_location_alt_rounded,
             size: 18,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
           SizedBox(width: 8),
           Flexible(
@@ -1123,7 +1123,7 @@ class _EmptyMapHint extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w900,
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
             ),
           ),
@@ -1162,9 +1162,9 @@ class _RouteModeButton extends StatelessWidget {
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-        foregroundColor: LoveGirlTheme.primary,
-        side: BorderSide(color: LoveGirlTheme.primary.withAlpha(80)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        foregroundColor: context.lgInk,
+        side: BorderSide(color: context.lgInk.withAlpha(80)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }
@@ -1221,7 +1221,7 @@ class _SpotCardState extends State<_SpotCard>
   @override
   Widget build(BuildContext context) {
     final spot = widget.spot;
-    final color = _statusColor(spot.status);
+    final color = _statusColor(context, spot.status);
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -1250,16 +1250,16 @@ class _SpotCardState extends State<_SpotCard>
                       height: 44,
                       decoration: BoxDecoration(
                         color: color.withAlpha(20),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
                         child: Text(
                           spot.emoji.isNotEmpty ? spot.emoji : '\uD83D\uDCCD',
-                          style: const TextStyle(fontSize: 22),
+                          style: const TextStyle(fontSize: 20),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1269,10 +1269,10 @@ class _SpotCardState extends State<_SpotCard>
                               Expanded(
                                 child: Text(
                                     _travelDisplayText(spot.name, '未命名地点'),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
-                                        color: LoveGirlTheme.textPrimary)),
+                                        color: context.lgTextPrimary)),
                               ),
                               if (spot.creatorNickname?.isNotEmpty == true)
                                 Container(
@@ -1295,21 +1295,21 @@ class _SpotCardState extends State<_SpotCard>
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Row(
                             children: [
                               if (_travelDisplayText(spot.city, '')
                                   .isNotEmpty) ...[
                                 Icon(Icons.location_on,
-                                    size: 12, color: LoveGirlTheme.textMuted),
-                                const SizedBox(width: 2),
+                                    size: 12, color: context.lgTextMuted),
+                                SizedBox(width: 2),
                                 Text(_travelDisplayText(spot.city, ''),
                                     style: TextStyle(
                                         fontSize: 12,
-                                        color: LoveGirlTheme.textMuted)),
+                                        color: context.lgTextMuted)),
                               ],
                               if (spot.rating != null && spot.rating! > 0) ...[
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 ...List.generate(
                                     spot.rating!,
                                     (_) => const Icon(Icons.star,
@@ -1320,7 +1320,7 @@ class _SpotCardState extends State<_SpotCard>
                           if ((spot.note?.isNotEmpty == true) ||
                               spot.visitedDate != null ||
                               spot.plannedDate != null) ...[
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6),
                             Text(
                               [
                                 if (spot.visitedDate != null)
@@ -1339,10 +1339,10 @@ class _SpotCardState extends State<_SpotCard>
                               ].join('  ·  '),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 height: 1.4,
-                                color: LoveGirlTheme.textMuted,
+                                color: context.lgTextMuted,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1359,7 +1359,7 @@ class _SpotCardState extends State<_SpotCard>
                       ),
                       child: Text(_statusLabel(spot.status),
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: color,
                               fontWeight: FontWeight.w600)),
                     ),
@@ -1373,7 +1373,7 @@ class _SpotCardState extends State<_SpotCard>
     );
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(BuildContext context, String status) {
     switch (status) {
       case 'visited':
         return const Color(0xFF4CAF50);
@@ -1382,7 +1382,7 @@ class _SpotCardState extends State<_SpotCard>
       case 'planned':
         return const Color(0xFF9C27B0);
       default:
-        return LoveGirlTheme.primary;
+        return context.lgInk;
     }
   }
 
@@ -1436,7 +1436,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     if (_nameCtrl.text.trim().isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
             content: Text('\u8bf7\u8f93\u5165\u5730\u70b9\u540d\u79f0'),
             behavior: SnackBarBehavior.floating),
       );
@@ -1445,7 +1445,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     if (_city.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
             content: Text('\u8bf7\u9009\u62e9\u57ce\u5e02'),
             behavior: SnackBarBehavior.floating),
       );
@@ -1469,7 +1469,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('\u6dfb\u52a0\u6210\u529f'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Color(0xFF4CAF50),
@@ -1479,7 +1479,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: LoveGirlTheme.red,
@@ -1499,9 +1499,9 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
         right: 20,
         top: 20,
       ),
-      decoration: const BoxDecoration(
-        color: LoveGirlTheme.cardLight,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.lgCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1519,16 +1519,16 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           ),
           const SizedBox(height: 16),
           const Text('\uD83D\uDCCD \u5feb\u901f\u6dfb\u52a0\u5730\u70b9',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           TextField(
             controller: _nameCtrl,
             decoration: InputDecoration(
               hintText: '\u5730\u70b9\u540d\u79f0 *',
               filled: true,
-              fillColor: LoveGirlTheme.bgLight,
+              fillColor: context.lgBg,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
               ),
             ),
@@ -1541,13 +1541,13 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.bgLight,
-                borderRadius: BorderRadius.circular(12),
+                color: context.lgBg,
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_city,
-                      size: 20, color: LoveGirlTheme.textMuted),
+                  Icon(Icons.location_city,
+                      size: 20, color: context.lgTextMuted),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1555,13 +1555,13 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                       style: TextStyle(
                         fontSize: 15,
                         color: _city.isEmpty
-                            ? LoveGirlTheme.textMuted
-                            : LoveGirlTheme.textPrimary,
+                            ? context.lgTextMuted
+                            : context.lgTextPrimary,
                       ),
                     ),
                   ),
-                  const Icon(Icons.chevron_right,
-                      size: 20, color: LoveGirlTheme.textMuted),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: context.lgTextMuted),
                 ],
               ),
             ),
@@ -1592,7 +1592,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           Text(
             '\u5750\u6807 ${widget.lat.toStringAsFixed(4)}, ${widget.lng.toStringAsFixed(4)}',
             style: TextStyle(
-                fontSize: 11, color: LoveGirlTheme.textMuted.withAlpha(150)),
+                fontSize: 12, color: context.lgTextMuted.withAlpha(150)),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1601,7 +1601,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
             child: ElevatedButton(
               onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: LoveGirlTheme.primary,
+                backgroundColor: context.lgInk,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -1614,7 +1614,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                           strokeWidth: 2, color: Colors.white))
                   : const Text('\u4fdd\u5b58',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -1629,8 +1629,8 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? color.withAlpha(30) : LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(20),
+          color: active ? color.withAlpha(30) : context.lgBg,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: active ? color : Colors.black.withAlpha(10),
           ),
@@ -1639,7 +1639,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: active ? color : LoveGirlTheme.textSecondary,
+            color: active ? color : context.lgTextSecondary,
             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -1665,12 +1665,12 @@ class _TicketActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? LoveGirlTheme.red : LoveGirlTheme.primary;
+    final color = danger ? LoveGirlTheme.red : context.lgInk;
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 18),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Text(label),
       ],
     );
@@ -1682,7 +1682,7 @@ class _TicketActionButton extends StatelessWidget {
           foregroundColor: color,
           side: BorderSide(color: color.withAlpha(danger ? 120 : 180)),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
         child: child,
@@ -1694,7 +1694,7 @@ class _TicketActionButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
       child: child,
@@ -1721,13 +1721,13 @@ class _SpotDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(spot.status);
+    final color = _statusColor(context, spot.status);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-      decoration: const BoxDecoration(
-        color: LoveGirlTheme.paperWarm,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.lgPaperWarm,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       child: SafeArea(
         top: false,
@@ -1741,19 +1741,19 @@ class _SpotDetailSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.separator,
+                    color: context.lgSeparator,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: color.withAlpha(18),
                       borderRadius: BorderRadius.circular(999),
@@ -1761,21 +1761,21 @@ class _SpotDetailSheet extends StatelessWidget {
                     child: Text(
                       _statusLabel(spot.status),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: color,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   if (spot.editedByBoth)
-                    const LovePill(
+                    LovePill(
                       text: '我们都编辑',
                       icon: Icons.favorite_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1784,45 +1784,45 @@ class _SpotDetailSheet extends StatelessWidget {
                     height: 52,
                     decoration: BoxDecoration(
                       color: color.withAlpha(18),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: Center(
                       child: Text(
                         spot.emoji.isNotEmpty ? spot.emoji : '\uD83D\uDCCD',
-                        style: const TextStyle(fontSize: 24),
+                        style: const TextStyle(fontSize: 25),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           _travelDisplayText(spot.name, '未命名地点'),
-                          style: const TextStyle(
-                            fontSize: 19,
+                          style: TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.w900,
-                            color: LoveGirlTheme.textPrimary,
+                            color: context.lgTextPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.location_on_outlined,
                               size: 14,
-                              color: LoveGirlTheme.textMuted,
+                              color: context.lgTextMuted,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 _travelDisplayText(spot.city, '还没填写城市'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: LoveGirlTheme.textMuted,
+                                  color: context.lgTextMuted,
                                 ),
                               ),
                             ),
@@ -1833,7 +1833,7 @@ class _SpotDetailSheet extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (_travelDisplayText(spot.address, '').isNotEmpty) ...[
                 LovePaper(
                   padding: const EdgeInsets.all(12),
@@ -1841,19 +1841,19 @@ class _SpotDetailSheet extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.place_outlined,
                         size: 16,
-                        color: LoveGirlTheme.textMuted,
+                        color: context.lgTextMuted,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _travelDisplayText(spot.address, ''),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             height: 1.5,
-                            color: LoveGirlTheme.textSecondary,
+                            color: context.lgTextSecondary,
                           ),
                         ),
                       ),
@@ -1862,7 +1862,7 @@ class _SpotDetailSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              _buildInfoSection(spot),
+              _buildInfoSection(context, spot),
               const SizedBox(height: 16),
               TravelPhotoGrid(
                 spotId: spot.id,
@@ -1912,12 +1912,12 @@ class _SpotDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection(TravelSpot spot) {
+  Widget _buildInfoSection(BuildContext context, TravelSpot spot) {
     final items = <Widget>[];
     void addClean(IconData icon, String label, String? value) {
       final clean = _travelDisplayText(value, '');
       if (clean.isNotEmpty) {
-        items.add(_infoRow(icon, label, clean));
+        items.add(_infoRow(context, icon, label, clean));
       }
     }
 
@@ -1925,23 +1925,23 @@ class _SpotDetailSheet extends StatelessWidget {
 
     if (spot.visitedDate != null) {
       items.add(
-          _infoRow(Icons.calendar_today, '\u65e5\u671f', spot.visitedDate!));
+          _infoRow(context, Icons.calendar_today, '\u65e5\u671f', spot.visitedDate!));
     }
     if (spot.plannedDate != null) {
       items.add(
-          _infoRow(Icons.event, '\u8ba1\u5212\u65e5\u671f', spot.plannedDate!));
+          _infoRow(context, Icons.event, '\u8ba1\u5212\u65e5\u671f', spot.plannedDate!));
     }
 
     addClean(Icons.emoji_emotions, '心情', spot.mood);
 
     if (spot.editedByBoth) {
-      items.add(_infoRow(Icons.favorite_rounded, '共同编辑', '我们都编辑过这个地点'));
+      items.add(_infoRow(context, Icons.favorite_rounded, '共同编辑', '我们都编辑过这个地点'));
     }
 
     addClean(Icons.person_outline_rounded, '标记人', spot.creatorNickname);
 
     if (spot.rating != null && spot.rating! > 0) {
-      items.add(_infoRow(Icons.star, '\u8bc4\u5206', '${spot.rating}/5'));
+      items.add(_infoRow(context, Icons.star, '\u8bc4\u5206', '${spot.rating}/5'));
     }
 
     addClean(Icons.edit_note, '游记', spot.diary);
@@ -1953,7 +1953,7 @@ class _SpotDetailSheet extends StatelessWidget {
     addClean(Icons.directions_rounded, '交通方式', spot.transportation);
 
     if (spot.budget != null && spot.budget! > 0) {
-      items.add(_infoRow(Icons.account_balance_wallet, '\u9884\u7b97',
+      items.add(_infoRow(context, Icons.account_balance_wallet, '\u9884\u7b97',
           '\u00a5${spot.budget!.toStringAsFixed(0)}'));
     }
 
@@ -1982,25 +1982,26 @@ class _SpotDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
+  Widget _infoRow(BuildContext context, IconData icon, String label,
+      String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: LoveGirlTheme.textMuted),
-        const SizedBox(width: 8),
+        Icon(icon, size: 16, color: context.lgTextMuted),
+        SizedBox(width: 8),
         Text('$label: ',
-            style: const TextStyle(
-                fontSize: 13, color: LoveGirlTheme.textSecondary)),
+            style: TextStyle(
+                fontSize: 13, color: context.lgTextSecondary)),
         Expanded(
           child: Text(value,
-              style: const TextStyle(
-                  fontSize: 13, color: LoveGirlTheme.textPrimary)),
+              style: TextStyle(
+                  fontSize: 13, color: context.lgTextPrimary)),
         ),
       ],
     );
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(BuildContext context, String status) {
     switch (status) {
       case 'visited':
         return const Color(0xFF4CAF50);
@@ -2009,7 +2010,7 @@ class _SpotDetailSheet extends StatelessWidget {
       case 'planned':
         return const Color(0xFF9C27B0);
       default:
-        return LoveGirlTheme.primary;
+        return context.lgInk;
     }
   }
 
@@ -2055,7 +2056,7 @@ class _MorphIconButton extends StatelessWidget {
           height: 38,
           decoration: BoxDecoration(
             color: active
-                ? LoveGirlTheme.primary.withAlpha(28)
+                ? context.lgInk.withAlpha(28)
                 : Colors.transparent,
             shape: BoxShape.circle,
           ),
@@ -2073,8 +2074,8 @@ class _MorphIconButton extends StatelessWidget {
                 key: ValueKey(icon),
                 size: 21,
                 color: active
-                    ? LoveGirlTheme.primary
-                    : LoveGirlTheme.textPrimary,
+                    ? context.lgInk
+                    : context.lgTextPrimary,
               ),
             ),
           ),

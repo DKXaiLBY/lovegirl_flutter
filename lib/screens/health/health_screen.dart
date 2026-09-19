@@ -19,8 +19,8 @@ class _HealthScreenState extends State<HealthScreen> {
     // 用原始角色拦截：开发者模式切到"她的视角"也不加载她的私密数据，
     // 避免拿对方身份请求经期接口报"加载失败"
     if (!auth.isOriginalGirl) {
-      return const Scaffold(
-        backgroundColor: LoveGirlTheme.bgLight,
+      return Scaffold(
+        backgroundColor: context.lgBg,
         body: Center(
           child: Padding(
             padding: EdgeInsets.all(24),
@@ -30,21 +30,21 @@ class _HealthScreenState extends State<HealthScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.lock_rounded,
-                      size: 52, color: LoveGirlTheme.primary),
+                      size: 52, color: context.lgInk),
                   SizedBox(height: 14),
                   Text(
                     '健康页只给她看',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                   SizedBox(height: 6),
                   Text(
                     '这里会保护她的私密记录',
                     style:
-                        TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+                        TextStyle(fontSize: 13, color: context.lgTextMuted),
                   ),
                 ],
               ),
@@ -55,7 +55,7 @@ class _HealthScreenState extends State<HealthScreen> {
     }
 
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: LovePage(
         padding: EdgeInsets.zero,
         child: Column(
@@ -63,25 +63,25 @@ class _HealthScreenState extends State<HealthScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
               child: LoveTicketCard(
-                color: LoveGirlTheme.paperWarm,
+                color: context.lgPaperWarm,
                 padding: const EdgeInsets.all(18),
                 child: Row(
                   children: [
-                    const LoveStickerIcon(
+                    LoveStickerIcon(
                       icon: Icons.health_and_safety_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '健康',
                             style: TextStyle(
-                              fontSize: 23,
+                              fontSize: 25,
                               fontWeight: FontWeight.w900,
-                              color: LoveGirlTheme.textPrimary,
+                              color: context.lgTextPrimary,
                             ),
                           ),
                           SizedBox(height: 3),
@@ -89,16 +89,16 @@ class _HealthScreenState extends State<HealthScreen> {
                             '柔和一点，也清楚一点',
                             style: TextStyle(
                               fontSize: 13,
-                              color: LoveGirlTheme.textSecondary,
+                              color: context.lgTextSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const LovePill(
+                    LovePill(
                       text: '私密',
                       icon: Icons.lock_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ],
                 ),

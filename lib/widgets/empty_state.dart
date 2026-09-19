@@ -53,24 +53,24 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: LoveGirlTheme.textMuted),
-            const SizedBox(height: LoveGirlTheme.spaceMd),
+            Icon(icon, size: 64, color: context.lgTextMuted),
+            SizedBox(height: LoveGirlTheme.spaceMd),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textSecondary,
+                color: context.lgTextSecondary,
               ),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: LoveGirlTheme.spaceXs),
+              SizedBox(height: LoveGirlTheme.spaceXs),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: LoveGirlTheme.textMuted,
+                  color: context.lgTextMuted,
                 ),
               ),
             ],
@@ -79,8 +79,8 @@ class EmptyState extends StatelessWidget {
               OutlinedButton(
                 onPressed: onRetry,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: LoveGirlTheme.primary,
-                  side: const BorderSide(color: LoveGirlTheme.primary),
+                  foregroundColor: context.lgInk,
+                  side: BorderSide(color: context.lgInk),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
                   ),

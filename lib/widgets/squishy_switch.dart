@@ -67,7 +67,7 @@ class _SquishySwitchState extends State<SquishySwitch>
             height: 28,
             padding: const EdgeInsets.symmetric(vertical: 3),
             decoration: BoxDecoration(
-              color: Color.lerp(LoveGirlTheme.separator, LoveGirlTheme.primary,
+              color: Color.lerp(context.lgSeparator, context.lgInk,
                   t),
               borderRadius: BorderRadius.circular(999),
             ),
@@ -81,8 +81,8 @@ class _SquishySwitchState extends State<SquishySwitch>
                     child: Container(
                       width: 22,
                       height: 22,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: context.lgCard,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(

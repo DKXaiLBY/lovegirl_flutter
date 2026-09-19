@@ -94,7 +94,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('删除照片'),
         content: const Text('确定删除这张照片吗？'),
         actions: [
@@ -104,7 +104,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child:
-                const Text('删除', style: TextStyle(color: LoveGirlTheme.pink)),
+                Text('删除', style: TextStyle(color: context.lgInk)),
           ),
         ],
       ),
@@ -116,7 +116,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
                 content: Text('删除失败'),
                 behavior: SnackBarBehavior.floating,
                 duration: Duration(seconds: 2)),
@@ -161,16 +161,16 @@ class _PhotoScreenState extends State<PhotoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('云端相册'),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: LoveGirlTheme.textPrimary,
+          color: context.lgTextPrimary,
         ),
         leading: IconButton(
           icon: AppIcon('back'),
@@ -212,14 +212,14 @@ class _PhotoScreenState extends State<PhotoScreen> {
         ],
       ),
       body: _uploading && _photos.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
                   Text('正在上传...',
-                      style: TextStyle(color: LoveGirlTheme.textMuted)),
+                      style: TextStyle(color: context.lgTextMuted)),
                 ]))
           : _loading
               ? const Center(child: CircularProgressIndicator())
@@ -253,7 +253,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                           child: GridView.builder(
                             padding: const EdgeInsets.all(4),
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
                               mainAxisSpacing: 4,
                               crossAxisSpacing: 4,
@@ -274,11 +274,11 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                   imageUrl: fullUrl,
                                   fit: BoxFit.cover,
                                   placeholder: (_, __) =>
-                                      Container(color: LoveGirlTheme.bgLight),
+                                      Container(color: context.lgBg),
                                   errorWidget: (_, __, ___) => Container(
-                                    color: LoveGirlTheme.bgLight,
-                                    child: const Icon(Icons.broken_image,
-                                        color: LoveGirlTheme.textMuted),
+                                    color: context.lgBg,
+                                    child: Icon(Icons.broken_image,
+                                        color: context.lgTextMuted),
                                   ),
                                 ),
                               );
@@ -293,10 +293,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
-          const SizedBox(height: 12),
+          Icon(Icons.cloud_off, size: 48, color: context.lgTextMuted),
+          SizedBox(height: 12),
           Text(_error!,
-              style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+              style: TextStyle(color: context.lgTextSecondary)),
           const SizedBox(height: 16),
           TextButton.icon(
             onPressed: _loadPhotos,
@@ -313,14 +313,14 @@ class _PhotoScreenState extends State<PhotoScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.photo_library_outlined,
-              size: 64, color: LoveGirlTheme.textMuted),
+          Icon(Icons.photo_library_outlined,
+              size: 64, color: context.lgTextMuted),
           const SizedBox(height: 12),
-          const Text('还没有照片',
+          Text('还没有照片',
               style:
-                  TextStyle(fontSize: 16, color: LoveGirlTheme.textSecondary)),
-          const Text('你们一起的照片会展示在这里',
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
+                  TextStyle(fontSize: 17, color: context.lgTextSecondary)),
+          Text('你们一起的照片会展示在这里',
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
         ],
       ),
     );

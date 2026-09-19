@@ -120,7 +120,7 @@ class _MoodScreenState extends State<MoodScreen> {
           : Icons.sentiment_satisfied_rounded,
       color: (idx >= 0 && idx < _moodColors.length)
           ? _moodColors[idx]
-          : LoveGirlTheme.primary,
+          : context.lgInk,
       label: m['label'] ?? _labels[idx.clamp(0, _labels.length - 1)],
       note: m['note'] ?? '',
       raw: m,
@@ -135,9 +135,9 @@ class _MoodScreenState extends State<MoodScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.cardLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.lgCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -148,40 +148,42 @@ class _MoodScreenState extends State<MoodScreen> {
                 decoration: BoxDecoration(
                     color: Colors.black12,
                     borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Container(
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                  color: mood.color.withAlpha(30), shape: BoxShape.circle),
-              child: Icon(mood.icon, size: 40, color: mood.color),
+                  color: (mood.color ?? context.lgTextMuted).withAlpha(30),
+                  shape: BoxShape.circle),
+              child: Icon(mood.icon,
+                    size: 40, color: mood.color ?? context.lgTextMuted),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(mood.label,
                 style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: mood.color)),
-            const SizedBox(height: 4),
+                    color: mood.color ?? context.lgTextMuted)),
+            SizedBox(height: 4),
             Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
-                style: const TextStyle(
-                    fontSize: 14, color: LoveGirlTheme.textMuted)),
+                style: TextStyle(
+                    fontSize: 14, color: context.lgTextMuted)),
             if (mood.note.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                    color: LoveGirlTheme.bgLight,
-                    borderRadius: BorderRadius.circular(12)),
+                    color: context.lgBg,
+                    borderRadius: BorderRadius.circular(14)),
                 child: Text(mood.note,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
-                        color: LoveGirlTheme.textSecondary,
+                        color: context.lgTextSecondary,
                         height: 1.5)),
               ),
             ],
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
           ],
         ),
       ),
@@ -202,9 +204,9 @@ class _MoodScreenState extends State<MoodScreen> {
               left: 20,
               right: 20,
               top: 24),
-          decoration: const BoxDecoration(
-              color: LoveGirlTheme.cardLight,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          decoration: BoxDecoration(
+              color: context.lgCard,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +236,7 @@ class _MoodScreenState extends State<MoodScreen> {
                         shape: BoxShape.circle,
                         color: sel
                             ? _moodColors[i].withAlpha(30)
-                            : LoveGirlTheme.bgLight,
+                            : context.lgBg,
                         border: Border.all(
                             color: sel
                                 ? _moodColors[i]
@@ -247,23 +249,23 @@ class _MoodScreenState extends State<MoodScreen> {
                           Icon(_moodIcons[i], size: 24, color: _moodColors[i]),
                           Text(_labels[i],
                               style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   color: sel
                                       ? _moodColors[i]
-                                      : LoveGirlTheme.textMuted)),
+                                      : context.lgTextMuted)),
                         ],
                       ),
                     ),
                   );
                 }),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                   controller: noteCtrl,
                   maxLines: 3,
                   decoration: const InputDecoration(
                       hintText: '写点什么吧...', prefixIcon: Icon(Icons.edit_note))),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -288,7 +290,7 @@ class _MoodScreenState extends State<MoodScreen> {
                   },
                   child: const Text('记录',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -301,16 +303,16 @@ class _MoodScreenState extends State<MoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('心情日记'),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: LoveGirlTheme.textPrimary,
+          color: context.lgTextPrimary,
         ),
         leading: IconButton(
             icon: AppIcon('back'),
@@ -323,7 +325,7 @@ class _MoodScreenState extends State<MoodScreen> {
               : _buildContent(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
-        backgroundColor: LoveGirlTheme.primary,
+        backgroundColor: context.lgInk,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -331,10 +333,10 @@ class _MoodScreenState extends State<MoodScreen> {
 
   Widget _buildError() => Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.cloud_off, size: 48, color: LoveGirlTheme.textMuted),
-          const SizedBox(height: 12),
+          Icon(Icons.cloud_off, size: 48, color: context.lgTextMuted),
+          SizedBox(height: 12),
           Text(_error!,
-              style: const TextStyle(color: LoveGirlTheme.textSecondary)),
+              style: TextStyle(color: context.lgTextSecondary)),
           const SizedBox(height: 16),
           TextButton.icon(
               onPressed: _loadData,
@@ -382,13 +384,13 @@ class _MoodScreenState extends State<MoodScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-          color: LoveGirlTheme.cardLight,
+          color: context.lgCard,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           boxShadow: LoveGirlTheme.cardShadow()),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         IconButton(icon: const Icon(Icons.chevron_left), onPressed: _prevMonth),
         Text('${_currentMonth.year}年 ${months[_currentMonth.month]}',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
         IconButton(
             icon: const Icon(Icons.chevron_right), onPressed: _nextMonth),
       ]),
@@ -424,20 +426,20 @@ class _MoodScreenState extends State<MoodScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: LoveGirlTheme.cardLight,
+          color: context.lgCard,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           boxShadow: LoveGirlTheme.cardShadow()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('本月心情',
+        Text('本月心情',
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary)),
-        const SizedBox(height: 4),
+                color: context.lgTextPrimary)),
+        SizedBox(height: 4),
         Text('${_moods.length} 天有记录',
             style:
-                const TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
-        const SizedBox(height: 12),
+                TextStyle(fontSize: 12, color: context.lgTextMuted)),
+        SizedBox(height: 12),
         // Weekday headers
         Row(
           children: ['一', '二', '三', '四', '五', '六', '日']
@@ -445,12 +447,12 @@ class _MoodScreenState extends State<MoodScreen> {
                     width: 36,
                     child: Center(
                         child: Text(s,
-                            style: const TextStyle(
-                                fontSize: 10, color: LoveGirlTheme.textMuted))),
+                            style: TextStyle(
+                                fontSize: 10, color: context.lgTextMuted))),
                   ))
               .toList(),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         ...weeks.map((week) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
@@ -469,12 +471,12 @@ class _MoodScreenState extends State<MoodScreen> {
                         height: 32,
                         decoration: BoxDecoration(
                           color: mood.hasMood
-                              ? mood.color.withAlpha(180)
-                              : LoveGirlTheme.bgLight,
-                          borderRadius: BorderRadius.circular(6),
+                              ? (mood.color ?? context.lgTextMuted).withAlpha(180)
+                              : context.lgBg,
+                          borderRadius: BorderRadius.circular(8),
                           border: today
                               ? Border.all(
-                                  color: LoveGirlTheme.primary, width: 2)
+                                  color: context.lgInk, width: 2)
                               : Border.all(color: Colors.black.withAlpha(10)),
                         ),
                         child: mood.hasMood
@@ -486,9 +488,9 @@ class _MoodScreenState extends State<MoodScreen> {
                                         color: Colors.white)))
                             : Center(
                                 child: Text('${day.day}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 10,
-                                        color: LoveGirlTheme.textMuted))),
+                                        color: context.lgTextMuted))),
                       ),
                     ),
                   );
@@ -498,26 +500,26 @@ class _MoodScreenState extends State<MoodScreen> {
         // Legend
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          const Text('无记录',
-              style: TextStyle(fontSize: 10, color: LoveGirlTheme.textMuted)),
-          const SizedBox(width: 4),
+          Text('无记录',
+              style: TextStyle(fontSize: 10, color: context.lgTextMuted)),
+          SizedBox(width: 4),
           Container(
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  color: LoveGirlTheme.bgLight,
-                  borderRadius: BorderRadius.circular(3),
+                  color: context.lgBg,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.black.withAlpha(10)))),
-          const SizedBox(width: 8),
-          const Text('有记录',
-              style: TextStyle(fontSize: 10, color: LoveGirlTheme.textMuted)),
-          const SizedBox(width: 4),
+          SizedBox(width: 8),
+          Text('有记录',
+              style: TextStyle(fontSize: 10, color: context.lgTextMuted)),
+          SizedBox(width: 4),
           Container(
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  color: LoveGirlTheme.primary.withAlpha(180),
-                  borderRadius: BorderRadius.circular(3))),
+                  color: context.lgInk.withAlpha(180),
+                  borderRadius: BorderRadius.circular(8))),
         ]),
       ]),
     );
@@ -541,20 +543,20 @@ class _MoodScreenState extends State<MoodScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: LoveGirlTheme.cardLight,
+          color: context.lgCard,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius),
           boxShadow: LoveGirlTheme.cardShadow()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('心情趋势',
+        Text('心情趋势',
             style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textPrimary)),
-        const SizedBox(height: 4),
+                color: context.lgTextPrimary)),
+        SizedBox(height: 4),
         Text('共 ${_moods.length} 天，纵轴越高越开心',
             style:
-                const TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
-        const SizedBox(height: 16),
+                TextStyle(fontSize: 12, color: context.lgTextMuted)),
+        SizedBox(height: 16),
         SizedBox(
           height: 200,
           child: LineChart(
@@ -566,7 +568,7 @@ class _MoodScreenState extends State<MoodScreen> {
                   drawVerticalLine: false,
                   horizontalInterval: 3,
                   getDrawingHorizontalLine: (v) =>
-                      FlLine(color: LoveGirlTheme.separator, strokeWidth: 0.5)),
+                      FlLine(color: context.lgSeparator, strokeWidth: 0.5)),
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -576,8 +578,8 @@ class _MoodScreenState extends State<MoodScreen> {
                         getTitlesWidget: (v, _) {
                           final idx = v.toInt().clamp(0, _labels.length - 1);
                           return Text(_labels[idx],
-                              style: const TextStyle(
-                                  fontSize: 9, color: LoveGirlTheme.textMuted));
+                              style: TextStyle(
+                                  fontSize: 10, color: context.lgTextMuted));
                         })),
                 bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
@@ -589,9 +591,9 @@ class _MoodScreenState extends State<MoodScreen> {
                               ? Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(labels[v.toInt()]!,
-                                      style: const TextStyle(
-                                          fontSize: 8,
-                                          color: LoveGirlTheme.textMuted)))
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: context.lgTextMuted)))
                               : const SizedBox.shrink();
                         })),
                 topTitles:
@@ -604,16 +606,16 @@ class _MoodScreenState extends State<MoodScreen> {
                 LineChartBarData(
                   spots: spots,
                   isCurved: true,
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                   barWidth: 2.5,
                   dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
                           radius: 3,
-                          color: LoveGirlTheme.primary,
+                          color: context.lgInk,
                           strokeWidth: 0)),
                   belowBarData: BarAreaData(
-                      show: true, color: LoveGirlTheme.primary.withAlpha(25)),
+                      show: true, color: context.lgInk.withAlpha(25)),
                 ),
               ],
             ),
@@ -632,12 +634,12 @@ class _MoodScreenState extends State<MoodScreen> {
     final display = recent.take(10).toList();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('最近记录',
+      Text('最近记录',
           style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: LoveGirlTheme.textPrimary)),
-      const SizedBox(height: 8),
+              color: context.lgTextPrimary)),
+      SizedBox(height: 8),
       ...display.map((m) => _buildMoodItem(m)),
     ]);
   }
@@ -646,11 +648,11 @@ class _MoodScreenState extends State<MoodScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Center(
           child: Column(children: [
-            const Icon(Icons.mood_outlined,
-                size: 48, color: LoveGirlTheme.textMuted),
-            const SizedBox(height: 8),
-            const Text('本月还没有记录',
-                style: TextStyle(color: LoveGirlTheme.textSecondary)),
+            Icon(Icons.mood_outlined,
+                size: 48, color: context.lgTextMuted),
+            SizedBox(height: 8),
+            Text('本月还没有记录',
+                style: TextStyle(color: context.lgTextSecondary)),
           ]),
         ),
       );
@@ -662,7 +664,7 @@ class _MoodScreenState extends State<MoodScreen> {
         : Icons.sentiment_satisfied_rounded;
     final color = (idx >= 0 && idx < _moodColors.length)
         ? _moodColors[idx]
-        : LoveGirlTheme.primary;
+        : context.lgInk;
     final label = mood['label'] ?? '';
     final note = mood['note'] ?? '';
     final date = mood['date'] ?? '';
@@ -670,7 +672,7 @@ class _MoodScreenState extends State<MoodScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-          color: LoveGirlTheme.cardLight,
+          color: context.lgCard,
           borderRadius: BorderRadius.circular(AppConstants.borderRadius)),
       child: Row(children: [
         Container(
@@ -679,7 +681,7 @@ class _MoodScreenState extends State<MoodScreen> {
             decoration: BoxDecoration(
                 color: color.withAlpha(25), shape: BoxShape.circle),
             child: Icon(icon, size: 22, color: color)),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -687,16 +689,16 @@ class _MoodScreenState extends State<MoodScreen> {
             Text(label,
                 style: TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-            const Spacer(),
+            Spacer(),
             Text(date.toString().substring(5),
-                style: const TextStyle(
-                    fontSize: 12, color: LoveGirlTheme.textMuted)),
+                style: TextStyle(
+                    fontSize: 12, color: context.lgTextMuted)),
           ]),
           if (note.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(note,
-                style: const TextStyle(
-                    fontSize: 13, color: LoveGirlTheme.textSecondary),
+                style: TextStyle(
+                    fontSize: 13, color: context.lgTextSecondary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis)
           ],
@@ -709,14 +711,14 @@ class _MoodScreenState extends State<MoodScreen> {
 class MoodData {
   final bool hasMood;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final String label;
   final String note;
   final Map<String, dynamic> raw;
   MoodData(
       {required this.hasMood,
       this.icon = Icons.help_outline,
-      this.color = LoveGirlTheme.textMuted,
+      this.color,
       this.label = '',
       this.note = '',
       this.raw = const {}});

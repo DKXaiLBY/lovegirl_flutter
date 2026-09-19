@@ -96,7 +96,7 @@ class _CountdownFormState extends State<CountdownForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: Text(_isEdit ? '编辑倒计时' : '新建倒计时'),
         leading: IconButton(
@@ -106,11 +106,11 @@ class _CountdownFormState extends State<CountdownForm> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text(
+            child: Text(
               '保存',
               style: TextStyle(
-                color: LoveGirlTheme.primary,
-                fontSize: 16,
+                color: context.lgInk,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -124,53 +124,53 @@ class _CountdownFormState extends State<CountdownForm> {
           children: [
             // ===== 名称 =====
             _buildSectionTitle('名称'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
               controller: _nameController,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: '例如：在一起纪念日、生日...',
-                prefixIcon: Icon(Icons.edit_note, color: LoveGirlTheme.primary),
+                prefixIcon: Icon(Icons.edit_note, color: context.lgInk),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // ===== 目标日期 =====
             _buildSectionTitle('目标日期'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             GestureDetector(
               onTap: _pickDate,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: LoveGirlTheme.cardLight,
+                  color: context.lgCard,
                   borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-                  border: Border.all(color: LoveGirlTheme.separator),
+                  border: Border.all(color: context.lgSeparator),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_month_rounded, color: LoveGirlTheme.primary, size: 20),
-                    const SizedBox(width: 10),
+                    Icon(Icons.calendar_month_rounded, color: context.lgInk, size: 20),
+                    SizedBox(width: 10),
                     Text(
                       _formatDate(_selectedDate),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                     ),
                     const Spacer(),
-                    const Icon(Icons.arrow_drop_down, color: LoveGirlTheme.textMuted),
+                    Icon(Icons.arrow_drop_down, color: context.lgTextMuted),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // ===== 图标选择 =====
             _buildSectionTitle('图标'),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -188,10 +188,10 @@ class _CountdownFormState extends State<CountdownForm> {
                   onTap: () => setState(() => _selectedIconCodePoint = option.codePoint),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.cardLight,
+                      color: context.lgCard,
                       borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
                       border: Border.all(
-                        color: selected ? LoveGirlTheme.primary : LoveGirlTheme.separator,
+                        color: selected ? LoveGirlTheme.primary : context.lgSeparator,
                         width: selected ? 2.0 : 1.0,
                       ),
                       boxShadow: selected ? LoveGirlTheme.cardShadow() : null,
@@ -202,14 +202,14 @@ class _CountdownFormState extends State<CountdownForm> {
                         Icon(
                           option.icon,
                           size: 28,
-                          color: selected ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary,
+                          color: selected ? LoveGirlTheme.primary : context.lgTextSecondary,
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           option.label,
                           style: TextStyle(
-                            fontSize: 11,
-                            color: selected ? LoveGirlTheme.primary : LoveGirlTheme.textMuted,
+                            fontSize: 12,
+                            color: selected ? LoveGirlTheme.primary : context.lgTextMuted,
                             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
@@ -234,17 +234,17 @@ class _CountdownFormState extends State<CountdownForm> {
             width: 3,
             height: 16,
             decoration: BoxDecoration(
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: LoveGirlTheme.textSecondary,
+              color: context.lgTextSecondary,
             ),
           ),
         ],

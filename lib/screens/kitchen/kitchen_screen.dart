@@ -56,7 +56,7 @@ class _KitchenViewState extends State<_KitchenView>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: SafeArea(
         bottom: false,
         child: Consumer<KitchenProvider>(builder: (context, kitchen, _) {
@@ -72,16 +72,16 @@ class _KitchenViewState extends State<_KitchenView>
                             children: [
                               Padding(
                                 padding:
-                                    const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                                    EdgeInsets.fromLTRB(16, 4, 16, 8),
                                 child: LoveSectionTitle(
                                     title: '今晚想吃什么？由 TA 掌勺'),
                               ),
                               TabBar(
                                 controller: _tab,
-                                labelColor: LoveGirlTheme.primary,
+                                labelColor: context.lgInk,
                                 unselectedLabelColor:
-                                    LoveGirlTheme.textMuted,
-                                indicatorColor: LoveGirlTheme.primary,
+                                    context.lgTextMuted,
+                                indicatorColor: context.lgInk,
                                 indicatorSize: TabBarIndicatorSize.label,
                                 labelStyle: const TextStyle(
                                     fontWeight: FontWeight.w800),
@@ -119,27 +119,27 @@ class _KitchenViewState extends State<_KitchenView>
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: AppIcon('back'),
-            color: LoveGirlTheme.textPrimary,
+            color: context.lgTextPrimary,
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '情侣厨房 ❤',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 25,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 Text(
                   kitchen.bound && kitchen.partnerName != null
                       ? '主厨：${kitchen.partnerName} · 想吃就点'
                       : '把会做的菜挂上菜单，等 TA 来点',
-                  style: const TextStyle(
-                      fontSize: 12, color: LoveGirlTheme.textMuted),
+                  style: TextStyle(
+                      fontSize: 12, color: context.lgTextMuted),
                 ),
               ],
             ),
@@ -150,7 +150,7 @@ class _KitchenViewState extends State<_KitchenView>
               IconButton(
                 onPressed: () => _openOrders(context),
                 icon: AppIcon('ticket'),
-                color: LoveGirlTheme.textPrimary,
+                color: context.lgTextPrimary,
               ),
               if (kitchen.incomingNew > 0)
                 Positioned(
@@ -181,7 +181,7 @@ class _KitchenViewState extends State<_KitchenView>
 
   void _openOrders(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const KitchenOrdersScreen()),
+      MaterialPageRoute(builder: (_) => KitchenOrdersScreen()),
     );
   }
 }
@@ -200,24 +200,24 @@ class _UnboundView extends StatelessWidget {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                  color: LoveGirlTheme.primarySoft, shape: BoxShape.circle),
-              child: const Icon(Icons.restaurant_menu_rounded,
-                  size: 42, color: LoveGirlTheme.primary),
+              decoration: BoxDecoration(
+                  color: context.lgPrimarySoft, shape: BoxShape.circle),
+              child: Icon(Icons.restaurant_menu_rounded,
+                  size: 42, color: context.lgInk),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '绑定 TA，菜单才有食客',
               style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color: LoveGirlTheme.textPrimary),
+                  color: context.lgTextPrimary),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '情侣厨房需要先绑定伴侣\n绑定后你们可以互相挂菜单、点菜、开火',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted),
             ),
             const SizedBox(height: 24),
             LovePrimaryButton(
@@ -292,10 +292,10 @@ class _MenuTabState extends State<_MenuTab> {
                         Expanded(
                           child: ListView.separated(
                             padding:
-                                const EdgeInsets.fromLTRB(12, 12, 16, 96),
+                                EdgeInsets.fromLTRB(12, 12, 16, 96),
                             itemCount: dishes.length,
                             separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
+                                SizedBox(height: 10),
                             itemBuilder: (context, i) => StaggerIn(
                               index: i,
                               child: _DishCard(
@@ -333,7 +333,7 @@ class _MenuTabState extends State<_MenuTab> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const _CartSheet(),
+      builder: (_) => _CartSheet(),
     );
   }
 }
@@ -348,19 +348,19 @@ class _MenuEmpty extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🍳', style: TextStyle(fontSize: 52)),
-          const SizedBox(height: 12),
+          Text('🍳', style: TextStyle(fontSize: 52)),
+          SizedBox(height: 12),
           Text(
             '${partnerName ?? 'TA'} 的菜单还是空的',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: LoveGirlTheme.textPrimary),
+                color: context.lgTextPrimary),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             '提醒 TA 把会做的菜挂上来吧',
-            style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted),
+            style: TextStyle(fontSize: 12, color: context.lgTextMuted),
           ),
         ],
       ),
@@ -383,7 +383,7 @@ class _CategoryRail extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 92,
-      color: LoveGirlTheme.paperWarm,
+      color: context.lgPaperWarm,
       child: ListView.builder(
         itemCount: categories.length,
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -396,12 +396,12 @@ class _CategoryRail extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: active ? LoveGirlTheme.bgLight : Colors.transparent,
+                color: active ? context.lgBg : Colors.transparent,
                 border: Border(
                   left: BorderSide(
                     width: 3,
                     color: active
-                        ? LoveGirlTheme.primary
+                        ? context.lgInk
                         : Colors.transparent,
                   ),
                 ),
@@ -412,8 +412,8 @@ class _CategoryRail extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: active ? FontWeight.w800 : FontWeight.w500,
                   color: active
-                      ? LoveGirlTheme.primary
-                      : LoveGirlTheme.textSecondary,
+                      ? context.lgInk
+                      : context.lgTextSecondary,
                 ),
               ),
             ),
@@ -440,8 +440,8 @@ class _DishCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.paper,
-        borderRadius: BorderRadius.circular(16),
+        color: context.lgPaper,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withAlpha(14),
@@ -453,7 +453,7 @@ class _DishCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             child: SizedBox(
               width: 64,
               height: 64,
@@ -461,12 +461,12 @@ class _DishCard extends StatelessWidget {
                   ? Image.network(
                       kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _emojiBox(),
+                      errorBuilder: (_, __, ___) => _emojiBox(context),
                     )
-                  : _emojiBox(),
+                  : _emojiBox(context),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,23 +475,23 @@ class _DishCard extends StatelessWidget {
                   dish.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary),
+                      color: context.lgTextPrimary),
                 ),
                 if (dish.description != null &&
                     dish.description!.isNotEmpty) ...[
-                  const SizedBox(height: 3),
+                  SizedBox(height: 3),
                   Text(
                     dish.description!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12, color: LoveGirlTheme.textMuted),
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextMuted),
                   ),
                 ],
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Row(
                   children: [
                     Text(
@@ -501,14 +501,14 @@ class _DishCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color: LoveGirlTheme.red),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         '· ${dish.category}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 11, color: LoveGirlTheme.textMuted),
+                        style: TextStyle(
+                            fontSize: 12, color: context.lgTextMuted),
                       ),
                     ),
                   ],
@@ -520,7 +520,7 @@ class _DishCard extends StatelessWidget {
           qty > 0
               ? Container(
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.primarySoft,
+                    color: context.lgPrimarySoft,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   padding:
@@ -531,28 +531,28 @@ class _DishCard extends StatelessWidget {
                         onTap: () => context
                             .read<KitchenProvider>()
                             .removeFromCart(dish.id),
-                        child: const SizedBox(
+                        child: SizedBox(
                           width: 26,
                           height: 26,
                           child: Icon(Icons.remove_rounded,
-                              size: 16, color: LoveGirlTheme.primary),
+                              size: 16, color: context.lgInk),
                         ),
                       ),
                       SizedBox(
                         width: 22,
                         child: Text('$qty',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.w800,
-                                color: LoveGirlTheme.primary)),
+                                color: context.lgInk)),
                       ),
                       GestureDetector(
                         onTap: onAdd,
-                        child: const SizedBox(
+                        child: SizedBox(
                           width: 26,
                           height: 26,
                           child: Icon(Icons.add_rounded,
-                              size: 16, color: LoveGirlTheme.primary),
+                              size: 16, color: context.lgInk),
                         ),
                       ),
                     ],
@@ -564,10 +564,10 @@ class _DishCard extends StatelessWidget {
     );
   }
 
-  Widget _emojiBox() => Container(
-        color: LoveGirlTheme.primarySoft,
+  Widget _emojiBox(context) => Container(
+        color: context.lgPrimarySoft,
         alignment: Alignment.center,
-        child: Text(dish.emoji, style: const TextStyle(fontSize: 30)),
+        child: Text(dish.emoji, style: const TextStyle(fontSize: 34)),
       );
 }
 
@@ -583,8 +583,8 @@ class _AddButton extends StatelessWidget {
       child: Container(
         width: 34,
         height: 34,
-        decoration: const BoxDecoration(
-            color: LoveGirlTheme.primary, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+            color: context.lgInk, shape: BoxShape.circle),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
       ),
     );
@@ -609,7 +609,7 @@ class _CartBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
         decoration: BoxDecoration(
-          color: count > 0 ? LoveGirlTheme.textPrimary : LoveGirlTheme.textMuted,
+          color: count > 0 ? context.lgTextPrimary : context.lgTextMuted,
           borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
@@ -623,7 +623,7 @@ class _CartBar extends StatelessWidget {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.shopping_bag_rounded,
+                Icon(Icons.shopping_bag_rounded,
                     color: Colors.white, size: 24),
                 if (count > 0)
                   Positioned(
@@ -642,7 +642,7 @@ class _CartBar extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Text(
                 count > 0 ? '合计 ¥$total' : '看看 TA 能做什么菜',
@@ -659,8 +659,8 @@ class _CartBar extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   fontSize: 14),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
+            SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded,
                 color: Colors.white, size: 20),
           ],
         ),
@@ -694,9 +694,9 @@ class _CartSheetState extends State<_CartSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.lgBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -708,49 +708,49 @@ class _CartSheetState extends State<_CartSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: LoveGirlTheme.separator,
+                    color: context.lgSeparator,
                     borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            const SizedBox(height: 14),
-            const Text('确认订单',
+            SizedBox(height: 14),
+            Text('确认订单',
                 style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary)),
-            const SizedBox(height: 12),
+                    color: context.lgTextPrimary)),
+            SizedBox(height: 12),
             ...kitchen.cartDishes.map((d) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     children: [
                       Text(d.emoji, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                           child: Text(d.name,
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600))),
                       Text('x${kitchen.cart[d.id] ?? 0}',
                           style:
-                              const TextStyle(color: LoveGirlTheme.textMuted)),
-                      const SizedBox(width: 12),
+                              TextStyle(color: context.lgTextMuted)),
+                      SizedBox(width: 12),
                       Text('¥${d.price * (kitchen.cart[d.id] ?? 0)}',
                           style: const TextStyle(fontWeight: FontWeight.w800)),
                     ],
                   ),
                 )),
-            const Divider(height: 24, color: LoveGirlTheme.separator),
+            Divider(height: 24, color: context.lgSeparator),
             TextField(
               controller: _noteCtrl,
               maxLength: 60,
               decoration: InputDecoration(
                 hintText: '给主厨留言，比如：周五晚上想吃～',
                 hintStyle:
-                    const TextStyle(color: LoveGirlTheme.textMuted, fontSize: 13),
+                    TextStyle(color: context.lgTextMuted, fontSize: 13),
                 filled: true,
-                fillColor: LoveGirlTheme.paper,
+                fillColor: context.lgPaper,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: LoveGirlTheme.separator)),
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: context.lgSeparator)),
                 counterText: '',
               ),
             ),
@@ -795,15 +795,15 @@ class _MyKitchenTab extends StatelessWidget {
                   children: [
                     const Text('👨‍🍳', style: TextStyle(fontSize: 52)),
                     const SizedBox(height: 12),
-                    const Text('你的菜单还是空的',
+                    Text('你的菜单还是空的',
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
-                            color: LoveGirlTheme.textPrimary)),
+                            color: context.lgTextPrimary)),
                     const SizedBox(height: 6),
-                    const Text('把会做的菜挂上来，等 TA 来点',
+                    Text('把会做的菜挂上来，等 TA 来点',
                         style: TextStyle(
-                            fontSize: 12, color: LoveGirlTheme.textMuted)),
+                            fontSize: 12, color: context.lgTextMuted)),
                   ],
                 ),
               )
@@ -821,7 +821,7 @@ class _MyKitchenTab extends StatelessWidget {
                         context: context,
                         builder: (dCtx) => AlertDialog(
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
+                              borderRadius: BorderRadius.circular(18)),
                           title: const Text('下架菜品'),
                           content: Text('把「${dish.name}」从菜单上撤下来吗？'),
                           actions: [
@@ -882,8 +882,8 @@ class _MyDishCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.paper,
-        borderRadius: BorderRadius.circular(16),
+        color: context.lgPaper,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withAlpha(14),
@@ -894,7 +894,7 @@ class _MyDishCard extends StatelessWidget {
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             child: SizedBox(
               width: 56,
               height: 56,
@@ -902,12 +902,12 @@ class _MyDishCard extends StatelessWidget {
                   ? Image.network(
                       kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _emojiBox(),
+                      errorBuilder: (_, __, ___) => _emojiBox(context),
                     )
-                  : _emojiBox(),
+                  : _emojiBox(context),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,26 +915,26 @@ class _MyDishCard extends StatelessWidget {
                 Text(dish.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: LoveGirlTheme.textPrimary)),
-                const SizedBox(height: 4),
+                        color: context.lgTextPrimary)),
+                SizedBox(height: 4),
                 Text(
                   '${dish.category} · ${dish.price > 0 ? '¥${dish.price}' : '心意价'}'
                   '${dish.description == null || dish.description!.isEmpty ? '' : ' · ${dish.description}'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 12, color: LoveGirlTheme.textMuted),
+                  style: TextStyle(
+                      fontSize: 12, color: context.lgTextMuted),
                 ),
               ],
             ),
           ),
           IconButton(
               onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined,
-                  size: 20, color: LoveGirlTheme.textSecondary)),
+              icon: Icon(Icons.edit_outlined,
+                  size: 20, color: context.lgTextSecondary)),
           IconButton(
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline_rounded,
@@ -944,10 +944,10 @@ class _MyDishCard extends StatelessWidget {
     );
   }
 
-  Widget _emojiBox() => Container(
-        color: LoveGirlTheme.secondarySoft,
+  Widget _emojiBox(context) => Container(
+        color: context.lgSecondarySoft,
         alignment: Alignment.center,
-        child: Text(dish.emoji, style: const TextStyle(fontSize: 26)),
+        child: Text(dish.emoji, style: const TextStyle(fontSize: 25)),
       );
 }
 
@@ -1011,9 +1011,9 @@ class _DishEditSheetState extends State<_DishEditSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.lgBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: SingleChildScrollView(
@@ -1026,17 +1026,17 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                      color: LoveGirlTheme.separator,
+                      color: context.lgSeparator,
                       borderRadius: BorderRadius.circular(2)),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Text(widget.existing == null ? '添加拿手菜' : '编辑菜品',
-                  style: const TextStyle(
-                      fontSize: 18,
+                  style: TextStyle(
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
-                      color: LoveGirlTheme.textPrimary)),
-              const SizedBox(height: 14),
+                      color: context.lgTextPrimary)),
+              SizedBox(height: 14),
               Row(
                 children: [
                   GestureDetector(
@@ -1045,8 +1045,8 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: LoveGirlTheme.primarySoft,
-                        borderRadius: BorderRadius.circular(12),
+                        color: context.lgPrimarySoft,
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: _uploading
                           ? const Center(
@@ -1057,39 +1057,39 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                                       strokeWidth: 2)))
                           : _photoUrl != null
                               ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(14),
                                   child: Image.network(
                                       kitchenPhotoUrl(
                                           _photoUrl!, AppConstants.baseUrl),
                                       fit: BoxFit.cover))
-                              : const Icon(Icons.add_a_photo_rounded,
-                                  color: LoveGirlTheme.primary),
+                              : Icon(Icons.add_a_photo_rounded,
+                                  color: context.lgInk),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: TextField(
                       controller: _name,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                           labelText: '菜名（必填）',
                           filled: true,
-                          fillColor: LoveGirlTheme.paper),
+                          fillColor: context.lgPaper),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   SizedBox(
                     width: 64,
                     child: TextField(
                       controller: _emoji,
                       textAlign: TextAlign.center,
                       maxLength: 2,
-                      decoration: const InputDecoration(
-                          counterText: '', filled: true, fillColor: LoveGirlTheme.paper),
+                      decoration: InputDecoration(
+                          counterText: '', filled: true, fillColor: context.lgPaper),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -1097,40 +1097,40 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                     .map((c) => ChoiceChip(
                           label: Text(c),
                           selected: _category == c,
-                          selectedColor: LoveGirlTheme.primarySoft,
+                          selectedColor: context.lgPrimarySoft,
                           labelStyle: TextStyle(
                               color: _category == c
-                                  ? LoveGirlTheme.primary
-                                  : LoveGirlTheme.textSecondary,
+                                  ? context.lgInk
+                                  : context.lgTextSecondary,
                               fontWeight: FontWeight.w600),
                           onSelected: (_) => setState(() => _category = c),
                         ))
                     .toList(),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _price,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                           labelText: '趣味价（¥，可不填）',
                           filled: true,
-                          fillColor: LoveGirlTheme.paper),
+                          fillColor: context.lgPaper),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               TextField(
                 controller: _desc,
                 maxLength: 100,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                     labelText: '一句推荐语（可不填）',
                     hintText: '比如：入口即化，吃过都说好',
                     filled: true,
-                    fillColor: LoveGirlTheme.paper,
+                    fillColor: context.lgPaper,
                     counterText: ''),
               ),
               const SizedBox(height: 18),
@@ -1195,16 +1195,16 @@ class _RecordsTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('🧾', style: TextStyle(fontSize: 52)),
-            const SizedBox(height: 12),
-            const Text('还没有开火记录',
+            Text('🧾', style: TextStyle(fontSize: 52)),
+            SizedBox(height: 12),
+            Text('还没有开火记录',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: LoveGirlTheme.textPrimary)),
-            const SizedBox(height: 6),
-            const Text('完成第一单后，这里会留下投喂小票',
-                style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
+                    color: context.lgTextPrimary)),
+            SizedBox(height: 6),
+            Text('完成第一单后，这里会留下投喂小票',
+                style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
           ],
         ),
       );
@@ -1236,29 +1236,29 @@ class _ReceiptCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.local_fire_department_rounded,
-                      size: 18, color: LoveGirlTheme.primary),
-                  const SizedBox(width: 6),
-                  const Text('投喂小票',
+                  Icon(Icons.local_fire_department_rounded,
+                      size: 18, color: context.lgInk),
+                  SizedBox(width: 6),
+                  Text('投喂小票',
                       style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 14,
-                          color: LoveGirlTheme.textPrimary)),
-                  const Spacer(),
+                          color: context.lgTextPrimary)),
+                  Spacer(),
                   Text('#${order.id}',
-                      style: const TextStyle(
-                          fontSize: 11, color: LoveGirlTheme.textMuted)),
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextMuted)),
                 ],
               ),
-              const SizedBox(height: 8),
-              const LoveTicketDivider(),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
+              LoveTicketDivider(),
+              SizedBox(height: 8),
               ...order.items.map((it) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         Text(it.emoji, style: const TextStyle(fontSize: 15)),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                             child: Text('${it.name} x${it.quantity}',
                                 style: const TextStyle(fontSize: 13))),
@@ -1267,25 +1267,25 @@ class _ReceiptCard extends StatelessWidget {
                       ],
                     ),
                   )),
-              const SizedBox(height: 6),
-              const LoveTicketDivider(),
-              const SizedBox(height: 8),
+              SizedBox(height: 6),
+              LoveTicketDivider(),
+              SizedBox(height: 8),
               Row(
                 children: [
                   Text(dateStr,
-                      style: const TextStyle(
-                          fontSize: 11, color: LoveGirlTheme.textMuted)),
-                  const Spacer(),
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextMuted)),
+                  Spacer(),
                   Text('合计 ¥${order.totalPrice}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.textPrimary)),
+                          color: context.lgTextPrimary)),
                 ],
               ),
               if (order.photoUrl != null) ...[
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 160),
                     child: Image.network(
@@ -1297,8 +1297,8 @@ class _ReceiptCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
-              const LoveBarcode(),
+              SizedBox(height: 8),
+              LoveBarcode(),
             ],
           ),
           Positioned(
@@ -1308,15 +1308,15 @@ class _ReceiptCard extends StatelessWidget {
               angle: -0.35,
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: LoveGirlTheme.primary, width: 2),
+                  border: Border.all(color: context.lgInk, width: 2),
                   borderRadius: BorderRadius.circular(8),
-                  color: LoveGirlTheme.primarySoft.withAlpha(200),
+                  color: context.lgPrimarySoft.withAlpha(200),
                 ),
-                child: const Text('已开火 ♥',
+                child: Text('已开火 ♥',
                     style: TextStyle(
-                        color: LoveGirlTheme.primary,
+                        color: context.lgInk,
                         fontWeight: FontWeight.w900,
                         fontSize: 13)),
               ),
@@ -1339,17 +1339,17 @@ class KitchenOrdersScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         appBar: AppBar(
-          backgroundColor: LoveGirlTheme.bgLight,
-          foregroundColor: LoveGirlTheme.textPrimary,
+          backgroundColor: context.lgBg,
+          foregroundColor: context.lgTextPrimary,
           elevation: 0,
           title: const Text('订单',
               style: TextStyle(fontWeight: FontWeight.w900)),
-          bottom: const TabBar(
-            labelColor: LoveGirlTheme.primary,
-            unselectedLabelColor: LoveGirlTheme.textMuted,
-            indicatorColor: LoveGirlTheme.primary,
+          bottom: TabBar(
+            labelColor: context.lgInk,
+            unselectedLabelColor: context.lgTextMuted,
+            indicatorColor: context.lgInk,
             tabs: [Tab(text: '收到的订单'), Tab(text: '我下的订单')],
           ),
         ),
@@ -1378,10 +1378,10 @@ class _OrdersList extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(isIncoming ? Icons.inbox_rounded : Icons.send_rounded,
-                size: 48, color: LoveGirlTheme.textMuted),
-            const SizedBox(height: 10),
+                size: 48, color: context.lgTextMuted),
+            SizedBox(height: 10),
             Text(isIncoming ? '还没有收到订单' : '还没点过菜',
-                style: const TextStyle(color: LoveGirlTheme.textMuted)),
+                style: TextStyle(color: context.lgTextMuted)),
           ],
         ),
       );
@@ -1417,16 +1417,16 @@ class _OrderCard extends StatelessWidget {
     }
   }
 
-  Color get _statusColor {
+  Color _statusColor(BuildContext context) {
     switch (order.status) {
       case 'placed':
         return LoveGirlTheme.orange;
       case 'accepted':
-        return LoveGirlTheme.primary;
+        return context.lgInk;
       case 'done':
         return LoveGirlTheme.secondary;
       default:
-        return LoveGirlTheme.textMuted;
+        return context.lgTextMuted;
     }
   }
 
@@ -1436,8 +1436,8 @@ class _OrderCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.paper,
-        borderRadius: BorderRadius.circular(16),
+        color: context.lgPaper,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withAlpha(14),
@@ -1451,31 +1451,31 @@ class _OrderCard extends StatelessWidget {
           Row(
             children: [
               Text('#${order.id}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary)),
-              const SizedBox(width: 8),
+                      color: context.lgTextPrimary)),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   isIncoming ? 'TA 想吃：' : '你点的：',
-                  style: const TextStyle(
-                      fontSize: 12, color: LoveGirlTheme.textMuted),
+                  style: TextStyle(
+                      fontSize: 12, color: context.lgTextMuted),
                 ),
               ),
               LovePill(
                 text: _statusLabel,
-                color: _statusColor,
-                background: _statusColor.withAlpha(20),
+                color: _statusColor(context),
+                background: _statusColor(context).withAlpha(20),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           ...order.items.map((it) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
                   children: [
                     Text(it.emoji, style: const TextStyle(fontSize: 15)),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                         child: Text('${it.name} x${it.quantity}',
                             style: const TextStyle(fontSize: 13))),
@@ -1483,30 +1483,30 @@ class _OrderCard extends StatelessWidget {
                 ),
               )),
           if (order.note != null && order.note!.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text('留言：${order.note}',
-                style: const TextStyle(
-                    fontSize: 12, color: LoveGirlTheme.textSecondary)),
+                style: TextStyle(
+                    fontSize: 12, color: context.lgTextSecondary)),
           ],
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Row(
             children: [
               Text('合计 ¥${order.totalPrice}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
-                      color: LoveGirlTheme.textPrimary)),
-              const Spacer(),
+                      color: context.lgTextPrimary)),
+              Spacer(),
               if (isIncoming && order.status == 'placed')
                 _AcceptWithUndo(orderId: order.id),
               if (isIncoming && order.status == 'accepted')
                 GestureDetector(
                   onTap: () => _showFulfillSheet(context, order.id),
-                  child: const LovePill(
+                  child: LovePill(
                     text: '完成并拍照',
                     icon: Icons.camera_alt_rounded,
                     color: LoveGirlTheme.secondary,
-                    background: LoveGirlTheme.secondarySoft,
+                    background: context.lgSecondarySoft,
                   ),
                 ),
               if (!isIncoming && order.isActive)
@@ -1516,7 +1516,7 @@ class _OrderCard extends StatelessWidget {
                       context: context,
                       builder: (dCtx) => AlertDialog(
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
+                            borderRadius: BorderRadius.circular(18)),
                         title: const Text('取消订单'),
                         content: const Text('确定不想吃这单了吗？'),
                         actions: [
@@ -1541,11 +1541,11 @@ class _OrderCard extends StatelessWidget {
                       }
                     }
                   },
-                  child: const LovePill(
+                  child: LovePill(
                     text: '取消订单',
                     icon: Icons.close_rounded,
-                    color: LoveGirlTheme.textMuted,
-                    background: LoveGirlTheme.separator,
+                    color: context.lgTextMuted,
+                    background: context.lgSeparator,
                   ),
                 ),
             ],
@@ -1617,9 +1617,9 @@ class _FulfillSheetState extends State<_FulfillSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: context.lgBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
@@ -1631,19 +1631,19 @@ class _FulfillSheetState extends State<_FulfillSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: LoveGirlTheme.separator,
+                    color: context.lgSeparator,
                     borderRadius: BorderRadius.circular(2)),
               ),
             ),
             const SizedBox(height: 14),
-            const Text('菜做好了？拍张成品照',
+            Text('菜做好了？拍张成品照',
                 style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary)),
+                    color: context.lgTextPrimary)),
             const SizedBox(height: 4),
-            const Text('照片会成为这单的投喂小票和回忆素材',
-                style: TextStyle(fontSize: 12, color: LoveGirlTheme.textMuted)),
+            Text('照片会成为这单的投喂小票和回忆素材',
+                style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -1666,7 +1666,7 @@ class _FulfillSheetState extends State<_FulfillSheet> {
               ],
             ),
             if (_photo != null) ...[
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: Image.file(
@@ -1677,7 +1677,7 @@ class _FulfillSheetState extends State<_FulfillSheet> {
                 ),
               ),
             ],
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: LovePrimaryButton(
@@ -1737,11 +1737,11 @@ class _AcceptWithUndoState extends State<_AcceptWithUndo> {
     if (!_accepted) {
       return GestureDetector(
         onTap: _accept,
-        child: const LovePill(
+        child: LovePill(
           text: '接单',
           icon: Icons.check_rounded,
-          color: LoveGirlTheme.primary,
-          background: LoveGirlTheme.primarySoft,
+          color: context.lgInk,
+          background: context.lgPrimarySoft,
         ),
       );
     }
@@ -1767,7 +1767,7 @@ class _AcceptWithUndoState extends State<_AcceptWithUndo> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: LoveGirlTheme.secondarySoft,
+            color: context.lgSecondarySoft,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(

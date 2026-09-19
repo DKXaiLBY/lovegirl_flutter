@@ -101,7 +101,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
           const Text('TICKET DETAILS',
               style: TextStyle(
                   color: Colors.white70,
-                  fontSize: 9,
+                  fontSize: 10,
                   letterSpacing: 2,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
@@ -244,7 +244,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: const Text('旅行票根'),
         centerTitle: true,
@@ -305,7 +305,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                     ? _flipCtrl.reverse()
                     : _flipCtrl.forward();
               },
-              backgroundColor: LoveGirlTheme.primary,
+              backgroundColor: context.lgInk,
               icon: const Icon(Icons.flip_rounded, color: Colors.white),
               label: const Text('翻面',
                   style: TextStyle(color: Colors.white)),
@@ -350,8 +350,8 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                 selectedBackgroundColor: LoveGirlTheme.primary,
                 selectedForegroundColor: Colors.white,
                 backgroundColor: Colors.white,
-                foregroundColor: LoveGirlTheme.textSecondary,
-                side: const BorderSide(color: LoveGirlTheme.separator),
+                foregroundColor: context.lgTextSecondary,
+                side: BorderSide(color: context.lgSeparator),
               ),
             ),
           ),
@@ -391,24 +391,24 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               date: _dateRange,
             ),
           if (photo == null) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: LoveGirlTheme.paperWarm,
+                color: context.lgPaperWarm,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: LoveGirlTheme.separator),
+                border: Border.all(color: context.lgSeparator),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.photo_camera_outlined,
-                      size: 18, color: LoveGirlTheme.primary),
+                      size: 18, color: context.lgInk),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '照片墙还是空的：编辑地点时上传照片，票根会自动用上',
                       style: TextStyle(
-                          fontSize: 12, color: LoveGirlTheme.textSecondary),
+                          fontSize: 12, color: context.lgTextSecondary),
                     ),
                   ),
                 ],
@@ -425,7 +425,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         Container(
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8F0),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: LoveGirlTheme.cardShadowElevated(),
       ),
       child: LoveTicketCard(
@@ -491,12 +491,12 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
       child: Column(
         children: [
           // 标题
-          const Text(
+          Text(
             '旅 行 票 根',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 25,
               fontWeight: FontWeight.w900,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
               letterSpacing: 8,
             ),
           ),
@@ -504,9 +504,9 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
           Text(
             '把一起去过的日子收好',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: LoveGirlTheme.textMuted.withAlpha(180),
+              color: context.lgTextMuted.withAlpha(180),
             ),
           ),
           const SizedBox(height: 16),
@@ -557,17 +557,17 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 22,
+          style: TextStyle(
+            fontSize: 20,
             fontWeight: FontWeight.w900,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
         ),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            color: LoveGirlTheme.textMuted.withAlpha(180),
+            fontSize: 12,
+            color: context.lgTextMuted.withAlpha(180),
           ),
         ),
       ],
@@ -578,21 +578,21 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: LoveGirlTheme.primary.withAlpha(15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: LoveGirlTheme.primary.withAlpha(40)),
+        color: context.lgInk.withAlpha(15),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.lgInk.withAlpha(40)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: LoveGirlTheme.primary),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: context.lgInk),
+          SizedBox(width: 6),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
             ),
           ),
         ],
@@ -608,10 +608,10 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.explore_rounded,
+              Icon(Icons.explore_rounded,
                   size: 18, color: LoveGirlTheme.secondary),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 '目的地',
                 style: TextStyle(
                   fontSize: 14,
@@ -621,11 +621,11 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           if (cities.isEmpty)
-            const Text(
+            Text(
               '暂无记录',
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted),
             )
           else
             Wrap(
@@ -634,19 +634,19 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               children: cities.map((city) {
                 return Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: LoveGirlTheme.secondary.withAlpha(18),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                         color: LoveGirlTheme.secondary.withAlpha(50)),
                   ),
                   child: Text(
                     city,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                 );
@@ -665,10 +665,10 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle_rounded,
+              Icon(Icons.check_circle_rounded,
                   size: 18, color: LoveGirlTheme.visited),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 '已打卡地点',
                 style: TextStyle(
                   fontSize: 14,
@@ -676,21 +676,21 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                   color: LoveGirlTheme.visited,
                 ),
               ),
-              const Spacer(),
+              Spacer(),
               Text(
                 '共 ${spots.length} 处',
                 style: TextStyle(
                   fontSize: 12,
-                  color: LoveGirlTheme.textMuted.withAlpha(180),
+                  color: context.lgTextMuted.withAlpha(180),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           if (spots.isEmpty)
-            const Text(
+            Text(
               '暂无打卡记录',
-              style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted),
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted),
             )
           else
             ...spots.asMap().entries.map((entry) {
@@ -705,27 +705,27 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                       height: 22,
                       decoration: BoxDecoration(
                         color: LoveGirlTheme.visited.withAlpha(25),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
                         child: Text(
                           '${i + 1}',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: LoveGirlTheme.visited,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         spot.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: LoveGirlTheme.textPrimary,
+                          color: context.lgTextPrimary,
                         ),
                       ),
                     ),
@@ -734,7 +734,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                         spot.city,
                         style: TextStyle(
                           fontSize: 12,
-                          color: LoveGirlTheme.textMuted.withAlpha(200),
+                          color: context.lgTextMuted.withAlpha(200),
                         ),
                       ),
                   ],
@@ -754,10 +754,10 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.photo_library_rounded,
+              Icon(Icons.photo_library_rounded,
                   size: 18, color: LoveGirlTheme.accent),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 '旅行瞬间',
                 style: TextStyle(
                   fontSize: 14,
@@ -765,17 +765,17 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                   color: LoveGirlTheme.accent,
                 ),
               ),
-              const Spacer(),
+              Spacer(),
               Text(
                 '${urls.length} 张',
                 style: TextStyle(
                   fontSize: 12,
-                  color: LoveGirlTheme.textMuted.withAlpha(180),
+                  color: context.lgTextMuted.withAlpha(180),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           SizedBox(
             height: 100,
             child: ListView.separated(
@@ -784,7 +784,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 return ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: SizedBox(
                     width: 100,
                     height: 100,
@@ -792,7 +792,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                       imageUrl: urls[index],
                       fit: BoxFit.cover,
                       placeholder: (_, __) => Container(
-                        color: LoveGirlTheme.bgLight,
+                        color: context.lgBg,
                         child: const Center(
                           child: SizedBox(
                             width: 16,
@@ -802,9 +802,9 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                         ),
                       ),
                       errorWidget: (_, __, ___) => Container(
-                        color: LoveGirlTheme.bgLight,
-                        child: const Icon(Icons.broken_image,
-                            color: LoveGirlTheme.textMuted, size: 28),
+                        color: context.lgBg,
+                        child: Icon(Icons.broken_image,
+                            color: context.lgTextMuted, size: 28),
                       ),
                     ),
                   ),
@@ -825,10 +825,10 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.wb_sunny_rounded,
+              Icon(Icons.wb_sunny_rounded,
                   size: 18, color: LoveGirlTheme.orange),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 '天气 / 心情',
                 style: TextStyle(
                   fontSize: 14,
@@ -838,14 +838,14 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ...records.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   r,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -866,9 +866,9 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
           Text(
             ticketNo,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: LoveGirlTheme.textMuted.withAlpha(200),
+              color: context.lgTextMuted.withAlpha(200),
               letterSpacing: 2,
             ),
           ),
@@ -877,7 +877,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
             'LOVEGIRL · 旅行记忆',
             style: TextStyle(
               fontSize: 10,
-              color: LoveGirlTheme.textMuted.withAlpha(150),
+              color: context.lgTextMuted.withAlpha(150),
               letterSpacing: 4,
             ),
           ),

@@ -37,7 +37,7 @@ class _LifeScreenState extends State<LifeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: LovePage(
         padding: EdgeInsets.zero,
         child: Column(
@@ -80,16 +80,16 @@ class _LifeScreenState extends State<LifeScreen>
             color: LoveGirlTheme.secondary,
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '生活',
                   style: TextStyle(
-                    fontSize: 23,
+                    fontSize: 25,
                     fontWeight: FontWeight.w900,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 SizedBox(height: 3),
@@ -97,7 +97,7 @@ class _LifeScreenState extends State<LifeScreen>
                   '两个人的小生活面板',
                   style: TextStyle(
                     fontSize: 13,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
               ],
@@ -106,7 +106,7 @@ class _LifeScreenState extends State<LifeScreen>
           LovePill(
             text: _currentTabLabel,
             icon: _currentTabIcon,
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
         ],
       ),
@@ -122,11 +122,11 @@ class _LifeScreenState extends State<LifeScreen>
         controller: _tabController,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: LoveGirlTheme.primary,
+          color: context.lgInk,
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: Colors.white,
-        unselectedLabelColor: LoveGirlTheme.textSecondary,
+        unselectedLabelColor: context.lgTextSecondary,
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
         unselectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),

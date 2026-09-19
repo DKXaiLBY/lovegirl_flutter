@@ -116,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = auth.user;
 
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       body: LovePage(
         padding: EdgeInsets.zero,
         child: RefreshIndicator(
@@ -151,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -161,9 +161,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     '\u5173\u7cfb\u8d44\u6599\u5939',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 25,
                       fontWeight: FontWeight.w900,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                   SizedBox(width: 6),
@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Icon(
                       Icons.favorite_rounded,
                       size: 14,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ],
@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '\u628a\u4f60\u4eec\u7684\u5173\u7cfb\u3001\u56de\u5fc6\u548c\u65e5\u5e38\u90fd\u6536\u5728\u8fd9\u91cc\u3002',
                 style: TextStyle(
                   fontSize: 12,
-                  color: LoveGirlTheme.textSecondary,
+                  color: context.lgTextSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -194,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           tooltip: '\u65f6\u5149\u8f74',
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const TimelineScreen()),
+            MaterialPageRoute(builder: (_) => TimelineScreen()),
           ),
         ),
         const SizedBox(width: 10),
@@ -217,17 +217,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle(
+          _CardTitle(
             icon: Icons.menu_book_rounded,
             title: '\u5173\u7cfb\u6863\u6848',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
           const SizedBox(height: 8),
           LoveMenuRow(
             icon: Icons.event_note_rounded,
             title: '\u7eaa\u5ff5\u65e5\u4e0e\u5012\u6570',
             value: '纪念日、倒数日和小约定放在同一个资料夹',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AnniversaryScreen()),
@@ -240,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value: partnerName == null
                 ? '\u8fd8\u6ca1\u6709\u7ed1\u5b9a\u4f34\u4fa3'
                 : '\u5df2\u7ed1\u5b9a \u00b7 $partnerName',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const CoupleBindingScreen()),
@@ -255,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: LoveGirlTheme.secondary,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TimelineScreen()),
+              MaterialPageRoute(builder: (_) => TimelineScreen()),
             ),
           ),
           const SizedBox(height: 14),
@@ -266,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.favorite_rounded,
                   label: '\u604b\u7231\u5929\u6570',
                   value: '$loveDays',
-                  color: LoveGirlTheme.primary,
+                  color: context.lgInk,
                 ),
               ),
               const SizedBox(width: 10),
@@ -296,14 +296,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildFunctionZone(BuildContext context, bool isAdmin) {
     return LoveTicketCard(
-      color: LoveGirlTheme.paper,
+      color: context.lgPaper,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle(
+          _CardTitle(
             icon: Icons.collections_bookmark_rounded,
             title: '\u56de\u5fc6\u4e0e\u7ba1\u7406',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
           const SizedBox(height: 8),
           LoveMenuRow(
@@ -311,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: '\u76f8\u518c\u4e0e\u56de\u5fc6\u7167\u7247',
             value:
                 '\u628a\u597d\u770b\u7684\u7167\u7247\u7edf\u4e00\u6536\u8d77\u6765',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PhotoScreen()),
@@ -355,17 +355,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardTitle(
+          _CardTitle(
             icon: Icons.info_outline_rounded,
             title: '\u7248\u672c\u4e0e\u8bca\u65ad',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
           ),
           const SizedBox(height: 8),
           LoveMenuRow(
             icon: Icons.sync_rounded,
             title: '\u68c0\u67e5\u66f4\u65b0',
             value: 'v${AppConstants.versionName} (${AppConstants.versionCode})',
-            color: LoveGirlTheme.primary,
+            color: context.lgInk,
             onTap: () => manualCheckVersion(context),
           ),
           const Divider(),
@@ -373,10 +373,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.article_outlined,
             title: '\u67e5\u770b\u8fd0\u884c\u65e5\u5fd7',
             value: '\u8c03\u8bd5\u4e0e\u8bca\u65ad',
-            color: LoveGirlTheme.textMuted,
+            color: context.lgTextMuted,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const LogScreen()),
+              MaterialPageRoute(builder: (_) => LogScreen()),
             ),
           ),
         ],
@@ -431,9 +431,9 @@ class _ProfileHero extends StatelessWidget {
                           text: '\u5173\u7cfb\u8d44\u6599\u5939',
                           icon: Icons.folder_copy_outlined,
                           color: LoveGirlTheme.secondary,
-                          background: LoveGirlTheme.secondarySoft,
+                          background: context.lgSecondarySoft,
                         ),
-                        const Spacer(),
+                        Spacer(),
                         LovePill(
                           text: '$beanBalance \u7231\u5fc3\u8c46',
                           icon: Icons.savings_rounded,
@@ -442,7 +442,7 @@ class _ProfileHero extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -464,7 +464,7 @@ class _ProfileHero extends StatelessWidget {
                                 top: 0,
                                 child: _AvatarBubble(
                                   fallback: _firstChar(partnerName, '\u5979'),
-                                  tint: LoveGirlTheme.primarySoft,
+                                  tint: context.lgPrimarySoft,
                                 ),
                               ),
                               Positioned(
@@ -473,8 +473,8 @@ class _ProfileHero extends StatelessWidget {
                                 child: Container(
                                   width: 30,
                                   height: 30,
-                                  decoration: const BoxDecoration(
-                                    color: LoveGirlTheme.primary,
+                                  decoration: BoxDecoration(
+                                    color: context.lgInk,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -487,7 +487,7 @@ class _ProfileHero extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,20 +496,20 @@ class _ProfileHero extends StatelessWidget {
                                 nickname?.isNotEmpty == true
                                     ? nickname!
                                     : '\u6211\u4eec',
-                                style: const TextStyle(
-                                  fontSize: 28,
+                                style: TextStyle(
+                                  fontSize: 25,
                                   height: 1,
                                   fontWeight: FontWeight.w900,
-                                  color: LoveGirlTheme.textPrimary,
+                                  color: context.lgTextPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               RichText(
                                 text: TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 16,
+                                  style: TextStyle(
+                                    fontSize: 17,
                                     fontWeight: FontWeight.w700,
-                                    color: LoveGirlTheme.textPrimary,
+                                    color: context.lgTextPrimary,
                                   ),
                                   children: [
                                     const TextSpan(
@@ -518,10 +518,10 @@ class _ProfileHero extends StatelessWidget {
                                     ),
                                     TextSpan(
                                       text: '$loveDays',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w900,
-                                        color: LoveGirlTheme.primary,
+                                        color: context.lgInk,
                                       ),
                                     ),
                                     const TextSpan(text: ' \u5929'),
@@ -542,9 +542,9 @@ class _ProfileHero extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withAlpha(170),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: LoveGirlTheme.separator.withAlpha(120),
+                          color: context.lgSeparator.withAlpha(120),
                         ),
                       ),
                       child: Row(
@@ -555,10 +555,10 @@ class _ProfileHero extends StatelessWidget {
                                 : Icons.verified_rounded,
                             size: 16,
                             color: partnerName == null
-                                ? LoveGirlTheme.textMuted
+                                ? context.lgTextMuted
                                 : LoveGirlTheme.secondary,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               loading
@@ -571,7 +571,7 @@ class _ProfileHero extends StatelessWidget {
                                 height: 1.4,
                                 fontWeight: FontWeight.w600,
                                 color: partnerName == null
-                                    ? LoveGirlTheme.textSecondary
+                                    ? context.lgTextSecondary
                                     : LoveGirlTheme.secondary,
                               ),
                             ),
@@ -584,12 +584,12 @@ class _ProfileHero extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           LovePill(
             text: '$loveDays \u5929\u7684\u6545\u4e8b',
             icon: Icons.auto_stories_rounded,
             color: LoveGirlTheme.secondary,
-            background: LoveGirlTheme.secondarySoft,
+            background: context.lgSecondarySoft,
           ),
         ],
       ),
@@ -605,12 +605,12 @@ class _ProfileHero extends StatelessWidget {
 class _AvatarBubble extends StatelessWidget {
   final String? avatar;
   final String fallback;
-  final Color tint;
+  final Color? tint;
 
   const _AvatarBubble({
     this.avatar,
     required this.fallback,
-    this.tint = LoveGirlTheme.secondarySoft,
+    this.tint,
   });
 
   @override
@@ -620,15 +620,15 @@ class _AvatarBubble extends StatelessWidget {
       backgroundColor: Colors.white,
       child: CircleAvatar(
         radius: 31,
-        backgroundColor: tint,
+        backgroundColor: tint ?? context.lgSecondarySoft,
         backgroundImage: (avatar != null && avatar!.isNotEmpty)
             ? NetworkImage(avatar!)
             : null,
         child: avatar == null || avatar!.isEmpty
             ? Text(
                 fallback,
-                style: const TextStyle(
-                  color: LoveGirlTheme.textPrimary,
+                style: TextStyle(
+                  color: context.lgTextPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
@@ -658,30 +658,30 @@ class _MiniStatPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: color.withAlpha(14),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withAlpha(40)),
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 18),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w900,
-              color: LoveGirlTheme.textPrimary,
+              color: context.lgTextPrimary,
             ),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
-              color: LoveGirlTheme.textMuted,
+              color: context.lgTextMuted,
             ),
           ),
         ],
@@ -706,13 +706,13 @@ class _CardTitle extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 22, color: color),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 19,
+          style: TextStyle(
+            fontSize: 20,
             fontWeight: FontWeight.w800,
-            color: LoveGirlTheme.textPrimary,
+            color: context.lgTextPrimary,
           ),
         ),
       ],

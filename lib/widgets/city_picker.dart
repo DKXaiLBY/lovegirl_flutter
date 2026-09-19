@@ -37,14 +37,14 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: LoveGirlTheme.cardLight,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.lgCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
       child: Column(
         children: [
           // 拖拽条
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Container(
             width: 40, height: 4,
             decoration: BoxDecoration(
@@ -52,12 +52,12 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // 标题
-          const Text('选择城市',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+          Text('选择城市',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          SizedBox(height: 12),
 
           // 搜索框
           Padding(
@@ -67,7 +67,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               decoration: InputDecoration(
                 hintText: '搜索城市...',
                 prefixIcon:
-                    const Icon(Icons.search, color: LoveGirlTheme.textMuted),
+                    Icon(Icons.search, color: context.lgTextMuted),
                 suffixIcon: _keyword.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -78,18 +78,18 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                       )
                     : null,
                 filled: true,
-                fillColor: LoveGirlTheme.bgLight,
+                fillColor: context.lgBg,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
                 ),
               ),
               onChanged: (v) => setState(() => _keyword = v.trim()),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // 内容
           Expanded(
@@ -104,8 +104,8 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
 
   Widget _buildSearchResults(List<String> results) {
     if (results.isEmpty) {
-      return const Center(
-        child: Text('未找到匹配的城市', style: TextStyle(color: LoveGirlTheme.textMuted)),
+      return Center(
+        child: Text('未找到匹配的城市', style: TextStyle(color: context.lgTextMuted)),
       );
     }
     return ListView.builder(
@@ -120,12 +120,12 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       children: [
         // 热门城市
-        const Text('热门城市',
+        Text('热门城市',
             style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: LoveGirlTheme.textSecondary)),
-        const SizedBox(height: 10),
+                color: context.lgTextSecondary)),
+        SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -135,15 +135,15 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               onTap: () => Navigator.pop(context, city),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? LoveGirlTheme.primary.withAlpha(30)
-                      : LoveGirlTheme.bgLight,
-                  borderRadius: BorderRadius.circular(20),
+                      ? context.lgInk.withAlpha(30)
+                      : context.lgBg,
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: isSelected
-                        ? LoveGirlTheme.primary
+                        ? context.lgInk
                         : Colors.black.withAlpha(10),
                   ),
                 ),
@@ -152,8 +152,8 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                   style: TextStyle(
                     fontSize: 14,
                     color: isSelected
-                        ? LoveGirlTheme.primary
-                        : LoveGirlTheme.textPrimary,
+                        ? context.lgInk
+                        : context.lgTextPrimary,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
@@ -162,7 +162,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
             );
           }).toList(),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
 
         // 按字母分组
         ...CityData.citiesByLetter.entries.map((entry) {
@@ -170,10 +170,10 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(entry.key,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: LoveGirlTheme.textSecondary)),
+                      color: context.lgTextSecondary)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 4,
@@ -190,8 +190,8 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                         style: TextStyle(
                           fontSize: 14,
                           color: isSelected
-                              ? LoveGirlTheme.primary
-                              : LoveGirlTheme.textPrimary,
+                              ? context.lgInk
+                              : context.lgTextPrimary,
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -216,15 +216,15 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
       dense: true,
       leading: Icon(Icons.location_city,
           size: 20,
-          color: isSelected ? LoveGirlTheme.primary : LoveGirlTheme.textMuted),
+          color: isSelected ? context.lgInk : context.lgTextMuted),
       title: Text(city,
           style: TextStyle(
             fontSize: 15,
-            color: isSelected ? LoveGirlTheme.primary : LoveGirlTheme.textPrimary,
+            color: isSelected ? context.lgInk : context.lgTextPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           )),
       trailing: isSelected
-          ? const Icon(Icons.check, size: 18, color: LoveGirlTheme.primary)
+          ? Icon(Icons.check, size: 18, color: context.lgInk)
           : null,
       onTap: () => Navigator.pop(context, city),
     );

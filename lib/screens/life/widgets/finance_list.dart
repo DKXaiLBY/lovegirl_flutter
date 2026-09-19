@@ -64,7 +64,7 @@ class OrganicArrowButton extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: LoveGirlTheme.primary.withAlpha(15),
+          color: context.lgInk.withAlpha(15),
         ),
         child: Material(
           color: Colors.transparent,
@@ -72,7 +72,7 @@ class OrganicArrowButton extends StatelessWidget {
             onTap: onPressed,
             child: Icon(
               icon,
-              color: LoveGirlTheme.primary,
+              color: context.lgInk,
               size: 22,
             ),
           ),
@@ -225,7 +225,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               top: 24,
             ),
             decoration: BoxDecoration(
-              color: LoveGirlTheme.cardLight,
+              color: context.lgCard,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha(15),
@@ -243,18 +243,18 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.textMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(3),
+                      color: context.lgTextMuted.withAlpha(60),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   '添加账单',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -275,12 +275,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: type == '支出'
-                                ? LoveGirlTheme.pink.withAlpha(25)
-                                : LoveGirlTheme.bgLight,
+                                ? context.lgInk.withAlpha(25)
+                                : context.lgBg,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: type == '支出'
-                                  ? LoveGirlTheme.pink.withAlpha(60)
+                                  ? context.lgInk.withAlpha(60)
                                   : Colors.transparent,
                             ),
                           ),
@@ -291,16 +291,16 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                 Icons.trending_down_rounded,
                                 size: 18,
                                 color: type == '支出'
-                                    ? LoveGirlTheme.pink
-                                    : LoveGirlTheme.textMuted,
+                                    ? context.lgInk
+                                    : context.lgTextMuted,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 '支出',
                                 style: TextStyle(
                                   color: type == '支出'
-                                      ? LoveGirlTheme.pink
-                                      : LoveGirlTheme.textMuted,
+                                      ? context.lgInk
+                                      : context.lgTextMuted,
                                   fontWeight: type == '支出'
                                       ? FontWeight.w600
                                       : FontWeight.w400,
@@ -311,7 +311,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
@@ -327,7 +327,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           decoration: BoxDecoration(
                             color: type == '收入'
                                 ? LoveGirlTheme.accent.withAlpha(25)
-                                : LoveGirlTheme.bgLight,
+                                : context.lgBg,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: type == '收入'
@@ -343,15 +343,15 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                 size: 18,
                                 color: type == '收入'
                                     ? LoveGirlTheme.accent
-                                    : LoveGirlTheme.textMuted,
+                                    : context.lgTextMuted,
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 '收入',
                                 style: TextStyle(
                                   color: type == '收入'
                                       ? LoveGirlTheme.accent
-                                      : LoveGirlTheme.textMuted,
+                                      : context.lgTextMuted,
                                   fontWeight: type == '收入'
                                       ? FontWeight.w600
                                       : FontWeight.w400,
@@ -364,25 +364,25 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 // 金额
                 TextField(
                   controller: amountCtrl,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '金额',
                     hintText: '0.00',
                     prefixText: '¥ ',
                     prefixStyle: TextStyle(
-                      color: LoveGirlTheme.textPrimary,
-                      fontSize: 16,
+                      color: context.lgTextPrimary,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
                     ),
                     prefixIcon: Icon(
                       Icons.monetization_on_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ),
@@ -401,15 +401,15 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   label: Text(c),
                                   selected: category == c,
                                   selectedColor: (type == '支出'
-                                          ? LoveGirlTheme.pink
+                                          ? context.lgInk
                                           : LoveGirlTheme.accent)
                                       .withAlpha(30),
                                   labelStyle: TextStyle(
                                     color: category == c
                                         ? (type == '支出'
-                                            ? LoveGirlTheme.pink
+                                            ? context.lgInk
                                             : LoveGirlTheme.accent)
-                                        : LoveGirlTheme.textSecondary,
+                                        : context.lgTextSecondary,
                                     fontWeight: category == c
                                         ? FontWeight.w600
                                         : FontWeight.w400,
@@ -417,13 +417,13 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   side: BorderSide(
                                     color: category == c
                                         ? (type == '支出'
-                                                ? LoveGirlTheme.pink
+                                                ? context.lgInk
                                                 : LoveGirlTheme.accent)
                                             .withAlpha(80)
-                                        : LoveGirlTheme.textMuted.withAlpha(40),
+                                        : context.lgTextMuted.withAlpha(40),
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
                                   onSelected: (_) =>
                                       setSheetState(() => category = c),
@@ -433,7 +433,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                             .toList(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // 日期
                 TextField(
                   controller: dateCtrl,
@@ -446,8 +446,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       lastDate: DateTime(2035),
                       builder: (context, child) => Theme(
                         data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: LoveGirlTheme.primary,
+                          colorScheme: ColorScheme.light(
+                            primary: context.lgInk,
                           ),
                         ),
                         child: child!,
@@ -460,24 +460,24 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       });
                     }
                   },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '日期',
                     prefixIcon: Icon(
                       Icons.calendar_today_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // 备注
                 TextField(
                   controller: noteCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '备注（选填）',
                     hintText: '备注信息...',
                     prefixIcon: Icon(
                       Icons.notes_rounded,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ),
@@ -513,7 +513,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LoveGirlTheme.primary,
+                      backgroundColor: context.lgInk,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -523,7 +523,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     child: const Text(
                       '确定添加',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -612,8 +612,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: LoveGirlTheme.primary),
+      return Center(
+        child: CircularProgressIndicator(color: context.lgInk),
       );
     }
 
@@ -625,14 +625,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
             Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color: LoveGirlTheme.textMuted.withAlpha(100),
+              color: context.lgTextMuted.withAlpha(100),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               _error!,
-              style: const TextStyle(color: LoveGirlTheme.textMuted),
+              style: TextStyle(color: context.lgTextMuted),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             TextButton.icon(
               onPressed: _loadData,
               icon: AppIcon('refresh'),
@@ -665,7 +665,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
 
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: LoveGirlTheme.primary,
+      color: context.lgInk,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
         children: [
@@ -685,12 +685,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 ),
                 Text(
                   '${_currentMonth.year}年 ${monthNames[_currentMonth.month]}',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
                     fontStyle: FontStyle.italic,
                     letterSpacing: 0.5,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
                 OrganicArrowButton(
@@ -707,9 +707,9 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
             child: Row(
               children: [
                 _buildSourceChip(null, '全部'),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 _buildSourceChip('', '日常记账'),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 _buildSourceChip('travel', '旅行花费'),
               ],
             ),
@@ -718,7 +718,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           // ---- 概览卡片 ----
           LoveTicketCard(
             padding: EdgeInsets.zero,
-            color: LoveGirlTheme.paperWarm,
+            color: context.lgPaperWarm,
             margin: const EdgeInsets.only(bottom: 16),
             child: Column(
               children: [
@@ -742,7 +742,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         height: 60,
                         child: CustomPaint(
                           painter: WaveDividerPainter(
-                            color: LoveGirlTheme.separator,
+                            color: context.lgSeparator,
                             amplitude: 5,
                           ),
                         ),
@@ -765,7 +765,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     padding: const EdgeInsets.symmetric(
                       vertical: 12,
                     ),
-                    color: LoveGirlTheme.paper.withAlpha(180),
+                    color: context.lgPaper.withAlpha(180),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -774,20 +774,20 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                               ? Icons.savings_rounded
                               : Icons.warning_amber_rounded,
                           size: 16,
-                          color: LoveGirlTheme.textSecondary,
+                          color: context.lgTextSecondary,
                         ),
-                        const SizedBox(width: 6),
+                        SizedBox(width: 6),
                         Text(
                           balance >= 0 ? '本月结余  ' : '本月超支  ',
                           style: TextStyle(
-                            color: LoveGirlTheme.textSecondary,
+                            color: context.lgTextSecondary,
                             fontSize: 14,
                           ),
                         ),
                         Text(
                           '¥${balance.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: LoveGirlTheme.textPrimary,
+                          style: TextStyle(
+                            color: context.lgTextPrimary,
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
@@ -810,17 +810,17 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     width: 4,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.primary.withAlpha(100),
+                      color: context.lgInk.withAlpha(100),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     '月度趋势',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                 ],
@@ -841,7 +841,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           horizontalInterval: 1000,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
-                              color: LoveGirlTheme.textMuted.withAlpha(20),
+                              color: context.lgTextMuted.withAlpha(20),
                               strokeWidth: 1,
                             );
                           },
@@ -857,7 +857,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     color:
-                                        LoveGirlTheme.textMuted.withAlpha(150),
+                                        context.lgTextMuted.withAlpha(150),
                                   ),
                                 );
                               },
@@ -873,7 +873,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                     '${_trendData[idx]['month']}月',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: LoveGirlTheme.textMuted
+                                      color: context.lgTextMuted
                                           .withAlpha(150),
                                     ),
                                   );
@@ -922,21 +922,21 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   i.toDouble(), _trendData[i]['expense']);
                             }),
                             isCurved: true,
-                            color: LoveGirlTheme.pink,
+                            color: context.lgInk,
                             barWidth: 2,
                             dotData: FlDotData(
                               show: true,
                               getDotPainter: (spot, percent, bar, index) {
                                 return FlDotCirclePainter(
                                   radius: 3,
-                                  color: LoveGirlTheme.pink,
+                                  color: context.lgInk,
                                   strokeWidth: 0,
                                 );
                               },
                             ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: LoveGirlTheme.pink.withAlpha(20),
+                              color: context.lgInk.withAlpha(20),
                             ),
                           ),
                         ],
@@ -960,8 +960,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       Text(
                         '收入',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: LoveGirlTheme.textMuted,
+                          fontSize: 12,
+                          color: context.lgTextMuted,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -969,7 +969,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         width: 12,
                         height: 3,
                         decoration: BoxDecoration(
-                          color: LoveGirlTheme.pink,
+                          color: context.lgInk,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -977,8 +977,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       Text(
                         '支出',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: LoveGirlTheme.textMuted,
+                          fontSize: 12,
+                          color: context.lgTextMuted,
                         ),
                       ),
                     ],
@@ -997,17 +997,17 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   width: 4,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.primary.withAlpha(100),
+                    color: context.lgInk.withAlpha(100),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   '账单明细',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
               ],
@@ -1024,12 +1024,12 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   Icon(
                     Icons.receipt_long_rounded,
                     size: 48,
-                    color: LoveGirlTheme.textMuted.withAlpha(60),
+                    color: context.lgTextMuted.withAlpha(60),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
+                  SizedBox(height: 12),
+                  Text(
                     '本月暂无账单',
-                    style: TextStyle(color: LoveGirlTheme.textMuted),
+                    style: TextStyle(color: context.lgTextMuted),
                   ),
                 ],
               ),
@@ -1049,7 +1049,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: LoveGirlTheme.textSecondary.withAlpha(180),
+                        color: context.lgTextSecondary.withAlpha(180),
                       ),
                     ),
                   ),
@@ -1083,22 +1083,22 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: LoveGirlTheme.primary),
-            const SizedBox(width: 4),
+            Icon(icon, size: 16, color: context.lgInk),
+            SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: LoveGirlTheme.textSecondary,
+                color: context.lgTextSecondary,
                 fontSize: 13,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           '¥${amount.toStringAsFixed(2)}',
-          style: const TextStyle(
-            color: LoveGirlTheme.textPrimary,
+          style: TextStyle(
+            color: context.lgTextPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -1118,13 +1118,13 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: active
-              ? LoveGirlTheme.primary.withAlpha(25)
-              : LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.circular(20),
+              ? context.lgInk.withAlpha(25)
+              : context.lgBg,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: active
-                ? LoveGirlTheme.primary.withAlpha(80)
-                : LoveGirlTheme.textMuted.withAlpha(40),
+                ? context.lgInk.withAlpha(80)
+                : context.lgTextMuted.withAlpha(40),
           ),
         ),
         child: Text(
@@ -1132,7 +1132,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-            color: active ? LoveGirlTheme.primary : LoveGirlTheme.textSecondary,
+            color: active ? context.lgInk : context.lgTextSecondary,
           ),
         ),
       ),
@@ -1160,7 +1160,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
             ),
             title: const Text('删除账单'),
             content: Text(
@@ -1169,16 +1169,16 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
+                child: Text(
                   '取消',
-                  style: TextStyle(color: LoveGirlTheme.textSecondary),
+                  style: TextStyle(color: context.lgTextSecondary),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text(
+                child: Text(
                   '删除',
-                  style: TextStyle(color: LoveGirlTheme.pink),
+                  style: TextStyle(color: context.lgInk),
                 ),
               ),
             ],
@@ -1208,8 +1208,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 24),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [LoveGirlTheme.pink, LoveGirlTheme.pinkLight],
+            gradient: LinearGradient(
+              colors: [context.lgInk, LoveGirlTheme.pinkLight],
             ),
           ),
           child: const Icon(
@@ -1229,7 +1229,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               ? null
               : Border(
                   bottom: BorderSide(
-                    color: LoveGirlTheme.textMuted.withAlpha(15),
+                    color: context.lgTextMuted.withAlpha(15),
                     width: 1,
                   ),
                 ),
@@ -1241,17 +1241,17 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: (isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent)
+                color: (isExpense ? context.lgInk : LoveGirlTheme.accent)
                     .withAlpha(18),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color: isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent,
+                color: isExpense ? context.lgInk : LoveGirlTheme.accent,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             // 分类 & 备注
             Expanded(
               child: Column(
@@ -1259,10 +1259,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 children: [
                   Text(
                     category,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                   if (source == 'travel')
@@ -1275,7 +1275,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         ),
                         decoration: BoxDecoration(
                           color: LoveGirlTheme.accent.withAlpha(20),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '旅行花费',
@@ -1293,7 +1293,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       note,
                       style: TextStyle(
                         fontSize: 12,
-                        color: LoveGirlTheme.textMuted.withAlpha(160),
+                        color: context.lgTextMuted.withAlpha(160),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1309,16 +1309,16 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: (isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent)
+                color: (isExpense ? context.lgInk : LoveGirlTheme.accent)
                     .withAlpha(12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '${isExpense ? '-' : '+'}¥${amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isExpense ? LoveGirlTheme.pink : LoveGirlTheme.accent,
+                  color: isExpense ? context.lgInk : LoveGirlTheme.accent,
                 ),
               ),
             ),

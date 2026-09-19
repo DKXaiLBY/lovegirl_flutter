@@ -43,8 +43,8 @@ Future<void> showUpdateDialog(
             maxHeight: MediaQuery.of(ctx).size.height * 0.75,
           ),
           decoration: BoxDecoration(
-            color: LoveGirlTheme.cardLight,
-            borderRadius: BorderRadius.circular(24),
+            color: context.lgCard,
+            borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -62,10 +62,10 @@ Future<void> showUpdateDialog(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: LoveGirlTheme.primary.withAlpha(50),
+                            color: context.lgInk.withAlpha(50),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -77,49 +77,49 @@ Future<void> showUpdateDialog(
                         size: 28,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
+                    SizedBox(height: 12),
+                    Text(
                       '发现新版本',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: LoveGirlTheme.bgLight,
-                        borderRadius: BorderRadius.circular(10),
+                        color: context.lgBg,
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             currentVersionLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted,
+                              color: context.lgTextMuted,
                             ),
                           ),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Icon(
                               Icons.arrow_forward_rounded,
                               size: 16,
-                              color: LoveGirlTheme.primary,
+                              color: context.lgInk,
                             ),
                           ),
                           Text(
                             'v$latestVersionName',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: LoveGirlTheme.primary,
+                              color: context.lgInk,
                             ),
                           ),
                         ],
@@ -135,19 +135,19 @@ Future<void> showUpdateDialog(
                     margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.bgLight,
-                      borderRadius: BorderRadius.circular(12),
+                      color: context.lgBg,
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(
                               Icons.auto_awesome_rounded,
                               size: 15,
-                              color: LoveGirlTheme.primary,
+                              color: context.lgInk,
                             ),
                             SizedBox(width: 5),
                             Text(
@@ -155,7 +155,7 @@ Future<void> showUpdateDialog(
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: LoveGirlTheme.textPrimary,
+                                color: context.lgTextPrimary,
                               ),
                             ),
                           ],
@@ -180,8 +180,8 @@ Future<void> showUpdateDialog(
                                               const EdgeInsets.only(top: 6),
                                           width: 4,
                                           height: 4,
-                                          decoration: const BoxDecoration(
-                                            color: LoveGirlTheme.primary,
+                                          decoration: BoxDecoration(
+                                            color: context.lgInk,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -193,8 +193,8 @@ Future<void> showUpdateDialog(
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: isBullet
-                                                ? LoveGirlTheme.textPrimary
-                                                : LoveGirlTheme.textSecondary,
+                                                ? context.lgTextPrimary
+                                                : context.lgTextSecondary,
                                             height: 1.4,
                                           ),
                                         ),
@@ -226,10 +226,10 @@ Future<void> showUpdateDialog(
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: LoveGirlTheme.primary,
+                          backgroundColor: context.lgInk,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 0,
                         ),
@@ -262,9 +262,9 @@ Future<void> showUpdateDialog(
                             );
                           },
                           style: TextButton.styleFrom(
-                            foregroundColor: LoveGirlTheme.textMuted,
+                            foregroundColor: context.lgTextMuted,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           child: const Text(
@@ -288,7 +288,7 @@ Future<void> showUpdateDialog(
 void _showDownloadDialog(BuildContext context, String downloadUrl) {
   if (downloadUrl.isEmpty || downloadUrl == AppConstants.baseUrl) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('下载链接无效，请稍后再试'),
         behavior: SnackBarBehavior.floating,
       ),
@@ -314,8 +314,8 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
             width: 280,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: LoveGirlTheme.cardLight,
-              borderRadius: BorderRadius.circular(20),
+              color: context.lgCard,
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -324,7 +324,7 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.primary.withAlpha(20),
+                    color: context.lgInk.withAlpha(20),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -336,54 +336,54 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
                     color: failed
                         ? LoveGirlTheme.red
                         : downloading
-                            ? LoveGirlTheme.primary
+                            ? context.lgInk
                             : const Color(0xFF4CAF50),
                     size: 28,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   failed
                       ? '下载失败'
                       : downloading
                           ? '正在下载...'
                           : '下载完成',
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 if (downloading && !failed) ...[
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: progress > 0 ? progress : null,
-                      backgroundColor: LoveGirlTheme.separator,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        LoveGirlTheme.primary,
+                      backgroundColor: context.lgSeparator,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        context.lgInk,
                       ),
                       minHeight: 6,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     progress > 0
                         ? '${(progress * 100).toStringAsFixed(0)}%'
                         : '准备下载...',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ],
                 if (failed) ...[
                   Text(
                     errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -397,10 +397,10 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
                         _showDownloadDialog(context, downloadUrl);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: LoveGirlTheme.primary,
+                        backgroundColor: context.lgInk,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: const Text('重试'),
@@ -562,7 +562,7 @@ Future<void> _doCheck(BuildContext context, {required bool silent}) async {
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       );

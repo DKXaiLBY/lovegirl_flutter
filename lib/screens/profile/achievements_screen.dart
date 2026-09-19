@@ -62,10 +62,10 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LoveGirlTheme.bgLight,
+      backgroundColor: context.lgBg,
       appBar: AppBar(
         title: const Text('成就'),
-        backgroundColor: LoveGirlTheme.bgLight,
+        backgroundColor: context.lgBg,
         elevation: 0,
       ),
       body: RefreshIndicator(
@@ -76,16 +76,16 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             LovePaper(
               child: Row(
                 children: [
-                  const Icon(Icons.emoji_events_outlined,
-                      color: LoveGirlTheme.primary),
-                  const SizedBox(width: 12),
+                  Icon(Icons.emoji_events_outlined,
+                      color: context.lgInk),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       '已解锁 $_unlocked / $_total',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                     ),
                   ),
@@ -97,9 +97,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             if (_loading)
-              const Center(
+              Center(
                 child: Padding(
                   padding: EdgeInsets.all(28),
                   child: CircularProgressIndicator(),
@@ -109,14 +109,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               LovePaper(
                 child: Text(
                   _error!,
-                  style: const TextStyle(color: LoveGirlTheme.textSecondary),
+                  style: TextStyle(color: context.lgTextSecondary),
                 ),
               )
             else if (_items.isEmpty)
-              const LovePaper(
+              LovePaper(
                 child: Text(
                   '暂无成就数据',
-                  style: TextStyle(color: LoveGirlTheme.textSecondary),
+                  style: TextStyle(color: context.lgTextSecondary),
                 ),
               )
             else
@@ -152,30 +152,30 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                       ? Icons.emoji_events_rounded
                       : Icons.lock_outline_rounded,
                   color: unlocked
-                      ? LoveGirlTheme.primary
-                      : LoveGirlTheme.textMuted,
+                      ? context.lgInk
+                      : context.lgTextMuted,
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: LoveGirlTheme.textPrimary,
+                      color: context.lgTextPrimary,
                     ),
                   ),
                 ),
                 Text(
                   '$progress/$target',
-                  style: const TextStyle(color: LoveGirlTheme.textSecondary),
+                  style: TextStyle(color: context.lgTextSecondary),
                 ),
               ],
             ),
             if (description.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 description,
-                style: const TextStyle(color: LoveGirlTheme.textSecondary),
+                style: TextStyle(color: context.lgTextSecondary),
               ),
             ],
             const SizedBox(height: 10),
@@ -184,9 +184,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               child: LinearProgressIndicator(
                 value: ratio,
                 minHeight: 8,
-                backgroundColor: LoveGirlTheme.separator,
+                backgroundColor: context.lgSeparator,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  unlocked ? LoveGirlTheme.primary : LoveGirlTheme.secondary,
+                  unlocked ? context.lgInk : LoveGirlTheme.secondary,
                 ),
               ),
             ),

@@ -137,7 +137,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
               top: 24,
             ),
             decoration: BoxDecoration(
-              color: LoveGirlTheme.cardLight,
+              color: context.lgCard,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha(15),
@@ -155,64 +155,64 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.textMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(3),
+                      color: context.lgTextMuted.withAlpha(60),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
+                SizedBox(height: 20),
+                Text(
                   '添加课程',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: LoveGirlTheme.textPrimary,
+                    color: context.lgTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 TextField(
                   controller: nameCtrl,
                   autofocus: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '课程名称',
                     hintText: '例如：高等数学',
                     prefixIcon: Icon(
                       Icons.book_rounded,
-                      color: LoveGirlTheme.primary,
+                      color: context.lgInk,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: teacherCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '授课教师（选填）',
                     hintText: '教师姓名',
                     prefixIcon: Icon(
                       Icons.person_rounded,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: roomCtrl,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '教室（选填）',
                     hintText: '例如：教3-201',
                     prefixIcon: Icon(
                       Icons.meeting_room_rounded,
-                      color: LoveGirlTheme.textMuted,
+                      color: context.lgTextMuted,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   '上课时间',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -233,16 +233,16 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           selectedColor: LoveGirlTheme.primary.withAlpha(30),
                           labelStyle: TextStyle(
                             color: dayOfWeek == day
-                                ? LoveGirlTheme.primary
-                                : LoveGirlTheme.textSecondary,
+                                ? context.lgInk
+                                : context.lgTextSecondary,
                             fontWeight: dayOfWeek == day
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                           ),
                           side: BorderSide(
                             color: dayOfWeek == day
-                                ? LoveGirlTheme.primary.withAlpha(80)
-                                : LoveGirlTheme.textMuted.withAlpha(40),
+                                ? context.lgInk.withAlpha(80)
+                                : context.lgTextMuted.withAlpha(40),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(18),
@@ -261,18 +261,18 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             '开始节次',
                             style: TextStyle(
                               fontSize: 13,
-                              color: LoveGirlTheme.textSecondary,
+                              color: context.lgTextSecondary,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: LoveGirlTheme.bgLight,
+                              color: context.lgBg,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: DropdownButtonHideUnderline(
@@ -307,18 +307,18 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             '结束节次',
                             style: TextStyle(
                               fontSize: 13,
-                              color: LoveGirlTheme.textSecondary,
+                              color: context.lgTextSecondary,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: LoveGirlTheme.bgLight,
+                              color: context.lgBg,
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: DropdownButtonHideUnderline(
@@ -346,12 +346,12 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   '课程颜色',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: LoveGirlTheme.textSecondary,
+                    color: context.lgTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -397,7 +397,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     }),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -434,7 +434,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LoveGirlTheme.primary,
+                      backgroundColor: context.lgInk,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -444,7 +444,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     child: const Text(
                       '确定添加',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -463,23 +463,23 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
         ),
         title: const Text('删除课程'),
         content: Text('确定删除 "$name" 吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               '取消',
-              style: TextStyle(color: LoveGirlTheme.textSecondary),
+              style: TextStyle(color: context.lgTextSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
+            child: Text(
               '删除',
-              style: TextStyle(color: LoveGirlTheme.pink),
+              style: TextStyle(color: context.lgInk),
             ),
           ),
         ],
@@ -588,8 +588,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: LoveGirlTheme.primary),
+      return Center(
+        child: CircularProgressIndicator(color: context.lgInk),
       );
     }
 
@@ -601,12 +601,12 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
             Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color: LoveGirlTheme.textMuted.withAlpha(100),
+              color: context.lgTextMuted.withAlpha(100),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               _error!,
-              style: const TextStyle(color: LoveGirlTheme.textMuted),
+              style: TextStyle(color: context.lgTextMuted),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
@@ -623,7 +623,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       children: [
         RefreshIndicator(
           onRefresh: _loadCourses,
-          color: LoveGirlTheme.primary,
+          color: context.lgInk,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             children: [
@@ -639,23 +639,23 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: LoveGirlTheme.primary.withAlpha(15),
-                        borderRadius: BorderRadius.circular(10),
+                        color: context.lgInk.withAlpha(15),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.school_rounded,
-                        color: LoveGirlTheme.primary,
+                        color: context.lgInk,
                         size: 20,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         '本学期课程表',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 17,
                           fontWeight: FontWeight.w600,
-                          color: LoveGirlTheme.textPrimary,
+                          color: context.lgTextPrimary,
                         ),
                       ),
                     ),
@@ -665,14 +665,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: LoveGirlTheme.primary.withAlpha(15),
-                        borderRadius: BorderRadius.circular(12),
+                        color: context.lgInk.withAlpha(15),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       child: Text(
                         '${_courses.length}门课',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: LoveGirlTheme.primary,
+                          color: context.lgInk,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -702,7 +702,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                               width: 40,
                               height: 40,
                               color: today
-                                  ? LoveGirlTheme.primary
+                                  ? context.lgInk
                                   : Colors.transparent,
                               child: Center(
                                 child: Text(
@@ -714,7 +714,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                         : FontWeight.w500,
                                     color: today
                                         ? Colors.white
-                                        : LoveGirlTheme.textSecondary,
+                                        : context.lgTextSecondary,
                                   ),
                                 ),
                               ),
@@ -727,8 +727,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             style: TextStyle(
                               fontSize: 10,
                               color: today
-                                  ? LoveGirlTheme.primary
-                                  : LoveGirlTheme.textMuted,
+                                  ? context.lgInk
+                                  : context.lgTextMuted,
                               fontWeight:
                                   today ? FontWeight.w600 : FontWeight.w400,
                             ),
@@ -762,11 +762,11 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           ),
                           decoration: BoxDecoration(
                             color: today
-                                ? LoveGirlTheme.primary.withAlpha(10)
+                                ? context.lgInk.withAlpha(10)
                                 : null,
                             border: Border(
                               bottom: BorderSide(
-                                color: LoveGirlTheme.textMuted.withAlpha(15),
+                                color: context.lgTextMuted.withAlpha(15),
                                 width: 1,
                               ),
                             ),
@@ -778,32 +778,32 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                 height: 16,
                                 decoration: BoxDecoration(
                                   color: today
-                                      ? LoveGirlTheme.primary
-                                      : LoveGirlTheme.textMuted.withAlpha(80),
+                                      ? context.lgInk
+                                      : context.lgTextMuted.withAlpha(80),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text(
                                 _weekDays[dayIndex],
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: today
-                                      ? LoveGirlTheme.primary
-                                      : LoveGirlTheme.textPrimary,
+                                      ? context.lgInk
+                                      : context.lgTextPrimary,
                                 ),
                               ),
                               if (today) ...[
-                                const SizedBox(width: 6),
+                                SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: LoveGirlTheme.primary,
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: context.lgInk,
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
                                     '今天',
@@ -815,13 +815,13 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                   ),
                                 ),
                               ],
-                              const Spacer(),
+                              Spacer(),
                               if (dayCourses.isNotEmpty)
                                 Text(
                                   '${dayCourses.length}节',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: LoveGirlTheme.textMuted,
+                                    color: context.lgTextMuted,
                                   ),
                                 ),
                             ],
@@ -830,7 +830,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
                         // 课程卡片
                         if (dayCourses.isEmpty)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 20,
@@ -838,7 +838,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             child: Text(
                               '没有课程安排',
                               style: TextStyle(
-                                color: LoveGirlTheme.textMuted,
+                                color: context.lgTextMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -914,7 +914,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               // 课程信息
               Expanded(
                 child: Column(
@@ -922,10 +922,10 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: LoveGirlTheme.textPrimary,
+                        color: context.lgTextPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -938,14 +938,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           Icon(
                             Icons.access_time_rounded,
                             size: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(160),
+                            color: context.lgTextMuted.withAlpha(160),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             timeStr,
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted.withAlpha(160),
+                              color: context.lgTextMuted.withAlpha(160),
                             ),
                           ),
                         ],
@@ -958,14 +958,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           Icon(
                             Icons.person_outline_rounded,
                             size: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(160),
+                            color: context.lgTextMuted.withAlpha(160),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             teacher,
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted.withAlpha(160),
+                              color: context.lgTextMuted.withAlpha(160),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -974,14 +974,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                           Icon(
                             Icons.meeting_room_outlined,
                             size: 12,
-                            color: LoveGirlTheme.textMuted.withAlpha(160),
+                            color: context.lgTextMuted.withAlpha(160),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             room,
                             style: TextStyle(
                               fontSize: 12,
-                              color: LoveGirlTheme.textMuted.withAlpha(160),
+                              color: context.lgTextMuted.withAlpha(160),
                             ),
                           ),
                         ],
@@ -996,13 +996,13 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.pink.withAlpha(15),
+                    color: context.lgInk.withAlpha(15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.delete_outline_rounded,
                     size: 16,
-                    color: LoveGirlTheme.pink,
+                    color: context.lgInk,
                   ),
                 ),
               ),
@@ -1020,19 +1020,19 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [LoveGirlTheme.primary, LoveGirlTheme.primaryLight],
+          gradient: LinearGradient(
+            colors: [context.lgInk, LoveGirlTheme.primaryLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(60),
+              color: context.lgInk.withAlpha(60),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
             BoxShadow(
-              color: LoveGirlTheme.primary.withAlpha(30),
+              color: context.lgInk.withAlpha(30),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
