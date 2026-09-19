@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.26.0+154。视觉风格：**灰白浮起卡片 + 黑色图标底座 + 荧光角标**（参考 "Explore AI Agents" 市场风格，品牌橘 #B85C38 已于 v3.25 退位）。
+当前版本 v3.27.0+155。视觉风格：**暖纸底浮起卡片 + 黑色图标底座 + 荧光角标 + 陶土橘情感色**（v3.27 温度回归：bg #FFF8F3，#B85C38 只给情感元素——恋爱天数/爱心/对方相关；主行动语言仍黑底白字）。
 
 - 前端仓库：`D:\lovegirl_flutter`（git，remote = github.com/DKXaiLBY/lovegirl_flutter，master）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
@@ -14,7 +14,7 @@
 ## 必读文档（按优先级）
 
 1. `docs/DESIGN_SYSTEM.md` — 设计规范 v1.0（色板/字阶/圆角/组件/状态/文案/dark 红线/tokens）。**注意第 13 节不一致清单与 v3.25 后的现状差异**：品牌橘已退位（primary=#1A1A1A），色板中橘色标注以文档内说明为准
-2. `docs/BACKLOG.md` — 待办：通知中心（暂缓，触发条件未到）；翻页相册/深色模式/§13 收敛均已完成（v3.26）
+2. `docs/BACKLOG.md` — 待办：通知中心/翻页相册/深色模式/§13 收敛均已完成（v3.26-v3.27）；v3.27 新增：通知中心、每日一问+streak、爱情树、拇指之吻、慢信、年度报告
 3. `docs/implementation/v3.25-spec.md` 等 — 历史规格书（验收条款格式沿用）
 4. `docs/design/lovegirl-ui-design-v1.html` — v1 设计稿（旧暖橘风，仅参考布局；新风格见下）
 
@@ -55,7 +55,23 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:/flutter-sdk/bin/flutter.bat" 
 
 ## 待办 / 未竟
 
-- 通知中心（暂缓，用户觉得需要翻历史通知时再做）
+- 通知中心（v3.27 已完成）
+- v3.27 新功能后续打磨：每日一问自定义题库/管理、爱情树阶段插画化（现为 CustomPainter 手绘）、拇指之吻离线重连体验、慢信解锁日当天的主动提醒（需 cron）、年度报告分享卡片生成
+- 温度回归 Phase 2/3（贴纸/胶带素材层、空状态插画）未做
 - 动效 3 项依赖横滑轮播场景（方向锁定/落点预览/动画接管，PageView 自带）
-- 深色模式 v1 已接线（v3.26）——残余打磨：我的页纸质票根卡暖白底在深色下仍为浅色（纸票隐喻，可接受），后续可按需精修
-- 服务器已建 git（2026-09-19 /opt/love-girl/love-girl-server，gitignore: node_modules/uploads/.env），仅本地无 remote
+- 深色模式残余打磨：我的页纸质票根卡暖白底在深色下仍为浅色（纸票隐喻，可接受）
+- 服务器已建 git（2026-09-19 /opt/love-girl/love-girl-server，gitignore: node_modules/uploads/.env），仅本地无 remote；v3.27 部署的 5 个新路由在服务器 git 有独立提交
+
+## v3.27 架构速查（新增）
+
+| 模块 | App 位置 | 服务器路由 | 表 |
+|---|---|---|---|
+| 通知中心 | lib/screens/notifications/ + lib/providers/notification_provider.dart | /api/notifications(+unread-count/read-all) | notifications（已有） |
+| 每日一问 | lib/screens/daily/ + lib/providers/daily_provider.dart | /api/daily（today/answer/history） | daily_answers |
+| 爱情树 | lib/screens/tree/ + lib/providers/tree_provider.dart | /api/tree（/water） | love_tree(+water_log) |
+| 拇指之吻 | lib/screens/kiss/（内存态无 provider） | /api/kiss（state/position/leave） | 无（内存） |
+| 慢信 | lib/screens/letter/ | /api/letter（list/:id/POST） | slow_letters |
+| 年度报告 | lib/screens/report/ | /api/report?year= | 只读聚合 |
+
+- 本地服务器代码副本：`server_fixes/`（含 2026-09-20 部署的全部改动；部署流程 = scp → docker restart lovegirl-server → 服务器 git commit）
+- 每日一问题库在服务器 routes/daily_question.js 顶部 QUESTION_BANK（60 题，按日期 hash 轮换）
