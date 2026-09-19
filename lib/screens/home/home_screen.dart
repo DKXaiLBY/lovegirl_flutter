@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
 import '../../widgets/shimmer.dart';
@@ -13,6 +14,7 @@ import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../beans/beans_screen.dart';
 import '../kitchen/kitchen_screen.dart';
+import '../notifications/notification_center_screen.dart';
 import '../timeline/timeline_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -36,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<HomeProvider>().refresh();
+        context.read<NotificationProvider>().refreshCount();
       }
     });
   }
@@ -62,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: _HomeHeader(
                       loveDays: math.max(auth.loveDays, home.loveDays),
                       beanBalance: home.beanBalance,
+                      onNavigateToTab: widget.onNavigateToTab,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -131,10 +135,12 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeHeader extends StatelessWidget {
   final int loveDays;
   final int beanBalance;
+  final void Function(int tabIndex)? onNavigateToTab;
 
   const _HomeHeader({
     required this.loveDays,
     required this.beanBalance,
+    this.onNavigateToTab,
   });
 
   @override
@@ -155,6 +161,7 @@ class _HomeHeader extends StatelessWidget {
                 height: 42,
                 color: context.lgSeparator,
               ),
+              _BellBadge(onNavigateToTab: onNavigateToTab),
               _BeanBadge(balance: beanBalance),
             ],
           );
@@ -245,6 +252,73 @@ class _HomeHeader extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _BellBadge extends StatelessWidget {
+  final void Function(int tabIndex)? onNavigateToTab;
+
+  const _BellBadge({this.onNavigateToTab});
+
+  @override
+  Widget build(BuildContext context) {
+    final unread = context.select(
+        (NotificationProvider p) => p.unreadCount);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) =>
+              NotificationCenterScreen(onNavigateToTab: onNavigateToTab))),
+      child: SizedBox(
+        height: 42,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Center(
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBE3E3),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF1C9BC)),
+                ),
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  size: 19,
+                  color: Color(0xFFB85C38),
+                ),
+              ),
+            ),
+            if (unread > 0)
+              Positioned(
+                top: -2,
+                right: -4,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  constraints: const BoxConstraints(minWidth: 15),
+                  decoration: BoxDecoration(
+                    color: LoveGirlTheme.red,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

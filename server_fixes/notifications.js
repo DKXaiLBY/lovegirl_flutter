@@ -24,9 +24,44 @@ router.get('/', authRequired, async (req, res) => {
   }
 });
 
+router.get('/unread-count', authRequired, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND read_at IS NULL',
+      [req.user.id]
+    );
+    res.json({ code: 200, data: { count: rows[0].count } });
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') {
+      return res.json({ code: 200, data: { count: 0 } });
+    }
+    console.error('[Notifications] 未读数查询失败:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.put('/read-all', authRequired, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'UPDATE notifications SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL',
+      [req.user.id]
+    );
+    res.json({ code: 200, message: '全部已读', data: { updated: result.affectedRows } });
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') {
+      return res.json({ code: 200, message: '全部已读', data: { updated: 0 } });
+    }
+    console.error('[Notifications] 全部已读失败:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 router.put('/:id/read', authRequired, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ code: 400, message: '无效的通知 ID' });
+    }
     const [result] = await pool.query(
       'UPDATE notifications SET read_at = NOW() WHERE id = ? AND user_id = ?',
       [id, req.user.id]

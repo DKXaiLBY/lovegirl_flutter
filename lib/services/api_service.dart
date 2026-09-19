@@ -333,6 +333,15 @@ class ApiService {
   Future uploadKitchenPhoto(String filePath) =>
       upload('/api/kitchen/upload', filePath, fieldName: 'photo');
 
+  // ========== 通知中心 ==========
+  Future getNotifications({int size = 50}) =>
+      get('/api/notifications', query: {'size': size});
+  Future getUnreadNotificationCount() =>
+      get('/api/notifications/unread-count');
+  Future markNotificationRead(int id) =>
+      put('/api/notifications/$id/read');
+  Future markAllNotificationsRead() => put('/api/notifications/read-all');
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

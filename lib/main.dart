@@ -8,6 +8,7 @@ import 'providers/auth_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/kitchen_provider.dart';
 import 'providers/map_prefs_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/travel_provider.dart';
 import 'screens/auth/login_screen.dart';
@@ -50,6 +51,7 @@ class LoveGirlApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KitchenProvider()),
         ChangeNotifierProvider(create: (_) => MapPrefsProvider()..load()),
         ChangeNotifierProvider(create: (_) => TravelProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
       child: Consumer<ThemeProvider>(

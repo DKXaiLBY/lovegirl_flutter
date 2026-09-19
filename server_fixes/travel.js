@@ -230,6 +230,21 @@ async function handleTravelCheckin(userId, spotId, data) {
 
   await unlockTravelAchievement(userId, 'first_checkin', 'First travel check-in', data.name, { spotId });
   await checkAchievements(userId, 'travel');
+
+  // 打卡成功后通知对方（通知中心展示；失败不影响打卡主流程）
+  try {
+    const ids = await getVisibleUserIds(userId);
+    const partnerId = ids.length > 1 ? ids[1] : null;
+    if (partnerId) {
+      const where = data.city ? ` · ${data.city}` : '';
+      await pool.query(
+        'INSERT INTO notifications (user_id, type, title, content, payload) VALUES (?, ?, ?, ?, ?)',
+        [partnerId, 'travel_checkin', 'TA 打卡了一个新地方', `${data.name}${where}`, JSON.stringify({ spot_id: spotId })]
+      );
+    }
+  } catch (err) {
+    console.error('[Travel] checkin notify failed:', err.message);
+  }
 }
 
 function normalizeAmapPois(data) {
