@@ -31,7 +31,7 @@ class LoveGirlTheme {
   static const Color textMuted = Color(0xFF999999);
   static const Color separator = Color(0xFFEAE4DC);
 
-  static const Color visited = secondary;
+  static const Color visited = Color(0xFF4CAF50); // 与 travel 模块状态绿统一
   static const Color wish = accent;
   static const Color planned = Color(0xFF9E9AD1);
 
