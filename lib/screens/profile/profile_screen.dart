@@ -11,6 +11,7 @@ import '../../widgets/lovegirl_ui.dart';
 import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
 import '../kiss/thumb_kiss_screen.dart';
+import '../letter/slow_letter_screen.dart';
 import '../photo/photo_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
@@ -348,6 +349,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ThumbKissScreen()),
+            ),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.mark_email_unread_outlined,
+            title: '慢信',
+            value: '把心意封存起来，寄给未来的你们',
+            color: context.lgInk,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SlowLetterScreen()),
             ),
           ),
           const Divider(),

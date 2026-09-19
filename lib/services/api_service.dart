@@ -359,6 +359,13 @@ class ApiService {
       post('/api/kiss/position', data: {'x': x, 'y': y, 'touching': touching});
   Future leaveKissRoom() => post('/api/kiss/leave');
 
+  // ========== 慢信 ==========
+  Future getLetterList() => get('/api/letter/list');
+  Future getLetter(int id) => get('/api/letter/$id');
+  Future sendLetter(String title, String content, String unlockDate) =>
+      post('/api/letter',
+          data: {'title': title, 'content': content, 'unlockDate': unlockDate});
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

@@ -105,6 +105,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/daily', require('./routes/daily_question'));
 app.use('/api/tree', require('./routes/love_tree'));
 app.use('/api/kiss', require('./routes/thumb_kiss'));
+app.use('/api/letter', require('./routes/slow_letter'));
 app.use('/api/sync', require('./routes/sync'));
 app.use('/api/activity', require('./routes/activity'));
 app.use('/api/admin', require('./routes/admin_products'));

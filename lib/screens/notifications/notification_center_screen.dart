@@ -5,7 +5,10 @@ import '../../providers/notification_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
+import '../letter/slow_letter_screen.dart';
+import '../tree/love_tree_screen.dart';
 
 /// 通知中心：分组列表 + 全部已读 + 点击深链接
 class NotificationCenterScreen extends StatefulWidget {
@@ -168,6 +171,18 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         Navigator.of(context).popUntil((route) => route.isFirst);
         widget.onNavigateToTab?.call(1);
         break;
+      case 'daily_question':
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DailyQuestionScreen()));
+        break;
+      case 'love_tree':
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const LoveTreeScreen()));
+        break;
+      case 'slow_letter':
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SlowLetterScreen()));
+        break;
       default:
         if (payload['order_id'] != null) {
           Navigator.of(context)
@@ -195,6 +210,12 @@ class _NotificationRow extends StatelessWidget {
         return Icons.local_cafe_outlined;
       case 'travel_checkin':
         return Icons.map_rounded;
+      case 'daily_question':
+        return Icons.quiz_outlined;
+      case 'love_tree':
+        return Icons.park_outlined;
+      case 'slow_letter':
+        return Icons.mark_email_unread_outlined;
       case 'achievement':
         return Icons.emoji_events_outlined;
       case 'version':
