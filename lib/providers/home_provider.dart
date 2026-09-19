@@ -57,6 +57,7 @@ class HomeProvider extends ChangeNotifier {
         ..._extractList(kitchenData['outgoing']),
       ];
       final todos = _extractList(results[4]);
+      _rawTodos = todos;
       final travelTrips = _extractList(results[5]);
       final travelRoutes = _extractList(results[6]);
       final travelSpots = _extractList(results[7]);
@@ -217,12 +218,54 @@ class HomeProvider extends ChangeNotifier {
     };
   }
 
+  List<Map<String, dynamic>> _rawTodos = const [];
+
+  /// 首页待办圆圈直接切换完成状态（乐观更新 + 失败回滚）
+  Future<void> toggleTodo(int id, {required bool complete}) async {
+    final raw =
+        _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
+    var touched = false;
+    for (final t in raw) {
+      if ((t['id'] as num?)?.toInt() == id) {
+        t['completed'] = complete ? 1 : 0;
+        touched = true;
+      }
+    }
+    if (!touched) return;
+    _rawTodos = raw;
+    final todayMap = today;
+    if (todayMap != null) {
+      final todoNode = _mapFrom(todayMap['todo']);
+      if (todoNode.isNotEmpty) {
+        final active =
+            _rawTodos.where((t) => t['completed'] != true && t['completed'] != 1).length;
+        todoNode['active'] = active;
+        todayMap['todo'] = {...todoNode, 'items': _buildTodoItems(_rawTodos)};
+      }
+    }
+    notifyListeners();
+    try {
+      await _api.toggleTodo(id);
+    } catch (_) {
+      final rolled =
+          _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
+      for (final t in rolled) {
+        if ((t['id'] as num?)?.toInt() == id) {
+          t['completed'] = complete ? 0 : 1;
+        }
+      }
+      _rawTodos = rolled;
+      notifyListeners();
+    }
+  }
+
   List<Map<String, dynamic>> _buildTodoItems(List<Map<String, dynamic>> todos) {
     final items = todos
         .where((item) => item['completed'] != true && item['completed'] != 1)
         .take(2)
         .map(
           (item) => {
+            'id': _asInt(item['id']),
             'title': _asString(item['title']),
             'dueDate': _asString(item['due_date'] ?? item['dueDate']),
           },

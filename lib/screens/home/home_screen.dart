@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
@@ -75,6 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       today: home.today,
                       onFeedingTap: () => _push(const KitchenScreen()),
                       onTodoTap: () => widget.onNavigateToSubTab?.call(3, 0),
+                      onTodoToggle: (id, complete) => context
+                          .read<HomeProvider>()
+                          .toggleTodo(id, complete: complete),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -441,11 +445,13 @@ class _TodayCareSection extends StatelessWidget {
   final Map<String, dynamic>? today;
   final VoidCallback onFeedingTap;
   final VoidCallback onTodoTap;
+  final void Function(int id, bool complete)? onTodoToggle;
 
   const _TodayCareSection({
     required this.today,
     required this.onFeedingTap,
     required this.onTodoTap,
+    this.onTodoToggle,
   });
 
   @override
@@ -482,19 +488,18 @@ class _TodayCareSection extends StatelessWidget {
           onTap: onFeedingTap,
         ),
         const SizedBox(height: 10),
-        _CareEntry(
-          icon: Icons.checklist_rounded,
-          title: '待办清单',
+        _TodoCareTile(
           badge: '$activeTodos/$totalTodos 完成',
-          badgeTone:
-              activeTodos == 0 ? _CareBadgeTone.ok : _CareBadgeTone.neutral,
-          subtitle: todoItems.isEmpty
-              ? null
-              : todoItems
-                  .map((item) => _asString(item['title']))
-                  .where((t) => t.isNotEmpty)
-                  .join(' · '),
+          allDone: activeTodos == 0,
+          rows: todoItems
+              .map((item) => {
+                    'id': (item['id'] as num?)?.toInt() ?? 0,
+                    'title': _asString(item['title']),
+                    'dueDate': _asString(item['dueDate']),
+                  })
+              .toList(),
           onTap: onTodoTap,
+          onToggle: onTodoToggle,
         ),
       ],
     );
@@ -506,7 +511,6 @@ class _TodayCareSection extends StatelessWidget {
 enum _CareBadgeTone { ok, warn, neutral }
 
 class _CareEntry extends StatelessWidget {
-  final IconData? icon;
   final String? emoji;
   final String title;
   final String badge;
@@ -515,7 +519,6 @@ class _CareEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   const _CareEntry({
-    this.icon,
     this.emoji,
     required this.title,
     required this.badge,
@@ -554,7 +557,8 @@ class _CareEntry extends StatelessWidget {
                 child: Center(
                   child: emoji != null
                       ? Text(emoji!, style: const TextStyle(fontSize: 20))
-                      : Icon(icon, size: 20, color: LoveGirlTheme.primary),
+                      : Icon(Icons.star_rounded,
+                          size: 20, color: LoveGirlTheme.primary),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1337,4 +1341,255 @@ String _relativeDayLabel(String value) {
   return '$years \u5e74\u524d\u7684\u4eca\u5929';
 }
 
+/// 待办清单条目（内联待办行：圆圈点击直接切换，DRAW 勾选动画）
+class _TodoCareTile extends StatelessWidget {
+  final String badge;
+  final bool allDone;
+  final List<Map<String, dynamic>> rows;
+  final VoidCallback onTap;
+  final void Function(int id, bool complete)? onToggle;
+
+  const _TodoCareTile({
+    required this.badge,
+    required this.allDone,
+    required this.rows,
+    required this.onTap,
+    this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayRows = rows.isNotEmpty
+        ? rows
+        : const [
+            {'id': 0, 'title': '提醒她多喝水', 'dueDate': ''},
+            {'id': 0, 'title': '睡前讲故事', 'dueDate': '22:00'},
+          ];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LoveGirlTheme.separator),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: LoveGirlTheme.primarySoft,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.checklist_rounded,
+                        size: 20, color: LoveGirlTheme.primary),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('待办清单',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: LoveGirlTheme.textPrimary)),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (allDone
+                            ? LoveGirlTheme.secondary
+                            : LoveGirlTheme.textMuted)
+                        .withAlpha(26),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(badge,
+                      style: TextStyle(
+                          color: allDone
+                              ? LoveGirlTheme.secondary
+                              : LoveGirlTheme.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 18, color: LoveGirlTheme.textMuted),
+              ],
+            ),
+          ),
+          for (final row in displayRows)
+            _HomeTodoRow(
+              id: (row['id'] as num?)?.toInt() ?? 0,
+              title: (row['title'] ?? '').toString(),
+              dueDate: (row['dueDate'] ?? '').toString(),
+              onToggle: onToggle == null
+                  ? null
+                  : (complete) =>
+                      onToggle!((row['id'] as num?)?.toInt() ?? 0, complete),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 首页待办行：圆圈点击直接切换完成（DRAW 描边动画）
+class _HomeTodoRow extends StatefulWidget {
+  final int id;
+  final String title;
+  final String dueDate;
+  final void Function(bool complete)? onToggle;
+
+  const _HomeTodoRow({
+    required this.id,
+    required this.title,
+    required this.dueDate,
+    this.onToggle,
+  });
+
+  @override
+  State<_HomeTodoRow> createState() => _HomeTodoRowState();
+}
+
+class _HomeTodoRowState extends State<_HomeTodoRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 520));
+  bool _done = false;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    if (widget.id == 0 || widget.onToggle == null) return;
+    setState(() => _done = !_done);
+    if (_done) {
+      _ctrl.forward(from: 0);
+      HapticFeedback.selectionClick();
+    }
+    widget.onToggle!(_done);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _toggle,
+            child: SizedBox(
+              width: 26,
+              height: 26,
+              child: AnimatedBuilder(
+                animation: _ctrl,
+                builder: (context, _) {
+                  final p = _ctrl.value;
+                  if (_done && p >= 1) {
+                    return const Icon(Icons.check_circle_rounded,
+                        size: 22, color: LoveGirlTheme.secondary);
+                  }
+                  return CustomPaint(
+                    painter: _CheckDrawPainter(
+                        progress: p, color: LoveGirlTheme.secondary),
+                    child: p == 0
+                        ? const Icon(Icons.radio_button_unchecked,
+                            size: 20, color: LoveGirlTheme.textMuted)
+                        : const SizedBox.shrink(),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              widget.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color:
+                    _done ? LoveGirlTheme.textMuted : LoveGirlTheme.textPrimary,
+                decoration:
+                    _done ? TextDecoration.lineThrough : TextDecoration.none,
+              ),
+            ),
+          ),
+          if (widget.dueDate.isNotEmpty)
+            Text(widget.dueDate,
+                style: const TextStyle(
+                    fontSize: 11, color: LoveGirlTheme.textMuted)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CheckDrawPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+
+  _CheckDrawPainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0) return;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 3;
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+
+    final ringProgress = (progress / 0.6).clamp(0.0, 1.0);
+    canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * ringProgress,
+        false,
+        ringPaint);
+
+    if (progress > 0.6) {
+      final checkProgress = ((progress - 0.6) / 0.4).clamp(0.0, 1.0);
+      final p1 = Offset(center.dx - radius * 0.45, center.dy + radius * 0.05);
+      final p2 = Offset(center.dx - radius * 0.1, center.dy + radius * 0.4);
+      final p3 = Offset(center.dx + radius * 0.5, center.dy - radius * 0.35);
+      final path = Path()
+        ..moveTo(p1.dx, p1.dy)
+        ..lineTo(p2.dx, p2.dy)
+        ..lineTo(p3.dx, p3.dy);
+      final metrics = path.computeMetrics().toList();
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.4
+        ..strokeCap = StrokeCap.round
+        ..color = color;
+      var drawn = 0.0;
+      for (final metric in metrics) {
+        final target = metric.length * checkProgress;
+        if (target <= drawn) break;
+        canvas.drawPath(
+            metric.extractPath(0, (target - drawn).clamp(0.0, metric.length)),
+            paint);
+        drawn += metric.length;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CheckDrawPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
 
