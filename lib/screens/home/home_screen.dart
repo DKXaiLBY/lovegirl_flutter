@@ -33,10 +33,11 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<HomeProvider>().refresh();
@@ -44,6 +45,21 @@ class _HomeScreenState extends State<HomeScreen> {
         context.read<DailyProvider>().refresh();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 从后台切回时刷新角标/每日一问（对方可能刚产生了新动态）
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<NotificationProvider>().refreshCount();
+      context.read<DailyProvider>().refresh();
+    }
   }
 
   @override
