@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS love_tree_water_log (
   couple_key VARCHAR(40) NOT NULL,
   user_id INT NOT NULL,
   points INT NOT NULL,
+  water_day DATE NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_water_day (couple_key, user_id, water_day),
   KEY idx_couple_date (couple_key, created_at)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

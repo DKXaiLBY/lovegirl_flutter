@@ -51,6 +51,9 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { code: 429, message: '请求太频繁，请稍后再试' },
+  // 拇指之吻靠 400ms 心跳轮询维持双人状态（两人同 Wi-Fi 共 IP 可达 300+/分），
+  // 内存态零成本，豁免限流
+  skip: (req) => req.path.startsWith('/kiss/'),
 });
 app.use('/api', globalLimiter);
 

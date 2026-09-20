@@ -932,7 +932,7 @@ class _DailyQuestionTicket extends StatelessWidget {
                         Text(
                           '连续${t.streakCurrent}天',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: LoveGirlTheme.orange,
                           ),
@@ -946,7 +946,7 @@ class _DailyQuestionTicket extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13,
                       color: context.lgTextSecondary,
                       fontWeight: FontWeight.w600,
                     ),

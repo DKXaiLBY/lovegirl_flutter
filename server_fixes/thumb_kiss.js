@@ -6,10 +6,11 @@ const { getPartnerId } = require('./utils/lovegirl_rewards');
 // 拇指之吻：双机同触同一点 → 双方震动。
 // 纯内存态（本来就需要两人同时在线，重启丢状态无影响），坐标一律归一化 0..1。
 
-const rooms = new Map(); // coupleKey -> { players: Map<userId, {x,y,touching,ts}>, matchedAt: 0 }
+const rooms = new Map(); // coupleKey -> { players: Map<userId,{x,y,touching,ts}>, matchedAt: 0, notified: Set<userId>, lastActive: 0 }
 const STALE_MS = 15000; // 心跳超时视为离场
 const MATCH_DIST = 0.13; // 归一化距离阈值（屏幕对角线比例）
 const REMATCH_COOLDOWN_MS = 4000; // 两次吻之间的冷却
+const MATCH_TOKEN_TTL = 5000; // "刚吻到"令牌的领取窗口
 
 function coupleKeyOf(a, b) {
   const [x, y] = a < b ? [a, b] : [b, a];
@@ -19,14 +20,22 @@ function coupleKeyOf(a, b) {
 function getRoom(key) {
   let room = rooms.get(key);
   if (!room) {
-    room = { players: new Map(), matchedAt: 0 };
+    room = { players: new Map(), matchedAt: 0, notified: new Set(), lastActive: 0 };
     rooms.set(key, room);
   }
-  // 清理过期玩家
   const now = Date.now();
+  // 清理过期玩家
   for (const [uid, p] of room.players) {
     if (now - p.ts > STALE_MS) room.players.delete(uid);
   }
+  // 空房回收（App 被杀不会走 /leave）：上次活跃距今超过2分钟且已无人
+  if (room.players.size === 0 && now - room.lastActive > 120000) {
+    rooms.delete(key);
+    room = { players: new Map(), matchedAt: 0, notified: new Set(), lastActive: now };
+    rooms.set(key, room);
+    return room;
+  }
+  room.lastActive = now;
   return room;
 }
 
@@ -46,17 +55,23 @@ function buildState(room, userId, partnerId) {
   const me = room.players.get(userId) || null;
   const partner = partnerId != null ? room.players.get(partnerId) || null : null;
 
-  let matched = false;
-  let justMatched = false;
   const now = Date.now();
+  let matched = false;
   if (me && partner && me.touching && partner.touching) {
     if (dist(me, partner) <= MATCH_DIST) {
       matched = true;
       if (now - room.matchedAt > REMATCH_COOLDOWN_MS) {
         room.matchedAt = now;
-        justMatched = true;
+        room.notified.clear(); // 新的一吻：两人都可以各领一次震动
       }
     }
+  }
+
+  // 令牌按用户领取（5 秒窗口内每人一次），避免被单个轮询方独吞
+  let justMatched = false;
+  if (matched && !room.notified.has(userId) && now - room.matchedAt <= MATCH_TOKEN_TTL) {
+    room.notified.add(userId);
+    justMatched = true;
   }
 
   return {

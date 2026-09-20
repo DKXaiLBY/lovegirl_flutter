@@ -47,8 +47,7 @@ async function ensureTree(key) {
 async function wateredToday(key) {
   const today = todayString();
   const [rows] = await pool.query(
-    `SELECT user_id FROM love_tree_water_log
-     WHERE couple_key = ? AND DATE(created_at) = ?`,
+    'SELECT user_id FROM love_tree_water_log WHERE couple_key = ? AND water_day = ?',
     [key, today]
   );
   const set = new Set(rows.map((r) => r.user_id));
@@ -125,13 +124,22 @@ router.post('/water', authRequired, async (req, res) => {
     );
     const prevStage = stageOf(before.length > 0 ? before[0].growth_points : 0).stage;
 
+    try {
+      // 先写日志（UNIQUE(couple_key,user_id,water_day) 兜底并发双击），再加成长点，防"加了分但没记上"
+      // water_day 由 JS 按北京日写入，不受 MySQL 会话时区影响
+      await pool.query(
+        'INSERT INTO love_tree_water_log (couple_key, user_id, points, water_day) VALUES (?, ?, ?, ?)',
+        [key, req.user.id, WATER_POINTS, todayString()]
+      );
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ code: 409, message: '今天已经浇过啦' });
+      }
+      throw err;
+    }
     await pool.query(
       'UPDATE love_tree SET growth_points = growth_points + ? WHERE couple_key = ?',
       [WATER_POINTS, key]
-    );
-    await pool.query(
-      'INSERT INTO love_tree_water_log (couple_key, user_id, points) VALUES (?, ?, ?)',
-      [key, req.user.id, WATER_POINTS]
     );
 
     const state = await buildState(req.user.id);

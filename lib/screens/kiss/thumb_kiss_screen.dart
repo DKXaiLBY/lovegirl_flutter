@@ -63,11 +63,11 @@ class _ThumbKissScreenState extends State<ThumbKissScreen>
   }
 
   Future<void> _poll() async {
-    if (_left) return;
+    if (_left || !mounted) return;
     try {
       final res = await _api.getKissState();
       final d = res.data?['data'];
-      if (d is Map) {
+      if (d is Map && mounted && !_left) {
         setState(() {
           _hasPartner = d['hasPartner'] == true;
           _partnerOnline = d['partnerOnline'] == true;

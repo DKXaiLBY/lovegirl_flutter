@@ -180,8 +180,11 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
             .push(MaterialPageRoute(builder: (_) => const LoveTreeScreen()));
         break;
       case 'slow_letter':
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SlowLetterScreen()));
+        final letterId = (item.payload['letter_id'] as num?)?.toInt();
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => letterId != null
+                ? LetterReadScreen(letterId: letterId)
+                : const SlowLetterScreen()));
         break;
       default:
         if (payload['order_id'] != null) {

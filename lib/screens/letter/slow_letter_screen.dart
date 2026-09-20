@@ -49,7 +49,7 @@ class _SlowLetterScreenState extends State<SlowLetterScreen>
             .toList();
       }
     } catch (_) {} finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -444,7 +444,7 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
                         Text(
                           '在那之前谁也拆不开（包括你自己重装 App 也不行，内容存在你们自己的服务器上）。',
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 12,
                             height: 1.5,
                             color: context.lgTextMuted,
                           ),
@@ -495,10 +495,11 @@ class _LetterReadScreenState extends State<LetterReadScreen> {
     try {
       final res = await ApiService().getLetter(widget.letterId);
       final d = res.data?['data'];
-      if (d is Map) {
+      if (d is Map && mounted) {
         setState(() => _letter = d.cast<String, dynamic>());
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().contains('还没到')
           ? '还没到解锁的日子，再等等'
           : '信加载失败');
@@ -576,7 +577,7 @@ class _LetterReadScreenState extends State<LetterReadScreen> {
                                   Text(
                                     _letter!['content']?.toString() ?? '',
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 17,
                                       height: 1.9,
                                     ),
                                   ),

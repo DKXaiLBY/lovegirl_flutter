@@ -119,6 +119,8 @@ class NotificationProvider extends ChangeNotifier {
               .toList()
           : [];
       await refreshCount();
+    } catch (_) {
+      // 网络失败保留旧列表（下拉可重试），与 DailyProvider 行为一致
     } finally {
       loading = false;
       notifyListeners();

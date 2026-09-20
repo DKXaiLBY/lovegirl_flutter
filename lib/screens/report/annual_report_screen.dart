@@ -39,7 +39,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
     } catch (_) {
       _error = '报告加载失败';
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -230,7 +230,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
             children: [
               const Text(
                 '年度亮点',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               if (topDish != null)
@@ -359,7 +359,7 @@ class _HighlightRow extends StatelessWidget {
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 13.5,
+                fontSize: 14,
                 height: 1.5,
                 fontWeight: FontWeight.w600,
                 color: context.lgTextPrimary,
