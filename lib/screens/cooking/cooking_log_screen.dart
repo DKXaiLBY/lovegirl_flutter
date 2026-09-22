@@ -171,7 +171,6 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
   Widget build(BuildContext context) {
     final monthNew = _stats?['monthNew'] as num? ?? 0;
     final totalNew = _stats?['newTotal'] as num? ?? 0;
-    final totalAll = _stats?['total'] as num? ?? 0;
 
     return Scaffold(
       backgroundColor: context.lgBg,
@@ -250,12 +249,16 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                             Icon(Icons.emoji_events_outlined,
                                 size: 15, color: LoveGirlTheme.orange),
                             const SizedBox(width: 5),
-                            Text(
-                              '新菜图鉴 · 本月尝新 $monthNew 道 · 累计 $totalNew 道（共下厨 $totalAll 次）',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: LoveGirlTheme.orange,
+                            Flexible(
+                              child: Text(
+                                '新菜图鉴 · 本月尝新 $monthNew 道 · 累计 $totalNew 道',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: LoveGirlTheme.orange,
+                                ),
                               ),
                             ),
                           ],
