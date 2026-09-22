@@ -8,7 +8,6 @@ import '../../widgets/lovegirl_ui.dart';
 import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../letter/slow_letter_screen.dart';
-import '../tree/love_tree_screen.dart';
 
 /// 通知中心：分组列表 + 全部已读 + 点击深链接
 class NotificationCenterScreen extends StatefulWidget {
@@ -175,10 +174,6 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const DailyQuestionScreen()));
         break;
-      case 'love_tree':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const LoveTreeScreen()));
-        break;
       case 'slow_letter':
         final letterId = (item.payload['letter_id'] as num?)?.toInt();
         Navigator.of(context).push(MaterialPageRoute(
@@ -215,8 +210,6 @@ class _NotificationRow extends StatelessWidget {
         return Icons.map_rounded;
       case 'daily_question':
         return Icons.quiz_outlined;
-      case 'love_tree':
-        return Icons.park_outlined;
       case 'slow_letter':
         return Icons.mark_email_unread_outlined;
       case 'achievement':
