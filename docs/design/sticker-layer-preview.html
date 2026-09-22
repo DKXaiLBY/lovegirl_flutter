@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoveGirl · 温度回归 Phase2 贴纸层样例</title>
+<style>
+  :root{
+    --bg:#FFF8F3; --paper:#FFFFFF; --ink:#1A1A1A;
+    --emotion:#B85C38; --secondary:#7A9E7E; --secondary-soft:#F0F5EC;
+    --accent:#E7B78A; --separator:#EAE4DC;
+    --t1:#333333; --t2:#888888; --t3:#999999;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    font-family:"MiSans","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+    color:var(--t1);
+    padding:42px 20px 90px;
+  }
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:27px;font-weight:900}
+  h1 .heart{color:var(--emotion)}
+  .sub{color:var(--t2);font-size:14px;margin:8px 0 12px;line-height:1.8}
+  .banner{
+    background:var(--paper);border:1px solid var(--separator);border-radius:18px;
+    padding:16px 20px;margin:16px 0 36px;font-size:13.5px;line-height:2;color:#555;
+    box-shadow:0 8px 24px rgba(26,26,26,.05);
+  }
+  .banner b{color:var(--ink)}
+
+  .section{margin-bottom:48px}
+  .section h2{font-size:18px;font-weight:800;margin-bottom:4px}
+  .section .desc{font-size:12.5px;color:var(--t2);margin-bottom:16px;line-height:1.8}
+  .compare{display:flex;gap:26px;flex-wrap:wrap}
+  .cell{width:330px}
+  .cell .label{font-size:12px;font-weight:800;color:var(--t3);letter-spacing:3px;margin-bottom:9px}
+  .cell.after .label{color:var(--emotion)}
+  .card{
+    position:relative;
+    background:var(--paper);
+    border:1px solid var(--separator);
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 10px 26px rgba(26,26,26,.07);
+  }
+
+  /* ---- 通用内容元素 ---- */
+  .pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px}
+  .pill.sage{background:var(--secondary-soft);color:var(--secondary)}
+  .pill.orange{background:#FDF0E3;color:var(--emotion)}
+  .title{font-size:20px;font-weight:900;margin-top:8px}
+  .sub2{font-size:12.5px;color:var(--t2);margin-top:5px;line-height:1.6}
+  .icon-seat{width:40px;height:40px;border-radius:14px;background:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+  .row{display:flex;align-items:center;gap:12px}
+
+  /* ---- 和纸胶带 ---- */
+  .tape{position:absolute;width:92px;height:24px;z-index:3;
+    box-shadow:0 1px 3px rgba(0,0,0,.14);
+    border-left:2px dotted rgba(255,255,255,.65);
+    border-right:2px dotted rgba(255,255,255,.65)}
+  .tape.sage{background:repeating-linear-gradient(45deg,rgba(122,158,126,.5) 0 6px,rgba(122,158,126,.28) 6px 12px)}
+  .tape.coral{background:repeating-linear-gradient(45deg,rgba(184,92,56,.5) 0 6px,rgba(184,92,56,.28) 6px 12px)}
+  .tape.tl{top:-9px;left:-26px;transform:rotate(-45deg)}
+  .tape.tr{top:-9px;right:-26px;transform:rotate(45deg)}
+  .tape.br{bottom:-9px;right:-26px;transform:rotate(-45deg)}
+
+  /* ---- 贴纸（白边是关键）---- */
+  .sticker{position:absolute;z-index:3;width:42px;height:42px;border-radius:50%;
+    background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;
+    box-shadow:0 3px 8px rgba(0,0,0,.18);border:3px solid #fff;outline:1px solid rgba(0,0,0,.05)}
+  .sticker.love{background:#FFE9E0}
+  .sticker.s-tr{top:-15px;right:-10px;transform:rotate(-10deg)}
+  .sticker.s-br{bottom:-14px;right:-12px;transform:rotate(14deg)}
+
+  /* ---- 邮票（锯齿孔边）---- */
+  .stamp-wrap{position:absolute;top:12px;right:14px;transform:rotate(5deg);z-index:3;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
+  .stamp{width:54px;height:64px;background:#fff;padding:4px;
+    -webkit-mask:radial-gradient(circle 3px at 3.5px 3.5px,transparent 96%,#000) -3.5px -3.5px/8.5px 8.5px;
+            mask:radial-gradient(circle 3px at 3.5px 3.5px,transparent 96%,#000) -3.5px -3.5px/8.5px 8.5px}
+  .stamp .art{width:100%;height:100%;background:linear-gradient(140deg,#FBE3E3,#F6EFE8);
+    display:flex;align-items:center;justify-content:center;font-size:26px}
+
+  /* ---- 邮戳 ---- */
+  .postmark{position:absolute;top:24px;right:66px;width:76px;height:76px;border-radius:50%;
+    border:2px solid rgba(184,92,56,.5);color:rgba(184,92,56,.62);z-index:2;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    font-size:8px;font-weight:800;letter-spacing:1px;transform:rotate(-12deg);text-align:center}
+  .postmark .waves{font-size:10px;letter-spacing:0}
+
+  /* ---- 空状态 ---- */
+  .empty{min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .empty .ghost{width:74px;height:74px;border-radius:50%;background:#F2F0EC;color:#C9C4BC;
+    display:flex;align-items:center;justify-content:center;font-size:26px}
+  .empty .word{font-size:14px;font-weight:700;color:var(--t3)}
+  .illu-circle{width:86px;height:86px;border-radius:50%;background:var(--secondary-soft);
+    display:flex;align-items:center;justify-content:center;font-size:40px;position:relative}
+  .illu-spark{position:absolute;font-size:16px}
+  .illu-spark.a{top:-8px;right:-14px}
+  .illu-spark.b{bottom:-4px;left:-16px;font-size:13px}
+
+  .rules{border-left:4px solid var(--secondary)}
+  .cost{border-left:4px solid var(--emotion)}
+  .foot{margin-top:34px;font-size:12px;color:var(--t3);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>温度回归 Phase 2 <span class="heart">· 贴纸层</span></h1>
+  <div class="sub">给 LoveGirl 的界面加一层"手作痕迹"：和纸胶带、贴纸、邮票邮戳、空状态插画。功能、布局、信息全部不变，只换气质。</div>
+  <div class="banner">
+    <b>怎么看这份样例：</b>每组左边是<b>现在的样子</b>，右边是<b>加贴纸层后</b>。本页用纯 CSS 模拟布局与气质，实机会用更精致的 PNG 素材（撕边、纸纹都会更真实）。
+  </div>
+
+  <!-- ① 旅行票根 -->
+  <div class="section">
+    <h2>① 首页 · 旅行票根卡</h2>
+    <div class="desc">胶带斜贴两角，票根就像"被贴进手账本"，而不是"渲染出来的卡片"。</div>
+    <div class="compare">
+      <div class="cell">
+        <div class="label">现在</div>
+        <div class="card">
+          <div class="row">
+            <div class="icon-seat" style="background:var(--secondary)">🧭</div>
+            <div>
+              <span class="pill sage">出发计划</span>
+              <div class="title" style="margin-top:4px;font-size:18px">下一次旅行</div>
+            </div>
+          </div>
+          <div class="sub2">把想去的地方串成一张路线票…</div>
+        </div>
+      </div>
+      <div class="cell after">
+        <div class="label">加贴纸层后</div>
+        <div class="card">
+          <div class="tape sage tl"></div>
+          <div class="tape sage br"></div>
+          <div class="sticker s-br">🧭</div>
+          <div class="row">
+            <div class="icon-seat" style="background:var(--secondary)">🧭</div>
+            <div>
+              <span class="pill sage">出发计划</span>
+              <div class="title" style="margin-top:4px;font-size:18px">下一次旅行</div>
+            </div>
+          </div>
+          <div class="sub2">把想去的地方串成一张路线票…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 每日一问 -->
+  <div class="section">
+    <h2>② 每日一问 · 揭晓时刻</h2>
+    <div class="desc">两个人都答完、互相揭晓的那一刻，飘出一枚爱心贴纸——给"想到一起了"一个小庆祝。</div>
+    <div class="compare">
+      <div class="cell">
+        <div class="label">现在</div>
+        <div class="card">
+          <span class="pill orange">✨ 已揭晓 · 今天也想到一起了</span>
+          <div class="sub2" style="margin-top:10px;color:var(--t1)">
+            <b style="font-size:13px">我：</b>想一起去海边看日落
+          </div>
+          <div class="sub2">
+            <b style="font-size:13px">TA：</b>想一起窝在家看老电影
+          </div>
+        </div>
+      </div>
+      <div class="cell after">
+        <div class="label">加贴纸层后</div>
+        <div class="card">
+          <div class="tape coral tr"></div>
+          <div class="sticker love s-tr">❤️</div>
+          <span class="pill orange">✨ 已揭晓 · 今天也想到一起了</span>
+          <div class="sub2" style="margin-top:10px;color:var(--t1)">
+            <b style="font-size:13px">我：</b>想一起去海边看日落
+          </div>
+          <div class="sub2">
+            <b style="font-size:13px">TA：</b>想一起窝在家看老电影
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 慢信 -->
+  <div class="section">
+    <h2>③ 慢信 · 信封</h2>
+    <div class="desc">邮票 + 邮戳，把"信"的仪式感做足——这是贴纸层性价比最高的一处。</div>
+    <div class="compare">
+      <div class="cell">
+        <div class="label">现在</div>
+        <div class="card">
+          <div class="row">
+            <div class="icon-seat">✉️</div>
+            <div>
+              <div style="font-size:15px;font-weight:800">给未来的你</div>
+              <div class="sub2" style="margin-top:2px">2026-10-20 解锁</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cell after">
+        <div class="label">加贴纸层后</div>
+        <div class="card" style="min-height:170px">
+          <div class="stamp-wrap"><div class="stamp"><div class="art">💌</div></div></div>
+          <div class="postmark">
+            <span>LOVEGIRL</span>
+            <span class="waves">〰〰〰</span>
+            <span>2026.09.23</span>
+          </div>
+          <div class="row" style="padding-right:120px">
+            <div class="icon-seat">✉️</div>
+            <div>
+              <div style="font-size:15px;font-weight:800">给未来的你</div>
+              <div class="sub2" style="margin-top:2px">2026-10-20 解锁</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 空状态 -->
+  <div class="section">
+    <h2>④ 相册 / 时光轴 · 空状态</h2>
+    <div class="desc">空不再是冷冰冰的"暂无数据"，而是邀请。</div>
+    <div class="compare">
+      <div class="cell">
+        <div class="label">现在</div>
+        <div class="card empty">
+          <div class="ghost">🗑️</div>
+          <div class="word">暂无数据</div>
+        </div>
+      </div>
+      <div class="cell after">
+        <div class="label">加贴纸层后</div>
+        <div class="card empty">
+          <div class="illu-circle">
+            💑
+            <span class="illu-spark a">✨</span>
+            <span class="illu-spark b">💛</span>
+          </div>
+          <div style="font-size:15px;font-weight:800">第一段回忆放这里</div>
+          <div class="sub2">从相册挑一张你们的合照吧</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner rules">
+    <b>克制原则（防止贴成幼儿园）</b><br>
+    1. 每屏最多 1–2 个装饰元素；待办、账单、设置等功能卡永远素净<br>
+    2. 胶带只贴有"实体隐喻"的卡：票根、券、信<br>
+    3. 贴纸内容必须与功能相关（慢信贴邮票，不贴奶茶）<br>
+    4. 深色模式下装饰整体降透明度，不破坏 dark 红线
+  </div>
+
+  <div class="banner cost">
+    <b>落地方式与成本</b><br>
+    · <b>素材</b>：和纸胶带 4–6 款、贴纸 8–12 枚、空状态插画 2–3 张（AI 生成后挑选，或购买商用授权包）<br>
+    · <b>开发</b>：一个通用"贴纸装饰组件"（位置/款式可配置）+ 给 4–5 张卡片接线，约 1–2 天<br>
+    · <b>可灰度</b>：先只上"旅行票根 + 慢信"两处，真机看几天再决定是否铺开；不满意一个 tag 回滚
+  </div>
+
+  <div class="foot">LoveGirl 设计预览 · 2026-09-23 · 本页为 CSS 模拟，实机为 PNG 素材 + 相同布局</div>
+</div>
+</body>
+</html>
