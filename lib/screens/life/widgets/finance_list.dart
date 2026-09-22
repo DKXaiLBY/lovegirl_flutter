@@ -683,14 +683,18 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   icon: Icons.chevron_left_rounded,
                   onPressed: _prevMonth,
                 ),
-                Text(
-                  '${_currentMonth.year}年 ${monthNames[_currentMonth.month]}',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    fontStyle: FontStyle.italic,
-                    letterSpacing: 0.5,
-                    color: context.lgTextPrimary,
+                Flexible(
+                  child: Text(
+                    '${_currentMonth.year}年 ${monthNames[_currentMonth.month]}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      fontStyle: FontStyle.italic,
+                      letterSpacing: 0.5,
+                      color: context.lgTextPrimary,
+                    ),
                   ),
                 ),
                 Row(
