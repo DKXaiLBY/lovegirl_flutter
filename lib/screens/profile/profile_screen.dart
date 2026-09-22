@@ -12,6 +12,8 @@ import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
 import '../letter/slow_letter_screen.dart';
 import '../photo/photo_screen.dart';
+import '../profile/achievements_screen.dart';
+import '../cooking/cooking_log_screen.dart';
 import '../report/annual_report_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
@@ -274,20 +276,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _MiniStatPill(
-                  icon: Icons.savings_rounded,
-                  label: '\u7231\u5fc3\u8c46',
-                  value: '$_beanBalance',
-                  color: context.lgInk,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BeansScreen()),
+                  ),
+                  child: _MiniStatPill(
+                    icon: Icons.savings_rounded,
+                    label: '\u7231\u5fc3\u8c46',
+                    value: '$_beanBalance',
+                    color: context.lgInk,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _MiniStatPill(
-                  icon: Icons.emoji_events_outlined,
-                  label: '\u6210\u5c31',
-                  value: '$_achievementCount',
-                  color: context.lgInk,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AchievementsScreen()),
+                  ),
+                  child: _MiniStatPill(
+                    icon: Icons.emoji_events_outlined,
+                    label: '\u6210\u5c31',
+                    value: '$_achievementCount',
+                    color: context.lgInk,
+                  ),
                 ),
               ),
             ],
@@ -318,6 +334,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PhotoScreen()),
+            ),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.restaurant_rounded,
+            title: '美食手账',
+            value: '两个人的餐桌相册，记下每道菜',
+            color: LoveGirlTheme.brandEmotion,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CookingLogScreen()),
             ),
           ),
           const Divider(),

@@ -385,6 +385,14 @@ class ApiService {
   Future getLoveReport({int? year}) =>
       get('/api/report', query: {'year': year});
 
+  // ========== 美食手账 ==========
+  Future getCookingList() => get('/api/cooking/list');
+  Future createCookingLog(Map data) => post('/api/cooking', data: data);
+  Future tasteCookingLog(int id, int rating, String? comment) =>
+      put('/api/cooking/$id/taste', data: {'rating': rating, 'comment': comment});
+  Future deleteCookingLog(int id) => delete('/api/cooking/$id');
+  Future getPartnerRecent() => get('/api/partner/recent');
+
   // ========== 版本 ==========
   Future checkVersion(int versionCode) =>
       get('/api/version/check', query: {'version_code': versionCode});

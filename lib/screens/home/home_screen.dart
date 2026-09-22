@@ -8,12 +8,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/daily_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
 import '../../widgets/shimmer.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../beans/beans_screen.dart';
+import '../cooking/cooking_log_screen.dart';
 import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
@@ -34,6 +36,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  List<Map<String, dynamic>> _partnerRecent = [];
+  bool _partnerBound = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,8 +48,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         context.read<HomeProvider>().refresh();
         context.read<NotificationProvider>().refreshCount();
         context.read<DailyProvider>().refresh();
+        _loadPartnerRecent();
       }
     });
+  }
+
+  Future<void> _loadPartnerRecent() async {
+    try {
+      final res = await ApiService().getPartnerRecent();
+      final d = res.data?['data'];
+      if (!mounted) return;
+      setState(() {
+        _partnerBound = d?['hasPartner'] == true;
+        _partnerRecent = (d?['items'] as List? ?? [])
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -59,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<NotificationProvider>().refreshCount();
       context.read<DailyProvider>().refresh();
+      _loadPartnerRecent();
     }
   }
 
@@ -87,7 +109,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       onNavigateToTab: widget.onNavigateToTab,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
+                  if (_partnerBound) ...[
+                    StaggerIn(
+                      index: 0,
+                      child: _PartnerRecentCard(
+                        items: _partnerRecent,
+                        onTapCooking: () => _push(const CookingLogScreen()),
+                        onNavigateToTab: widget.onNavigateToTab,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   if (home.error != null &&
                       (home.today == null || home.memory == null)) ...[
                     _ErrorBanner(message: home.error!, onRetry: home.refresh),
@@ -854,6 +887,114 @@ class _MemoryStubSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// TA 的近况：让"对方"在首页出现
+class _PartnerRecentCard extends StatelessWidget {
+  final List<Map<String, dynamic>> items;
+  final VoidCallback onTapCooking;
+  final void Function(int)? onNavigateToTab;
+
+  const _PartnerRecentCard({
+    required this.items,
+    required this.onTapCooking,
+    this.onNavigateToTab,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = items.take(2).toList();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        // 点击优先跳最近动态对应页；无动态进手账
+        final first = visible.isNotEmpty ? visible.first['type']?.toString() : null;
+        if (first == 'cooking') {
+          onTapCooking();
+        } else if (first == 'travel') {
+          onNavigateToTab?.call(1);
+        }
+      },
+      child: Container(
+        key: const ValueKey('home_partner_recent'),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: context.lgPaper,
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+          border: Border.all(color: context.lgSeparator),
+          boxShadow: LoveGirlTheme.cardShadow(),
+        ),
+        child: visible.isEmpty
+            ? Row(
+                children: [
+                  Icon(Icons.favorite_outline,
+                      size: 15, color: context.lgEmotion),
+                  const SizedBox(width: 8),
+                  Text(
+                    'TA 还没有新动态，去记一道今天的菜吧',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: context.lgTextSecondary,
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.favorite_rounded,
+                          size: 13, color: context.lgEmotion),
+                      const SizedBox(width: 5),
+                      Text(
+                        'TA 的近况',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: context.lgEmotion,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  for (final item in visible) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Row(
+                        children: [
+                          Icon(
+                            item['type'] == 'cooking'
+                                ? Icons.restaurant_rounded
+                                : item['type'] == 'travel'
+                                    ? Icons.map_rounded
+                                    : Icons.quiz_outlined,
+                            size: 13,
+                            color: context.lgTextMuted,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              item['text']?.toString() ?? '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: context.lgTextPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
       ),
     );
   }

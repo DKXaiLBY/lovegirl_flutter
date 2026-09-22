@@ -5,7 +5,9 @@ import '../../providers/notification_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../cooking/cooking_log_screen.dart';
 import '../daily/daily_question_screen.dart';
+import '../profile/achievements_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../letter/slow_letter_screen.dart';
 
@@ -174,6 +176,15 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const DailyQuestionScreen()));
         break;
+      case 'cooking':
+      case 'cooking_taste':
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (_) => const CookingLogScreen()));
+        break;
+      case 'achievement':
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AchievementsScreen()));
+        break;
       case 'slow_letter':
         final letterId = (item.payload['letter_id'] as num?)?.toInt();
         Navigator.of(context).push(MaterialPageRoute(
@@ -212,6 +223,9 @@ class _NotificationRow extends StatelessWidget {
         return Icons.quiz_outlined;
       case 'slow_letter':
         return Icons.mark_email_unread_outlined;
+      case 'cooking':
+      case 'cooking_taste':
+        return Icons.restaurant_rounded;
       case 'achievement':
         return Icons.emoji_events_outlined;
       case 'version':
