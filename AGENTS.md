@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.27.0+155。视觉风格：**暖纸底浮起卡片 + 黑色图标底座 + 荧光角标 + 陶土橘情感色**（v3.27 温度回归：bg #FFF8F3，#B85C38 只给情感元素——恋爱天数/爱心/对方相关；主行动语言仍黑底白字）。
+当前版本 v3.28.0+156。视觉风格：**暖纸底浮起卡片 + 黑色图标底座 + 荧光角标 + 陶土橘情感色**（v3.27 温度回归：bg #FFF8F3，#B85C38 只给情感元素——恋爱天数/爱心/对方相关；主行动语言仍黑底白字）。v3.28 已按用户决策砍掉爱情树与拇指之吻（服务器路由下线、表保留）。
 
 - 前端仓库：`D:\lovegirl_flutter`（git，remote = github.com/DKXaiLBY/lovegirl_flutter，master）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
@@ -14,7 +14,7 @@
 ## 必读文档（按优先级）
 
 1. `docs/DESIGN_SYSTEM.md` — 设计规范 v1.0（色板/字阶/圆角/组件/状态/文案/dark 红线/tokens）。**注意第 13 节不一致清单与 v3.25 后的现状差异**：品牌橘已退位（primary=#1A1A1A），色板中橘色标注以文档内说明为准
-2. `docs/BACKLOG.md` — 待办：通知中心/翻页相册/深色模式/§13 收敛均已完成（v3.26-v3.27）；v3.27 新增：通知中心、每日一问+streak、爱情树、拇指之吻、慢信、年度报告
+2. `docs/BACKLOG.md` — v3.28 现状：通知中心/每日一问/慢信/年度报告/愿望兑换券在用；爱情树、拇指之吻已砍；温度回归 Phase2/3 搁置（等用户看到贴纸样例再拍板）；交接文档 `docs/implementation/lovegirl-handoff-20260920-v328-plan.md`
 3. `docs/implementation/v3.25-spec.md` 等 — 历史规格书（验收条款格式沿用）
 4. `docs/design/lovegirl-ui-design-v1.html` — v1 设计稿（旧暖橘风，仅参考布局；新风格见下）
 
