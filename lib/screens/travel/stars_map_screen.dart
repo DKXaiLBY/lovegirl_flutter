@@ -37,7 +37,7 @@ class _ProvinceShape {
 enum StarsView { dots, routes, photos }
 
 class _StarsMapScreenState extends State<StarsMapScreen>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final TransformationController _transform = TransformationController();
 
   List<_ProvinceShape> _provinces = [];
@@ -53,8 +53,17 @@ class _StarsMapScreenState extends State<StarsMapScreen>
   List<_GeoCity> _visitedCities = [];
 
   late final AnimationController _twinkle = AnimationController(
-      vsync: this, duration: const Duration(seconds: 6))
-    ..repeat();
+      vsync: this, duration: const Duration(seconds: 6));
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 退后台暂停星空动画省电
+    if (state == AppLifecycleState.resumed) {
+      _twinkle.repeat();
+    } else {
+      _twinkle.stop();
+    }
+  }
 
   static const _lngMin = 73.0, _lngMax = 136.0;
   static const _latMin = 17.5, _latMax = 54.5;
@@ -62,6 +71,8 @@ class _StarsMapScreenState extends State<StarsMapScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _twinkle.repeat();
     _loadGeo();
     _matchVisited();
   }
@@ -74,6 +85,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _twinkle.dispose();
     _transform.dispose();
     super.dispose();
@@ -224,10 +236,13 @@ class _StarsMapScreenState extends State<StarsMapScreen>
               maxScale: 6,
               minScale: 0.8,
               boundaryMargin: const EdgeInsets.all(80),
-              child: AspectRatio(
-                aspectRatio: 1.0,
-                child: LayoutBuilder(builder: (context, constraints) {
-                  final size = Size(constraints.maxWidth, constraints.maxWidth);
+              child: LayoutBuilder(builder: (context, constraints) {
+                  // 全屏画布：地图占满整个可视区域，不再用正方形把地图框在半屏
+                  final size = Size(
+                      constraints.maxWidth,
+                      constraints.maxHeight.isFinite
+                          ? constraints.maxHeight
+                          : constraints.maxWidth);
                   final photoOverlays = <Widget>[];
                   if (_view == StarsView.photos) {
                     for (final c in _visitedCities) {
@@ -298,8 +313,7 @@ class _StarsMapScreenState extends State<StarsMapScreen>
                   ...photoOverlays,
                 ],
               );
-                }),
-              ),
+            }),
             ),
             _buildPanel(),
           ],
@@ -354,7 +368,51 @@ class _StarsMapScreenState extends State<StarsMapScreen>
 
   // ---------- 左上毛玻璃面板 ----------
 
+  /// 面板收起状态：收起后变成贴边小 pill，点 pill 展开（解决"卡片逃出地图关不掉"）
+  bool _panelCollapsed = false;
+
+  void _togglePanel() => setState(() => _panelCollapsed = !_panelCollapsed);
+
+
   Widget _buildPanel() {
+    if (_panelCollapsed) {
+      return Positioned(
+        left: 14,
+        top: 14,
+        child: GestureDetector(
+          onTap: _togglePanel,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF12203A).withAlpha(190),
+                  borderRadius: BorderRadius.circular(999),
+                  border:
+                      Border.all(color: const Color(0xFF6FD9F5).withAlpha(80)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded,
+                        size: 14, color: Color(0xFF6FD9F5)),
+                    const SizedBox(width: 6),
+                    Text('我的足迹 ${_visitedCities.length}',
+                        style: const TextStyle(
+                            color: Color(0xFFBFEFFF),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final visitedCount = _visitedCities.length;
     final provinceCount = _visitedProvinces.length;
     return Positioned(
@@ -376,11 +434,25 @@ class _StarsMapScreenState extends State<StarsMapScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('我的足迹',
-                    style: TextStyle(
-                        color: Color(0xFFBFEFFF),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900)),
+                Row(
+                  children: [
+                    const Text('我的足迹',
+                        style: TextStyle(
+                            color: Color(0xFFBFEFFF),
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _togglePanel,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.keyboard_arrow_up_rounded,
+                            size: 18, color: const Color(0xFFBFEFFF).withAlpha(200)),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 2),
                 Text('走过的城市 拼成一张星空图',
                     style: TextStyle(

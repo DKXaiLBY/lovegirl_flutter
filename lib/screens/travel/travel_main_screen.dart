@@ -1044,7 +1044,7 @@ class _MapOpenButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: '打开高德真地图',
+      message: '打开高德地图导航模式',
       child: InkWell(
         key: const ValueKey('travel_enter_amap_mode'),
         onTap: onTap,
@@ -1077,7 +1077,7 @@ class _MapOpenButton extends StatelessWidget {
                 ),
               SizedBox(width: 5),
               Text(
-                '真地图',
+                '高德',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
