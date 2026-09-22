@@ -129,9 +129,9 @@ class _LifeScreenState extends State<LifeScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: Colors.white,
         unselectedLabelColor: context.lgTextSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
         dividerColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,
         tabs: const [
@@ -139,8 +139,8 @@ class _LifeScreenState extends State<LifeScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.checklist_rounded, size: 18),
-                SizedBox(width: 6),
+                Icon(Icons.checklist_rounded, size: 15),
+                SizedBox(width: 4),
                 Text('待办'),
               ],
             ),
@@ -149,8 +149,8 @@ class _LifeScreenState extends State<LifeScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.account_balance_wallet_rounded, size: 18),
-                SizedBox(width: 6),
+                Icon(Icons.account_balance_wallet_rounded, size: 15),
+                SizedBox(width: 4),
                 Text('记账'),
               ],
             ),
@@ -159,8 +159,8 @@ class _LifeScreenState extends State<LifeScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.calendar_month_rounded, size: 18),
-                SizedBox(width: 6),
+                Icon(Icons.calendar_month_rounded, size: 15),
+                SizedBox(width: 4),
                 Text('课程'),
               ],
             ),
@@ -169,8 +169,8 @@ class _LifeScreenState extends State<LifeScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.mood_rounded, size: 18),
-                SizedBox(width: 6),
+                Icon(Icons.mood_rounded, size: 15),
+                SizedBox(width: 4),
                 Text('心情'),
               ],
             ),
