@@ -108,12 +108,18 @@ router.post('/', authRequired, async (req, res) => {
     if (!title) return res.status(400).json({ code: 400, message: '这道菜叫什么名字？' });
 
     const emoji = cleanText(req.body.emoji, 16) || '🍳';
-    const photoUrl = cleanText(req.body.photoUrl, 500) || null;
+    let photoUrl = cleanText(req.body.photoUrl, 500) || null;
+    if (photoUrl != null && !(photoUrl.startsWith('http') || photoUrl.startsWith('/uploads'))) {
+      photoUrl = null;
+    }
     const recipe = cleanText(req.body.recipe, 3000) || null;
     const story = cleanText(req.body.story, 1000) || null;
     const isNew = req.body.isNew === true;
     const chefRating = [1, 2, 3, 4, 5].includes(req.body.chefRating) ? req.body.chefRating : null;
     const cookedAt = isValidDate(req.body.cookedAt) ? req.body.cookedAt : todayString();
+    if (cookedAt > todayString()) {
+      return res.status(400).json({ code: 400, message: '做的日期不能是未来哦' });
+    }
     const addToMenu = req.body.addToMenu === true;
 
     const [result] = await pool.query(
@@ -128,12 +134,21 @@ router.post('/', authRequired, async (req, res) => {
     let dishId = null;
     if (addToMenu) {
       try {
-        const [dish] = await pool.query(
-          `INSERT INTO kitchen_dishes (user_id, name, category, emoji, photo_url, description)
-           VALUES (?, ?, '家常菜', ?, ?, ?)`,
-          [req.user.id, title, emoji, photoUrl, story ? story.slice(0, 100) : null]
+        // 去重：同名菜已在菜单则复用，不重复插入
+        const [existing] = await pool.query(
+          'SELECT id FROM kitchen_dishes WHERE user_id = ? AND name = ? LIMIT 1',
+          [req.user.id, title]
         );
-        dishId = dish.insertId;
+        if (existing.length > 0) {
+          dishId = existing[0].id;
+        } else {
+          const [dish] = await pool.query(
+            `INSERT INTO kitchen_dishes (user_id, name, category, emoji, photo_url, description)
+             VALUES (?, ?, '家常菜', ?, ?, ?)`,
+            [req.user.id, title, emoji, photoUrl, story ? story.slice(0, 100) : null]
+          );
+          dishId = dish.insertId;
+        }
         await pool.query('UPDATE cooking_logs SET dish_id = ? WHERE id = ?', [dishId, logId]);
       } catch (err) {
         console.error('[Cooking] add to menu failed:', err.message);
@@ -226,14 +241,19 @@ router.put('/:id/taste', authRequired, async (req, res) => {
     if (log.chef_id === req.user.id) {
       return res.status(400).json({ code: 400, message: '自己做的自己打分可不行，等 TA 来尝' });
     }
-    if (log.eater_id != null) {
-      return res.status(403).json({ code: 403, message: '这道菜已经有人品尝打分啦' });
+    // P0 修复：只有掌勺的伴侣才能评分
+    const myPartner = await getPartnerId(req.user.id);
+    if (myPartner == null || myPartner !== log.chef_id) {
+      return res.status(403).json({ code: 403, message: '只有 TA 的伴侣可以品尝打分' });
     }
-
-    await pool.query(
-      'UPDATE cooking_logs SET eater_id = ?, eater_rating = ?, eater_comment = ? WHERE id = ?',
+    // P0 修复：原子条件更新，防并发重复评分/双发豆
+    const [upd] = await pool.query(
+      'UPDATE cooking_logs SET eater_id = ?, eater_rating = ?, eater_comment = ? WHERE id = ? AND eater_id IS NULL',
       [req.user.id, rating, comment, id]
     );
+    if (upd.affectedRows === 0) {
+      return res.status(403).json({ code: 403, message: '这道菜已经有人品尝打分啦' });
+    }
 
     // 品尝互动 +2 豆
     try {
@@ -270,11 +290,21 @@ router.put('/:id/taste', authRequired, async (req, res) => {
 router.delete('/:id', authRequired, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [result] = await pool.query(
-      'DELETE FROM cooking_logs WHERE id = ? AND chef_id = ?',
+    const [rows] = await pool.query(
+      'SELECT id, dish_id FROM cooking_logs WHERE id = ? AND chef_id = ?',
       [id, req.user.id]
     );
-    if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: '记录不存在' });
+    if (rows.length === 0) return res.status(404).json({ code: 404, message: '记录不存在' });
+    const dishId = rows[0].dish_id;
+    // 级联清理：挂上菜单的菜品、双人时光轴条目
+    if (dishId) {
+      await pool.query('DELETE FROM kitchen_dishes WHERE id = ?', [dishId]);
+    }
+    await pool.query(
+      "DELETE FROM love_timeline WHERE source_module = 'cooking' AND source_id = ?",
+      [id]
+    );
+    await pool.query('DELETE FROM cooking_logs WHERE id = ?', [id]);
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     res.status(500).json({ code: 500, message: '服务器错误' });

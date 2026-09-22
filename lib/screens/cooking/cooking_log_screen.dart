@@ -35,6 +35,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     try {
       final res = await _api.getCookingList();
@@ -94,10 +95,10 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                 ),
                 const SizedBox(height: 14),
                 Text('品尝「${log['title']}」',
-                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 4),
                 const Text('这道菜你打几星？',
-                    style: TextStyle(fontSize: 12.5, color: LoveGirlTheme.textMuted)),
+                    style: TextStyle(fontSize: 13, color: LoveGirlTheme.textMuted)),
                 const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -146,9 +147,14 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
         ),
       ),
     );
-    if (ok != true) return;
+    if (ok != true) {
+      commentCtrl.dispose();
+      return;
+    }
+    final comment = commentCtrl.text.trim();
+    commentCtrl.dispose();
     try {
-      await _api.tasteCookingLog((log['id'] as num).toInt(), rating, commentCtrl.text.trim());
+      await _api.tasteCookingLog((log['id'] as num).toInt(), rating, comment);
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -210,7 +216,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
               child: Text(
                 '两个人的餐桌相册：谁做的、好不好吃、背后的故事',
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 13,
                   color: context.lgTextSecondary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -331,7 +337,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
   }
 
   Widget _buildGroupedList(BuildContext context) {
-    final myId = context.read<AuthProvider>().userId ?? -1;
+    final myId = context.watch<AuthProvider>().userId ?? -1;
     // 按月分组
     final groups = <String, List<Map<String, dynamic>>>{};
     for (final log in _logs) {
@@ -419,7 +425,14 @@ class _CookingCard extends StatelessWidget {
     try {
       await ApiService().deleteCookingLog((log['id'] as num).toInt());
       onDeleted();
-    } catch (_) {}
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('删除失败，再试一次'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 1),
+      ));
+    }
   }
 
   @override
@@ -430,7 +443,8 @@ class _CookingCard extends StatelessWidget {
     final eaterRating = (log['eaterRating'] as num?)?.toInt() ?? 0;
     final eaterComment = log['eaterComment']?.toString();
     final iAmChef = myId > 0 && (log['chefId'] as num?)?.toInt() == myId;
-    final needsTaste = eaterRating == 0 && !iAmChef;
+    // myId 未加载完成时不渲染任何操作按钮，避免误判
+    final needsTaste = myId > 0 && eaterRating == 0 && !iAmChef;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -476,7 +490,7 @@ class _CookingCard extends StatelessWidget {
                         ),
                         child: const Text('新菜',
                             style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
                                 color: Colors.white)),
                       ),
@@ -499,7 +513,7 @@ class _CookingCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w800),
+                              fontSize: 17, fontWeight: FontWeight.w800),
                         ),
                       ),
                       if (photo == null || photo.isEmpty)
@@ -515,7 +529,7 @@ class _CookingCard extends StatelessWidget {
                           child: Text(
                             isNew ? '新菜' : '复刻',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 10,
                               fontWeight: FontWeight.w800,
                               color: isNew
                                   ? LoveGirlTheme.brandEmotion
@@ -530,7 +544,7 @@ class _CookingCard extends StatelessWidget {
                     children: [
                       Text(log['cookedAt']?.toString() ?? '',
                           style: TextStyle(
-                              fontSize: 11.5, color: context.lgTextMuted)),
+                              fontSize: 12, color: context.lgTextMuted)),
                       const SizedBox(width: 10),
                       if (chefRating > 0) ...[
                         const Icon(Icons.restaurant_rounded,
@@ -612,7 +626,7 @@ class _CookingCard extends StatelessWidget {
                       child: Text(
                         'TA 说：$eaterComment',
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 13,
                           height: 1.5,
                           fontWeight: FontWeight.w600,
                           color: LoveGirlTheme.secondary,
@@ -639,7 +653,7 @@ class _CookingCard extends StatelessWidget {
                         onTap: () => _delete(context),
                         child: Text('删除',
                             style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: context.lgTextMuted
                                     .withAlpha(180))),
                       ),
@@ -779,7 +793,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
               ),
               const SizedBox(height: 14),
               const Text('记一道',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
               const SizedBox(height: 14),
               // 照片
               GestureDetector(
@@ -892,11 +906,11 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                           children: [
                             const Text('挂上点单菜单',
                                 style: TextStyle(
-                                    fontSize: 13.5,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w700)),
                             Text('TA 就能在厨房点这道菜了',
                                 style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     color: LoveGirlTheme.textMuted)),
                           ],
                         ),

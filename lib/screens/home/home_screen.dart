@@ -936,7 +936,7 @@ class _PartnerRecentCard extends StatelessWidget {
                   Text(
                     'TA 还没有新动态，去记一道今天的菜吧',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: context.lgTextSecondary,
                     ),
@@ -954,7 +954,7 @@ class _PartnerRecentCard extends StatelessWidget {
                       Text(
                         'TA 的近况',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: context.lgEmotion,
                         ),
@@ -983,7 +983,7 @@ class _PartnerRecentCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: context.lgTextPrimary,
                               ),

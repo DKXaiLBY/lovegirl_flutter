@@ -129,9 +129,9 @@ class _LifeScreenState extends State<LifeScreen>
         indicatorSize: TabBarIndicatorSize.tab,
         labelColor: Colors.white,
         unselectedLabelColor: context.lgTextSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11.5),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
         unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
+            const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
         dividerColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,
         tabs: const [
