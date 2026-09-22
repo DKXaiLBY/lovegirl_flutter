@@ -693,9 +693,39 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     color: context.lgTextPrimary,
                   ),
                 ),
-                OrganicArrowButton(
-                  icon: Icons.chevron_right_rounded,
-                  onPressed: _nextMonth,
+                Row(
+                  children: [
+                    OrganicArrowButton(
+                      icon: Icons.chevron_right_rounded,
+                      onPressed: _nextMonth,
+                    ),
+                    const SizedBox(width: 10),
+                    // 记一笔（_showAddDialog 此前无任何入口，属于死代码，这里接上）
+                    GestureDetector(
+                      onTap: _showAddDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: context.lgInk,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.add_rounded,
+                                size: 16, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text('记一笔',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                )),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
