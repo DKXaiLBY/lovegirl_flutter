@@ -17,6 +17,7 @@ import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../beans/beans_screen.dart';
 import '../timeline/timeline_screen.dart';
+import '../voucher/wish_voucher_screen.dart';
 import '../version/update_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -327,6 +328,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '\u67e5\u770b\u5730\u56fe\u3001\u8def\u7ebf\u548c\u6253\u5361\u56de\u5fc6',
             color: LoveGirlTheme.secondary,
             onTap: () => widget.onNavigateToTab?.call(1),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.redeem_outlined,
+            title: '愿望兑换券',
+            value: '发行愿望，或用豆子兑换 TA 的承诺',
+            color: LoveGirlTheme.orange,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WishVoucherScreen()),
+            ),
           ),
           const Divider(),
           LoveMenuRow(

@@ -366,6 +366,21 @@ class ApiService {
       post('/api/letter',
           data: {'title': title, 'content': content, 'unlockDate': unlockDate});
 
+  // ========== 愿望兑换券 ==========
+  Future getVoucherList() => get('/api/voucher/list');
+  Future createVoucher(String title, int costBean, String emoji) =>
+      post('/api/voucher', data: {'title': title, 'costBean': costBean, 'emoji': emoji});
+  Future setVoucherActive(int id, bool active) =>
+      put('/api/voucher/$id/active', data: {'active': active});
+  Future redeemVoucher(int id) => post('/api/voucher/$id/redeem');
+  Future getVoucherRedemptions() => get('/api/voucher/redemptions');
+  Future doneVoucherRedemption(int id, {String? proofUrl}) =>
+      put('/api/voucher/redemptions/$id/done', data: {'proofUrl': proofUrl});
+  Future confirmVoucherRedemption(int id) =>
+      put('/api/voucher/redemptions/$id/confirm');
+  Future cancelVoucherRedemption(int id) =>
+      put('/api/voucher/redemptions/$id/cancel');
+
   // ========== 年度报告 ==========
   Future getLoveReport({int? year}) =>
       get('/api/report', query: {'year': year});

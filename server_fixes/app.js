@@ -107,6 +107,7 @@ app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/daily', require('./routes/daily_question'));
 app.use('/api/letter', require('./routes/slow_letter'));
+app.use('/api/voucher', require('./routes/wish_voucher'));
 app.use('/api/report', require('./routes/love_report'));
 app.use('/api/sync', require('./routes/sync'));
 app.use('/api/activity', require('./routes/activity'));
