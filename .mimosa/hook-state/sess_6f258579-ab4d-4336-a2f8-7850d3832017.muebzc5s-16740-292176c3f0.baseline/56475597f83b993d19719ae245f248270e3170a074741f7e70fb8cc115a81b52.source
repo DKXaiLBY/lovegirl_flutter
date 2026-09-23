@@ -1,0 +1,370 @@
+# -*- coding: utf-8 -*-
+"""LoveGirl v3.24 资源生成器：按新风格（灰白浮起/深色底座/荧光角标）
+程序化绘制全套透明底 PNG 图标与插图。4x 超采样抗锯齿。"""
+import math, os, random
+from PIL import Image, ImageDraw
+
+OUT = r'D:/lovegirl_flutter/assets/images/icons'
+SS = 4            # 超采样
+S = 192           # 输出尺寸
+W = S * SS        # 绘制尺寸
+LW = 15 * SS      # 线宽
+COLORS = {'': (26, 26, 26, 255), '_white': (255, 255, 255, 255), '_grey': (142, 142, 147, 255)}
+
+os.makedirs(OUT, exist_ok=True)
+
+def canvas():
+    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
+    return img, ImageDraw.Draw(img)
+
+def P(*pts):
+    return [(x * SS, y * SS) for x, y in pts]
+
+def line(d, pts, c, w=LW):
+    d.line(P(*pts), fill=c, width=w, joint='curve')
+    for x, y in P(*pts):
+        r = w / 2
+        d.ellipse([x - r, y - r, x + r, y + r], fill=c)
+
+def circle(d, cx, cy, r, c, w=LW):
+    d.ellipse([(cx - r) * SS, (cy - r) * SS, (cx + r) * SS, (cy + r) * SS], outline=c, width=w)
+
+def dot(d, cx, cy, r, c):
+    d.ellipse([(cx - r) * SS, (cy - r) * SS, (cx + r) * SS, (cy + r) * SS], fill=c)
+
+def arc(d, cx, cy, r, a0, a1, c, w=LW):
+    d.arc([(cx - r) * SS, (cy - r) * SS, (cx + r) * SS, (cy + r) * SS], a0, a1, fill=c, width=w)
+
+def poly(d, pts, c, w=LW, close=True):
+    p = P(*pts)
+    if close: p = p + [p[0]]
+    d.line(p, fill=c, width=w, joint='curve')
+    for x, y in P(*pts):
+        r = w / 2
+        d.ellipse([x - r, y - r, x + r, y + r], fill=c)
+
+def rrect(d, x, y, w_, h_, r, c, lw=LW):
+    d.rounded_rectangle([x * SS, y * SS, (x + w_) * SS, (y + h_) * SS], radius=r * SS, outline=c, width=lw)
+
+def heart_pts(cx, cy, size):
+    pts = []
+    for i in range(41):
+        t = math.pi - (2 * math.pi * i / 40)
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        pts.append((cx + x * size, cy - y * size))
+    return pts
+
+def star_pts(cx, cy, ro, ri):
+    pts = []
+    for i in range(10):
+        r = ro if i % 2 == 0 else ri
+        a = -math.pi / 2 + i * math.pi / 5
+        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+# ---------------- 图标绘制定义（192 网格） ----------------
+def i_home(d, c):
+    line(d, [(40, 92), (96, 42), (152, 92)], c)
+    poly(d, [(58, 84), (58, 150), (134, 150), (134, 84)], c, close=True)
+    poly(d, [(82, 150), (82, 112), (110, 112), (110, 150)], c, close=False)
+
+def i_map(d, c):
+    poly(d, [(40, 52), (76, 40), (116, 52), (152, 40), (152, 140), (116, 152), (76, 140), (40, 152)], c, close=True)
+    line(d, [(76, 40), (76, 140)], c)
+    line(d, [(116, 52), (116, 152)], c)
+    dot(d, 96, 92, 10, c)
+
+def i_heart(d, c):
+    poly(d, heart_pts(96, 100, 4.6), c, close=True)
+
+def i_grid(d, c):
+    for x in (44, 106):
+        for y in (44, 106):
+            rrect(d, x, y, 42, 42, 10, c)
+
+def i_profile(d, c):
+    circle(d, 96, 70, 26, c)
+    arc(d, 96, 168, 52, 180, 360, c)
+
+def i_kitchen(d, c):
+    arc(d, 96, 96, 58, 180, 360, c)
+    line(d, [(38, 96), (38, 108)], c); line(d, [(154, 96), (154, 108)], c)
+    poly(d, [(38, 96), (38, 130), (154, 130), (154, 96)], c, close=False)
+    line(d, [(46, 148), (146, 148)], c)
+    circle(d, 96, 34, 8, c)
+
+def i_checklist(d, c):
+    for y in (52, 96, 140):
+        line(d, [(44, y + 10), (58, y + 24)], c)
+        line(d, [(58, y + 24), (80, y - 2)], c) if y == 52 else line(d, [(58, y + 24), (80, y + 6)], c)
+        line(d, [(96, y + 12), (150, y + 12)], c)
+
+def i_beans(d, c):
+    d.ellipse([(44)*SS, (40)*SS, (148)*SS, (152)*SS], outline=c, width=LW)
+    arc(d, 96, 96, 30, 200, 320, c)
+
+def i_ticket(d, c):
+    rrect(d, 36, 56, 120, 80, 14, c)
+    for seg in [(36, 56, 36, 84), (36, 108, 36, 136)]:
+        line(d, [(seg[0], seg[1]), (seg[2], seg[3])], c, w=6)
+    for seg in [(156, 56, 156, 84), (156, 108, 156, 136)]:
+        line(d, [(seg[0], seg[1]), (seg[2], seg[3])], c, w=6)
+    line(d, [(96, 68), (96, 84)], c, w=6)
+    line(d, [(96, 108), (96, 124)], c, w=6)
+
+def i_search(d, c):
+    circle(d, 84, 84, 38, c)
+    line(d, [(112, 112), (150, 150)], c)
+
+def i_bell(d, c):
+    arc(d, 96, 110, 46, 180, 360, c)
+    line(d, [(50, 110), (50, 132)], c)
+    line(d, [(142, 110), (142, 132)], c)
+    line(d, [(50, 132), (142, 132)], c)
+    circle(d, 96, 148, 12, c)
+    line(d, [(96, 40), (96, 62)], c)
+
+def i_back(d, c):
+    line(d, [(118, 44), (62, 96), (118, 148)], c)
+    line(d, [(62, 96), (150, 96)], c)
+
+def i_close(d, c):
+    line(d, [(58, 58), (134, 134)], c)
+    line(d, [(134, 58), (58, 134)], c)
+
+def i_plus(d, c):
+    line(d, [(96, 46), (96, 146)], c)
+    line(d, [(46, 96), (146, 96)], c)
+
+def i_check(d, c):
+    line(d, [(46, 100), (82, 136), (148, 60)], c)
+
+def i_chevron_right(d, c):
+    line(d, [(76, 44), (130, 96), (76, 148)], c)
+
+def i_camera(d, c):
+    rrect(d, 32, 62, 128, 88, 16, c)
+    poly(d, [(70, 62), (78, 46), (114, 46), (122, 62)], c, close=False)
+    circle(d, 96, 106, 26, c)
+
+def i_photo(d, c):
+    rrect(d, 34, 50, 124, 96, 14, c)
+    poly(d, [(52, 128), (86, 94), (110, 118), (132, 96)], c, close=False)
+    circle(d, 126, 76, 9, c)
+
+def i_edit(d, c):
+    line(d, [(124, 44), (148, 68)], c)
+    poly(d, [(52, 140), (58, 116), (132, 46), (146, 60), (72, 134)], c, close=True)
+
+def i_trash(d, c):
+    line(d, [(44, 56), (148, 56)], c)
+    poly(d, [(80, 56), (80, 44), (112, 44), (112, 56)], c, close=False)
+    poly(d, [(58, 72), (66, 148), (126, 148), (134, 72)], c, close=True)
+    line(d, [(84, 92), (84, 128)], c); line(d, [(108, 92), (108, 128)], c)
+
+def i_undo(d, c):
+    arc(d, 100, 100, 46, -20, 200, c)
+    poly(d, [(46, 70), (52, 106), (88, 96)], c, close=True)
+
+def i_flip(d, c):
+    arc(d, 96, 96, 46, 210, 330, c)
+    poly(d, [(140, 36), (152, 66), (118, 62)], c, close=True)
+    arc(d, 96, 96, 46, 30, 150, c)
+    poly(d, [(52, 156), (40, 126), (74, 130)], c, close=True)
+
+def i_location(d, c):
+    arc(d, 96, 84, 44, 140, 400, c)
+    line(d, [(62, 116), (96, 152)], c)
+    line(d, [(130, 116), (96, 152)], c)
+    circle(d, 96, 86, 15, c)
+
+def i_route(d, c):
+    circle(d, 56, 56, 18, c)
+    circle(d, 136, 136, 18, c)
+    line(d, [(70, 70), (110, 104)], c)
+    arc(d, 110, 118, 20, 270, 90, c)
+    line(d, [(122, 118), (136, 118)], c)
+
+def i_layers(d, c):
+    poly(d, [(96, 34), (152, 74), (96, 114), (40, 74)], c, close=True)
+    poly(d, [(40, 106), (96, 146), (152, 106)], c, close=False)
+    poly(d, [(40, 134), (96, 168), (152, 134)], c, close=False)
+
+def i_sliders(d, c):
+    line(d, [(44, 60), (148, 60)], c)
+    line(d, [(44, 96), (148, 96)], c)
+    line(d, [(44, 132), (148, 132)], c)
+    circle(d, 76, 60, 14, c)
+    circle(d, 120, 96, 14, c)
+    circle(d, 88, 132, 14, c)
+
+def i_star(d, c):
+    poly(d, star_pts(96, 98, 62, 26), c, close=True)
+
+def i_fullscreen(d, c):
+    for pts in [
+        [(40, 70), (40, 40), (70, 40)],
+        [(122, 40), (152, 40), (152, 70)],
+        [(152, 122), (152, 152), (122, 152)],
+        [(70, 152), (40, 152), (40, 122)],
+    ]:
+        poly(d, pts, c, close=False)
+
+def i_traffic(d, c):
+    rrect(d, 70, 36, 52, 120, 24, c)
+    circle(d, 96, 66, 11, c)
+    circle(d, 96, 96, 11, c)
+    circle(d, 96, 126, 11, c)
+
+def i_auto_stories(d, c):
+    poly(d, [(96, 56), (48, 66), (48, 138), (96, 128)], c, close=True)
+    poly(d, [(96, 56), (144, 66), (144, 138), (96, 128)], c, close=True)
+
+def i_settings(d, c):
+    rrect(d, 36, 50, 120, 92, 14, c)
+    circle(d, 96, 96, 24, c)
+
+ICONS = {
+    'icon_home': i_home, 'icon_map': i_map, 'icon_heart': i_heart, 'icon_grid': i_grid,
+    'icon_profile': i_profile, 'icon_kitchen': i_kitchen, 'icon_checklist': i_checklist,
+    'icon_beans': i_beans, 'icon_ticket': i_ticket, 'icon_search': i_search,
+    'icon_bell': i_bell, 'icon_back': i_back, 'icon_close': i_close, 'icon_plus': i_plus,
+    'icon_check': i_check, 'icon_chevron_right': i_chevron_right, 'icon_camera': i_camera,
+    'icon_photo': i_photo, 'icon_edit': i_edit, 'icon_trash': i_trash, 'icon_undo': i_undo,
+    'icon_flip': i_flip, 'icon_location': i_location, 'icon_route': i_route,
+    'icon_layers': i_layers, 'icon_sliders': i_sliders, 'icon_star': i_star,
+    'icon_fullscreen': i_fullscreen, 'icon_traffic': i_traffic,
+    'icon_auto_stories': i_auto_stories, 'icon_settings': i_settings,
+}
+
+
+def i_refresh(d, c):
+    arc(d, 96, 96, 48, 30, 320, c)
+    poly(d, [(118, 26), (152, 44), (120, 72)], c, close=True)
+
+def i_sparkle(d, c):
+    poly(d, star_pts(70, 70, 40, 16), c, close=True)
+    poly(d, star_pts(132, 120, 26, 10), c, close=True)
+
+def i_cloud_off(d, c):
+    d.ellipse([40*SS, 88*SS, 108*SS, 140*SS], outline=c, width=LW)
+    d.ellipse([84*SS, 64*SS, 156*SS, 128*SS], outline=c, width=LW)
+    line(d, [(36, 150), (156, 48)], c)
+
+def i_school(d, c):
+    poly(d, [(96, 40), (160, 72), (96, 104), (32, 72)], c, close=True)
+    poly(d, [(56, 84), (56, 118), (96, 138), (136, 118), (136, 84)], c, close=False)
+    line(d, [(148, 80), (148, 118)], c)
+
+def i_savings(d, c):
+    d.ellipse([36*SS, 68*SS, 156*SS, 156*SS], outline=c, width=LW)
+    line(d, [(64, 68), (76, 44)], c)
+    line(d, [(76, 44), (104, 44)], c)
+    circle(d, 128, 92, 8, c)
+    line(d, [(44, 118), (30, 134)], c)
+    line(d, [(148, 122), (160, 138)], c)
+
+def i_broken(d, c):
+    rrect(d, 34, 50, 124, 96, 14, c)
+    poly(d, [(96, 62), (78, 92), (96, 88), (84, 134)], c, close=False)
+
+def i_water_drop(d, c):
+    poly(d, [(96, 36), (60, 88), (60, 120), (132, 120), (132, 88)], c, close=True)
+    arc(d, 96, 120, 36, 0, 180, c)
+    arc(d, 78, 108, 10, 200, 340, c)
+
+def i_restaurant(d, c):
+    line(d, [(70, 40), (70, 88)], c)
+    arc(d, 70, 62, 18, 270, 90, c)
+    line(d, [(70, 88), (70, 152)], c)
+    line(d, [(122, 40), (122, 152)], c)
+    arc(d, 140, 52, 18, 180, 0, c)
+    line(d, [(140, 52), (140, 88)], c)
+    line(d, [(140, 88), (140, 152)], c)
+
+def i_compass(d, c):
+    circle(d, 96, 96, 56, c)
+    poly(d, [(118, 74), (106, 106), (74, 118), (86, 86)], c, close=True)
+
+ICONS['icon_refresh'] = i_refresh
+ICONS['icon_sparkle'] = i_sparkle
+ICONS['icon_cloud_off'] = i_cloud_off
+ICONS['icon_school'] = i_school
+ICONS['icon_savings'] = i_savings
+ICONS['icon_broken'] = i_broken
+ICONS['icon_water_drop'] = i_water_drop
+ICONS['icon_restaurant'] = i_restaurant
+ICONS['icon_compass'] = i_compass
+
+
+def i_minus(d, c):
+    line(d, [(56, 96), (136, 96)], c)
+
+def i_shopping_bag(d, c):
+    rrect(d, 48, 68, 96, 84, 14, c)
+    arc(d, 96, 68, 26, 180, 360, c)
+
+count = 0
+for suffix, color in COLORS.items():
+    for name, fn in ICONS.items():
+        img, d = canvas()
+        fn(d, color)
+        img = img.resize((S, S), Image.LANCZOS)
+        img.save(f'{OUT}/{name}{suffix}.png')
+        count += 1
+
+# ---------------- 插图 / 背景 ----------------
+# 1. 星图背景 1440x3040
+img = Image.new('RGB', (1440, 3040))
+px = img.load()
+rng = random.Random(42)
+for y in range(3040):
+    k = y / 3040
+    r = int(7 + 4 * math.sin(k * math.pi)); g = int(11 + 6 * math.sin(k * math.pi)); b = int(20 + 10 * math.sin(k * math.pi))
+    for x in range(1440):
+        px[x, y] = (r, g, b)
+stars = Image.new('RGBA', (1440, 3040), (0, 0, 0, 0))
+sd = ImageDraw.Draw(stars)
+for _ in range(260):
+    x, y, r = rng.randint(0, 1439), rng.randint(0, 3039), rng.choice([1, 1, 2, 2, 3])
+    a = rng.randint(60, 220)
+    sd.ellipse([x - r, y - r, x + r, y + r], fill=(255, 255, 255, a))
+img = img.convert('RGBA'); img.alpha_composite(stars)
+img.save(f'{OUT}/bg_stars.png')
+
+# 2. 回忆占位 512（粉橘渐变 + 白心）
+img = Image.new('RGBA', (512, 512))
+px = img.load()
+for y in range(512):
+    k = y / 512
+    for x in range(512):
+        px[x, y] = (int(251 + 2 * k), int(227 - 10 * k), int(227 - 25 * k), 255)
+d = ImageDraw.Draw(img)
+d.ellipse([176, 176, 336, 336], fill=(255, 255, 255, 230))
+d.polygon([(226, 256), (256, 296), (296, 236)], fill=(233, 91, 78, 255))
+d.line([(226, 296), (256, 256), (296, 296)], fill=(233, 91, 78, 255), width=18, joint='curve')
+img.save(f'{OUT}/placeholder_memory.png')
+
+# 3. 照片占位 512
+img = Image.new('RGBA', (512, 512), (240, 237, 230, 255))
+d = ImageDraw.Draw(img)
+d.rounded_rectangle([64, 96, 448, 416], radius=36, outline=(180, 172, 160, 255), width=10)
+d.polygon([(128, 352), (232, 216), (312, 312), (368, 264), (432, 352)], fill=(168, 160, 148, 255))
+d.ellipse([300, 140, 360, 200], fill=(231, 183, 138, 255))
+img.save(f'{OUT}/placeholder_photo.png')
+
+# 4. 照顾事贴纸 256（抽象人物+票根，透明底）
+img = Image.new('RGBA', (256, 256), (0, 0, 0, 0))
+d = ImageDraw.Draw(img)
+d.rounded_rectangle([150, 30, 226, 150], radius=16, fill=(250, 247, 240, 255), outline=(210, 200, 186, 255))
+d.line([(170, 60), (206, 60)], fill=(160, 150, 136, 255), width=8)
+d.ellipse([180, 80, 198, 98], fill=(233, 91, 78, 255))
+d.line([(186, 104), (190, 128)], fill=(200, 190, 176, 255), width=8)
+d.ellipse([24, 120, 104, 200], fill=(240, 233, 214, 255))
+d.line([(40, 176), (92, 138)], fill=(122, 158, 126, 255), width=14, joint='curve')
+d.ellipse([100, 130, 124, 154], fill=(231, 162, 93, 255))
+img.save(f'{OUT}/sticker_care.png')
+
+total = len([f for f in os.listdir(OUT) if f.endswith('.png')])
+print(f'generated {total} files in {OUT}')

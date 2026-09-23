@@ -17,7 +17,6 @@ import 'package:lovegirl_flutter/screens/kitchen/kitchen_screen.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
-import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_main_screen.dart';
 
 void main() {
@@ -189,13 +188,13 @@ void main() {
     );
 
     await tester.pump();
+    // v3.31 地图已是旅行页默认主视图（全屏高德），旧的"高德"入口按钮移除：
     expect(
-        find.byKey(const ValueKey('travel_enter_amap_mode')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('travel_enter_amap_mode')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(TravelFormScreen), findsOneWidget);
+        find.byKey(const ValueKey('travel_enter_amap_mode')), findsNothing);
+    // 底部悬浮 tab 存在且默认选中"地图"
+    expect(find.text('地图'), findsWidgets);
+    expect(find.text('清单'), findsOneWidget);
+    expect(find.text('票根'), findsOneWidget);
   });
 
   testWidgets('travel amap mode shows ticket fallback when there are no spots',
@@ -286,14 +285,7 @@ void main() {
 
     await tester.pump();
 
-    // v3.23 行程票已从旅行页移除（功能并入真地图路线预览），防回归断言：
-    await tester.scrollUntilVisible(
-      find.text('已打卡'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-
+    // v3.23 行程票已从旅行页移除；v3.31 路线预览并入全屏高德地图，防回归断言：
     expect(find.byKey(const ValueKey('travel_itinerary_ticket')), findsNothing);
   });
 

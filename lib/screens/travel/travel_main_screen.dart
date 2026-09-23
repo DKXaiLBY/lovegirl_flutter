@@ -1,17 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
-import 'package:lovegirl_flutter/screens/travel/stars_map_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
-import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
-import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 
@@ -41,13 +36,10 @@ class TravelMainScreen extends StatefulWidget {
 
 class _TravelMainScreenState extends State<TravelMainScreen>
     with SingleTickerProviderStateMixin {
-  final GlobalKey<TravelMapWidgetState> _inlineMapKey =
-      GlobalKey<TravelMapWidgetState>();
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
   bool _showSearch = false;
-  bool _openingAmap = false;
-  bool _starsMode = false;
+  int _viewIndex = 0; // 0=地图 1=清单 2=票根
   late AnimationController _fabAnimCtrl;
 
   @override
@@ -87,63 +79,9 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     });
   }
 
-  Future<void> _openAmapMode() async {
-    if (_openingAmap) return;
-    final provider = context.read<TravelProvider>();
-    if (provider.mapSpots.isEmpty) {
-      final result = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const TravelFormScreen(),
-        ),
-      );
-      if (!mounted) return;
-      if (result == true) {
-        await provider.refreshAll();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                '\u5148\u65b0\u589e\u4e00\u4e2a\u5730\u70b9\uff0c\u518d\u53bb\u770b\u9ad8\u5fb7\u771f\u5730\u56fe\u4f1a\u66f4\u6709\u7528'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-    setState(() => _openingAmap = true);
-    try {
-      if (defaultTargetPlatform != TargetPlatform.android) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                '\u9ad8\u5fb7\u771f\u5730\u56fe\u76ee\u524d\u53ea\u652f\u6301 Android'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const TravelAmapModeScreen(),
-        ),
-      );
-    } catch (e) {
-      LogService().error('Travel',
-          '\u6253\u5f00\u9ad8\u5fb7\u771f\u5730\u56fe\u5931\u8d25: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              '\u5730\u56fe\u9875\u6253\u5f00\u5931\u8d25\uff0c\u8bf7\u91cd\u8bd5'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _openingAmap = false);
-      }
-    }
+  void _setView(int index) {
+    if (_viewIndex == index) return;
+    setState(() => _viewIndex = index);
   }
 
   void _onMarkerTap(TravelSpot spot) {
@@ -299,144 +237,266 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   Widget build(BuildContext context) {
     return Consumer<TravelProvider>(
       builder: (context, provider, _) {
-        if (_starsMode) {
-          return Scaffold(
-            backgroundColor: const Color(0xFF070B14),
-            body: SafeArea(
-              child: Column(
-                children: [
-                  _buildHeader(provider),
-                  Expanded(
-                    child: StarsMapScreen(
-                        spots: provider.spots
-                            .where(_hasValidCoordinate)
-                            .toList()),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+        // 三视图：地图（全屏高德）/ 地点清单 / 票根回忆；底部悬浮 tab 切换
         return Scaffold(
           backgroundColor: context.lgBg,
-          body: LovePage(
-            padding: EdgeInsets.zero,
-            child: RefreshIndicator(
-              onRefresh: () => provider.refreshAll(),
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(child: _buildHeader(provider)),
-                  if (_showSearch) SliverToBoxAdapter(child: _buildSearchBar()),
-                  SliverToBoxAdapter(child: _buildMapSection(provider)),
-                  SliverToBoxAdapter(child: _buildRoutePreview(provider)),
-                  SliverToBoxAdapter(child: _buildFilterAndSort(provider)),
-                  if (provider.loading && provider.spots.isEmpty)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (provider.hasError && provider.spots.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _buildError(provider),
-                    )
-                  else if (provider.filteredSpots.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _buildEmpty(provider),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final spot = provider.filteredSpots[index];
-                            return Dismissible(
-                              key: ValueKey('travel_spot_${spot.id}'),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 22),
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: LoveGirlTheme.red,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: const Icon(Icons.delete_outline_rounded,
-                                    color: Colors.white, size: 26),
-                              ),
-                              confirmDismiss: (_) async {
-                                return await showDialog<bool>(
-                                  context: context,
-                                  builder: (dCtx) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(18)),
-                                    title: const Text('删除地点'),
-                                    content: Text(
-                                      '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, false),
-                                        child: const Text('取消'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, true),
-                                        child: const Text('删除',
-                                            style: TextStyle(
-                                                color: LoveGirlTheme.red)),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                              onDismissed: (_) {
-                                context.read<TravelProvider>().deleteSpot(spot.id);
-                              },
-                              child: _SpotCard(
-                                spot: spot,
-                                index: index,
-                                onTap: () => _onMarkerTap(spot),
-                              ),
-                            );
-                          },
-                          childCount: provider.filteredSpots.length,
-                        ),
-                      ),
-                    ),
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _viewIndex,
+                children: [
+                  TravelAmapModeScreen(
+                      embedded: true, onExit: () => _setView(1)),
+                  _buildListPage(provider),
+                  _buildTicketPage(provider),
                 ],
               ),
-            ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 20,
+                child: _TravelViewTabs(
+                  index: _viewIndex,
+                  onChanged: _setView,
+                ),
+              ),
+            ],
           ),
-          floatingActionButton: ScaleTransition(
-            scale: CurvedAnimation(
-              parent: _fabAnimCtrl,
-              curve: Curves.elasticOut,
-            ),
-            child: FloatingActionButton(
-              onPressed: () async {
-                final travelProvider = context.read<TravelProvider>();
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const TravelFormScreen(),
-                  ),
-                );
-                if (!mounted) return;
-                if (result == true) {
-                  travelProvider.refreshAll();
-                }
-              },
-              backgroundColor: context.lgInk,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
+          floatingActionButton: _viewIndex == 1
+              ? FloatingActionButton.extended(
+                  onPressed: () async {
+                    final travelProvider = context.read<TravelProvider>();
+                    final result = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TravelFormScreen(),
+                      ),
+                    );
+                    if (!mounted) return;
+                    if (result == true) {
+                      travelProvider.refreshAll();
+                    }
+                  },
+                  backgroundColor: context.lgInk,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                  label: const Text('记一个地点',
+                      style: TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w800)),
+                )
+              : null,
         );
       },
+    );
+  }
+
+  /// 清单视图：搜索 / 筛选排序 / 地点列表（地图已独立为全屏主视图）
+  Widget _buildListPage(TravelProvider provider) {
+    return LovePage(
+      padding: EdgeInsets.zero,
+      child: RefreshIndicator(
+        onRefresh: () => provider.refreshAll(),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _buildHeader(provider)),
+            if (_showSearch) SliverToBoxAdapter(child: _buildSearchBar()),
+            SliverToBoxAdapter(child: _buildFilterAndSort(provider)),
+            if (provider.loading && provider.spots.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (provider.hasError && provider.spots.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildError(provider),
+              )
+            else if (provider.filteredSpots.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmpty(provider),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final spot = provider.filteredSpots[index];
+                      return Dismissible(
+                        key: ValueKey('travel_spot_${spot.id}'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 22),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: LoveGirlTheme.red,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Icon(Icons.delete_outline_rounded,
+                              color: Colors.white, size: 26),
+                        ),
+                        confirmDismiss: (_) async {
+                          return await showDialog<bool>(
+                            context: context,
+                            builder: (dCtx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18)),
+                              title: const Text('删除地点'),
+                              content: Text(
+                                '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dCtx, false),
+                                  child: const Text('取消'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dCtx, true),
+                                  child: const Text('删除',
+                                      style: TextStyle(
+                                          color: LoveGirlTheme.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onDismissed: (_) {
+                          context.read<TravelProvider>().deleteSpot(spot.id);
+                        },
+                        child: _SpotCard(
+                          spot: spot,
+                          index: index,
+                          onTap: () => _onMarkerTap(spot),
+                        ),
+                      );
+                    },
+                    childCount: provider.filteredSpots.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 票根回忆：已打卡地点回顾 + 生成正式旅行票根
+  Widget _buildTicketPage(TravelProvider provider) {
+    final visited =
+        provider.spots.where((s) => s.status == 'visited').toList();
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 120),
+        children: [
+          Row(
+            children: [
+              Text('票根回忆',
+                  style: TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                      color: context.lgTextPrimary)),
+              const Spacer(),
+              if (visited.isNotEmpty)
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: context.lgInk,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                  ),
+                  icon: const Icon(Icons.confirmation_number_rounded,
+                      size: 16),
+                  label: const Text('生成正式票根',
+                      style: TextStyle(
+                          fontSize: 12.5, fontWeight: FontWeight.w800)),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => TravelTicketScreen(
+                                visitedSpots: visited,
+                                stats: provider.computedStats,
+                              )),
+                    );
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (visited.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: context.lgPaper,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.lgSeparator),
+              ),
+              child: Column(
+                children: [
+                  const Text('🎫', style: TextStyle(fontSize: 42)),
+                  const SizedBox(height: 10),
+                  Text('还没有票根',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: context.lgTextPrimary)),
+                  const SizedBox(height: 4),
+                  Text('去地图打卡第一个地点，票根就会出现在这里',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12.5, color: context.lgTextSecondary)),
+                ],
+              ),
+            )
+          else
+            ...visited.map((spot) {
+              final date = (spot.visitedDate ?? '').toString();
+              final stars = spot.rating ?? 0;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: context.lgPaper,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: context.lgSeparator),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🎫', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(spot.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: context.lgTextPrimary)),
+                            const SizedBox(height: 3),
+                            Text(
+                              [spot.city, if (date.isNotEmpty) date]
+                                  .where((x) => x.isNotEmpty)
+                                  .join(' · '),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: context.lgTextMuted),
+                            ),
+                          ]),
+                    ),
+                    if (stars > 0)
+                      Text('★' * stars,
+                          style: TextStyle(
+                              fontSize: 11, color: LoveGirlTheme.orange)),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -466,13 +526,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             active: _showSearch,
             tooltip: _showSearch ? '关闭搜索' : '搜索',
             onTap: _toggleSearch,
-          ),
-          const SizedBox(width: 8),
-          _MorphIconButton(
-            icon: _starsMode ? Icons.map_rounded : Icons.auto_awesome_rounded,
-            active: _starsMode,
-            tooltip: _starsMode ? '回到旅行地图' : '足迹星图',
-            onTap: () => setState(() => _starsMode = !_starsMode),
           ),
           const SizedBox(width: 8),
           _buildSortMenu(provider),
@@ -614,283 +667,9 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     );
   }
 
-  Widget _buildMapSection(TravelProvider provider) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final mapHeight = (screenHeight * 0.66).clamp(470.0, 690.0).toDouble();
-    final availableSpots = provider.filteredSpots.isNotEmpty
-        ? provider.filteredSpots
-        : provider.mapSpots;
-    final validMapSpots =
-        availableSpots.where(_hasValidCoordinate).toList();
-    final currentUserId = context.read<AuthProvider>().userId;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: SizedBox(
-        height: mapHeight,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: TravelMapWidget(
-                  key: _inlineMapKey,
-                  spots: validMapSpots,
-                  allSpots: provider.spots,
-                  routes: provider.routes,
-                  activeRoute: provider.activeRoute,
-                  currentUserId: currentUserId,
-                  onMarkerTap: _onMarkerTap,
-                ),
-              ),
 
 
-              Positioned(
-                right: 14,
-                bottom: 14,
-                child: _MapOpenButton(
-                  opening: _openingAmap,
-                  onTap: _openingAmap ? null : _openAmapMode,
-                ),
-              ),
-              if (validMapSpots.isEmpty)
-                Align(
-                  alignment: Alignment(0, -0.12),
-                  child: _EmptyMapHint(),
-                ),
 
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoutePreview(TravelProvider provider) {
-    final route = provider.activeRoute;
-    final validSpots =
-        provider.filteredSpots.where((s) => s.lat != 0 || s.lng != 0).toList();
-    if (validSpots.length < 2 && route == null) {
-      return const SizedBox.shrink();
-    }
-
-    return LoveTicketCard(
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 2),
-      padding: const EdgeInsets.all(14),
-      color: context.lgPaper,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.route_rounded,
-                  size: 18, color: context.lgInk),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  route?.title ??
-                      '\u628a\u5f53\u524d\u5730\u70b9\u4e32\u6210\u8def\u7ebf',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-              ),
-              LovePill(
-                text: route == null
-                    ? '\u9884\u89c8\u8def\u7ebf'
-                    : _routeModeLabel(route.mode),
-                icon: route == null
-                    ? Icons.visibility_rounded
-                    : Icons.alt_route_rounded,
-                color: route == null
-                    ? LoveGirlTheme.secondary
-                    : context.lgInk,
-                background: route == null
-                    ? const Color(0xFFEAF7EF)
-                    : context.lgInk.withAlpha(16),
-              ),
-              if (route != null)
-                Row(
-                  children: [
-                    SizedBox(width: 6),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      onPressed: provider.clearActiveRoute,
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFBF7),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: context.lgSeparator),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        route == null
-                            ? '\u5148\u7528\u5f53\u524d\u7b5b\u9009\u7684\u5730\u70b9\u8bd5\u8dd1\u4e00\u4e0b\u8def\u7ebf\uff0c\u770b\u770b\u987a\u4e0d\u987a\u8def\u3002'
-                            : '${_routeModeLabel(route.mode)} \u00b7 ${_formatDistance(route.distance)} \u00b7 ${_formatDuration(route.duration)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          height: 1.45,
-                          color: context.lgTextSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: validSpots.take(4).map((spot) {
-                          final statusColor = _statusColor(context, spot.status);
-                          return LovePill(
-                            text: _travelDisplayText(spot.name, '未命名地点'),
-                            icon: Icons.place_rounded,
-                            color: statusColor,
-                            background: statusColor.withAlpha(14),
-                          );
-                        }).toList(),
-                      ),
-                      if (validSpots.length > 4) ...[
-                        SizedBox(height: 6),
-                        Text(
-                          '\u8fd8\u6709 ${validSpots.length - 4} \u4e2a\u5730\u70b9\u6ca1\u5c55\u5f00',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.lgTextMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const LoveTicketDivider(length: 76),
-                const SizedBox(width: 12),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    LoveBarcode(
-                      width: 42,
-                      height: 34,
-                      color: context.lgTextMuted,
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      '路线',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: context.lgTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (provider.routeError != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              provider.routeError!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: LoveGirlTheme.orange,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _RouteModeButton(
-                label: '\u9a7e\u8f66',
-                icon: Icons.directions_car_rounded,
-                loading: provider.routeLoading,
-                onTap: () => _previewRoute(provider, 'driving'),
-              ),
-              _RouteModeButton(
-                label: '\u6b65\u884c',
-                icon: Icons.directions_walk_rounded,
-                loading: provider.routeLoading,
-                onTap: () => _previewRoute(provider, 'walking'),
-              ),
-              _RouteModeButton(
-                label: '\u516c\u4ea4',
-                icon: Icons.directions_bus_rounded,
-                loading: provider.routeLoading,
-                onTap: () => _previewRoute(provider, 'transit'),
-              ),
-              if (route != null)
-                TextButton.icon(
-                  onPressed: () async {
-                    await provider.saveActiveRoute();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('\u8def\u7ebf\u5df2\u4fdd\u5b58'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.bookmark_add_rounded, size: 17),
-                  label: const Text('\u4fdd\u5b58'),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _previewRoute(TravelProvider provider, String mode) async {
-    final spots =
-        provider.filteredSpots.where((s) => s.lat != 0 || s.lng != 0).toList();
-    await provider.previewRoute(spots, mode);
-  }
-
-  String _routeModeLabel(String mode) {
-    switch (mode) {
-      case 'walking':
-        return '\u6b65\u884c';
-      case 'transit':
-        return '\u516c\u4ea4';
-      default:
-        return '\u9a7e\u8f66';
-    }
-  }
-
-  String _formatDistance(int? meters) {
-    if (meters == null || meters <= 0) return '\u8ddd\u79bb\u5f85\u8ba1\u7b97';
-    if (meters < 1000) return '$meters 米';
-    return '${(meters / 1000).toStringAsFixed(1)} 公里';
-  }
-
-  String _formatDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) {
-      return '\u65f6\u95f4\u5f85\u8ba1\u7b97';
-    }
-    final minutes = (seconds / 60).round();
-    if (minutes < 60) return '$minutes \u5206\u949f';
-    return '${minutes ~/ 60} \u5c0f\u65f6${minutes % 60} \u5206\u949f';
-  }
 
   Widget _buildFilter(TravelProvider provider) {
     final filters = [
@@ -1032,143 +811,7 @@ Color _statusColor(BuildContext context, String status) {
 }
 
 
-class _MapOpenButton extends StatelessWidget {
-  final bool opening;
-  final VoidCallback? onTap;
 
-  const _MapOpenButton({
-    required this.opening,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: '打开高德地图导航模式',
-      child: InkWell(
-        key: const ValueKey('travel_enter_amap_mode'),
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: LoveGirlTheme.secondary.withAlpha(235),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.white.withAlpha(180)),
-            boxShadow: LoveGirlTheme.cardShadow(),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (opening)
-                SizedBox(
-                  width: 15,
-                  height: 15,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              else
-                Icon(
-                  Icons.near_me_rounded,
-                  size: 15,
-                  color: Colors.white,
-                ),
-              SizedBox(width: 5),
-              Text(
-                '高德',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyMapHint extends StatelessWidget {
-  const _EmptyMapHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 230),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(235),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.lgSeparator.withAlpha(130)),
-        boxShadow: LoveGirlTheme.cardShadow(),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.add_location_alt_rounded,
-            size: 18,
-            color: context.lgInk,
-          ),
-          SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              '先标一个想去的地方',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                color: context.lgTextPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RouteModeButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool loading;
-  final VoidCallback onTap;
-
-  const _RouteModeButton({
-    required this.label,
-    required this.icon,
-    required this.loading,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: loading ? null : onTap,
-      icon: loading
-          ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon, size: 16),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-        foregroundColor: context.lgInk,
-        side: BorderSide(color: context.lgInk.withAlpha(80)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
-}
 
 class _SpotCard extends StatefulWidget {
   final TravelSpot spot;
@@ -1373,18 +1016,6 @@ class _SpotCardState extends State<_SpotCard>
     );
   }
 
-  Color _statusColor(BuildContext context, String status) {
-    switch (status) {
-      case 'visited':
-        return const Color(0xFF4CAF50);
-      case 'wish':
-        return const Color(0xFFFF9800);
-      case 'planned':
-        return const Color(0xFF9C27B0);
-      default:
-        return context.lgInk;
-    }
-  }
 
   String _statusLabel(String status) {
     switch (status) {
@@ -2079,6 +1710,84 @@ class _MorphIconButton extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// 旅行页底部悬浮 tab：地图 / 清单 / 票根
+class _TravelViewTabs extends StatelessWidget {
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  const _TravelViewTabs({required this.index, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      (Icons.map_rounded, '地图'),
+      (Icons.list_alt_rounded, '清单'),
+      (Icons.confirmation_number_rounded, '票根'),
+    ];
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: context.lgInk.withAlpha(242),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(50),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < items.length; i++)
+              GestureDetector(
+                onTap: () => onChanged(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: index == i
+                        ? Colors.white
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        items[i].$1,
+                        size: 17,
+                        color: index == i
+                            ? LoveGirlTheme.primary
+                            : Colors.white.withAlpha(210),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        items[i].$2,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: index == i
+                              ? LoveGirlTheme.primary
+                              : Colors.white.withAlpha(210),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

@@ -298,6 +298,44 @@ class _TimelineScreenState extends State<TimelineScreen> {
     );
   }
 
+  /// 删除前确认：时刻记录删了就找不回来了
+  Future<void> _deleteEvent(Map<String, dynamic> event, dynamic id) async {
+    if (id == null) return;
+    final title = (event['title'] ?? '').toString();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除这条时刻？', style: TextStyle(fontSize: 16)),
+        content: Text(
+            title.isEmpty ? '删除后不可恢复' : '「$title」删除后不可恢复',
+            style: const TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('删除',
+                  style: TextStyle(color: LoveGirlTheme.red.withAlpha(230)))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await _api.deleteTimeline(id);
+      await _loadTimeline();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: const Text('删除失败，再试一次'),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2)),
+        );
+      }
+    }
+  }
+
   Widget _buildTimelineItem(Map<String, dynamic> event, bool isLast) {
     final title = event['title'] ?? '';
     final description = event['description'] ?? event['desc'] ?? '';
@@ -364,23 +402,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                                 color: context.lgTextPrimary)),
                       ),
                       GestureDetector(
-                        onTap: () async {
-                          if (id != null) {
-                            try {
-                              await _api.deleteTimeline(id);
-                              await _loadTimeline();
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('删除失败'),
-                                      behavior: SnackBarBehavior.floating,
-                                      duration: Duration(seconds: 2)),
-                                );
-                              }
-                            }
-                          }
-                        },
+                        onTap: () => _deleteEvent(event, id),
                         child: Icon(Icons.delete_outline,
                             size: 16, color: context.lgTextMuted),
                       ),

@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""
+LoveGirl 一键发布脚本
+用法: python publish.py
+
+1. 读取版本号
+2. 编译 APK
+3. 上传到服务器
+4. 自动更新版本记录
+5. 旧用户 APP 内收到更新提醒
+"""
+import subprocess, sys, os, re, json, http.client, mimetypes
+
+SERVER = "47.121.119.191:3001"
+# Token 从环境变量读取，不再硬编码（原 token 已泄露，需在服务器 .env 中配置新值）
+# 设置方式: set DEPLOY_TOKEN=你的新token  (Windows)
+#          export DEPLOY_TOKEN=你的新token (Linux/Mac)
+TOKEN = os.environ.get("DEPLOY_TOKEN", "")
+if not TOKEN:
+    print("⚠️  DEPLOY_TOKEN 环境变量未设置！")
+    print("   请先设置: set DEPLOY_TOKEN=你的token")
+    print("   或在服务器 .env 中查看 DEPLOY_TOKEN 的值")
+    sys.exit(1)
+PROJECT = r"D:\lovegirl_flutter"
+
+def run(cmd, cwd=PROJECT):
+    print(f"  > {cmd}")
+    r = subprocess.run(
+        cmd,
+        shell=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if r.returncode != 0:
+        print(f"  ✗ {r.stderr[-300:]}")
+        sys.exit(1)
+    return r.stdout
+
+def main():
+    print("=" * 50)
+    print("  LoveGirl 一键发布")
+    print("=" * 50)
+
+    # 1. 读取版本号
+    print("\n[1/4] 读取版本号...")
+    const_file = os.path.join(PROJECT, "lib", "utils", "constants.dart")
+    with open(const_file, encoding="utf-8") as f:
+        content = f.read()
+    vname = re.search(r"versionName\s*=\s*'([^']+)'", content).group(1)
+    vcode = re.search(r"versionCode\s*=\s*(\d+)", content).group(1)
+    print(f"  版本: v{vname} (build {vcode})")
+
+    # 2. 编译 APK
+    print(f"\n[2/4] 编译 APK...")
+    java_home = r"C:\Program Files\Java\jdk-17.0.3.1"
+    flutter = r"D:\flutter-sdk\bin\flutter.bat"
+    os.environ["JAVA_HOME"] = java_home
+    os.environ["PUB_HOSTED_URL"] = "https://pub.flutter-io.cn"
+    os.environ["FLUTTER_STORAGE_BASE_URL"] = "https://storage.flutter-io.cn"
+    run(f'{flutter} build apk --release')
+    print("  编译成功!")
+
+    # 3. 找到 APK
+    apk_path = os.path.join(PROJECT, "build", "app", "outputs", "flutter-apk", "app-release.apk")
+    apk_size = os.path.getsize(apk_path)
+    print(f"  APK: {apk_path} ({apk_size/1024/1024:.1f}MB)")
+
+    changelog = (
+        "LoveGirl UI 参考图落地：\n"
+        "• 首页改为回忆票根版视觉，保留天气、爱豆、投喂、待办、回忆和旅行入口\n"
+        "• 投喂站改为专属菜单/票根风格，强调真实点单和常点菜单\n"
+        "• 旅行地图改为真实地图产品感，保留高德地图模式和路线票根\n"
+        "• 生活、健康、我的页面统一纸感背景和票根头部\n"
+        "• 修复首页紧凑天气体感温度溢出问题\n"
+        "• 升级高德地图 SDK 并增加初始化失败兜底，降低地图模式闪退风险"
+    )
+
+    # 4. 上传到服务器
+    print(f"\n[3/4] 上传到服务器 {SERVER}...")
+    boundary = "----LoveGirlPublish"
+
+    # 读取 APK
+    with open(apk_path, "rb") as f:
+        apk_data = f.read()
+
+    # 构建 multipart body
+    body = b""
+    # APK 文件
+    body += f"--{boundary}\r\n".encode()
+    body += b'Content-Disposition: form-data; name="apk"; filename="app-release.apk"\r\n'
+    body += b"Content-Type: application/vnd.android.package-archive\r\n\r\n"
+    body += apk_data
+    body += b"\r\n"
+    # 版本信息
+    for field_name, field_value in [
+        ("version_code", vcode),
+        ("version_name", vname),
+        ("changelog", changelog),
+        ("file_size", str(apk_size)),
+        ("force_update", "0"),
+    ]:
+        body += f"--{boundary}\r\n".encode()
+        body += f'Content-Disposition: form-data; name="{field_name}"\r\n\r\n'.encode()
+        body += f"{field_value}\r\n".encode()
+    body += f"--{boundary}--\r\n".encode()
+
+    # 发送 HTTP 请求
+    conn = http.client.HTTPConnection(SERVER, timeout=120)
+    conn.request("POST", "/api/deploy/publish", body=body, headers={
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "X-Deploy-Token": TOKEN,
+    })
+    resp = conn.getresponse()
+    result = json.loads(resp.read().decode())
+    conn.close()
+
+    if resp.status == 200 and result.get("code") == 200:
+        print(f"  ✓ {result['message']}")
+    else:
+        print(f"  ✗ 失败: {result.get('message', '未知错误')} (HTTP {resp.status})")
+        sys.exit(1)
+
+    # 5. 复制到项目根目录
+    print(f"\n[4/4] 整理文件...")
+    dist = os.path.join(PROJECT, f"LoveGirl-v{vname}-build{vcode}.apk")
+    with open(apk_path, "rb") as src, open(dist, "wb") as dst:
+        dst.write(src.read())
+    print(f"  ✓ {dist}")
+
+    print(f"\n{'='*50}")
+    print(f"  ✅ v{vname} (build {vcode}) 发布完成!")
+    print(f"  下载地址: http://{SERVER}/public/download/LoveGirl-latest.apk")
+    print(f"  {'='*50}")
+
+if __name__ == "__main__":
+    main()

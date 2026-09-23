@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-09-23T18:23:42.269Z",
+  "sessionId": "sess_6f258579-ab4d-4336-a2f8-7850d3832017",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "lib/screens/anniversary/anniversary_screen.dart",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 8,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

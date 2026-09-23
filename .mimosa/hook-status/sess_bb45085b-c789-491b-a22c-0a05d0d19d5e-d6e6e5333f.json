@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-09-23T17:30:17.641Z",
+  "sessionId": "sess_bb45085b-c789-491b-a22c-0a05d0d19d5e",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "C:/Users/DKX/.zcode/cli/exec/sess_bb45085b-c789-491b-a22c-0a05d0d19d5e/tail_outtext.ps1",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 4,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

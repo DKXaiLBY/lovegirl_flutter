@@ -16,7 +16,11 @@ import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
 
 class TravelAmapModeScreen extends StatefulWidget {
-  const TravelAmapModeScreen({super.key});
+  /// embedded=true：作为旅行页主视图内嵌（隐藏返回钮、返回动作交给外部 tab 切换）
+  const TravelAmapModeScreen({super.key, this.embedded = false, this.onExit});
+
+  final bool embedded;
+  final VoidCallback? onExit;
 
   @override
   State<TravelAmapModeScreen> createState() => _TravelAmapModeScreenState();
@@ -24,6 +28,8 @@ class TravelAmapModeScreen extends StatefulWidget {
 
 class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
   static const MethodChannel _deviceChannel = MethodChannel('lovegirl/device');
+
+  bool get _embedded => widget.embedded;
 
   final GlobalKey<TravelMapWidgetState> _mapKey = GlobalKey();
   Timer? _mountTimer;
@@ -298,7 +304,9 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
 
         if (provider.mapSpots.isEmpty) {
           return _EmptyMapScaffold(
-            onBack: () => Navigator.of(context).pop(),
+            onBack: _embedded
+                ? (widget.onExit ?? () => Navigator.of(context).pop())
+                : () => Navigator.of(context).pop(),
             onAddSpot: _openAddSpot,
           );
         }
@@ -338,6 +346,7 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
                           spotCount: provider.mapSpots.length,
                           hasRoute: provider.activeRoute != null,
                           unsupportedReason: _unsupportedReason,
+                          showBack: !_embedded,
                           onBack: () => Navigator.of(context).pop(),
                           onDismiss: _dismissIntro,
                           onFitSpots: () => _mapKey.currentState?.fitBounds(),
@@ -548,6 +557,9 @@ class _TopOverlay extends StatelessWidget {
   final VoidCallback onFitSpots;
   final VoidCallback onPreviewRoute;
 
+  /// embedded 内嵌模式：隐藏返回圆钮（返回动作由外部底部 tab 承担）
+  final bool showBack;
+
   const _TopOverlay({
     required this.spotCount,
     required this.hasRoute,
@@ -556,6 +568,7 @@ class _TopOverlay extends StatelessWidget {
     required this.onDismiss,
     required this.onFitSpots,
     required this.onPreviewRoute,
+    this.showBack = true,
   });
 
   @override
@@ -565,12 +578,14 @@ class _TopOverlay extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _CircleButton(
-          icon: Icons.arrow_back_rounded,
-          tooltip: '返回',
-          onTap: onBack,
-        ),
-        SizedBox(width: 12),
+        if (showBack) ...[
+          _CircleButton(
+            icon: Icons.arrow_back_rounded,
+            tooltip: '返回',
+            onTap: onBack,
+          ),
+          SizedBox(width: 12),
+        ],
         Expanded(
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_service.dart';
 import '../services/log_service.dart';
 import '../utils/lovegirl_theme.dart';
+import 'city_picker.dart';
 import 'lovegirl_ui.dart';
 
 enum WeatherErrorType { permission, location, network, data }
@@ -19,6 +21,11 @@ class WeatherWidget extends StatefulWidget {
 
 class _WeatherWidgetState extends State<WeatherWidget> {
   static Map<String, dynamic>? _lastWeatherCache;
+
+  // 兜底用持久化：上次定位成功/手动选择过的城市坐标
+  static const _prefCity = 'weather_city';
+  static const _prefLat = 'weather_lat';
+  static const _prefLng = 'weather_lng';
 
   String? _temperature;
   String? _tempHigh;
@@ -51,36 +58,213 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       _errorType = null;
     });
 
-    try {
-      final data = await _fetchLocationWeather();
+    final data = await _fetchLocationWeather();
 
-      if (data.isEmpty || !_hasUsableWeather(data)) {
-        if (_restoreFromCache()) return;
-        if (!_disposed && mounted) {
-          setState(() {
-            _loading = false;
-            _errorType = _errorType ?? WeatherErrorType.data;
-          });
-        }
+    if (!_hasUsableWeather(data)) {
+      // 兜底1：定位/权限失败时用上次成功或手动选过的城市坐标查天气
+      final fallback = await _fetchSavedCityWeather();
+      if (_hasUsableWeather(fallback)) {
+        if (_disposed || !mounted) return;
+        _lastWeatherCache = Map<String, dynamic>.from(fallback);
+        setState(() {
+          _applyPayload(fallback);
+        });
         return;
       }
 
+      // 兜底2：首次使用（无任何历史城市）→ 默认城市，不让新用户卡在错误态
+      final def = await _fetchCityWeather('广州');
+      if (_hasUsableWeather(def)) {
+        if (_disposed || !mounted) return;
+        _lastWeatherCache = Map<String, dynamic>.from(def);
+        setState(() {
+          _applyPayload(def);
+        });
+        return;
+      }
+    }
+
+    if (data.isEmpty || !_hasUsableWeather(data)) {
+      if (_restoreFromCache()) return;
+      if (!_disposed && mounted) {
+        setState(() {
+          _loading = false;
+          _errorType = _errorType ?? WeatherErrorType.data;
+        });
+      }
+      return;
+    }
+
+    if (_disposed || !mounted) return;
+    final payload = data;
+    _lastWeatherCache = Map<String, dynamic>.from(payload);
+    setState(() {
+      _applyPayload(payload);
+    });
+  }
+
+  /// 定位失败时的兜底：用上次成功/手动选过的城市坐标查天气
+  Future<Map<String, dynamic>> _fetchSavedCityWeather() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lat = prefs.getDouble(_prefLat);
+      final lng = prefs.getDouble(_prefLng);
+      if (lat == null || lng == null) return const {};
+      final response = await ApiService()
+          .get('/api/weather/coords', query: {'lat': lat, 'lng': lng})
+          .timeout(const Duration(seconds: 8));
+      final payload = _typedMap(response.data?['data']);
+      if (!_hasUsableWeather(payload)) return const {};
+      final city = prefs.getString(_prefCity);
+      if (city != null && city.isNotEmpty && (payload['city'] == null || payload['city'].toString().isEmpty)) {
+        payload['city'] = city;
+      }
+      return payload;
+    } catch (e) {
+      LogService().error('Weather', '城市兜底天气失败: $e');
+      return const {};
+    }
+  }
+
+  /// 兜底2：默认城市天气（首次使用、无任何历史记录时）
+  Future<Map<String, dynamic>> _fetchCityWeather(String city) async {
+    try {
+      final response = await ApiService()
+          .get('/api/weather', query: {'city': city})
+          .timeout(const Duration(seconds: 8));
+      final payload = _typedMap(response.data?['data']);
+      if (!_hasUsableWeather(payload)) return const {};
+      payload['city'] = city;
+      return payload;
+    } catch (e) {
+      LogService().error('Weather', '默认城市兜底失败: $e');
+      return const {};
+    }
+  }
+
+  Future<void> _rememberLocation(double lat, double lng, String? city) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_prefLat, lat);
+      await prefs.setDouble(_prefLng, lng);
+      if (city != null && city.trim().isNotEmpty) {
+        await prefs.setString(_prefCity, city.trim());
+      }
+    } catch (_) {
+      // 持久化失败只影响下次兜底，不阻断本次展示
+    }
+  }
+
+  /// 手动选城市：城市名 → 逆编码拿坐标 → coords 查天气 → 持久化为兜底城市
+  Future<void> _pickCityManually() async {
+    final city = await showCityPicker(context);
+    if (city == null || city.trim().isEmpty || _disposed || !mounted) return;
+    final picked = city.trim();
+
+    setState(() {
+      _loading = true;
+      _errorType = null;
+    });
+    try {
+      final geo = await ApiService().geocodeAmap(picked);
+      final d = geo.data?['data'];
+      final lat = d is Map ? (d['lat'] as num?)?.toDouble() : null;
+      final lng = d is Map ? (d['lng'] as num?)?.toDouble() : null;
+      if (lat == null || lng == null) {
+        throw Exception('geocode failed');
+      }
+      final response = await ApiService()
+          .get('/api/weather/coords', query: {'lat': lat, 'lng': lng})
+          .timeout(const Duration(seconds: 8));
+      final payload = _typedMap(response.data?['data']);
+      if (!_hasUsableWeather(payload)) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _errorType = WeatherErrorType.data;
+        });
+        return;
+      }
+      payload['city'] = picked;
+      await _rememberLocation(lat, lng, picked);
       if (_disposed || !mounted) return;
-      final payload = data;
       _lastWeatherCache = Map<String, dynamic>.from(payload);
       setState(() {
         _applyPayload(payload);
       });
     } catch (e) {
       if (_disposed || !mounted) return;
-      if (_restoreFromCache()) return;
-      LogService().error('Weather', '天气加载失败: $e');
-      if (!_disposed && mounted) {
-        setState(() {
-          _loading = false;
-          _errorType = _errorType ?? WeatherErrorType.network;
-        });
-      }
+      LogService().error('Weather', '手动选城市失败: $e');
+      setState(() {
+        _loading = false;
+        _errorType = WeatherErrorType.data;
+      });
+    }
+  }
+
+  /// 天气操作面板：权限引导 / 重新定位 / 手动选城市
+  Future<void> _showWeatherActions() async {
+    final isPermission = _errorType == WeatherErrorType.permission;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(sheetCtx).brightness == Brightness.dark
+                ? const Color(0xFF1E1B18)
+                : const Color(0xFFFFF8F3),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(26)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (isPermission)
+                ListTile(
+                  leading: const Icon(Icons.location_disabled_rounded),
+                  title: const Text('去开启定位权限'),
+                  subtitle: const Text('开启后自动显示当地天气'),
+                  onTap: () => Navigator.pop(sheetCtx, 'settings'),
+                ),
+              ListTile(
+                leading: const Icon(Icons.my_location_rounded),
+                title: const Text('重新定位'),
+                onTap: () => Navigator.pop(sheetCtx, 'retry'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.location_city_rounded),
+                title: const Text('手动选城市'),
+                onTap: () => Navigator.pop(sheetCtx, 'city'),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (action == null || _disposed || !mounted) return;
+    switch (action) {
+      case 'settings':
+        await Geolocator.openAppSettings();
+        break;
+      case 'retry':
+        await _fetchWeather();
+        break;
+      case 'city':
+        await _pickCityManually();
+        break;
     }
   }
 
@@ -102,11 +286,16 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         desiredAccuracy: LocationAccuracy.medium,
         timeLimit: const Duration(seconds: 5),
       ).timeout(const Duration(seconds: 6));
-      final response = await ApiService().get(
-        '/api/weather/coords',
-        query: {'lat': position.latitude, 'lng': position.longitude},
-      ).timeout(const Duration(seconds: 8));
-      return _typedMap(response.data?['data']);
+      final response = await ApiService()
+          .get('/api/weather/coords', query: {'lat': position.latitude, 'lng': position.longitude})
+          .timeout(const Duration(seconds: 8));
+      final payload = _typedMap(response.data?['data']);
+      if (_hasUsableWeather(payload)) {
+        // 记住这次成功定位，权限被拒/定位失败时兜底用
+        await _rememberLocation(
+            position.latitude, position.longitude, payload['city']?.toString());
+      }
+      return payload;
     } catch (e) {
       if (!_disposed && mounted) {
         setState(() => _errorType = WeatherErrorType.location);
@@ -196,7 +385,11 @@ class _WeatherWidgetState extends State<WeatherWidget> {
           ? _buildLoading()
           : _errorType != null
               ? _buildError()
-              : _buildContent(),
+              : InkWell(
+                  onTap: _showWeatherActions,
+                  borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
+                  child: _buildContent(),
+                ),
     );
   }
 
@@ -238,42 +431,36 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     String label;
     String subLabel;
     IconData icon;
-    VoidCallback? onTap;
 
     switch (_errorType) {
       case WeatherErrorType.permission:
         label = '--°';
         subLabel = '去开启定位';
         icon = Icons.location_disabled_rounded;
-        onTap = Geolocator.openAppSettings;
         break;
       case WeatherErrorType.location:
         label = '--°';
         subLabel = '定位一下天气';
         icon = Icons.refresh_rounded;
-        onTap = _fetchWeather;
         break;
       case WeatherErrorType.network:
         label = '--°';
         subLabel = '点我重试';
         icon = Icons.refresh_rounded;
-        onTap = _fetchWeather;
         break;
       case WeatherErrorType.data:
         label = '--°';
-        subLabel = '天气暂未更新';
+        subLabel = '选个城市看看';
         icon = Icons.refresh_rounded;
-        onTap = _fetchWeather;
         break;
       default:
         label = '--°';
         subLabel = '点我重试';
         icon = Icons.refresh_rounded;
-        onTap = _fetchWeather;
     }
 
     return InkWell(
-      onTap: onTap,
+      onTap: _showWeatherActions,
       borderRadius: BorderRadius.circular(18),
       child: SizedBox(
         width: 118,
@@ -352,9 +539,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     }
 
     return InkWell(
-      onTap: _errorType == WeatherErrorType.permission
-          ? Geolocator.openAppSettings
-          : _fetchWeather,
+      onTap: _showWeatherActions,
       borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
       child: SizedBox(
         height: 64,
@@ -480,10 +665,13 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         ? null
         : '体感 ${_formatDegree(_feelsLike)}';
 
-    return SizedBox(
-      width: 118,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+    return InkWell(
+      onTap: _showWeatherActions,
+      borderRadius: BorderRadius.circular(18),
+      child: SizedBox(
+        width: 118,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -571,6 +759,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

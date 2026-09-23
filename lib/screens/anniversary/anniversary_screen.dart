@@ -4,7 +4,6 @@ import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
-import '../../widgets/app_icon.dart';
 
 class AnniversaryScreen extends StatefulWidget {
   const AnniversaryScreen({super.key});
@@ -38,9 +37,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   static const String _emptyTitle = '\u8fd8\u6ca1\u6709\u7eaa\u5ff5\u65e5';
   static const String _emptyBody =
       '\u628a\u91cd\u8981\u7684\u65e5\u5b50\u6536\u8fdb\u6765\uff0c\u5230\u65f6\u95f4\u65f6\u5c31\u4e0d\u4f1a\u9519\u8fc7\u3002';
-  static const String _heroTitle = '\u91cd\u8981\u65e5\u5b50\u63d0\u9192';
-  static const String _heroBody =
-      '\u628a\u503c\u5f97\u8bb0\u4f4f\u7684\u65e5\u5b50\u6536\u8fdb\u6765\uff0c\u5230\u65f6\u95f4\u65f6\u5c31\u4e0d\u4f1a\u9519\u8fc7\u3002';
   static const String _heroEmpty =
       '\u8fd8\u6ca1\u6709\u7eaa\u5ff5\u65e5\uff0c\u5148\u628a\u6700\u91cd\u8981\u7684\u90a3\u4e00\u5929\u8bb0\u4e0b\u6765\u5427\u3002';
   static const String _allTitle = '\u5168\u90e8\u7eaa\u5ff5\u65e5';
@@ -84,6 +80,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   List<Map<String, dynamic>> _anniversaries = const [];
   Map<String, dynamic>? _nextAnniversary;
   int _nextDays = 0;
+  String? _expandedId;
 
   @override
   void initState() {
@@ -525,12 +522,11 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(title: const Text(_pageTitle)),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditSheet(),
         backgroundColor: context.lgInk,
         foregroundColor: Colors.white,
-        icon: AppIcon('plus'),
-        label: const Text(_addTitle),
+        child: const Icon(Icons.add_rounded, size: 28),
       ),
       body: LovePage(
         padding: EdgeInsets.zero,
@@ -570,163 +566,91 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
         _typeConfig[_text(next?['type'], fallback: 'custom')] ??
             _typeConfig['custom']!;
     final nextDate = next == null ? null : _nextOccurrence(next);
+    final name = next == null ? '' : _text(next['title'], fallback: '纪念日');
+    final weekday = nextDate == null
+        ? ''
+        : ['一', '二', '三', '四', '五', '六', '日'][nextDate.weekday - 1];
+    final repeatText =
+        next == null ? '' : _repeatLabel(next['repeatType']);
 
     return LoveTicketCard(
       color: const Color(0xFFFFF7F1),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              LoveStickerIcon(
-                icon: meta.icon,
-                color: meta.color ?? context.lgInk,
-                size: 44,
-                iconSize: 20,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _heroTitle,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: context.lgTextPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      _heroBody,
-                      style: TextStyle(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: next == null
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('下一个重要日子',
+                    style: TextStyle(
                         fontSize: 12,
-                        color: context.lgTextSecondary,
-                      ),
+                        fontWeight: FontWeight.w800,
+                        color: context.lgEmotion)),
+                const SizedBox(height: 10),
+                Text(_heroEmpty,
+                    style: TextStyle(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: context.lgTextSecondary)),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('下一个重要日子',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: context.lgEmotion)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    LoveStickerIcon(
+                      icon: meta.icon,
+                      color: meta.color ?? context.lgInk,
+                      size: 40,
+                      iconSize: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: context.lgTextPrimary)),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 18),
-          if (next == null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(180),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.lgSeparator),
-              ),
-              child: Text(
-                _heroEmpty,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  color: context.lgTextSecondary,
+                const SizedBox(height: 6),
+                Text(
+                  '${_formatDate(nextDate!, withYear: true)}'
+                  '${weekday.isEmpty ? '' : ' · 星期$weekday'}'
+                  '${repeatText.isEmpty ? '' : ' · $repeatText'}',
+                  style: TextStyle(
+                      fontSize: 12.5, color: context.lgTextSecondary),
                 ),
-              ),
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 104,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: meta.color ?? context.lgInk,
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '$_nextDays',
-                        style: const TextStyle(
-                          fontSize: 34,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        _nextDays == 0
-                            ? '\u5c31\u662f\u4eca\u5929'
-                            : '\u5929\u540e\u5230\u6765',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(180),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: context.lgSeparator),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _text(next['title'], fallback: _pageTitle),
-                          style: TextStyle(
-                            fontSize: 17,
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text('$_nextDays',
+                        style: TextStyle(
+                            fontSize: 58,
+                            height: 1,
                             fontWeight: FontWeight.w900,
-                            color: context.lgTextPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          nextDate == null
-                              ? _text(next['eventDate'])
-                              : _formatDate(nextDate, withYear: true),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.lgTextSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            LovePill(
-                              text: meta.label,
-                              icon: meta.icon,
-                              color: meta.color ?? context.lgInk,
-                            ),
-                            LovePill(
-                              text: _repeatLabel(next['repeatType']),
-                              color: LoveGirlTheme.secondary,
-                              background: context.lgSecondarySoft,
-                            ),
-                            if (next['isLunar'] == true)
-                              LovePill(
-                                text: '\u519c\u5386\u6807\u8bb0',
-                                icon: Icons.nights_stay_outlined,
-                                color: context.lgTextMuted,
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                            color: context.lgEmotion)),
+                    const SizedBox(width: 8),
+                    Text('天后',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: context.lgTextSecondary)),
+                  ],
                 ),
               ],
             ),
-        ],
-      ),
     );
   }
 
@@ -806,143 +730,142 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     final nextDate = _nextOccurrence(item);
     final daysUntil = _daysUntil(nextDate);
     final description = _displayDescription(item, daysUntil);
+    final rowId = item['id']?.toString();
+    final expanded = rowId != null && _expandedId == rowId;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: LoveTicketCard(
-        color: Colors.white,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LoveStickerIcon(
-                  icon: meta.icon,
-                  color: meta.color ?? context.lgInk,
-                  size: 40,
-                  iconSize: 18,
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: () =>
+            setState(() => _expandedId = expanded ? null : rowId),
+        child: LoveTicketCard(
+          color: Colors.white,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  LoveStickerIcon(
+                    icon: meta.icon,
+                    color: meta.color ?? context.lgInk,
+                    size: 36,
+                    iconSize: 16,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _text(item['title'], fallback: _pageTitle),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: context.lgTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _formatDate(nextDate, withYear: true),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.lgTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
                     children: [
                       Text(
-                        _text(item['title'], fallback: _pageTitle),
+                        daysUntil == 0 ? '今天' : '$daysUntil',
                         style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: context.lgTextPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        _formatDate(nextDate, withYear: true),
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: context.lgTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 68,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: daysUntil == 0
-                        ? context.lgInk
-                        : context.lgPaperWarm,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        daysUntil == 0 ? '\u4eca\u5929' : '$daysUntil',
-                        style: TextStyle(
-                          fontSize: 17,
+                          fontSize: 20,
                           fontWeight: FontWeight.w900,
                           color: daysUntil == 0
-                              ? Colors.white
+                              ? context.lgEmotion
                               : context.lgTextPrimary,
                         ),
                       ),
-                      SizedBox(height: 2),
                       Text(
-                        daysUntil == 0 ? '\u5230\u5566' : '\u5929',
+                        daysUntil == 0 ? '到啦' : '天后',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w700,
-                          color: daysUntil == 0
-                              ? Colors.white
-                              : context.lgTextMuted,
+                          color: context.lgTextMuted,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            if (description.isNotEmpty) ...[
-              SizedBox(height: 12),
-              Text(
-                description,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: context.lgTextSecondary,
-                ),
+                ],
               ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                LovePill(
-                  text: meta.label,
-                  icon: meta.icon,
-                  color: meta.color ?? context.lgInk,
-                ),
-                LovePill(
-                  text: _repeatLabel(item['repeatType']),
-                  color: LoveGirlTheme.secondary,
-                  background: context.lgSecondarySoft,
-                ),
-                if (item['isLunar'] == true)
-                  LovePill(
-                    text: '\u519c\u5386\u6807\u8bb0',
-                    icon: Icons.nights_stay_outlined,
-                    color: context.lgTextMuted,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showAddEditSheet(item: item),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('\u7f16\u8f91'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _deleteAnniversary(item),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: LoveGirlTheme.red,
-                      side: const BorderSide(color: LoveGirlTheme.red),
+              if (expanded) ...[
+                const SizedBox(height: 10),
+                if (description.isNotEmpty)
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: context.lgTextSecondary,
                     ),
-                    label: const Text('\u5220\u9664'),
                   ),
+                if (description.isNotEmpty) const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    LovePill(
+                      text: meta.label,
+                      icon: meta.icon,
+                      color: meta.color ?? context.lgInk,
+                    ),
+                    LovePill(
+                      text: _repeatLabel(item['repeatType']),
+                      color: LoveGirlTheme.secondary,
+                      background: context.lgSecondarySoft,
+                    ),
+                    if (item['isLunar'] == true)
+                      LovePill(
+                        text: '农历标记',
+                        icon: Icons.nights_stay_outlined,
+                        color: context.lgTextMuted,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showAddEditSheet(item: item),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('编辑'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _deleteAnniversary(item),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            size: 16),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: LoveGirlTheme.red,
+                          side:
+                              const BorderSide(color: LoveGirlTheme.red),
+                        ),
+                        label: const Text('删除'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
