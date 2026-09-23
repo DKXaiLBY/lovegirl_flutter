@@ -1244,7 +1244,22 @@ class _TravelTicket extends StatelessWidget {
       if (endDate.isNotEmpty && endDate != startDate) endDate,
     ].join(' - ');
 
-    return LoveTicketCard(
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: -8,
+          left: 30,
+          child: Opacity(
+            opacity: context.lgIsDark ? 0.5 : 1,
+            child: Transform.rotate(
+              angle: -0.42,
+              child: Image.asset('assets/images/deco/tape_sage_stripe.png',
+                  width: 82, height: 22, fit: BoxFit.fill),
+            ),
+          ),
+        ),
+        LoveTicketCard(
       key: const ValueKey('home_travel_ticket'),
       color: context.lgSecondarySoft,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -1305,7 +1320,8 @@ class _TravelTicket extends StatelessWidget {
           ],
         ),
       ),
-    );
+    )],
+      );
   }
 }
 

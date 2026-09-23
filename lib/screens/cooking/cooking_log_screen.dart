@@ -8,7 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../widgets/empty_state.dart';
+import '../../widgets/polaroid_card.dart';
 import '../../widgets/lovegirl_ui.dart';
 
 /// 美食手账：两个人的餐桌相册。
@@ -319,12 +319,63 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                       child: _logs.isEmpty
                           ? ListView(children: [
                               const SizedBox(height: 100),
-                              EmptyState(
-                                icon: Icons.restaurant_rounded,
-                                title: '餐桌相册还空着',
-                                subtitle: '记下第一道菜，从今天开始收藏你们的三餐四季',
-                                onRetry: _load,
-                                retryText: '刷新',
+                              Column(
+                                children: [
+                                  Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: 86,
+                                        height: 86,
+                                        decoration: const BoxDecoration(
+                                          color: LoveGirlTheme.secondarySoft,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: const Text('💑',
+                                            style: TextStyle(fontSize: 40)),
+                                      ),
+                                      const Positioned(
+                                        top: -8,
+                                        right: -14,
+                                        child: Text('✨',
+                                            style: TextStyle(fontSize: 16)),
+                                      ),
+                                      const Positioned(
+                                        bottom: -4,
+                                        left: -16,
+                                        child: Text('💛',
+                                            style: TextStyle(fontSize: 13)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  const Text('第一道菜放这里',
+                                      style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '记下第一道菜，从今天开始收藏你们的三餐四季',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: context.lgTextSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  OutlinedButton(
+                                    onPressed: _load,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: context.lgInk,
+                                      side: BorderSide(
+                                          color: context.lgSeparator),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(999)),
+                                    ),
+                                    child: const Text('刷新'),
+                                  ),
+                                ],
                               ),
                             ])
                           : _buildGroupedList(context),
@@ -353,6 +404,10 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
       itemBuilder: (_, i) {
         final key = keys[i];
         final items = groups[key]!;
+        final groupStart = groups.entries
+            .toList()
+            .take(i)
+            .fold(0, (acc, e) => acc + e.value.length);
         final label = '${key.substring(0, 4)}年${key.substring(5, 7)}月';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,12 +430,24 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            ...items.map((log) => _CookingCard(
-                  log: log,
-                  myId: myId,
-                  onTaste: () => _taste(log),
-                  onDeleted: _load,
-                )),
+            ...items.asMap().entries.map((e) {
+              final seq = groupStart + e.key;
+              final rotations = [-0.018, 0.014, 0.02, -0.012];
+              final tapes = [
+                'assets/images/deco/tape_sage_stripe.png',
+                'assets/images/deco/tape_coral.png',
+                'assets/images/deco/tape_cream.png',
+                'assets/images/deco/tape_frost.png',
+              ];
+              return _CookingCard(
+                log: e.value,
+                myId: myId,
+                rotation: rotations[seq % 4],
+                tapeAsset: tapes[seq % 4],
+                onTaste: () => _taste(e.value),
+                onDeleted: _load,
+              );
+            }),
             const SizedBox(height: 18),
           ],
         );
@@ -394,12 +461,16 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
 class _CookingCard extends StatelessWidget {
   final Map<String, dynamic> log;
   final int myId;
+  final double rotation;
+  final String tapeAsset;
   final VoidCallback onTaste;
   final VoidCallback onDeleted;
 
   const _CookingCard({
     required this.log,
     required this.myId,
+    required this.rotation,
+    required this.tapeAsset,
     required this.onTaste,
     required this.onDeleted,
   });
@@ -446,62 +517,46 @@ class _CookingCard extends StatelessWidget {
     // myId 未加载完成时不渲染任何操作按钮，避免误判
     final needsTaste = myId > 0 && eaterRating == 0 && !iAmChef;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: context.lgPaper,
-        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-        border: Border.all(color: context.lgSeparator),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
+    final hasPhoto = photo != null && photo.isNotEmpty;
+    final photoArea = SizedBox(
+      height: 195,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (hasPhoto)
+            Image.network(
+              photo.startsWith('http') ? photo : '${AppConstants.baseUrl}$photo',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _photoFallback(context),
+            )
+          else
+            _photoFallback(context),
+          if (isNew)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: LoveGirlTheme.brandEmotion.withAlpha(235),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text('新菜',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white)),
+              ),
+            ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (photo != null && photo.isNotEmpty)
-              Stack(
-                children: [
-                  Image.network(
-                    photo.startsWith('http')
-                        ? photo
-                        : '${AppConstants.baseUrl}$photo',
-                    width: double.infinity,
-                    height: 180,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                  if (isNew)
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: LoveGirlTheme.brandEmotion.withAlpha(230),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Text('新菜',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white)),
-                      ),
-                    ),
-                ],
-              ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    );
+
+    final caption = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
                   Row(
                     children: [
                       Text(log['emoji']?.toString() ?? '🍳',
@@ -516,7 +571,7 @@ class _CookingCard extends StatelessWidget {
                               fontSize: 17, fontWeight: FontWeight.w800),
                         ),
                       ),
-                      if (photo == null || photo.isEmpty)
+                      if (!hasPhoto)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
@@ -659,12 +714,26 @@ class _CookingCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
-          ],
+    ],
+    );
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: PolaroidCard(
+          rotation: rotation,
+          tapeAsset: tapeAsset,
+          photo: photoArea,
+          caption: caption,
         ),
-      ),
+      );
+  }
+
+  /// 照片缺失时的拍立得"相片区"：暖色底 + 大 emoji
+  Widget _photoFallback(BuildContext context) {
+    return Container(
+      color: LoveGirlTheme.primarySoft,
+      alignment: Alignment.center,
+      child: Text(log['emoji']?.toString() ?? '🍳',
+          style: const TextStyle(fontSize: 58)),
     );
   }
 }

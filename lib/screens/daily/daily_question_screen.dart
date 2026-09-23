@@ -332,6 +332,15 @@ class _RevealCard extends StatelessWidget {
                 color: context.lgTextPrimary,
               ),
             ),
+            const SizedBox(width: 8),
+            Opacity(
+              opacity: context.lgIsDark ? 0.5 : 1,
+              child: Transform.rotate(
+                angle: -0.08,
+                child: Image.asset('assets/images/deco/tape_coral.png',
+                    width: 46, height: 12, fit: BoxFit.fill),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
