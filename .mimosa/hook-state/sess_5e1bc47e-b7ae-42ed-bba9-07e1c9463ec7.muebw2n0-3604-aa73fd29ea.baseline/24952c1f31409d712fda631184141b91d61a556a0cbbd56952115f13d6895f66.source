@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+"""P0-3 v4 行级保守替换：
+- 仅处理【单行】【无嵌套括号】【参数仅 size】的 Icon(Icons.x) 调用
+- 其余全部保留并输出到 skipped 清单（人工跟进）
+"""
+import io, sys, os, re
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+MAPPING = {
+    'search_rounded': 'search', 'search': 'search',
+    'close_rounded': 'close', 'close': 'close',
+    'arrow_back_rounded': 'back', 'arrow_back_ios_new_rounded': 'back',
+    'chevron_right_rounded': 'chevron_right', 'chevron_right': 'chevron_right',
+    'add_rounded': 'plus', 'add': 'plus', 'remove_rounded': 'minus',
+    'check_rounded': 'check', 'check': 'check',
+    'favorite_rounded': 'heart', 'favorite_border_rounded': 'heart', 'favorite_outline': 'heart', 'favorite': 'heart',
+    'star_rounded': 'star', 'star': 'star',
+    'photo_library_outlined': 'photo', 'photo_camera_rounded': 'camera',
+    'auto_awesome_rounded': 'sparkle', 'auto_awesome': 'sparkle',
+    'auto_stories_rounded': 'auto_stories', 'auto_stories': 'auto_stories',
+    'menu_book_rounded': 'auto_stories', 'menu_book': 'auto_stories', 'menu_book_outlined': 'auto_stories',
+    'my_location_rounded': 'location', 'location_on_rounded': 'location', 'location_on': 'location',
+    'place_rounded': 'location', 'place': 'location',
+    'layers_rounded': 'layers', 'layers': 'layers',
+    'alt_route_rounded': 'route', 'alt_route': 'route', 'route_rounded': 'route',
+    'map_rounded': 'map', 'map_outlined': 'map',
+    'home_rounded': 'home', 'home_outlined': 'home',
+    'grid_view_rounded': 'grid',
+    'person_rounded': 'profile', 'person_outline_rounded': 'profile', 'person_outline': 'profile',
+    'school_rounded': 'school', 'school_outlined': 'school',
+    'savings_rounded': 'savings', 'savings_outlined': 'savings',
+    'water_drop_rounded': 'water_drop', 'water_drop_outlined': 'water_drop',
+    'restaurant_rounded': 'restaurant', 'restaurant_menu_rounded': 'restaurant', 'local_drink_rounded': 'restaurant',
+    'cloud_off_rounded': 'cloud_off', 'cloud_off': 'cloud_off',
+    'refresh_rounded': 'refresh', 'refresh': 'refresh',
+    'traffic_rounded': 'traffic',
+    'settings_outlined': 'sliders', 'tune_rounded': 'sliders', 'sliders': 'sliders',
+    'edit_rounded': 'edit', 'edit_outlined': 'edit',
+    'delete_outline_rounded': 'trash', 'delete_rounded': 'trash', 'delete': 'trash',
+    'undo_rounded': 'undo', 'undo': 'undo',
+    'notifications_rounded': 'bell', 'notifications': 'bell',
+    'confirmation_number_rounded': 'ticket', 'confirmation_number_outlined': 'ticket',
+    'inventory_2_outlined': 'ticket', 'luggage_rounded': 'ticket',
+    'health_and_safety_rounded': 'heart',
+    'volunteer_activism_outlined': 'heart',
+    'wallet_outlined': 'savings', 'wallet_travel_rounded': 'savings',
+    'travel_explore_rounded': 'location',
+    'swap_horiz_rounded': 'flip', 'flip_rounded': 'flip',
+    'shopping_bag_rounded': 'shopping_bag', 'shopping_bag_outlined': 'shopping_bag',
+    'receipt_long_rounded': 'ticket', 'verified_rounded': 'check',
+    'radio_button_unchecked': 'radio_button_unchecked',
+}
+
+total = 0
+changed = []
+
+for root, dirs, files in os.walk('lib'):
+    for fn in files:
+        if not fn.endswith('.dart'):
+            continue
+        path = os.path.join(root, fn)
+        lines = open(path, encoding='utf-8').read().split('\n')
+        modified = False
+        for li, line in enumerate(lines):
+            if 'Icon(Icons.' not in line:
+                continue
+            # 单行、无嵌套括号才处理
+            if line.count('(') != 1 or line.count(')') != 1:
+                continue
+            m = re.search(r'Icons\.(\w+)\)', line)
+            if not m:
+                continue
+            icon = m.group(1)
+            asset = MAPPING.get(icon)
+            if not asset:
+                continue
+            sm = re.search(r'size:\s*([\d.]+)', line)
+            size = f', size: {sm.group(1)}' if sm else ''
+            new_line = re.sub(
+                r'(?:const )?Icon\(Icons\.' + icon + r'\)',
+                "AppIcon('" + asset + "'" + size + ")",
+                line)
+            if new_line == line:
+                continue
+            lines[li] = new_line
+            modified = True
+            total += 1
+
+        if modified:
+            s = '\n'.join(lines)
+            if 'AppIcon(' in s and 'app_icon.dart' not in s:
+                rel = '../' * (path.count(os.sep) - 1)
+                imp = f"import '{rel}widgets/app_icon.dart';"
+                ls = s.split('\n')
+                last = max(i for i, l in enumerate(ls) if l.startswith('import '))
+                ls.insert(last + 1, imp)
+                s = '\n'.join(ls)
+            open(path, 'w', encoding='utf-8').write(s)
+            changed.append(path)
+
+print('total replaced:', total)
+print('changed files:', len(changed))
+for p in changed:
+    print(' ', p)

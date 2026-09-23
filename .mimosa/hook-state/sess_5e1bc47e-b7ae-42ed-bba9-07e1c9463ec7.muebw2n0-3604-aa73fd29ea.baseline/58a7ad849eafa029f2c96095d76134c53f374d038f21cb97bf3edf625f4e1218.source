@@ -1,0 +1,60 @@
+import subprocess, re, io, collections
+
+def analyze():
+    r = subprocess.run(['D:/flutter-sdk/bin/flutter.bat', 'analyze'],
+                       capture_output=True, text=True, timeout=300,
+                       cwd='D:/lovegirl_flutter')
+    errs = []      # (file, line) invalid_constant
+    noctx = []     # (file, line, msg) undefined context
+    rx = re.compile(r'\s*error - (.+?) - (.+?):(\d+):\d+ - (.+)$')
+    for line in r.stdout.splitlines():
+        m = rx.match(line.rstrip())
+        if not m:
+            continue
+        msg, path, ln, code = m.group(1), m.group(2), int(m.group(3)), m.group(4)
+        path = path.replace(os.sep, '/')
+        if 'invalid_constant' in code or 'Invalid constant' in msg:
+            errs.append((path, ln))
+        elif 'undefined_identifier' in code and 'context' in msg:
+            noctx.append((path, ln, msg))
+    return errs, noctx
+
+import os
+const_rx = re.compile(r'(?<![\w.])const\s')
+for it in range(60):
+    errs, noctx = analyze()
+    print('iter', it, 'invalid_constant', len(errs), 'no-context', len(noctx))
+    if noctx:
+        for f, ln, msg in sorted(set(noctx)):
+            print('  NOCTX', f, ln, msg)
+    if not errs:
+        print('DONE')
+        break
+    byfile = collections.defaultdict(set)
+    for f, ln in errs:
+        byfile[f].add(ln)
+    fixed = 0
+    for f, lines in byfile.items():
+        src = io.open(f, encoding='utf-8').read().splitlines(keepends=True)
+        done = set()
+        for ln in sorted(lines):
+            i = ln - 1
+            j = i
+            while j >= max(0, i - 200):
+                if '//' in src[j] and src[j].find('//') < src[j].find('const'):
+                    j -= 1
+                    continue
+                m = const_rx.search(src[j])
+                if m and (j + 1) not in done:
+                    s, e = m.span()
+                    src[j] = src[j][:s] + src[j][e:]
+                    done.add(j + 1)
+                    fixed += 1
+                    break
+                j -= 1
+        io.open(f, 'w', encoding='utf-8', newline='').write(''.join(src))
+    if fixed == 0:
+        print('STUCK')
+        for f, ln in errs[:20]:
+            print('  STUCK-ERR', f, ln)
+        break

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/lovegirl_theme.dart';
@@ -293,6 +294,8 @@ class LetterComposeScreen extends StatefulWidget {
 class _LetterComposeScreenState extends State<LetterComposeScreen> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _content = TextEditingController();
+  final FocusNode _contentFocus = FocusNode();
+  String? _contentError;
   DateTime _unlockDate = DateTime.now().add(const Duration(days: 30));
   bool _sending = false;
 
@@ -300,6 +303,7 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
   void dispose() {
     _title.dispose();
     _content.dispose();
+    _contentFocus.dispose();
     super.dispose();
   }
 
@@ -325,11 +329,11 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
   Future<void> _send() async {
     if (_sending) return;
     if (_content.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('信还空着呢，写点什么吧'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
-      ));
+      // 行内校验：正文框红边+错误文案，收起键盘让错误可见（snackbar 会被键盘挡住）
+      setState(() => _contentError = '信还空着呢，写点什么吧');
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      if (_contentFocus.hasFocus) _contentFocus.unfocus();
+      HapticFeedback.selectionClick();
       return;
     }
     setState(() => _sending = true);
@@ -400,11 +404,18 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
                         const SizedBox(height: 10),
                         TextField(
                           controller: _content,
+                          focusNode: _contentFocus,
                           maxLines: 10,
                           maxLength: 5000,
-                          decoration: const InputDecoration(
+                          onChanged: (v) {
+                            if (_contentError != null && v.trim().isNotEmpty) {
+                              setState(() => _contentError = null);
+                            }
+                          },
+                          decoration: InputDecoration(
                             hintText: '写下现在想说的话…\n到拆信那天，它会变成一份来自过去的礼物',
                             border: InputBorder.none,
+                            errorText: _contentError,
                           ),
                           style: const TextStyle(
                               fontSize: 15, height: 1.7),

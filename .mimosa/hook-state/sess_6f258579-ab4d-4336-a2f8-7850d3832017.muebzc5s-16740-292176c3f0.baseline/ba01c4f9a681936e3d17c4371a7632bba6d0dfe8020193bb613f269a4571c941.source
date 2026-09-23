@@ -1,0 +1,87 @@
+# -*- coding: utf-8 -*-
+"""生成贴纸层装饰素材（和纸胶带 PNG）。
+静态素材文件，非运行时绘制；确定性随机保证可重现。
+用法：python tools/generate_deco_assets.py
+"""
+import os
+import random
+
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+OUT = os.path.join(os.path.dirname(__file__), '..', 'assets', 'images', 'deco')
+W, H = 600, 140  # 高清素材，App 内缩到 ~110x26 显示
+
+
+def torn_ends_mask(seed):
+    """左右两端撕边：不规则锯齿 alpha 掩码（0=裁掉）。"""
+    mask = Image.new('L', (W, H), 255)
+    md = ImageDraw.Draw(mask)
+    for side, s2 in (('L', seed), ('R', seed + 1)):
+        rnd = random.Random(s2)
+        steps = 9
+        pts = []
+        for i in range(steps + 1):
+            y = int(H * i / steps)
+            jx = rnd.randint(2, 30)
+            x = jx if side == 'L' else W - jx
+            pts.append((x, y))
+        poly = pts + ([(0, H), (0, 0)] if side == 'L' else [(W, H), (W, 0)])
+        md.polygon(poly, fill=0)
+    return mask
+
+
+def make_tape(filename, rgb, alpha=150, stripes=False, seed=7):
+    img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    base = Image.new('RGBA', (W, H), rgb + (alpha,))
+    d = ImageDraw.Draw(base)
+    rnd = random.Random(seed)
+    # 纤维纹理：短横向细线，透明度轻微抖动
+    for _ in range(240):
+        y = rnd.randint(0, H - 1)
+        x = rnd.randint(0, W - 80)
+        ln = rnd.randint(20, 70)
+        da = rnd.randint(-26, 20)
+        d.line([(x, y), (x + ln, y)],
+               fill=rgb + (max(0, min(255, alpha + da)),), width=1)
+    if stripes:
+        stripe = rgb + (min(255, alpha + 32),)
+        for x0 in range(-H, W + H, 36):
+            d.line([(x0, H), (x0 + H, 0)], fill=stripe, width=9)
+    img = Image.alpha_composite(img, base.filter(ImageFilter.GaussianBlur(0.6)))
+
+    a = ImageChops.multiply(img.getchannel('A'), torn_ends_mask(seed))
+    img.putalpha(a)
+    img.save(os.path.join(OUT, filename))
+    print('生成', filename)
+
+
+def make_paper_texture(filename='paper_texture.png', size=256, seed=99):
+    """可平铺暖纸纹理（低对比噪点+细纤维），平铺做收集本背景。"""
+    rnd = random.Random(seed)
+    img = Image.new('RGB', (size, size), (255, 248, 243))
+    d = ImageDraw.Draw(img)
+    for _ in range(900):
+        x, y = rnd.randint(0, size - 1), rnd.randint(0, size - 1)
+        v = rnd.randint(-6, 6)
+        d.point((x, y), fill=(255 + v, 248 + v // 2, 243 + v // 2))
+    for _ in range(60):
+        x, y = rnd.randint(0, size - 1), rnd.randint(0, size - 1)
+        ln = rnd.randint(8, 26)
+        d.line([(x, y), (x + ln, y)], fill=(250, 242, 235), width=1)
+    img.save(os.path.join(OUT, filename))
+    print('生成', filename)
+
+
+def main():
+    os.makedirs(OUT, exist_ok=True)
+    make_paper_texture()
+    make_tape('tape_sage.png', (122, 158, 126), alpha=150, seed=11)                      # 灰绿实色
+    make_tape('tape_coral.png', (184, 92, 56), alpha=148, seed=23)                      # 陶土橘实色
+    make_tape('tape_cream.png', (231, 183, 138), alpha=150, seed=37)                    # 杏黄实色
+    make_tape('tape_sage_stripe.png', (122, 158, 126), alpha=138, stripes=True, seed=51)  # 灰绿斜纹
+    make_tape('tape_frost.png', (255, 255, 255), alpha=185, seed=67)                    # 磨砂白
+    print('全部素材输出到', os.path.abspath(OUT))
+
+
+if __name__ == '__main__':
+    main()

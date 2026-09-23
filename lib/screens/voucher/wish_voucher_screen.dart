@@ -682,6 +682,8 @@ class _CreateVoucherSheet extends StatefulWidget {
 class _CreateVoucherSheetState extends State<_CreateVoucherSheet> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _cost = TextEditingController();
+  String? _titleError;
+  String? _costError;
   String _emoji = '🎁';
   bool _sending = false;
 
@@ -699,18 +701,21 @@ class _CreateVoucherSheetState extends State<_CreateVoucherSheet> {
     final title = _title.text.trim();
     final cost = int.tryParse(_cost.text.trim()) ?? 0;
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('给券起个名字吧'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 1)));
+      // 行内校验：字段红框+错误文案（底部 snackbar 会被键盘挡住）
+      setState(() => _titleError = '给券起个名字吧');
+      HapticFeedback.selectionClick();
       return;
     }
     if (cost <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('定个豆价（大于 0）'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 1)));
+      setState(() => _costError = '定个豆价（大于 0）');
+      HapticFeedback.selectionClick();
       return;
+    }
+    if (_titleError != null || _costError != null) {
+      setState(() {
+        _titleError = null;
+        _costError = null;
+      });
     }
     setState(() => _sending = true);
     try {
@@ -791,7 +796,13 @@ class _CreateVoucherSheetState extends State<_CreateVoucherSheet> {
             TextField(
               controller: _title,
               maxLength: 60,
+              onChanged: (v) {
+                if (_titleError != null && v.trim().isNotEmpty) {
+                  setState(() => _titleError = null);
+                }
+              },
               decoration: InputDecoration(
+                errorText: _titleError,
                 hintText: '券的名字，如「一次肩颈按摩」',
                 filled: true,
                 fillColor: context.lgPaper,
@@ -812,7 +823,13 @@ class _CreateVoucherSheetState extends State<_CreateVoucherSheet> {
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(6)
               ],
+              onChanged: (v) {
+                if (_costError != null && v.trim().isNotEmpty) {
+                  setState(() => _costError = null);
+                }
+              },
               decoration: InputDecoration(
+                errorText: _costError,
                 hintText: '豆价，如 50',
                 filled: true,
                 fillColor: context.lgPaper,

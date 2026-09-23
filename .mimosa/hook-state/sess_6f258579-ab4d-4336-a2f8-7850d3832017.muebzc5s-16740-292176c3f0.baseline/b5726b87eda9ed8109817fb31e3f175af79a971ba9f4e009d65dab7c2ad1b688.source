@@ -1,0 +1,34 @@
+import subprocess, re, io, collections, os
+
+def analyze():
+    r = subprocess.run(['D:/flutter-sdk/bin/flutter.bat', 'analyze'],
+                       capture_output=True, text=True, timeout=300,
+                       cwd='D:/lovegirl_flutter')
+    infos = []
+    rx = re.compile(r'\s*info - (.+?) - (.+?):(\d+):(\d+) - (.+)$')
+    for line in r.stdout.splitlines():
+        m = rx.match(line.rstrip())
+        if not m:
+            continue
+        infos.append((m.group(2).replace(os.sep, '/'), int(m.group(3)),
+                      int(m.group(4)), m.group(5), m.group(1)))
+    return infos
+
+for it in range(10):
+    infos = analyze()
+    tgt = [i for i in infos if i[3] == 'prefer_const_constructors_in_immutables']
+    print('iter', it, 'immutables-const', len(tgt), 'other-infos',
+          len(infos) - len(tgt))
+    if not tgt:
+        break
+    byfile = collections.defaultdict(list)
+    for f, ln, col, _code, _msg in tgt:
+        byfile[f].append((ln, col))
+    for f, spots in byfile.items():
+        src = io.open(f, encoding='utf-8').read().splitlines(keepends=True)
+        for ln, col in sorted(set(spots), reverse=True):
+            text = src[ln - 1]
+            if text[:col - 1].endswith('const '):
+                continue
+            src[ln - 1] = text[:col - 1] + 'const ' + text[col - 1:]
+        io.open(f, 'w', encoding='utf-8', newline='').write(''.join(src))

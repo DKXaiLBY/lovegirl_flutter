@@ -65,3 +65,4 @@ server_fixes/.env
 tmp_*
 build_log*
 node_modules/
+".mimosa/"  

@@ -750,7 +750,9 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
   final TextEditingController _title = TextEditingController();
   final TextEditingController _recipe = TextEditingController();
   final TextEditingController _story = TextEditingController();
+  final ScrollController _sheetScroll = ScrollController();
   final ImagePicker _picker = ImagePicker();
+  String? _titleError;
 
   String _emoji = '🍳';
   bool _isNew = true;
@@ -767,6 +769,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
     _title.dispose();
     _recipe.dispose();
     _story.dispose();
+    _sheetScroll.dispose();
     super.dispose();
   }
 
@@ -797,13 +800,17 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
   Future<void> _submit() async {
     if (_sending) return;
     if (_title.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('这道菜叫什么名字？'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
-      ));
+      // 行内校验：字段红框+错误文案+滚回字段处（底部 snackbar 会被键盘挡住）
+      setState(() => _titleError = '这道菜叫什么名字？');
+      if (_sheetScroll.hasClients) {
+        _sheetScroll.animateTo(0,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut);
+      }
+      HapticFeedback.selectionClick();
       return;
     }
+    if (_titleError != null) setState(() => _titleError = null);
     setState(() => _sending = true);
     try {
       final now = DateTime.now();
@@ -846,6 +853,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
         ),
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         child: SingleChildScrollView(
+          controller: _sheetScroll,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,7 +923,13 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
               TextField(
                 controller: _title,
                 maxLength: 100,
+                onChanged: (v) {
+                  if (_titleError != null && v.trim().isNotEmpty) {
+                    setState(() => _titleError = null);
+                  }
+                },
                 decoration: InputDecoration(
+                  errorText: _titleError,
                   hintText: '这道菜叫什么？*',
                   filled: true,
                   fillColor: Colors.white,
