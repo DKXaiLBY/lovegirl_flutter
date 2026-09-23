@@ -933,12 +933,16 @@ class _PartnerRecentCard extends StatelessWidget {
                   Icon(Icons.favorite_outline,
                       size: 15, color: context.lgEmotion),
                   const SizedBox(width: 8),
-                  Text(
-                    'TA 还没有新动态，去记一道今天的菜吧',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: context.lgTextSecondary,
+                  Expanded(
+                    child: Text(
+                      'TA 还没有新动态，去记一道今天的菜吧',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: context.lgTextSecondary,
+                      ),
                     ),
                   ),
                 ],
