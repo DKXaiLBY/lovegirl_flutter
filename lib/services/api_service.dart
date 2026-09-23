@@ -91,6 +91,30 @@ Map<String, dynamic> _castToTypedMap(dynamic data) {
   return result;
 }
 
+/// 从 DioException 中提取服务器返回的业务 message（后端统一 {code, message} 格式）。
+/// 服务器说的真话（如"先绑定伴侣，把信寄给 TA"）直接展示给用户；
+/// 没有响应体时按异常类型给可读文案，绝不显示裸 toString。
+String extractServerMessage(Object error, {String fallback = '操作失败，请稍后再试'}) {
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map) {
+      final msg = data['message']?.toString();
+      if (msg != null && msg.isNotEmpty && msg.length < 100) return msg;
+    }
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return '网络超时了，再试一次';
+      case DioExceptionType.connectionError:
+        return '网络连接失败，检查一下网络';
+      default:
+        break;
+    }
+  }
+  return fallback;
+}
+
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;

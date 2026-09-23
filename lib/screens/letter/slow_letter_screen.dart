@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../services/api_service.dart';
+import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
@@ -341,9 +341,7 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
-      final msg = e.toString().contains('绑定')
-          ? '先绑定伴侣，把信寄给 TA'
-          : '寄出失败，再试一次';
+      final msg = extractServerMessage(e, fallback: '寄出失败，再试一次');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg),
         behavior: SnackBarBehavior.floating,
@@ -500,9 +498,7 @@ class _LetterReadScreenState extends State<LetterReadScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().contains('还没到')
-          ? '还没到解锁的日子，再等等'
-          : '信加载失败');
+      setState(() => _error = extractServerMessage(e, fallback: '信加载失败'));
     }
   }
 

@@ -285,11 +285,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString().contains('SocketException')
-            ? '网络连接失败，请检查网络'
-            : e.toString().contains('Timeout')
-                ? '请求超时，请稍后重试'
-                : '保存失败，请重试';
+        final msg = extractServerMessage(e, fallback: '保存失败，请重试');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),

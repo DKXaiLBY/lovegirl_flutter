@@ -125,11 +125,9 @@ class DailyProvider extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      if (e.toString().contains('409') || e.toString().contains('已经答过')) {
-        await refresh();
-        return '今天已经答过啦';
-      }
-      return '提交失败，再试一次';
+      final msg = extractServerMessage(e, fallback: '提交失败，再试一次');
+      await refresh();
+      return msg;
     }
   }
 }

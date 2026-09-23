@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../services/api_service.dart';
+import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
@@ -110,9 +110,7 @@ class _WishVoucherScreenState extends State<WishVoucherScreen>
       _load();
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().contains('不够')
-          ? '爱心豆不够啦，先去赚豆吧'
-          : '兑换失败，再试一次';
+      final msg = extractServerMessage(e, fallback: '兑换失败，再试一次');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg),
         behavior: SnackBarBehavior.floating,

@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
-import '../../services/api_service.dart';
+import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/polaroid_card.dart';
@@ -163,12 +163,12 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
         duration: Duration(seconds: 1),
       ));
       _load();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('提交失败，再试一次'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(extractServerMessage(e, fallback: '提交失败，再试一次')),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
+        duration: const Duration(seconds: 1),
       ));
     }
   }
@@ -827,7 +827,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
       if (!mounted) return;
       setState(() => _sending = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.toString().contains('名字') ? '这道菜叫什么名字？' : '记录失败，再试一次'),
+        content: Text(extractServerMessage(e, fallback: '记录失败，再试一次')),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 1),
       ));

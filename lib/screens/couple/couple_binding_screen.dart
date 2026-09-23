@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../services/api_service.dart';
+import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
@@ -77,7 +77,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
     } catch (e) {
       LogService().error('Couple', '生成邀请码失败: $e');
       if (mounted) {
-        final msg = e.toString().contains('已经绑定') ? '你已经绑定过了' : '生成失败，请重试';
+        final msg = extractServerMessage(e, fallback: '生成失败，请重试');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
         );
@@ -123,10 +123,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
       LogService().error('Couple', '绑定失败: $e');
       if (mounted) {
         String msg = '绑定失败';
-        if (e.toString().contains('无效')) msg = '邀请码无效或已使用';
-        if (e.toString().contains('过期')) msg = '邀请码已过期，请让对方重新生成';
-        if (e.toString().contains('自己')) msg = '不能和自己绑定哦';
-        if (e.toString().contains('已经绑定')) msg = '你已经绑定过了';
+        msg = extractServerMessage(e, fallback: '绑定失败，请重试');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
         );
