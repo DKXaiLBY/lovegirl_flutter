@@ -23,7 +23,9 @@ class TravelFormScreen extends StatefulWidget {
 }
 
 class _TravelFormScreenState extends State<TravelFormScreen> {
+  final _formScroll = ScrollController();
   final _nameCtrl = TextEditingController();
+  final _nameFocus = FocusNode();
   final _noteCtrl = TextEditingController();
   final _diaryCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
@@ -45,6 +47,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   String _address = '';
   double? _cityFocusLat;
   double? _cityFocusLng;
+  String? _nameError;
+  String? _cityError;
   bool _saving = false;
 
   bool get _isEditing => widget.spot != null;
@@ -97,6 +101,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   @override
   void dispose() {
+    _formScroll.dispose();
+    _nameFocus.dispose();
     _nameCtrl.dispose();
     _noteCtrl.dispose();
     _diaryCtrl.dispose();
@@ -112,7 +118,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   Future<void> _pickCity() async {
     final city = await showCityPicker(context, currentCity: _city);
     if (city == null) return;
-    setState(() => _city = city);
+    setState(() {
+      _city = city;
+      _cityError = null;
+    });
     // 后台解析城市中心坐标：进选点页直接落到该城市，不用在中国地图上找
     if (_lat == 0 && _lng == 0) {
       try {
@@ -186,18 +195,32 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('请输入地点名称'), behavior: SnackBarBehavior.floating),
-      );
+      // 行内校验：字段红框+错误文案+滚回字段处（底部 snackbar 会被键盘挡住）
+      setState(() => _nameError = '请输入地点名称');
+      FocusScope.of(context).requestFocus(_nameFocus);
+      if (_formScroll.hasClients) {
+        _formScroll.animateTo(0,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut);
+      }
+      HapticFeedback.selectionClick();
       return;
     }
     if (_city.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('请选择城市'), behavior: SnackBarBehavior.floating),
-      );
+      setState(() => _cityError = '请选择城市');
+      if (_formScroll.hasClients) {
+        _formScroll.animateTo(0,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut);
+      }
+      HapticFeedback.selectionClick();
       return;
+    }
+    if (_nameError != null || _cityError != null) {
+      setState(() {
+        _nameError = null;
+        _cityError = null;
+      });
     }
 
     setState(() => _saving = true);
@@ -347,6 +370,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         ],
       ),
       body: ListView(
+        controller: _formScroll,
         padding: const EdgeInsets.all(16),
         children: [
           // 地点名称
@@ -354,7 +378,14 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           const SizedBox(height: 6),
           TextField(
             controller: _nameCtrl,
-            decoration: _inputDecoration('例如：故宫博物院'),
+            focusNode: _nameFocus,
+            onChanged: (v) {
+              if (_nameError != null && v.trim().isNotEmpty) {
+                setState(() => _nameError = null);
+              }
+            },
+            decoration:
+                _inputDecoration('例如：故宫博物院').copyWith(errorText: _nameError),
           ),
           const SizedBox(height: 16),
 
@@ -363,34 +394,50 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           const SizedBox(height: 6),
           GestureDetector(
             onTap: _pickCity,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: context.lgBg,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.black.withAlpha(15)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.location_city,
-                      size: 20, color: context.lgTextMuted),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _city.isEmpty ? '点击选择城市' : _city,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: _city.isEmpty
-                            ? context.lgTextMuted
-                            : context.lgTextPrimary,
-                      ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: context.lgBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _cityError != null
+                          ? LoveGirlTheme.red
+                          : Colors.black.withAlpha(15),
                     ),
                   ),
-                  Icon(Icons.chevron_right,
-                      size: 20, color: context.lgTextMuted),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_city,
+                          size: 20, color: context.lgTextMuted),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _city.isEmpty ? '点击选择城市' : _city,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: _city.isEmpty
+                                ? context.lgTextMuted
+                                : context.lgTextPrimary,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right,
+                          size: 20, color: context.lgTextMuted),
+                    ],
+                  ),
+                ),
+                if (_cityError != null) ...[
+                  const SizedBox(height: 6),
+                  Text(_cityError!,
+                      style: const TextStyle(
+                          color: LoveGirlTheme.red, fontSize: 12)),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
