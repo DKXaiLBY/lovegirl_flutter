@@ -302,6 +302,8 @@ class ApiService {
   // ========== 相册 ==========
   Future getPhotos() => get('/api/photo');
   Future deletePhoto(int id) => delete('/api/photo/$id');
+  Future updatePhotoDescription(int id, String description) =>
+      put('/api/photo/$id/description', data: {'description': description});
 
   // ========== 心情 ==========
   Future getMoods(String month) => get('/api/mood', query: {'month': month});

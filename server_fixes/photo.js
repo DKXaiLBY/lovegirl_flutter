@@ -89,6 +89,26 @@ router.post('/upload', authRequired, upload.single('file'), async (req, res) => 
   }
 });
 
+// PUT /api/photo/:id/description — 编辑照片背后的故事（拍立得背卡）
+router.put('/:id/description', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const photoId = parseInt(req.params.id);
+    const desc = String(req.body.description ?? '').trim().slice(0, 500);
+    const [result] = await pool.query(
+      'UPDATE photos SET description = ? WHERE id = ? AND user_id = ?',
+      [desc, photoId, userId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ code: 404, message: '照片不存在' });
+    }
+    res.json({ code: 200, message: '已保存', data: { description: desc } });
+  } catch (err) {
+    console.error('[Photo] 描述保存失败:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 // DELETE /api/photo/:id — 删除照片
 router.delete('/:id', authRequired, async (req, res) => {
   try {
