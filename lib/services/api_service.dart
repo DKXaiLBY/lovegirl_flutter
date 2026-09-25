@@ -304,6 +304,8 @@ class ApiService {
   Future deletePhoto(int id) => delete('/api/photo/$id');
   Future updatePhotoDescription(int id, String description) =>
       put('/api/photo/$id/description', data: {'description': description});
+  Future updatePhotoBackMessage(int id, String backMessage) =>
+      put('/api/photo/$id/back_message', data: {'backMessage': backMessage});
 
   // ========== 心情 ==========
   Future getMoods(String month) => get('/api/mood', query: {'month': month});

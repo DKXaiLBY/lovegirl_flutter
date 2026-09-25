@@ -1,8 +1,12 @@
+import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show ImageByteFormat;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
@@ -181,10 +185,41 @@ class _PhotoScreenState extends State<PhotoScreen> {
     final id = (photo['id'] as num?)?.toInt() ?? 0;
     final descCtrl =
         TextEditingController(text: photo['description']?.toString() ?? '');
+    final backCtrl =
+        TextEditingController(text: photo['back_message']?.toString() ?? '');
     final url = (photo['url'] ?? photo['image'] ?? '').toString();
     final fullUrl =
         url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
     var saving = false;
+    final boundaryKey = GlobalKey();
+
+    Future<void> savePolaroid(BuildContext sheetCtx) async {
+      try {
+        final b = boundaryKey.currentContext?.findRenderObject();
+        if (b is! RenderRepaintBoundary) return;
+        final image = await b.toImage(pixelRatio: 3);
+        final data = await image.toByteData(format: ImageByteFormat.png);
+        image.dispose();
+        if (data == null) throw Exception('capture failed');
+        final dir = await getExternalStorageDirectory() ??
+            await getApplicationDocumentsDirectory();
+        final name =
+            'LoveGirl_polaroid_${id}_${DateTime.now().millisecondsSinceEpoch ~/ 1000}.png';
+        final file = File('${dir.path}/$name');
+        await file.writeAsBytes(data.buffer.asUint8List());
+        if (!sheetCtx.mounted) return;
+        ScaffoldMessenger.of(sheetCtx).showSnackBar(SnackBar(
+            content: Text('拍立得已保存：$name'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2)));
+      } catch (_) {
+        if (!sheetCtx.mounted) return;
+        ScaffoldMessenger.of(sheetCtx).showSnackBar(const SnackBar(
+            content: Text('保存失败，再试一次'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 1)));
+      }
+    }
 
     await showModalBottomSheet(
       context: context,
@@ -195,12 +230,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
           padding:
               EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Container(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.88),
             decoration: const BoxDecoration(
               color: LoveGirlTheme.bgLight,
               borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -216,56 +254,70 @@ class _PhotoScreenState extends State<PhotoScreen> {
                 ),
                 const SizedBox(height: 14),
                 Center(
-                  child: Container(
-                    width: 220,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withAlpha(30),
-                            blurRadius: 14,
-                            offset: const Offset(0, 8)),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
-                          child: SizedBox(
-                            height: 190,
-                            width: double.infinity,
-                            child: CachedNetworkImage(
-                              imageUrl: fullUrl,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) =>
-                                  Container(color: context.lgBg),
-                              errorWidget: (_, __, ___) => Container(
-                                  color: context.lgBg,
-                                  child: const Icon(Icons.broken_image,
-                                      color: LoveGirlTheme.textMuted)),
+                  child: RepaintBoundary(
+                    key: boundaryKey,
+                    child: Container(
+                      width: 220,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withAlpha(30),
+                              blurRadius: 14,
+                              offset: const Offset(0, 8)),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      child: Column(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: SizedBox(
+                              height: 190,
+                              width: double.infinity,
+                              child: CachedNetworkImage(
+                                imageUrl: fullUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) =>
+                                    Container(color: context.lgBg),
+                                errorWidget: (_, __, ___) => Container(
+                                    color: context.lgBg,
+                                    child: const Icon(Icons.broken_image,
+                                        color: LoveGirlTheme.textMuted)),
+                              ),
                             ),
                           ),
-                        ),
-                        Container(
-                          height: 30,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            _handDate(photo['created_at']),
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontFamily: 'Caveat',
-                              fontWeight: FontWeight.w700,
-                              color: LoveGirlTheme.textSecondary,
+                          Container(
+                            height: 30,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _handDate(photo['photo_date'] ??
+                                  photo['created_at']),
+                              style: const TextStyle(
+                                fontSize: 19,
+                                fontFamily: 'Caveat',
+                                fontWeight: FontWeight.w700,
+                                color: LoveGirlTheme.textSecondary,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => savePolaroid(ctx),
+                    icon: const Icon(Icons.save_alt_rounded, size: 16),
+                    label: const Text('保存拍立得',
+                        style: TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                const SizedBox(height: 6),
                 const Text('这张照片背后的故事',
                     style:
                         TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
@@ -276,6 +328,30 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   maxLength: 500,
                   decoration: InputDecoration(
                     hintText: '写点什么…（拍照那天的心情、当时的梗）',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: LoveGirlTheme.separator)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide:
+                            const BorderSide(color: LoveGirlTheme.separator)),
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text('背卡留言（翻过来写在背面的一句话）',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: backCtrl,
+                  maxLines: 2,
+                  maxLength: 300,
+                  decoration: InputDecoration(
+                    hintText: '比如：这是我们一起看的第一场海',
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -327,28 +403,42 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                 try {
                                   await _api.updatePhotoDescription(
                                       id, descCtrl.text.trim());
-                                  if (!ctx.mounted) return;
-                                  Navigator.pop(ctx);
-                                  if (!mounted) return;
-                                  setState(() {
-                                    photo['description'] = descCtrl.text.trim();
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('故事已保存'),
-                                          behavior: SnackBarBehavior.floating,
-                                          duration: Duration(seconds: 1)));
+                                  photo['description'] = descCtrl.text.trim();
                                 } catch (e) {
                                   if (!ctx.mounted) return;
                                   setSheet(() => saving = false);
                                   ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                                       content: Text(extractServerMessage(e,
-                                          fallback: '保存失败，再试一次')),
+                                          fallback: '故事保存失败，再试一次')),
                                       behavior: SnackBarBehavior.floating,
                                       duration: const Duration(seconds: 1)));
+                                  return;
                                 }
+                                try {
+                                  await _api.updatePhotoBackMessage(
+                                      id, backCtrl.text.trim());
+                                  photo['back_message'] = backCtrl.text.trim();
+                                } catch (e) {
+                                  if (!ctx.mounted) return;
+                                  setSheet(() => saving = false);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                      content: Text(extractServerMessage(e,
+                                          fallback: '留言保存失败，再试一次')),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 1)));
+                                  return;
+                                }
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                if (!mounted) return;
+                                setState(() {});
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('背卡已保存'),
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: Duration(seconds: 1)));
                               },
-                        child: Text(saving ? '保存中…' : '保存故事',
+                        child: Text(saving ? '保存中…' : '保存背卡',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w800)),
                       ),
@@ -356,6 +446,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   ],
                 ),
               ],
+            ),
             ),
           ),
         ),
@@ -486,8 +577,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                         (_photos[index]['id'] as num?)
                                                 ?.toInt() ??
                                             -1),
-                                    onTapView: () => _showStorySheet(
-                                        _photos[index]),
+                                    onEdit: () =>
+                                        _showStorySheet(_photos[index]),
                                     onLongPress: () => _toggleSelect(
                                         (_photos[index]['id'] as num?)
                                                 ?.toInt() ??
@@ -643,14 +734,14 @@ class _PhotoScreenState extends State<PhotoScreen> {
   }
 }
 
-/// 拍立得小卡：白框 + 方图 + 手写感日期 + 多选勾选
-class _PolaroidTile extends StatelessWidget {
+/// 拍立得小卡：正面白框+方图+手写日期；点按 3D 翻面看牛皮纸背卡（故事+留言）。
+class _PolaroidTile extends StatefulWidget {
   final Map<String, dynamic> photo;
   final double rotation;
   final bool selectionMode;
   final bool selected;
   final VoidCallback onTapSelect;
-  final VoidCallback onTapView;
+  final VoidCallback onEdit;
   final VoidCallback onLongPress;
 
   const _PolaroidTile({
@@ -659,110 +750,277 @@ class _PolaroidTile extends StatelessWidget {
     required this.selectionMode,
     required this.selected,
     required this.onTapSelect,
-    required this.onTapView,
+    required this.onEdit,
     required this.onLongPress,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final url = (photo['url'] ?? photo['image'] ?? '').toString();
-    final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
-    final desc = photo['description']?.toString() ?? '';
+  State<_PolaroidTile> createState() => _PolaroidTileState();
+}
 
+class _PolaroidTileState extends State<_PolaroidTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _flip = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 480),
+  );
+
+  @override
+  void dispose() {
+    _flip.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    if (widget.selectionMode) {
+      widget.onTapSelect();
+      return;
+    }
+    if (_flip.isAnimating) return;
+    if (_flip.value < 0.5) {
+      _flip.forward();
+    } else {
+      _flip.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: selectionMode ? onTapSelect : onTapView,
-      onLongPress: onLongPress,
+      onTap: _handleTap,
+      onLongPress: widget.onLongPress,
       child: Transform.rotate(
-        angle: selectionMode ? 0 : rotation,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: selected
-                ? Border.all(color: LoveGirlTheme.brandEmotion, width: 2.5)
-                : Border.all(color: Colors.white),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withAlpha(26),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5)),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: CachedNetworkImage(
-                        imageUrl: fullUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) =>
-                            Container(color: context.lgBg),
-                        errorWidget: (_, __, ___) => Container(
-                          color: context.lgBg,
-                          child: Icon(Icons.broken_image,
-                              color: context.lgTextMuted),
-                        ),
-                      ),
-                    ),
-                    if (selectionMode)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selected
-                                ? LoveGirlTheme.brandEmotion
-                                : Colors.black.withAlpha(70),
-                            border:
-                                Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: selected
-                              ? const Icon(Icons.check_rounded,
-                                  size: 16, color: Colors.white)
-                              : null,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              // 拍立得宽底边：手写感日期 + 有故事的标记
-              Container(
-                height: 34,
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _handDate(photo['created_at']),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontFamily: 'Caveat',
-                          fontWeight: FontWeight.w700,
-                          color: LoveGirlTheme.textSecondary,
-                        ),
-                      ),
-                    ),
-                    if (desc.isNotEmpty)
-                      const Icon(Icons.sticky_note_2_outlined,
-                          size: 12, color: LoveGirlTheme.textMuted),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        angle: widget.selectionMode ? 0 : widget.rotation,
+        child: AnimatedBuilder(
+          animation: _flip,
+          builder: (context, _) {
+            final angle = _flip.value * math.pi;
+            final showBack = _flip.value >= 0.5;
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.rotationY(angle),
+              child: showBack
+                  ? Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.rotationY(math.pi),
+                      child: _buildBack(context),
+                    )
+                  : _buildFront(context),
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  Widget _buildFront(BuildContext context) {
+    final url = (widget.photo['url'] ?? widget.photo['image'] ?? '').toString();
+    final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
+    final hasBack = (widget.photo['description']?.toString() ?? '').isNotEmpty ||
+        (widget.photo['back_message']?.toString() ?? '').isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: widget.selected
+            ? Border.all(color: LoveGirlTheme.brandEmotion, width: 2.5)
+            : Border.all(color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withAlpha(26),
+              blurRadius: 10,
+              offset: const Offset(0, 5)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: CachedNetworkImage(
+                    imageUrl: fullUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(color: context.lgBg),
+                    errorWidget: (_, __, ___) => Container(
+                      color: context.lgBg,
+                      child:
+                          Icon(Icons.broken_image, color: context.lgTextMuted),
+                    ),
+                  ),
+                ),
+                if (widget.selectionMode)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: widget.selected
+                            ? LoveGirlTheme.brandEmotion
+                            : Colors.black.withAlpha(70),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: widget.selected
+                          ? const Icon(Icons.check_rounded,
+                              size: 16, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // 拍立得宽底边：手写感日期（拍摄日优先）+ 翻面暗示角标
+          Container(
+            height: 34,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _handDate(widget.photo['photo_date'] ??
+                        widget.photo['created_at']),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontFamily: 'Caveat',
+                      fontWeight: FontWeight.w700,
+                      color: LoveGirlTheme.textSecondary,
+                    ),
+                  ),
+                ),
+                Icon(
+                  hasBack
+                      ? Icons.sticky_note_2_outlined
+                      : Icons.flip_rounded,
+                  size: 13,
+                  color: LoveGirlTheme.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 牛皮纸背卡：档案头（日期+编号）→ 故事 → 留言 → "BACK"印字 + 编辑。
+  Widget _buildBack(BuildContext context) {
+    final story = widget.photo['description']?.toString() ?? '';
+    final message = widget.photo['back_message']?.toString() ?? '';
+    final kraft = context.lgIsDark
+        ? const Color(0xFF4A4034)
+        : const Color(0xFFD9C7A4);
+    final ink = context.lgIsDark ? const Color(0xFFE8E0D9) : const Color(0xFF3E3327);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kraft,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withAlpha(26),
+              blurRadius: 10,
+              offset: const Offset(0, 5)),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                _handDate(widget.photo['photo_date'] ??
+                    widget.photo['created_at']),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontFamily: 'Caveat',
+                  fontWeight: FontWeight.w700,
+                  color: ink,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'No.${widget.photo['id'] ?? ''}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'Caveat',
+                  fontWeight: FontWeight.w700,
+                  color: ink.withAlpha(150),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Text(
+              story.isEmpty ? '背面还没有故事，点右下角写一笔。' : story,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.35,
+                color: ink.withAlpha(story.isEmpty ? 130 : 230),
+              ),
+            ),
+          ),
+          if (message.isNotEmpty)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(70),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.3,
+                  fontStyle: FontStyle.italic,
+                  color: ink,
+                ),
+              ),
+            ),
+          Row(
+            children: [
+              Text(
+                'BACK',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Caveat',
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                  color: ink.withAlpha(140),
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: widget.onEdit,
+                borderRadius: BorderRadius.circular(999),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: Icon(Icons.edit_rounded, size: 15, color: ink),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
