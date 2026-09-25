@@ -175,6 +175,7 @@ class _LetterList extends StatelessWidget {
           icon: isOutbox
               ? Icons.send_outlined
               : Icons.mark_email_unread_outlined,
+          illustration: 'empty_letter',
           title: isOutbox ? '还没有寄出过慢信' : '还没有收到慢信',
           subtitle: isOutbox ? '写一封给未来的 TA' : '让 TA 也写一封吧',
           onRetry: onRetry,

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../utils/lovegirl_theme.dart';
+import 'illus_image.dart';
 
 /// 通用空状态组件 — 无数据 / 无网络 / 错误
 class EmptyState extends StatelessWidget {
   final IconData icon;
+
+  /// 插画名称（IllusImg，assets/images/illus/）；提供时替代 icon 展示。
+  final String? illustration;
   final String title;
   final String? subtitle;
   final VoidCallback? onRetry;
@@ -12,6 +16,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
     required this.icon,
+    this.illustration,
     required this.title,
     this.subtitle,
     this.onRetry,
@@ -24,6 +29,7 @@ class EmptyState extends StatelessWidget {
     this.title = '暂无数据',
     this.subtitle,
   })  : icon = Icons.inbox_outlined,
+        illustration = null,
         onRetry = null,
         retryText = '重试';
 
@@ -32,6 +38,7 @@ class EmptyState extends StatelessWidget {
     super.key,
     this.onRetry,
   })  : icon = Icons.wifi_off_rounded,
+        illustration = null,
         title = '网络连接失败',
         subtitle = '请检查网络设置后重试',
         retryText = '重试';
@@ -41,6 +48,7 @@ class EmptyState extends StatelessWidget {
     super.key,
     this.onRetry,
   })  : icon = Icons.error_outline_rounded,
+        illustration = null,
         title = '加载失败',
         subtitle = '请稍后再试',
         retryText = '重试';
@@ -53,7 +61,9 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: context.lgTextMuted),
+            illustration != null
+                ? IllusImg(illustration!, height: 110)
+                : Icon(icon, size: 64, color: context.lgTextMuted),
             SizedBox(height: LoveGirlTheme.spaceMd),
             Text(
               title,

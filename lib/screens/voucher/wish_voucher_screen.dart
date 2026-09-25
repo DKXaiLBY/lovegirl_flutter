@@ -271,6 +271,7 @@ class _ShopTab extends StatelessWidget {
         const SizedBox(height: 100),
         EmptyState(
           icon: Icons.storefront_outlined,
+          illustration: 'empty_voucher',
           title: '${partnerName ?? 'TA'} 还没发行券',
           subtitle: '催 TA 发一张，或者你先发一张让 TA 来兑',
           onRetry: onRetry,

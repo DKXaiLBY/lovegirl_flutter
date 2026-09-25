@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/log_service.dart';
 import '../utils/lovegirl_theme.dart';
 import 'city_picker.dart';
+import 'illus_image.dart';
 import 'lovegirl_ui.dart';
 
 enum WeatherErrorType { permission, location, network, data }
@@ -358,6 +359,22 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     return Icons.wb_cloudy_rounded;
   }
 
+  /// 天气插画（有匹配素材返回名称，否则回退图标）
+  String? _illusForWeather(String weather) {
+    if (weather.contains('雨') || weather.contains('雷')) {
+      return 'weather_rainy';
+    }
+    if (weather.contains('雪')) return 'weather_snow';
+    if (weather.contains('晴')) return 'weather_sunny';
+    if (weather.contains('云') ||
+        weather.contains('阴') ||
+        weather.contains('雾') ||
+        weather.contains('霾')) {
+      return 'weather_cloudy';
+    }
+    return null;
+  }
+
   Color _colorForWeather(String weather) {
     if (weather.contains('\u6674')) return const Color(0xFFE7A25D);
     if (weather.contains('\u4e91') || weather.contains('\u9634')) {
@@ -568,6 +585,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   Widget _buildContent() {
     final weather = _weather ?? '--';
     final color = _colorForWeather(weather);
+    final illus = _illusForWeather(weather);
     final range = (_tempLow != null && _tempHigh != null)
         ? '${_formatDegree(_tempLow)} ~ ${_formatDegree(_tempHigh)}'
         : null;
@@ -599,15 +617,17 @@ class _WeatherWidgetState extends State<WeatherWidget> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            color: color.withAlpha(24),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(_iconForWeather(weather), color: color, size: 28),
-        ),
+        illus != null
+            ? IllusImg(illus, height: 56)
+            : Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: color.withAlpha(24),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(_iconForWeather(weather), color: color, size: 28),
+              ),
         SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -660,6 +680,7 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   Widget _buildCompactContent() {
     final weather = _weather ?? '--';
     final color = _colorForWeather(weather);
+    final illus = _illusForWeather(weather);
     final city = _city ?? '\u5f53\u524d\u4f4d\u7f6e';
     final feelsLike = (_feelsLike == null || _feelsLike!.isEmpty)
         ? null
@@ -675,15 +696,18 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: color.withAlpha(18),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(_iconForWeather(weather), color: color, size: 16),
-            ),
+            illus != null
+                ? IllusImg(illus, height: 32)
+                : Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: color.withAlpha(18),
+                      shape: BoxShape.circle,
+                    ),
+                    child:
+                        Icon(_iconForWeather(weather), color: color, size: 16),
+                  ),
             SizedBox(width: 6),
             Expanded(
               child: Column(

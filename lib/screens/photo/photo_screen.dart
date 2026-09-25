@@ -13,6 +13,7 @@ import '../../services/log_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/illus_image.dart';
 import 'photo_flipbook_screen.dart';
 
 /// 云端相册 · 拍立得收集本
@@ -694,34 +695,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(clipBehavior: Clip.none, children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withAlpha(20),
-                      blurRadius: 14,
-                      offset: const Offset(0, 8))
-                ],
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: LoveGirlTheme.primarySoft,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(Icons.add_photo_alternate_outlined,
-                    size: 34, color: LoveGirlTheme.textMuted),
-              ),
-            ),
-            const Positioned(
-                top: -8, right: -14, child: Text('✨', style: TextStyle(fontSize: 16))),
-          ]),
+          IllusImg('empty_photo', height: 150),
           const SizedBox(height: 16),
           const Text('添加你的第一个故事',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),

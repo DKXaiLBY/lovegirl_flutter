@@ -697,18 +697,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
       padding: const EdgeInsets.fromLTRB(18, 26, 18, 26),
       child: Column(
         children: [
-          Container(
-            width: 78,
-            height: 78,
-            decoration: BoxDecoration(
-              color: context.lgInk.withAlpha(16),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.favorite_border_rounded,
-              size: 36,
-                    ),
-          ),
+          IllusImg('empty_anniversary', height: 110),
           SizedBox(height: 16),
           Text(
             _emptyTitle,

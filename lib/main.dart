@@ -23,6 +23,7 @@ import 'screens/version/update_dialog.dart';
 import 'services/log_service.dart';
 import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
+import 'widgets/illus_image.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -364,6 +365,8 @@ class _AppBootScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(child: IllusImg('ui_boot', height: 92)),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Container(
