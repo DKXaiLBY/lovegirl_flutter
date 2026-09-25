@@ -1,12 +1,14 @@
 #!/bin/bash
 # 旅行照片功能部署脚本
 # 服务器: 47.121.119.191
+# ⚠ 已废弃：本脚本基于旧路径(D:/lovegirl_flutter)与 pm2 部署方式，现网为 Docker，仅留档勿执行。
 
 set -e
 
 SERVER="root@47.121.119.191"
 REMOTE_DIR="/opt/love-girl/love-girl-server"
-DEPLOY_TOKEN="123062bfa3d9e621940a2511a5eab7ef"
+# 令牌不落仓库：现取 `docker exec lovegirl-server sh -c 'echo $DEPLOY_TOKEN'`
+DEPLOY_TOKEN="<REDACTED-见服务器容器环境变量>"
 
 echo "=========================================="
 echo "  旅行照片功能部署脚本"

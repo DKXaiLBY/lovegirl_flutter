@@ -11,7 +11,7 @@
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
 - **git 可执行文件 PATH 已失效**：用全路径 `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 `D:\Git Setup\Git\cmd` 是死路径）；Git 自带 ssh/scp 不可用，用系统 `C:\Windows\System32\OpenSSH\`；中文 commit 信息用 UTF-8 文件 + `git commit -F`（PowerShell Set-Content 会带 BOM，可接受）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
-- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）（header `x-deploy-token: 123062bfa3d9e621940a2511a5eab7ef`，字段 apk/v/c/s/l）→ 修正 app_versions 表的 version_name/changelog（见下"发布坑"）
+- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）（header `x-deploy-token: <发布令牌>`，取值用 `ssh root@47.121.119.191 "docker exec lovegirl-server sh -c 'echo \$DEPLOY_TOKEN'"` 现取，**勿把令牌明文写进任何仓库文件**；字段 apk/v/c/s/l）→ 修正 app_versions 表的 version_name/changelog（见下"发布坑"）。历史提交里曾含明文令牌，仓库若公开需在服务器换 DEPLOY_TOKEN 轮换
 
 ## 必读文档（按优先级）
 
