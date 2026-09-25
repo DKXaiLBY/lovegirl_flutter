@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.32.0+161（2026-09-26 已发布）。视觉风格：**暖纸底浮起卡片 + 黑色图标底座 + 荧光角标 + 陶土橘情感色**；v3.32 起引入**彩色贴纸插画层**（`assets/images/illus/` 33 张，IllusImg 组件，空状态/装饰逐步替换 emoji，全 App 清爽化 v2 进行中）。v3.28 已按用户决策砍掉爱情树与拇指之吻（服务器路由下线、表保留）。
+当前版本 v3.33.0+162（2026-09-26 已发布）。视觉风格：**暖纸底 + 彩色贴纸插画层**（`assets/images/illus/` 33 张，IllusImg 组件，清爽化 v2 批次 0-7 全部落地：空状态/天气/启动页/纪念日/拍立得全面插画风，用户数据自选 emoji 保留）。v3.28 已按用户决策砍掉爱情树与拇指之吻（服务器路由下线、表保留）。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
@@ -64,7 +64,9 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 ## 待办 / 未竟
 
 - **v3.32.0+161（2026-09-26 已发布上线）**：批次 0/1/2 完成——33 张贴纸插画入库+6 处空状态 emoji 换插画（IllusImg 组件）、全 App 中文 locale、纪念日表单行内校验+动态 hint、我的页删右上圆钮、兑换券左滑删除（服务器 DELETE /api/voucher/:id，服务器 git b0f9f88）、旅行地图重排（右侧单列控件含"+"、进图定位优先、定位 loading 10s、删左 rail/底部大按钮/重复入口）。施工图 `docs/implementation/v3.32-plan.md`；对抗性审查 3 项 P1 已修；模拟器截图 `docs/implementation/v332-emulator-shots/`。**真机待验：地图右列布局+定位正负向（x86 模拟器验不了，见教训 11）**
-- **v3.32 后续批次（已定稿未开工）**：批次 3 首页窄屏两行+数字层级 → 批次 4 拍立得复刻+背书留言（photo 表加 back_message）→ 批次 5 月度小报（服务器聚合接口+分享卡）→ 批次 6 纪念日重做（双列倒数卡+大数字）→ 批次 7 全 App 清爽化 pass+深色态同步。素材映射：type_*/anni_* 为批次 6 备用，sticker_*/tape_* 为批次 4/7 备用，ui_* 已有用途
+- **v3.33.0+162（2026-09-26 已发布上线）**：批次 3-7 完成——首页两行头部+38px 天数数字 hero、拍立得复刻（点按 3D 翻面看牛皮纸背卡，back_message 字段，photos 加列，保存拍立得 PNG）、月度小报（GET /api/report/monthly 聚合+月报页+保存分享卡）、纪念日双列倒数卡（类型插画角标，服务器 anniversary 路由补 type/description/is_lunar/repeat_type 四列存取 f3ad353——修复了自 v1 起类型字段从不落库的暗病）、清爽化 pass（EmptyState 插画参数/天气四态插画/启动页插画）。**对抗审查两轮均为 SHIP/修复后 SHIP**
+- **真机待验**：旅行地图右列布局+进图定位（x86 模拟器验不了）；拍立得翻面/保存；月度小报
+- 已知保留项：拍立得/月报保存走 Android/data 私有目录（相册不可见，需文件管理器或分享入口，升级需加媒体扫描插件）；照片 photo_date 尚无写入来源（上传时 EXIF 提取待做，现回退 created_at）；travel_form 天气/心情选择器 emoji 未换插画（缺 🌙🌈 与心情素材）
 - v3.31 收尾剩余（依赖外部条件）：真机遍历闸+录屏逐帧审查（需连测试机）
 - 头像上传链路修复已随 v3.32.0+161 发版生效，待用户手机端确认
 - 服务器路由清理（低优先）：未挂载文件 love_tree.js / thumb_kiss.js / calorie.js / feeding.js / search.js 可择机删除；非图片上传 fileFilter 拒绝时返回 500 应为 400
