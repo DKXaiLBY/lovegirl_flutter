@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/daily_provider.dart';
@@ -69,6 +70,13 @@ class LoveGirlApp extends StatelessWidget {
           scrollBehavior: const MaterialScrollBehavior()
               .copyWith(physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast)),
             debugShowCheckedModeBanner: false,
+            locale: const Locale('zh'),
+            supportedLocales: const [Locale('zh'), Locale('en')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             theme: LoveGirlTheme.lightTheme,
             darkTheme: LoveGirlTheme.darkTheme,
             themeMode: themeProvider.mode,

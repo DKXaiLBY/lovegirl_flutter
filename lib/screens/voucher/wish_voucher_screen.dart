@@ -332,10 +332,11 @@ class _RedemptionsTabState extends State<_RedemptionsTab> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('操作失败，再试一次'),
+      final msg = extractServerMessage(e, fallback: '操作失败，再试一次');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 1),
+        duration: const Duration(seconds: 1),
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -363,6 +364,13 @@ class _RedemptionsTabState extends State<_RedemptionsTab> {
         if (widget.myVouchers.isNotEmpty) ...[
           const Text('我发行的券',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+          if (widget.myVouchers.any((x) => x['is_active'] != 1))
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('左滑已下架的券可以删除',
+                  style: TextStyle(
+                      fontSize: 11.5, color: context.lgTextMuted)),
+            ),
           const SizedBox(height: 8),
           ...widget.myVouchers.map((v) => _MyVoucherRow(
                 v: v,
@@ -371,6 +379,10 @@ class _RedemptionsTabState extends State<_RedemptionsTab> {
                   () => ApiService().setVoucherActive(
                       (v['id'] as num).toInt(), v['is_active'] != 1),
                   v['is_active'] == 1 ? '已下架' : '已上架',
+                ),
+                onDelete: () => _action(
+                  () => ApiService().deleteVoucher((v['id'] as num).toInt()),
+                  '已删除「${v['title']}」',
                 ),
               )),
           const SizedBox(height: 16),
@@ -406,15 +418,19 @@ class _MyVoucherRow extends StatelessWidget {
   final Map<String, dynamic> v;
   final bool busy;
   final VoidCallback onToggle;
+  final VoidCallback onDelete;
 
   const _MyVoucherRow(
-      {required this.v, required this.busy, required this.onToggle});
+      {required this.v,
+      required this.busy,
+      required this.onToggle,
+      required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
     final active = v['is_active'] == 1;
     final redeemed = (v['redeemed_count'] as num?)?.toInt() ?? 0;
-    return Container(
+    final row = Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -459,6 +475,51 @@ class _MyVoucherRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+    // 仅"已下架且无兑换记录"的券可左滑删除（与服务器 DELETE 规则一致）
+    if (active || redeemed > 0) return row;
+    return Dismissible(
+      key: ValueKey('voucher_${v['id']}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: LoveGirlTheme.red,
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        ),
+        alignment: Alignment.centerRight,
+        child: const Icon(Icons.delete_outline_rounded,
+            color: Colors.white, size: 22),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Theme.of(ctx).colorScheme.surface,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Text('删除「${v['title']}」？',
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            content: const Text('删除后无法恢复。',
+                style: TextStyle(fontSize: 14, height: 1.6)),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('再想想')),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: LoveGirlTheme.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('删除'),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) => onDelete(),
+      child: row,
     );
   }
 }

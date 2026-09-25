@@ -19,6 +19,12 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   static const String _nameLabel = '\u7eaa\u5ff5\u65e5\u540d\u79f0';
   static const String _nameHint =
       '\u4f8b\u5982\uff1a\u604b\u7231\u5468\u5e74\u3001\u5979\u751f\u65e5';
+  static const Map<String, String> _nameHints = {
+    'love': '例如：恋爱周年、领证纪念日',
+    'birthday': '例如：她生日、妈妈生日',
+    'first': '例如：第一次旅行、第一场电影',
+    'custom': '想纪念什么都行，比如搬进新家的日子',
+  };
   static const String _noteLabel = '\u5907\u6ce8\uff08\u53ef\u9009\uff09';
   static const String _noteHint =
       '\u628a\u8fd9\u4e00\u5929\u4e3a\u4ec0\u4e48\u91cd\u8981\u8bb0\u4e0b\u6765';
@@ -157,6 +163,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     var selectedDate = _parseDate(_text(item?['eventDate'])) ?? DateTime.now();
     var isLunar = item?['isLunar'] == true;
     var repeatType = _text(item?['repeatType'], fallback: 'yearly');
+    String? titleError;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -216,10 +223,16 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: titleCtrl,
-                        decoration: const InputDecoration(
+                        onChanged: (_) {
+                          if (titleError != null) {
+                            setSheetState(() => titleError = null);
+                          }
+                        },
+                        decoration: InputDecoration(
                           labelText: _nameLabel,
-                          hintText: _nameHint,
-                          prefixIcon: Icon(Icons.edit_note_rounded),
+                          hintText: _nameHints[selectedType] ?? _nameHint,
+                          errorText: titleError,
+                          prefixIcon: const Icon(Icons.edit_note_rounded),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -402,12 +415,9 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                               onPressed: () async {
                                 final title = titleCtrl.text.trim();
                                 if (title.isEmpty) {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(_nameLabel),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
+                                  setSheetState(() {
+                                    titleError = '先给这一天起个名字吧';
+                                  });
                                   return;
                                 }
 

@@ -194,20 +194,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-        LoveIconButton(
-          icon: Icons.timeline_rounded,
-          tooltip: '\u65f6\u5149\u8f74',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => TimelineScreen()),
-          ),
-        ),
-        const SizedBox(width: 10),
-        LoveIconButton(
-          icon: Icons.settings_outlined,
-          tooltip: '\u8bbe\u7f6e',
-          onTap: () => _openSettings(context),
-        ),
       ],
     );
   }

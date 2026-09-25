@@ -389,6 +389,7 @@ class ApiService {
   Future setVoucherActive(int id, bool active) =>
       put('/api/voucher/$id/active', data: {'active': active});
   Future redeemVoucher(int id) => post('/api/voucher/$id/redeem');
+  Future deleteVoucher(int id) => delete('/api/voucher/$id');
   Future getVoucherRedemptions() => get('/api/voucher/redemptions');
   Future doneVoucherRedemption(int id, {String? proofUrl}) =>
       put('/api/voucher/redemptions/$id/done', data: {'proofUrl': proofUrl});

@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   amap_flutter_map:
     path: ./packages/amap_flutter_map
   amap_flutter_base:
