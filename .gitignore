@@ -65,4 +65,8 @@ server_fixes/.env
 tmp_*
 build_log*
 node_modules/
-.mimosa/  
+.mimosa/
+
+# Generated illustration candidates & reference images (only processed assets ship)
+assets/images/illus_gen/
+assets/images/illus_raw/

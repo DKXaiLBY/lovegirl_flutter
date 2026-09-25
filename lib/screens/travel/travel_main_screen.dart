@@ -9,6 +9,7 @@ import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
+import 'package:lovegirl_flutter/widgets/illus_image.dart';
 
 String _travelDisplayText(String? value, String fallback) {
   final text = (value ?? '').trim();
@@ -434,7 +435,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               ),
               child: Column(
                 children: [
-                  const Text('🎫', style: TextStyle(fontSize: 42)),
+                  IllusImg('empty_ticket', height: 110),
                   const SizedBox(height: 10),
                   Text('还没有票根',
                       style: TextStyle(
@@ -463,7 +464,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 ),
                 child: Row(
                   children: [
-                    const Text('🎫', style: TextStyle(fontSize: 22)),
+                    IllusImg('empty_ticket', height: 36),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

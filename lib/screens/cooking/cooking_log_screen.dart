@@ -10,6 +10,7 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/polaroid_card.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/illus_image.dart';
 
 /// 美食手账：两个人的餐桌相册。
 /// 记一道菜（照片/菜名/新做复刻/食谱/故事）→ TA 品尝打分 → 新菜可挂上点单菜单。
@@ -332,20 +333,17 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                                           shape: BoxShape.circle,
                                         ),
                                         alignment: Alignment.center,
-                                        child: const Text('💑',
-                                            style: TextStyle(fontSize: 40)),
+                                        child: IllusImg('ui_couple', height: 64),
                                       ),
-                                      const Positioned(
+                                      Positioned(
                                         top: -8,
                                         right: -14,
-                                        child: Text('✨',
-                                            style: TextStyle(fontSize: 16)),
+                                        child: IllusImg('sticker_star', height: 22),
                                       ),
-                                      const Positioned(
+                                      Positioned(
                                         bottom: -4,
                                         left: -16,
-                                        child: Text('💛',
-                                            style: TextStyle(fontSize: 13)),
+                                        child: IllusImg('sticker_heart', height: 20),
                                       ),
                                     ],
                                   ),

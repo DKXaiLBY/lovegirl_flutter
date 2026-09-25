@@ -49,6 +49,7 @@ flutter:
     - assets/images/
     - assets/images/icons/
     - assets/images/deco/
+    - assets/images/illus/
     - assets/geo/
   fonts:
     - family: Caveat

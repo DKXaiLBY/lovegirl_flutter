@@ -13,6 +13,7 @@ import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/illus_image.dart';
 
 /// 情侣厨房：TA 的菜单点菜 / 我的厨房 / 开饭记录
 class KitchenScreen extends StatelessWidget {
@@ -348,7 +349,7 @@ class _MenuEmpty extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('🍳', style: TextStyle(fontSize: 52)),
+          IllusImg('ui_kitchen', height: 120),
           SizedBox(height: 12),
           Text(
             '${partnerName ?? 'TA'} 的菜单还是空的',
@@ -793,7 +794,7 @@ class _MyKitchenTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('👨‍🍳', style: TextStyle(fontSize: 52)),
+                    IllusImg('ui_kitchen', height: 120),
                     const SizedBox(height: 12),
                     Text('你的菜单还是空的',
                         style: TextStyle(
@@ -1195,7 +1196,7 @@ class _RecordsTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('🧾', style: TextStyle(fontSize: 52)),
+            IllusImg('ui_kitchen', height: 120),
             SizedBox(height: 12),
             Text('还没有开火记录',
                 style: TextStyle(
