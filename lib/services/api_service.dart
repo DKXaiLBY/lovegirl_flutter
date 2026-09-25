@@ -375,16 +375,6 @@ class ApiService {
   Future getDailyHistory({int size = 14}) =>
       get('/api/daily/history', query: {'size': size});
 
-  // ========== 爱情树 ==========
-  Future getLoveTree() => get('/api/tree');
-  Future waterLoveTree() => post('/api/tree/water');
-
-  // ========== 拇指之吻 ==========
-  Future getKissState() => get('/api/kiss/state');
-  Future sendKissPosition(double x, double y, bool touching) =>
-      post('/api/kiss/position', data: {'x': x, 'y': y, 'touching': touching});
-  Future leaveKissRoom() => post('/api/kiss/leave');
-
   // ========== 慢信 ==========
   Future getLetterList() => get('/api/letter/list');
   Future getLetter(int id) => get('/api/letter/$id');

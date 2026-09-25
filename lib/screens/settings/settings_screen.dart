@@ -302,9 +302,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: context.lgInk.withAlpha(50),
                               width: 2)),
                       child: ClipOval(
-                        child: auth.user?['avatar'] != null &&
-                                (auth.user!['avatar'] as String).isNotEmpty
-                            ? Image.network(auth.user!['avatar'],
+                        child: _avatarUrl(auth) != null
+                            ? Image.network(_avatarUrl(auth)!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) =>
                                     _avatarPlaceholder(auth))
@@ -385,6 +384,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// 服务端返回 avatarUrl（相对路径 /uploads/...），展示前拼成绝对地址
+  String? _avatarUrl(AuthProvider auth) {
+    final raw = auth.user?['avatarUrl'];
+    if (raw is! String || raw.isEmpty) return null;
+    return raw.startsWith('http') ? raw : '${AppConstants.baseUrl}$raw';
   }
 
   Widget _avatarPlaceholder(AuthProvider auth) {
@@ -1050,7 +1056,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final avatarUrl = data is Map ? (data['url'] ?? '') : '';
       if (avatarUrl.isNotEmpty && mounted) {
         final auth = context.read<AuthProvider>();
-        await auth.updateProfile({'avatar': avatarUrl});
+        await auth.updateProfile({'avatarUrl': avatarUrl});
       }
       LogService().userAction('头像:上传成功');
       if (mounted) {
