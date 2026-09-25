@@ -13,11 +13,14 @@ class IllusImg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 按展示高度×像素比缓存解码位图，避免 512-768px 原图全尺寸驻留
+    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 3.0;
     return Image.asset(
       'assets/images/illus/illus_$name.png',
       height: height,
       width: width,
       fit: BoxFit.contain,
+      cacheWidth: (height * dpr).round(),
       filterQuality: FilterQuality.high,
       gaplessPlayback: true,
     );

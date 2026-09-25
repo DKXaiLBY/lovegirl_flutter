@@ -380,10 +380,14 @@ class _RedemptionsTabState extends State<_RedemptionsTab> {
                       (v['id'] as num).toInt(), v['is_active'] != 1),
                   v['is_active'] == 1 ? '已下架' : '已上架',
                 ),
-                onDelete: () => _action(
-                  () => ApiService().deleteVoucher((v['id'] as num).toInt()),
-                  '已删除「${v['title']}」',
-                ),
+                onDeleted: () {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('已删除「${v['title']}」'),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 1),
+                  ));
+                  widget.onChanged();
+                },
               )),
           const SizedBox(height: 16),
         ],
@@ -418,13 +422,15 @@ class _MyVoucherRow extends StatelessWidget {
   final Map<String, dynamic> v;
   final bool busy;
   final VoidCallback onToggle;
-  final VoidCallback onDelete;
+
+  /// 删除成功且行已收起后回调：只做提示与刷新，不发请求
+  final VoidCallback onDeleted;
 
   const _MyVoucherRow(
       {required this.v,
       required this.busy,
       required this.onToggle,
-      required this.onDelete});
+      required this.onDeleted});
 
   @override
   Widget build(BuildContext context) {
@@ -478,9 +484,11 @@ class _MyVoucherRow extends StatelessWidget {
     );
     // 仅"已下架且无兑换记录"的券可左滑删除（与服务器 DELETE 规则一致）
     if (active || redeemed > 0) return row;
+    final messenger = ScaffoldMessenger.of(context);
     return Dismissible(
       key: ValueKey('voucher_${v['id']}'),
-      direction: DismissDirection.endToStart,
+      // busy 期间禁用手势：避免请求窗口里行已收起却不发请求的"幻删"
+      direction: busy ? DismissDirection.none : DismissDirection.endToStart,
       background: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.only(right: 24),
@@ -492,8 +500,9 @@ class _MyVoucherRow extends StatelessWidget {
         child: const Icon(Icons.delete_outline_rounded,
             color: Colors.white, size: 22),
       ),
+      // 删除请求在 confirmDismiss 里发：失败返回 false 让行弹回，避免假删
       confirmDismiss: (_) async {
-        return await showDialog<bool>(
+        final ok = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: Theme.of(ctx).colorScheme.surface,
@@ -517,8 +526,20 @@ class _MyVoucherRow extends StatelessWidget {
             ],
           ),
         );
+        if (ok != true) return false;
+        try {
+          await ApiService().deleteVoucher((v['id'] as num).toInt());
+          return true;
+        } catch (e) {
+          messenger.showSnackBar(SnackBar(
+            content: Text(extractServerMessage(e, fallback: '删除失败，再试一次')),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 1),
+          ));
+          return false;
+        }
       },
-      onDismissed: (_) => onDelete(),
+      onDismissed: (_) => onDeleted(),
       child: row,
     );
   }

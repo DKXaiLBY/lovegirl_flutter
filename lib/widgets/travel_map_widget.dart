@@ -458,7 +458,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           right: 12,
           child: Column(
             children: [
-              if (widget.spots.length > 1 ||
+              if (widget.spots.isNotEmpty ||
                   widget.activeRoute?.path.isNotEmpty == true) ...[
                 _MapButton(
                   icon: Icons.fit_screen_rounded,
