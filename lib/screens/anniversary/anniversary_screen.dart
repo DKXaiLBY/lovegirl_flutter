@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../widgets/illus_image.dart';
 import '../../widgets/lovegirl_ui.dart';
 
 class AnniversaryScreen extends StatefulWidget {
@@ -86,7 +87,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   List<Map<String, dynamic>> _anniversaries = const [];
   Map<String, dynamic>? _nextAnniversary;
   int _nextDays = 0;
-  String? _expandedId;
 
   @override
   void initState() {
@@ -562,7 +562,19 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
               else if (_anniversaries.isEmpty)
                 _buildEmptyState()
               else
-                ..._anniversaries.map(_buildItemCard),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.94,
+                  ),
+                  itemCount: _anniversaries.length,
+                  itemBuilder: (context, i) =>
+                      _buildCountdownCard(_anniversaries[i]),
+                ),
             ],
           ),
         ),
@@ -572,9 +584,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
 
   Widget _buildHero() {
     final next = _nextAnniversary;
-    final meta =
-        _typeConfig[_text(next?['type'], fallback: 'custom')] ??
-            _typeConfig['custom']!;
     final nextDate = next == null ? null : _nextOccurrence(next);
     final name = next == null ? '' : _text(next['title'], fallback: '纪念日');
     final weekday = nextDate == null
@@ -614,12 +623,9 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    LoveStickerIcon(
-                      icon: meta.icon,
-                      color: meta.color ?? context.lgInk,
-                      size: 40,
-                      iconSize: 18,
-                    ),
+                    IllusImg(
+                        'type_${_text(next['type'], fallback: 'custom')}',
+                        height: 48),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(name,
@@ -733,149 +739,88 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     );
   }
 
-  Widget _buildItemCard(Map<String, dynamic> item) {
-    final meta =
-        _typeConfig[_text(item['type'], fallback: 'custom')] ??
-            _typeConfig['custom']!;
+  /// 双列倒数卡（每一迹风）：类型插画角标 + 大数字 + 日期；点按编辑，长按删除。
+  Widget _buildCountdownCard(Map<String, dynamic> item) {
+    final typeKey = _text(item['type'], fallback: 'custom');
     final nextDate = _nextOccurrence(item);
     final daysUntil = _daysUntil(nextDate);
-    final description = _displayDescription(item, daysUntil);
-    final rowId = item['id']?.toString();
-    final expanded = rowId != null && _expandedId == rowId;
+    final isToday = daysUntil == 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: GestureDetector(
-        onTap: () =>
-            setState(() => _expandedId = expanded ? null : rowId),
-        child: LoveTicketCard(
-          color: Colors.white,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  LoveStickerIcon(
-                    icon: meta.icon,
-                    color: meta.color ?? context.lgInk,
-                    size: 36,
-                    iconSize: 16,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _text(item['title'], fallback: _pageTitle),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: context.lgTextPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _formatDate(nextDate, withYear: true),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.lgTextSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        daysUntil == 0 ? '今天' : '$daysUntil',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: daysUntil == 0
-                              ? context.lgEmotion
-                              : context.lgTextPrimary,
-                        ),
-                      ),
-                      Text(
-                        daysUntil == 0 ? '到啦' : '天后',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          color: context.lgTextMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    return GestureDetector(
+      onTap: () => _showAddEditSheet(item: item),
+      onLongPress: () => _deleteAnniversary(item),
+      child: LoveTicketCard(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IllusImg('type_$typeKey', height: 40),
+                const Spacer(),
+                if (item['isLunar'] == true)
+                  Icon(Icons.nights_stay_outlined,
+                      size: 13, color: context.lgTextMuted),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              isToday ? '就是今天' : '还有',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: context.lgTextMuted,
               ),
-              if (expanded) ...[
-                const SizedBox(height: 10),
-                if (description.isNotEmpty)
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.5,
-                      color: context.lgTextSecondary,
-                    ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$daysUntil',
+                  style: TextStyle(
+                    fontSize: 30,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    color: isToday ? context.lgEmotion : context.lgTextPrimary,
                   ),
-                if (description.isNotEmpty) const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: [
-                    LovePill(
-                      text: meta.label,
-                      icon: meta.icon,
-                      color: meta.color ?? context.lgInk,
-                    ),
-                    LovePill(
-                      text: _repeatLabel(item['repeatType']),
-                      color: LoveGirlTheme.secondary,
-                      background: context.lgSecondarySoft,
-                    ),
-                    if (item['isLunar'] == true)
-                      LovePill(
-                        text: '农历标记',
-                        icon: Icons.nights_stay_outlined,
-                        color: context.lgTextMuted,
-                      ),
-                  ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showAddEditSheet(item: item),
-                        icon: const Icon(Icons.edit_outlined, size: 16),
-                        label: const Text('编辑'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _deleteAnniversary(item),
-                        icon: const Icon(Icons.delete_outline_rounded,
-                            size: 16),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: LoveGirlTheme.red,
-                          side:
-                              const BorderSide(color: LoveGirlTheme.red),
-                        ),
-                        label: const Text('删除'),
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 4),
+                Text(
+                  isToday ? '到啦' : '天后',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: context.lgTextMuted,
+                  ),
                 ),
               ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _text(item['title'], fallback: _pageTitle),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                color: context.lgTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatDate(nextDate, withYear: true),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: context.lgTextSecondary,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -944,17 +889,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   String _repeatLabel(dynamic value) {
     final key = _text(value, fallback: 'yearly');
     return _repeatLabels[key] ?? _repeatLabels['yearly']!;
-  }
-
-  String _displayDescription(Map<String, dynamic> item, int daysUntil) {
-    final description = _text(item['description']);
-    final englishCountdown =
-        RegExp(r'\bdays?\s+left\b', caseSensitive: false);
-    if (description.isEmpty) return '';
-    if (englishCountdown.hasMatch(description)) {
-      return '\u8fd8\u5269 $daysUntil \u5929';
-    }
-    return description;
   }
 }
 
