@@ -19,6 +19,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
   bool _loading = true;
   String? _error;
 
+  bool _selectionMode = false;
+  final Set<int> _selectedIds = {};
+
   static const _eventIcons = {
     'love': Icons.favorite,
     'first_meet': Icons.waving_hand,
@@ -50,6 +53,80 @@ class _TimelineScreenState extends State<TimelineScreen> {
       _error = '加载失败，下拉重试';
     }
     setState(() => _loading = false);
+  }
+
+  int? _eventId(Map<String, dynamic> event) {
+    final id = event['id'];
+    return id is num ? id.toInt() : null;
+  }
+
+  void _toggleSelect(int id) {
+    setState(() {
+      if (!_selectionMode) _selectionMode = true;
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _selectionMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      for (final e in _events) {
+        final id = _eventId(e);
+        if (id != null) _selectedIds.add(id);
+      }
+    });
+  }
+
+  /// 批量删除：一次确认，逐条调用，统计失败数
+  Future<void> _deleteSelected() async {
+    final n = _selectedIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('删除 $n 条时刻？', style: const TextStyle(fontSize: 16)),
+        content: const Text('删除后不可恢复', style: TextStyle(fontSize: 13)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('删除',
+                  style:
+                      TextStyle(color: LoveGirlTheme.red.withAlpha(230)))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    var failed = 0;
+    for (final id in _selectedIds.toList()) {
+      try {
+        await _api.deleteTimeline(id);
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(failed == 0 ? '已删除 $n 条' : '有 $failed 条删除失败'),
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 1),
+    ));
+    _exitSelectionMode();
+    _loadTimeline();
   }
 
   void _showAddDialog() {
@@ -84,10 +161,11 @@ class _TimelineScreenState extends State<TimelineScreen> {
             color: context.lgCard,
             borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Center(
                 child: Container(
                   width: 36,
@@ -221,6 +299,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),
@@ -233,23 +312,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: !_selectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectionMode) _exitSelectionMode();
+      },
+      child: Scaffold(
       backgroundColor: context.lgBg,
-      appBar: AppBar(
-        backgroundColor: context.lgBg,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: const Text('恋爱时光轴'),
-        titleTextStyle: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          color: context.lgTextPrimary,
-        ),
-        leading: IconButton(
-          icon: AppIcon('back'),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: _selectionMode ? _selectionAppBar() : _normalAppBar(),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -290,11 +360,69 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         ],
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
-        backgroundColor: context.lgInk,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: _selectionMode
+          ? null
+          : FloatingActionButton(
+              onPressed: _showAddDialog,
+              backgroundColor: context.lgInk,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _normalAppBar() {
+    return AppBar(
+      backgroundColor: context.lgBg,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      title: const Text('恋爱时光轴'),
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        color: context.lgTextPrimary,
+      ),
+      leading: IconButton(
+        icon: AppIcon('back'),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        if (_events.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.checklist_rounded),
+            tooltip: '批量管理',
+            onPressed: () => setState(() => _selectionMode = true),
+          ),
+      ],
+    );
+  }
+
+  PreferredSizeWidget _selectionAppBar() {
+    return AppBar(
+      backgroundColor: context.lgInk,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.close_rounded),
+        onPressed: _exitSelectionMode,
+      ),
+      title: Text('已选 ${_selectedIds.length}',
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.white)),
+      actions: [
+        TextButton(
+            onPressed: _selectAll,
+            child: const Text('全选',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800))),
+        IconButton(
+          icon: const Icon(Icons.delete_outline_rounded),
+          tooltip: '批量删除',
+          onPressed: _selectedIds.isEmpty ? null : _deleteSelected,
+        ),
+      ],
     );
   }
 
@@ -343,6 +471,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final type = event['icon'] ?? event['type'] ?? 'default';
     final id = event['id'];
     final icon = _getIcon(type);
+    final int? eid = id is num ? id.toInt() : null;
+    final bool selected = eid != null && _selectedIds.contains(eid);
 
     String formattedDate = '';
     try {
@@ -382,12 +512,21 @@ class _TimelineScreenState extends State<TimelineScreen> {
           SizedBox(width: 16),
           // 右侧内容
           Expanded(
-            child: Container(
+            child: GestureDetector(
+              onTap: (_selectionMode && eid != null)
+                  ? () => _toggleSelect(eid)
+                  : null,
+              onLongPress:
+                  eid == null ? null : () => _toggleSelect(eid),
+              child: Container(
               margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: context.lgCard,
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                border: selected
+                    ? Border.all(color: LoveGirlTheme.brandEmotion, width: 2)
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,11 +540,29 @@ class _TimelineScreenState extends State<TimelineScreen> {
                                 fontWeight: FontWeight.w600,
                                 color: context.lgTextPrimary)),
                       ),
-                      GestureDetector(
-                        onTap: () => _deleteEvent(event, id),
-                        child: Icon(Icons.delete_outline,
-                            size: 16, color: context.lgTextMuted),
-                      ),
+                      if (_selectionMode && eid != null)
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? LoveGirlTheme.brandEmotion
+                                : Colors.black.withAlpha(70),
+                            border:
+                                Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: selected
+                              ? const Icon(Icons.check_rounded,
+                                  size: 16, color: Colors.white)
+                              : null,
+                        )
+                      else
+                        GestureDetector(
+                          onTap: () => _deleteEvent(event, id),
+                          child: Icon(Icons.delete_outline,
+                              size: 16, color: context.lgTextMuted),
+                        ),
                     ],
                   ),
                   if (description.isNotEmpty) ...[
@@ -421,6 +578,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                           color: context.lgInk,
                           fontWeight: FontWeight.w500)),
                 ],
+              ),
               ),
             ),
           ),
