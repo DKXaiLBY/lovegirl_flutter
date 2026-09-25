@@ -403,6 +403,8 @@ class ApiService {
   // ========== 年度报告 ==========
   Future getLoveReport({int? year}) =>
       get('/api/report', query: {'year': year});
+  Future getMonthlyReport(int year, int month) =>
+      get('/api/report/monthly', query: {'year': year, 'month': month});
 
   // ========== 美食手账 ==========
   Future getCookingList() => get('/api/cooking/list');

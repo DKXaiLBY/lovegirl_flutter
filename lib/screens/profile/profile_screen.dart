@@ -15,6 +15,7 @@ import '../photo/photo_screen.dart';
 import '../profile/achievements_screen.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../report/annual_report_screen.dart';
+import '../report/monthly_report_screen.dart';
 import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../beans/beans_screen.dart';
@@ -362,6 +363,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SlowLetterScreen()),
+            ),
+          ),
+          const Divider(),
+          LoveMenuRow(
+            icon: Icons.calendar_month_rounded,
+            title: '月度小报',
+            value: '每个月，你们的小日子都值得留档',
+            color: LoveGirlTheme.secondary,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MonthlyReportScreen()),
             ),
           ),
           const Divider(),
