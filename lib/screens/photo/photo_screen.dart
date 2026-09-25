@@ -254,9 +254,9 @@ class _PhotoScreenState extends State<PhotoScreen> {
                           child: Text(
                             _handDate(photo['created_at']),
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 19,
+                              fontFamily: 'Caveat',
+                              fontWeight: FontWeight.w700,
                               color: LoveGirlTheme.textSecondary,
                             ),
                           ),
@@ -746,12 +746,11 @@ class _PolaroidTile extends StatelessWidget {
                         _handDate(photo['created_at']),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                          color: LoveGirlTheme.textSecondary.withAlpha(210),
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontFamily: 'Caveat',
+                          fontWeight: FontWeight.w700,
+                          color: LoveGirlTheme.textSecondary,
                         ),
                       ),
                     ),
