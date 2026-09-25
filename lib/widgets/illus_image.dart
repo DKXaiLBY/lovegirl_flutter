@@ -23,6 +23,7 @@ class IllusImg extends StatelessWidget {
       cacheWidth: (height * dpr).round(),
       filterQuality: FilterQuality.high,
       gaplessPlayback: true,
+      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
     );
   }
 }

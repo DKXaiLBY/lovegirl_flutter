@@ -63,6 +63,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   }
 
   void _shiftMonth(int delta) {
+    if (_saving) return;
     var y = _year;
     var m = _month + delta;
     if (m < 1) {
@@ -72,6 +73,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       m = 1;
       y++;
     }
+    if (y < 2000) return;
     final now = DateTime.now();
     if (DateTime(y, m).isAfter(DateTime(now.year, now.month))) return;
     setState(() {
@@ -89,17 +91,22 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   Future<void> _saveCard() async {
     if (_saving) return;
     setState(() => _saving = true);
+    // 先快照年月：保存期间切换月份不应影响文件名
+    final snapYear = _year;
+    final snapMonth = _month;
     try {
       final b = _cardKey.currentContext?.findRenderObject();
-      if (b is! RenderRepaintBoundary) return;
+      if (b is! RenderRepaintBoundary) {
+        throw Exception('no boundary');
+      }
       final image = await b.toImage(pixelRatio: 3);
       final data = await image.toByteData(format: ImageByteFormat.png);
       image.dispose();
       if (data == null) throw Exception('capture failed');
       final dir = await getExternalStorageDirectory() ??
           await getApplicationDocumentsDirectory();
-      final mm = _month.toString().padLeft(2, '0');
-      final name = 'LoveGirl_monthly_$_year$mm.png';
+      final mm = snapMonth.toString().padLeft(2, '0');
+      final name = 'LoveGirl_monthly_$snapYear$mm.png';
       final file = File('${dir.path}/$name');
       await file.writeAsBytes(data.buffer.asUint8List());
       if (!mounted) return;

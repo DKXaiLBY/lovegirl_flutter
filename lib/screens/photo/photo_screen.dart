@@ -197,7 +197,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
     Future<void> savePolaroid(BuildContext sheetCtx) async {
       try {
         final b = boundaryKey.currentContext?.findRenderObject();
-        if (b is! RenderRepaintBoundary) return;
+        if (b is! RenderRepaintBoundary) throw Exception('no boundary');
         final image = await b.toImage(pixelRatio: 3);
         final data = await image.toByteData(format: ImageByteFormat.png);
         image.dispose();
@@ -421,6 +421,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                   photo['back_message'] = backCtrl.text.trim();
                                 } catch (e) {
                                   if (!ctx.mounted) return;
+                                  // 故事已存成功，先让列表反映新值再报留言失败
+                                  setState(() {});
                                   setSheet(() => saving = false);
                                   ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                                       content: Text(extractServerMessage(e,
@@ -453,6 +455,9 @@ class _PhotoScreenState extends State<PhotoScreen> {
         ),
       ),
     );
+    // 弹层已关闭，释放输入控制器
+    descCtrl.dispose();
+    backCtrl.dispose();
   }
 
   void _showFullScreen(String url) {
