@@ -7,7 +7,8 @@
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
 当前版本 v3.28.0+156。视觉风格：**暖纸底浮起卡片 + 黑色图标底座 + 荧光角标 + 陶土橘情感色**（v3.27 温度回归：bg #FFF8F3，#B85C38 只给情感元素——恋爱天数/爱心/对方相关；主行动语言仍黑底白字）。v3.28 已按用户决策砍掉爱情树与拇指之吻（服务器路由下线、表保留）。
 
-- 前端仓库：`D:\lovegirl_flutter`（git，remote = github.com/DKXaiLBY/lovegirl_flutter，master）
+- 仓库地址：正在从 `D:\项目\个人项目\lovegirl` 迁移到 **`D:\Projects\Personal\lovegirl`**（2026-09-25 用户拍板路径英文化；物理改名需关闭 ZCode 后由用户在本机终端执行，脚本见 `docs/rename_to_english.md`）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
+- Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；构建必须在 `D:\lovegirl_build` junction 下进行（中文路径会让 impellerc 失败）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
 - 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）（header `x-deploy-token: 123062bfa3d9e621940a2511a5eab7ef`，字段 apk/v/c/s/l）→ 修正 app_versions 表的 version_name/changelog（见下"发布坑"）
 
