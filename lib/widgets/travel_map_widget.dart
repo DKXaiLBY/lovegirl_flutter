@@ -32,6 +32,12 @@ class TravelMapWidget extends StatefulWidget {
   final void Function(TravelSpot spot)? onMarkerTap;
   final void Function(LatLng position)? onLongPress;
 
+  /// 右下"+"钮回调（新增地点），null 则不显示该钮
+  final VoidCallback? onAddSpot;
+
+  /// 右下控件组/定位徽章距底边的间距；内嵌模式需抬高避开悬浮 tab
+  final double bottomInset;
+
   const TravelMapWidget({
     super.key,
     required this.spots,
@@ -43,6 +49,8 @@ class TravelMapWidget extends StatefulWidget {
     this.onMapReady,
     this.onMarkerTap,
     this.onLongPress,
+    this.onAddSpot,
+    this.bottomInset = 12,
   });
 
   @override
@@ -114,9 +122,58 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     return true;
   }
 
-  Future<void> _primeLocationLayer() async {
-    if (_locationEnabled || !mounted) return;
-    await _ensureLocationLayer();
+  /// 等待首个定位回调：GPS 冷启动常见 3-8 秒，默认最长等 10 秒
+  Future<AMapLocation?> _waitForFirstFix({int maxSeconds = 10}) async {
+    for (var i = 0; i < maxSeconds * 4; i++) {
+      if (!mounted) return null;
+      final loc = _lastLocation.value;
+      if (loc != null) return loc;
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    return _lastLocation.value;
+  }
+
+  /// 进图定位优先：授权拿到定位 → 飞当前位置 zoom16；拒绝/超时 → 回落到计划地点全览。
+  Future<void> _entryLocate() async {
+    final hasSpots = widget.spots.isNotEmpty;
+    final ok = await _ensureLocationLayer(requestPermission: true);
+    if (!ok) {
+      if (hasSpots && mounted) {
+        await fitBounds();
+        _hasFitBounds = true;
+      }
+      return;
+    }
+    final location = await _waitForFirstFix();
+    if (!mounted) return;
+    if (location != null) {
+      await _controller?.moveCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: location.latLng,
+            zoom: 16,
+            bearing: location.bearing.isFinite ? location.bearing : 0,
+            tilt: 0,
+          ),
+        ),
+        animated: true,
+        duration: 650,
+      );
+      // 已按用户位置取景，地点异步加载不再抢镜头
+      _hasFitBounds = true;
+    } else {
+      if (hasSpots) {
+        await fitBounds();
+        _hasFitBounds = true;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('暂时没拿到定位，先带你看计划里的地点'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   bool _isValidCoordinate(double lat, double lng) {
@@ -269,13 +326,8 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         return;
       }
 
-      if (_lastLocation.value == null) {
-        for (var i = 0; i < 8 && mounted && _lastLocation.value == null; i++) {
-          await Future<void>.delayed(const Duration(milliseconds: 250));
-        }
-      }
+      final location = await _waitForFirstFix();
 
-      final location = _lastLocation.value;
       if (location != null) {
         await _controller?.moveCamera(
           CameraUpdate.newCameraPosition(
@@ -293,7 +345,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                '\u6b63\u5728\u83b7\u53d6\u5b9a\u4f4d\uff0c\u7a0d\u7b49\u4e00\u4e0b\u518d\u8bd5'),
+                '\u5b9a\u4f4d\u7b49\u4e86 10 \u79d2\u8fd8\u6ca1\u62ff\u5230\uff0c\u8bf7\u68c0\u67e5\u7cfb\u7edf\u5b9a\u4f4d\u5f00\u5173\uff0c\u5230\u4fe1\u53f7\u597d\u7684\u5730\u65b9\u518d\u8bd5'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -366,14 +418,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
               _mapReady = true;
             }
             widget.onMapReady?.call();
-            _primeLocationLayer();
-            if (widget.spots.isNotEmpty) {
-              Future<void>.delayed(const Duration(milliseconds: 320), () {
-                if (!mounted) return;
-                fitBounds();
-                _hasFitBounds = true;
-              });
-            }
+            _entryLocate();
           },
           onLongPress: widget.onLongPress,
           onLocationChanged: (location) {
@@ -409,7 +454,7 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
           ),
         ),
         Positioned(
-          bottom: 12,
+          bottom: widget.bottomInset,
           right: 12,
           child: Column(
             children: [
@@ -417,23 +462,31 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
                   widget.activeRoute?.path.isNotEmpty == true) ...[
                 _MapButton(
                   icon: Icons.fit_screen_rounded,
-                  tooltip: '\u67e5\u770b\u5168\u90e8\u6807\u8bb0',
+                  tooltip: '\u67e5\u770b\u5168\u90e8\u5730\u70b9',
                   onTap: fitBounds,
                 ),
                 const SizedBox(height: 10),
               ],
               _MapButton(
                 icon: _isLocating ? null : Icons.my_location_rounded,
-                tooltip: '\u5b9a\u4f4d\u5230\u6211',
+                tooltip: '\u5b9a\u4f4d\u5230\u6211\u8fd9',
                 onTap: locateMe,
                 isLoading: _isLocating,
               ),
+              if (widget.onAddSpot != null) ...[
+                const SizedBox(height: 10),
+                _MapButton(
+                  icon: Icons.add_location_alt_rounded,
+                  tooltip: '\u65b0\u589e\u5730\u70b9',
+                  onTap: widget.onAddSpot!,
+                ),
+              ],
             ],
           ),
         ),
           Positioned(
             left: 12,
-            bottom: 12,
+            bottom: widget.bottomInset,
             child: ValueListenableBuilder<AMapLocation?>(
               valueListenable: _lastLocation,
               builder: (context, location, _) {

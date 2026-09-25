@@ -343,37 +343,25 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
                     children: [
                       if (!_introDismissed)
                         _TopOverlay(
-                          spotCount: provider.mapSpots.length,
                           hasRoute: provider.activeRoute != null,
                           unsupportedReason: _unsupportedReason,
                           showBack: !_embedded,
                           onBack: () => Navigator.of(context).pop(),
                           onDismiss: _dismissIntro,
-                          onFitSpots: () => _mapKey.currentState?.fitBounds(),
                           onPreviewRoute: _previewRouteAll,
                         ),
-                      const SizedBox(height: 14),
-                      if (!_unsupportedNativeMap) ...[
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _MapActionRail(
-                            onCycleStyle: () =>
-                                _mapKey.currentState?.cycleMapStyle(),
-                            onFitBounds: () =>
-                                _mapKey.currentState?.fitBounds(),
-                            onLocateMe: () => _mapKey.currentState?.locateMe(),
+                      const Spacer(),
+                      if (provider.activeRoute != null)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: 64,
+                            bottom: _embedded ? 76 : 0,
+                          ),
+                          child: _RouteTicket(
+                            route: provider.activeRoute!,
+                            onClearRoute: provider.clearActiveRoute,
                           ),
                         ),
-                      ],
-                      const Spacer(),
-                      _BottomOverlay(
-                        activeRoute: provider.activeRoute,
-                        spotCount: provider.mapSpots.length,
-                        onAddSpot: _openAddSpot,
-                        onFitBounds: () => _mapKey.currentState?.fitBounds(),
-                        onClearRoute: provider.clearActiveRoute,
-                        onBack: () => Navigator.of(context).pop(),
-                      ),
                     ],
                   ),
                 ),
@@ -409,6 +397,8 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
       onMapReady: _handleMapReady,
       onMarkerTap: _openSpotSheet,
       onLongPress: _handleMapLongPress,
+      onAddSpot: _openAddSpot,
+      bottomInset: _embedded ? 86 : 12,
     );
   }
 }
@@ -433,13 +423,11 @@ class _EmptyMapScaffold extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _TopOverlay(
-                        spotCount: 0,
-                        hasRoute: false,
-                        onBack: onBack,
-                        onDismiss: () {},
-                        onFitSpots: () {},
-                        onPreviewRoute: () {},
-                      ),
+                hasRoute: false,
+                onBack: onBack,
+                onDismiss: () {},
+                onPreviewRoute: () {},
+              ),
               SizedBox(height: 16),
               Expanded(
                 child: LoveTicketCard(
@@ -549,24 +537,20 @@ class _EmptyMapScaffold extends StatelessWidget {
 }
 
 class _TopOverlay extends StatelessWidget {
-  final int spotCount;
   final bool hasRoute;
   final String? unsupportedReason;
   final VoidCallback onBack;
   final VoidCallback onDismiss;
-  final VoidCallback onFitSpots;
   final VoidCallback onPreviewRoute;
 
   /// embedded 内嵌模式：隐藏返回圆钮（返回动作由外部底部 tab 承担）
   final bool showBack;
 
   const _TopOverlay({
-    required this.spotCount,
     required this.hasRoute,
     this.unsupportedReason,
     required this.onBack,
     required this.onDismiss,
-    required this.onFitSpots,
     required this.onPreviewRoute,
     this.showBack = true,
   });
@@ -630,29 +614,16 @@ class _TopOverlay extends StatelessWidget {
                     color: context.lgTextSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    GestureDetector(
-                      onTap: onFitSpots,
-                      child: LovePill(
-                        text: '$spotCount 个地点 · 查看全局',
-                        color: LoveGirlTheme.secondary,
-                      ),
+                if (!hasRoute) ...[
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: onPreviewRoute,
+                    child: LovePill(
+                      text: '一键串成路线',
+                      color: context.lgTextMuted,
                     ),
-                    GestureDetector(
-                      onTap: onPreviewRoute,
-                      child: LovePill(
-                        text: hasRoute ? '已加载路线 · 查看' : '一键串成路线',
-                        color: hasRoute
-                            ? context.lgInk
-                            : context.lgTextMuted,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
                 if (unsupportedReason?.isNotEmpty == true) ...[
                   const SizedBox(height: 10),
                   _SmallNotice(text: unsupportedReason!),
@@ -660,105 +631,6 @@ class _TopOverlay extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MapActionRail extends StatelessWidget {
-  final VoidCallback onCycleStyle;
-  final VoidCallback onFitBounds;
-  final VoidCallback onLocateMe;
-
-  const _MapActionRail({
-    required this.onCycleStyle,
-    required this.onFitBounds,
-    required this.onLocateMe,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _RailButton(
-            icon: Icons.layers_rounded, label: '标准地图', onTap: onCycleStyle),
-        const SizedBox(height: 10),
-        _RailButton(
-            icon: Icons.my_location_rounded, label: '定位', onTap: onLocateMe),
-        const SizedBox(height: 10),
-        _RailButton(
-            icon: Icons.alt_route_rounded, label: '路线', onTap: onFitBounds),
-      ],
-    );
-  }
-}
-
-class _BottomOverlay extends StatelessWidget {
-  final TravelRoute? activeRoute;
-  final int spotCount;
-  final VoidCallback onAddSpot;
-  final VoidCallback onFitBounds;
-  final VoidCallback onClearRoute;
-  final VoidCallback onBack;
-
-  const _BottomOverlay({
-    required this.activeRoute,
-    required this.spotCount,
-    required this.onAddSpot,
-    required this.onFitBounds,
-    required this.onClearRoute,
-    required this.onBack,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (spotCount == 0) ...[
-          _MapHelpBanner(onAddSpot: onAddSpot, onBack: onBack),
-          const SizedBox(height: 12),
-        ],
-        if (activeRoute != null) ...[
-          _RouteTicket(route: activeRoute!, onClearRoute: onClearRoute),
-          const SizedBox(height: 12),
-        ],
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onAddSpot,
-                icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                label: const Text('新增地点'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: context.lgTextPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onFitBounds,
-                icon: const Icon(Icons.fit_screen_rounded, size: 18),
-                label: const Text('查看全局'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: LoveGirlTheme.secondary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );
@@ -1526,55 +1398,6 @@ class _CircleButton extends StatelessWidget {
             boxShadow: LoveGirlTheme.cardShadow(),
           ),
           child: Icon(icon, color: context.lgTextPrimary),
-        ),
-      ),
-    );
-  }
-}
-
-class _RailButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _RailButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(238),
-            shape: BoxShape.circle,
-            boxShadow: LoveGirlTheme.cardShadow(),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: context.lgTextPrimary),
-              SizedBox(height: 2),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: context.lgTextSecondary,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
