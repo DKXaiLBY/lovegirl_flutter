@@ -204,111 +204,107 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return KeyedSubtree(
       key: const ValueKey('home_header'),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stackMetrics = constraints.maxWidth < 320;
-          final metrics = Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              WeatherWidget(compact: true),
-              Container(
-                width: 1,
-                height: 42,
-                color: context.lgSeparator,
-              ),
-              _BellBadge(onNavigateToTab: onNavigateToTab),
-              _BeanBadge(balance: beanBalance),
-            ],
-          );
-
-          return Column(
+      // 两行结构：标题+天数 hero / 铃铛 → 天气 | 爱心豆，窄屏不再散成三行
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'LoveGirl',
-                                style: TextStyle(
-                                  fontFamily: 'serif',
-                                  fontSize: 34,
-                                  height: 1,
-                                  fontWeight: FontWeight.w700,
-                                  color: context.lgTextPrimary,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Padding(
-                                padding: EdgeInsets.only(top: 4),
-                                child: Icon(
-                                  Icons.favorite_rounded,
-                                  size: 16,
-                                  color: context.lgEmotion,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'LoveGirl',
+                          style: TextStyle(
+                            fontFamily: 'serif',
+                            fontSize: 30,
+                            height: 1,
+                            fontWeight: FontWeight.w700,
+                            color: context.lgTextPrimary,
                           ),
                         ),
-                        SizedBox(height: 7),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text.rich(
-                            TextSpan(
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: context.lgTextSecondary,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text:
-                                      '\u6211\u4eec\u5728\u4e00\u8d77\u7684\u7b2c ',
-                                ),
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.middle,
-                                  child: RollingNumber(
-                                    value: loveDays,
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w900,
-                                      color: context.lgEmotion,
-                                    ),
-                                  ),
-                                ),
-                                TextSpan(text: ' \u5929 \u2665'),
-                              ],
-                            ),
+                        SizedBox(width: 6),
+                        Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            size: 15,
+                            color: context.lgEmotion,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  if (!stackMetrics) ...[
-                    SizedBox(width: 12),
-                    metrics,
+                    SizedBox(height: 8),
+                    // 数字层级：恋爱天数是整屏视觉锚点（清爽化 v2 数字 hero）
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '我们在一起的第 ',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: context.lgTextSecondary,
+                            ),
+                          ),
+                          RollingNumber(
+                            value: loveDays,
+                            style: TextStyle(
+                              fontSize: 38,
+                              height: 1,
+                              fontWeight: FontWeight.w900,
+                              color: context.lgEmotion,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '天',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: context.lgTextSecondary,
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(left: 5),
+                            child: Icon(
+                              Icons.favorite_rounded,
+                              size: 13,
+                              color: context.lgEmotion,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
-              if (stackMetrics) ...[
-                SizedBox(height: 14),
-                metrics,
-              ],
+              SizedBox(width: 12),
+              _BellBadge(onNavigateToTab: onNavigateToTab),
             ],
-          );
-        },
+          ),
+          SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: WeatherWidget(compact: true),
+                ),
+              ),
+              _BeanBadge(balance: beanBalance),
+            ],
+          ),
+        ],
       ),
     );
   }
