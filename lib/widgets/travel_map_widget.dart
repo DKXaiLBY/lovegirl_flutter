@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:amap_flutter_base/amap_flutter_base.dart'
     show AMapApiKey, AMapLocation, AMapPrivacyStatement, LatLng, LatLngBounds;
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -133,7 +136,45 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     return _lastLocation.value;
   }
 
-  /// 进图定位优先：授权拿到定位 → 飞当前位置 zoom16；拒绝/超时 → 回落到计划地点全览。
+  /// 直接向系统要一次定位（不依赖高德蓝点回调——部分机型蓝点定位长时间不出值）。
+  /// 系统定位开关没开时给出带"去设置"的提示并返回 null。
+  Future<Position?> _acquireSystemFix({int maxSeconds = 12}) async {
+    final serviceOn = await Geolocator.isLocationServiceEnabled();
+    if (!serviceOn) {
+      if (!mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('系统定位开关没开，打开后就能找到你啦'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: '去设置',
+          onPressed: () => Geolocator.openLocationSettings(),
+        ),
+      ));
+      return null;
+    }
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: maxSeconds),
+      );
+    } on TimeoutException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _flyTo(double lat, double lng, double bearing) async {
+    await _controller?.moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: LatLng(lat, lng), zoom: 16, bearing: bearing, tilt: 0),
+      ),
+      animated: true,
+      duration: 650,
+    );
+  }
+
+  /// 进图定位优先：授权并拿到定位 → 飞当前位置 zoom16；拒绝/超时 → 回落到计划地点全览。
   Future<void> _entryLocate() async {
     final hasSpots = widget.spots.isNotEmpty;
     final ok = await _ensureLocationLayer(requestPermission: true);
@@ -144,21 +185,29 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
       }
       return;
     }
-    final location = await _waitForFirstFix();
+    // 优先系统定位（可靠）；拿不到再给高德蓝点一次短窗口
+    var position = await _acquireSystemFix();
+    if (position == null) {
+      final blueDot = await _waitForFirstFix(maxSeconds: 4);
+      if (blueDot != null) {
+        position = Position(
+          latitude: blueDot.latLng.latitude,
+          longitude: blueDot.latLng.longitude,
+          timestamp: DateTime.now(),
+          accuracy: blueDot.accuracy.isFinite ? blueDot.accuracy : 0,
+          altitude: 0,
+          altitudeAccuracy: 0,
+          heading: blueDot.bearing.isFinite ? blueDot.bearing : 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        );
+      }
+    }
     if (!mounted) return;
-    if (location != null) {
-      await _controller?.moveCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: location.latLng,
-            zoom: 16,
-            bearing: location.bearing.isFinite ? location.bearing : 0,
-            tilt: 0,
-          ),
-        ),
-        animated: true,
-        duration: 650,
-      );
+    if (position != null) {
+      await _flyTo(position.latitude, position.longitude,
+          position.heading.isFinite ? position.heading : 0);
       // 已按用户位置取景，地点异步加载不再抢镜头
       _hasFitBounds = true;
     } else {
@@ -326,26 +375,16 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         return;
       }
 
-      final location = await _waitForFirstFix();
+      final position = await _acquireSystemFix();
 
-      if (location != null) {
-        await _controller?.moveCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: location.latLng,
-              zoom: 16,
-              bearing: location.bearing.isFinite ? location.bearing : 0,
-              tilt: 0,
-            ),
-          ),
-          animated: true,
-          duration: 650,
-        );
+      if (position != null) {
+        await _flyTo(position.latitude, position.longitude,
+            position.heading.isFinite ? position.heading : 0);
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                '\u5b9a\u4f4d\u7b49\u4e86 10 \u79d2\u8fd8\u6ca1\u62ff\u5230\uff0c\u8bf7\u68c0\u67e5\u7cfb\u7edf\u5b9a\u4f4d\u5f00\u5173\uff0c\u5230\u4fe1\u53f7\u597d\u7684\u5730\u65b9\u518d\u8bd5'),
+                '\u5b9a\u4f4d\u7b49\u4e86 12 \u79d2\u8fd8\u6ca1\u62ff\u5230\uff0c\u8bf7\u68c0\u67e5\u7cfb\u7edf\u5b9a\u4f4d\u5f00\u5173\uff0c\u5230\u4fe1\u53f7\u597d\u7684\u5730\u65b9\u518d\u8bd5'),
             behavior: SnackBarBehavior.floating,
           ),
         );

@@ -314,9 +314,14 @@ class _MoodScreenState extends State<MoodScreen> {
           fontWeight: FontWeight.w800,
           color: context.lgTextPrimary,
         ),
-        leading: IconButton(
-            icon: AppIcon('back'),
-            onPressed: () => Navigator.pop(context)),
+        // 本页是生活 tab 的嵌入子页（IndexedStack），无可返回路由；
+        // 仅当作为独立页面推入时才显示返回键，否则点了会把根路由 pop 成黑屏
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: AppIcon('back'),
+                onPressed: () => Navigator.pop(context))
+            : null,
+        automaticallyImplyLeading: false,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
