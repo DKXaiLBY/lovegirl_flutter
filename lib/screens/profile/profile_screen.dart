@@ -205,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? partnerName,
   ) {
     return LoveTicketCard(
-      color: const Color(0xFFFFFBF8),
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -475,7 +475,7 @@ class _ProfileHero extends StatelessWidget {
 
     return LoveTicketCard(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      color: const Color(0xFFFFF7F1),
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

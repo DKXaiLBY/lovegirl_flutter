@@ -431,7 +431,7 @@ class _EmptyMapScaffold extends StatelessWidget {
               SizedBox(height: 16),
               Expanded(
                 child: LoveTicketCard(
-                  color: const Color(0xFFFFFCF8),
+                  color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,7 +741,7 @@ class _SpotSheet extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: LoveTicketCard(
-          color: const Color(0xFFFFFCF8),
+          color: Colors.white,
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           child: SingleChildScrollView(
             child: Column(
@@ -966,7 +966,7 @@ class _InfoCell extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7EE),
+        color: context.lgPaperWarm,
         border: Border.all(color: context.lgSeparator.withAlpha(170)),
       ),
       child: Row(
@@ -1355,7 +1355,7 @@ class _SmallNotice extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF4EC),
+        color: const Color(0xFFF5F5F6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.lgInk.withAlpha(48)),
       ),

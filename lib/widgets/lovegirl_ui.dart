@@ -133,7 +133,7 @@ class LoveTicketDivider extends StatelessWidget {
     super.key,
     this.axis = Axis.vertical,
     this.length = 84,
-    this.color = const Color(0xFFE0D8D0),
+    this.color = const Color(0xFFE2E2E2),
   });
 
   @override

@@ -525,7 +525,7 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3EE),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: context.lgInk.withAlpha(40)),
       ),
@@ -1595,7 +1595,7 @@ class _FinancePiePainter extends CustomPainter {
     final slices = [
       (_SliceData(0.40, const Color(0xFFF5DCC2))),
       (_SliceData(0.34, const Color(0xFFD4D8B8))),
-      (_SliceData(0.26, const Color(0xFFFFF3E8))),
+      (_SliceData(0.26, const Color(0xFFF4F4F5))),
     ];
 
     var start = -1.85;

@@ -593,7 +593,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
         next == null ? '' : _repeatLabel(next['repeatType']);
 
     return LoveTicketCard(
-      color: const Color(0xFFFFF7F1),
+      color: Colors.white,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       child: next == null
           ? Column(
@@ -895,7 +895,7 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3EE),
+        color: const Color(0xFFFBF1F0),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: context.lgInk.withAlpha(40)),
       ),

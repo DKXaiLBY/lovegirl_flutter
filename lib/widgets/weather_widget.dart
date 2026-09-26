@@ -214,8 +214,8 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(sheetCtx).brightness == Brightness.dark
-                ? const Color(0xFF1E1B18)
-                : const Color(0xFFFFF8F3),
+                ? const Color(0xFF1C1C1E)
+                : Colors.white,
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(26)),
           ),

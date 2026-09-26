@@ -1,47 +1,48 @@
 import 'package:flutter/material.dart';
 
 /// LoveGirl confirmed visual direction:
-/// warm ivory paper, ticket cards, coral accents and soft sage status color.
+/// v3.34 白色简洁（倒数日风）：纯白底、极浅分隔、大数字黑字、彩色插画点缀；
+/// 票根隐喻只保留在票根类内容页（旅行票根/时光轴）。情感橘只给"和 TA 有关"的内容。
 class LoveGirlTheme {
   static const double radius = 14.0;
   static const double radiusLg = 18.0;
   static const double radiusXl = 26.0;
 
-  // v3.24 新风格：主行动黑白化（参考 AI Agents 市场风格），品牌橘退位
+  // v3.24 主行动黑白化，品牌橘退位
   static const Color primary = Color(0xFF1A1A1A);
   static const Color primaryLight = Color(0xFF4A4A4A);
-  static const Color primarySoft = Color(0xFFF6EFE8);
+  static const Color primarySoft = Color(0xFFF4F4F5);
   static const Color secondary = Color(0xFF7A9E7E);
-  static const Color secondarySoft = Color(0xFFF0F5EC);
+  static const Color secondarySoft = Color(0xFFEFF2EF);
   static const Color accent = Color(0xFFE7B78A);
   static const Color red = Color(0xFFE95B4E);
   static const Color orange = Color(0xFFE7A25D);
   static const Color pink = primary;
   static const Color pinkLight = primaryLight;
 
-  // v3.27 温度回归：陶土橘只给"和 TA 有关"的情感元素（恋爱天数/爱心/对方动态），
-  // 主行动语言仍是黑底白字（DESIGN_SYSTEM §1"情绪色克制"）
+  // v3.27 情感色：陶土橘只给"和 TA 有关"的元素（恋爱天数/爱心/对方动态）
   static const Color brandEmotion = Color(0xFFB85C38);
 
-  static const Color bgLight = Color(0xFFFFF8F3);
+  // v3.34 白色简洁（浅色）与中性深色（深色同步去暖）
+  static const Color bgLight = Color(0xFFFFFFFF);
   static const Color paper = Color(0xFFFFFFFF);
-  static const Color paperWarm = Color(0xFFFFF5EC);
+  static const Color paperWarm = Color(0xFFF7F7F8);
   static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color bgDark = Color(0xFF1D1917);
-  static const Color cardDark = Color(0xFF2A2421);
+  static const Color bgDark = Color(0xFF111113);
+  static const Color cardDark = Color(0xFF1C1C1E);
 
-  static const Color textPrimary = Color(0xFF333333);
+  static const Color textPrimary = Color(0xFF1A1A1A);
   static const Color textSecondary = Color(0xFF888888);
   static const Color textMuted = Color(0xFF999999);
-  static const Color separator = Color(0xFFEAE4DC);
+  static const Color separator = Color(0xFFECECEC);
 
-  // v3.26 深色模式 token（DESIGN_SYSTEM §8：textPrimary→#E8E0D9, separator→#3A342E, paper→#2A2421，主色不变）
-  static const Color textPrimaryDark = Color(0xFFE8E0D9);
-  static const Color textSecondaryDark = Color(0xFFA69F96);
-  static const Color textMutedDark = Color(0xFF8A847C);
-  static const Color separatorDark = Color(0xFF3A342E);
-  static const Color primarySoftDark = Color(0xFF2E2C29);
-  static const Color secondarySoftDark = Color(0xFF24312A);
+  // v3.34 深色模式 token（中性深灰体系）
+  static const Color textPrimaryDark = Color(0xFFECECEE);
+  static const Color textSecondaryDark = Color(0xFF9E9EA3);
+  static const Color textMutedDark = Color(0xFF7C7C82);
+  static const Color separatorDark = Color(0xFF2C2C2E);
+  static const Color primarySoftDark = Color(0xFF2A2A2D);
+  static const Color secondarySoftDark = Color(0xFF232624);
 
   static const Color visited = Color(0xFF4CAF50); // 与 travel 模块状态绿统一
   static const Color wish = accent;

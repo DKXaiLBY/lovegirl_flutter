@@ -73,7 +73,7 @@ class _LifeScreenState extends State<LifeScreen>
 
   Widget _buildHeader() {
     return LoveTicketCard(
-      color: const Color(0xFFF7FCF4),
+      color: Colors.white,
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
