@@ -126,10 +126,10 @@ async function ensureToken() {
 
   // 尝试登录
   const testAccounts = [
-    { username: 'testboy', password: '123456' },
-    { username: 'testgirl', password: '123456' },
-    { username: 'test', password: '123456' },
-    { username: 'admin', password: 'admin123' },
+    { username: 'testboy', password: '<rotated-2026-09-26>' },
+    { username: 'testgirl', password: '<rotated-2026-09-26>' },
+    { username: 'test', password: '<rotated-2026-09-26>' },
+    { username: 'admin', password: '<rotated-2026-09-26>' },
   ];
 
   for (const acc of testAccounts) {

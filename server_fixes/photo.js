@@ -38,7 +38,7 @@ router.get('/', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
     const [rows] = await pool.query(
-      'SELECT id, url, thumbnail_url, description, created_at FROM photos WHERE user_id = ? ORDER BY created_at DESC',
+      'SELECT id, url, thumbnail_url, description, back_message, photo_date, created_at FROM photos WHERE user_id = ? ORDER BY created_at DESC',
       [userId]
     );
     res.json({ code: 200, data: rows });
@@ -105,6 +105,26 @@ router.put('/:id/description', authRequired, async (req, res) => {
     res.json({ code: 200, message: '已保存', data: { description: desc } });
   } catch (err) {
     console.error('[Photo] 描述保存失败:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+// PUT /api/photo/:id/back_message — 编辑拍立得背卡留言（翻面手写故事）
+router.put('/:id/back_message', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const photoId = parseInt(req.params.id);
+    const text = String(req.body.backMessage ?? '').trim().slice(0, 300);
+    const [result] = await pool.query(
+      'UPDATE photos SET back_message = ? WHERE id = ? AND user_id = ?',
+      [text, photoId, userId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ code: 404, message: '照片不存在' });
+    }
+    res.json({ code: 200, message: '已保存', data: { back_message: text } });
+  } catch (err) {
+    console.error('[Photo] 背卡保存失败:', err);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 });

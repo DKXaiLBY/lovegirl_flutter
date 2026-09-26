@@ -148,4 +148,84 @@ router.get('/', authRequired, async (req, res) => {
   }
 });
 
+// 月度小报：按 year/month 聚合当月两人的小日子
+router.get('/monthly', authRequired, async (req, res) => {
+  try {
+    const now = new Date();
+    const year = parseInt(req.query.year) || now.getFullYear();
+    const month = parseInt(req.query.month) || now.getMonth() + 1;
+    if (month < 1 || month > 12 || year < 2000 || year > 2100) {
+      return res.status(400).json({ code: 400, message: '月份不合法' });
+    }
+    const partnerId = await getPartnerId(req.user.id);
+    const userIds = partnerId != null ? [req.user.id, partnerId] : [req.user.id];
+    const inPh = userIds.map(() => '?').join(',');
+    const mm = (month < 10 ? '0' : '') + month;
+    const mStart = [year, mm, '01'].join('-');
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const mEnd = [nextYear, (nextMonth < 10 ? '0' : '') + nextMonth, '01'].join('-');
+
+    const travelRows = await rows(
+      'SELECT COUNT(DISTINCT name) AS spots, COUNT(DISTINCT CASE WHEN city IS NOT NULL AND city != \'\' THEN city END) AS cities FROM travel_spots WHERE user_id IN (' + inPh + ') AND status=\'visited\' AND visited_date >= ? AND visited_date < ?',
+      [...userIds, mStart, mEnd]
+    );
+    const kitchenRows = await rows(
+      'SELECT COALESCE(SUM(status=\'done\'),0) AS done FROM kitchen_orders WHERE (orderer_id IN (' + inPh + ') OR cook_id IN (' + inPh + ')) AND created_at >= ? AND created_at < ?',
+      [...userIds, ...userIds, mStart, mEnd]
+    );
+    let topDish = null;
+    try {
+      const t = await rows(
+        'SELECT d.name AS name, COUNT(*) AS n FROM kitchen_orders o JOIN kitchen_dishes d ON JSON_UNQUOTE(JSON_EXTRACT(o.items, \'$[0].dish_id\')) = CAST(d.id AS CHAR) WHERE o.created_at >= ? AND o.created_at < ? AND o.status = \'done\' GROUP BY d.name ORDER BY n DESC LIMIT 1',
+        [mStart, mEnd]
+      );
+      topDish = t.length > 0 ? t[0].name : null;
+    } catch (_) {}
+    const dailyRows = await rows(
+      'SELECT COUNT(*) AS days FROM (SELECT question_date FROM daily_answers WHERE user_id IN (' + inPh + ') AND question_date >= ? AND question_date < ? GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?) t',
+      [...userIds, mStart, mEnd, userIds.length]
+    );
+    const photoRows = await rows(
+      'SELECT COUNT(*) AS n FROM photos WHERE user_id IN (' + inPh + ') AND created_at >= ? AND created_at < ?',
+      [...userIds, mStart, mEnd]
+    );
+    const timelineRows = await rows(
+      'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id IN (' + inPh + ') AND event_date >= ? AND event_date < ?',
+      [...userIds, mStart, mEnd]
+    );
+    const letterRows = await rows(
+      'SELECT COUNT(*) AS n FROM slow_letters WHERE (sender_id IN (' + inPh + ') OR receiver_id IN (' + inPh + ')) AND created_at >= ? AND created_at < ?',
+      [...userIds, ...userIds, mStart, mEnd]
+    );
+    const beanRows = await rows(
+      'SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount END),0) AS earned, COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END),0) AS spent FROM bean_transactions WHERE user_id IN (' + inPh + ') AND created_at >= ? AND created_at < ?',
+      [...userIds, mStart, mEnd]
+    );
+
+    res.json({
+      code: 200,
+      data: {
+        ym: [year, mm].join('-'),
+        year,
+        month,
+        hasPartner: partnerId != null,
+        photos: photoRows[0]?.n || 0,
+        travelSpots: travelRows[0]?.spots || 0,
+        travelCities: travelRows[0]?.cities || 0,
+        kitchenDone: Number(kitchenRows[0]?.done || 0),
+        topDish,
+        dailyDays: dailyRows[0]?.days || 0,
+        timelineEvents: timelineRows[0]?.n || 0,
+        letters: letterRows[0]?.n || 0,
+        beansEarned: Number(beanRows[0]?.earned || 0),
+        beansSpent: Number(beanRows[0]?.spent || 0),
+      },
+    });
+  } catch (err) {
+    console.error('[Report] monthly failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 module.exports = router;

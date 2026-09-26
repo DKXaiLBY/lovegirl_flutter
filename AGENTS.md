@@ -35,10 +35,13 @@
 ## 构建 / 发布 / 测试
 
 ```bash
-# 构建（debug 带自动登录；release 发布用，不带 dart-define）
+# 构建（release 发布用，不带任何 dart-define；debug QA 自动登录需三件套：
+#   --dart-define=LOVEGIRL_E2E_AUTO_LOGIN=true --dart-define=LOVEGIRL_E2E_USER=<账号> --dart-define=LOVEGIRL_E2E_PASS=<密码>
+# 账号密码已轮换不入库，向用户索取；凭据只存在于本地构建命令里）
 JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-sdk\bin\flutter.bat" build apk --release
 
-# 测试账号（保留勿删）：admin/admin123（男友端）、testgirl（女友端）、testboy
+# 测试账号（保留勿删）：admin（男友端）、testgirl（女友端）、testboy
+# 三账号密码已于 2026-09-26 轮换为强密码（找用户要或自己记录），勿把密码写进仓库任何文件
 # 服务器数据：MySQL 容器 lovegirl-mysql，库 love_girl，DB 密码在服务器 .env（键名 DB_PASSWORD）
 # 服务器查库：ssh 后 docker exec lovegirl-mysql sh -c 'mysql -uroot -p<密码> love_girl -e "..."'；转义层数多，复杂 SQL 用 UTF-8 文件 scp + docker cp 进容器再执行
 ```

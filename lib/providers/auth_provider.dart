@@ -46,8 +46,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       final token = await _storage.read(key: AppConstants.tokenKey);
       if (token == null) {
-        if (kDebugMode && _e2eAutoLogin) {
-          await login('admin', 'admin123');
+        // QA 自动登录账号经 --dart-define 传入，发布包不含任何凭据
+        final e2eUser = const String.fromEnvironment('LOVEGIRL_E2E_USER');
+        final e2ePass = const String.fromEnvironment('LOVEGIRL_E2E_PASS');
+        if (kDebugMode && _e2eAutoLogin && e2eUser.isNotEmpty) {
+          await login(e2eUser, e2ePass);
           return;
         }
         _user = null;

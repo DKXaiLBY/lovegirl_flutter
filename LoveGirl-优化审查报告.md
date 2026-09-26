@@ -227,7 +227,7 @@ P2 遗留：
 
 完整 E2E 最终复跑结果：
 
-- 已验证 `admin/admin123` 可登录，管理员角色切换接口可用，但单一 admin 不能替代真实 boy/girl 双账号绑定流程。
+- 已验证 admin 可登录（密码已轮换，不入库），管理员角色切换接口可用，但单一 admin 不能替代真实 boy/girl 双账号绑定流程。
 - 按用户授权，已先生成整库备份：`D:\lovegirl_flutter\docs\lovegirl_pre_e2e_cleanup_20260703014559.sql`。
 - 已删除原有两个普通账号及其关联测试数据，保留 admin。
 - E2E 首轮暴露 P0：投喂 v2 创建订单 500，根因为旧字段 `boy_user_id/girl_user_id` 仍为 NOT NULL，而新插入只写 `sender_id/receiver_id`。已修复为创建订单时同时兼容回填旧字段。

@@ -60,7 +60,10 @@ router.get('/', authRequired, async (req, res) => {
           icon: item.icon,
           daysUntil: calc.daysUntil,
           years: calc.years,
-          description: calc.daysUntil === 0 ? 'today' : `${calc.daysUntil} days left`,
+          description: item.description || '',
+          type: item.type || 'custom',
+          isLunar: item.is_lunar === 1 || item.is_lunar === true,
+          repeatType: item.repeat_type || 'yearly',
           createdAt: item.created_at,
         };
       })
@@ -74,13 +77,22 @@ router.get('/', authRequired, async (req, res) => {
 
 router.post('/', authRequired, async (req, res) => {
   try {
-    const { title, eventDate, icon } = req.body;
+    const { title, eventDate, icon, type, description, isLunar, repeatType } = req.body;
     if (!title || !eventDate) {
       return res.status(400).json({ code: 400, message: 'title and eventDate are required' });
     }
     const [result] = await pool.query(
-      'INSERT INTO anniversaries (user_id, title, event_date, icon) VALUES (?, ?, ?, ?)',
-      [req.user.id, title, eventDate, icon || 'heart']
+      'INSERT INTO anniversaries (user_id, title, event_date, icon, type, description, is_lunar, repeat_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        req.user.id,
+        title,
+        eventDate,
+        icon || 'heart',
+        type || 'custom',
+        description || '',
+        isLunar === true || isLunar === 1 ? 1 : 0,
+        repeatType || 'yearly',
+      ]
     );
     await rewardAnniversaryToday(req.user.id, result.insertId, title, eventDate);
     res.json({ code: 200, message: 'created', data: { id: result.insertId } });
@@ -92,22 +104,26 @@ router.post('/', authRequired, async (req, res) => {
 
 router.put('/:id', authRequired, async (req, res) => {
   try {
-    const { title, eventDate, icon } = req.body;
-    const updates = {};
-    if (title !== undefined) updates.title = title;
-    if (eventDate !== undefined) updates.event_date = eventDate;
-    if (icon !== undefined) updates.icon = icon;
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ code: 400, message: 'no fields to update' });
+    const { title, eventDate, icon, type, description, isLunar, repeatType } = req.body;
+    if (!title || !eventDate) {
+      return res.status(400).json({ code: 400, message: 'title and eventDate are required' });
     }
     const [result] = await pool.query(
-      'UPDATE anniversaries SET ? WHERE id = ? AND user_id = ?',
-      [updates, req.params.id, req.user.id]
+      'UPDATE anniversaries SET title = ?, event_date = ?, icon = ?, type = ?, description = ?, is_lunar = ?, repeat_type = ? WHERE id = ? AND user_id = ?',
+      [
+        title,
+        eventDate,
+        icon || 'heart',
+        type || 'custom',
+        description || '',
+        isLunar === true || isLunar === 1 ? 1 : 0,
+        repeatType || 'yearly',
+        req.params.id,
+        req.user.id,
+      ]
     );
     if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: 'anniversary not found' });
-    if (eventDate !== undefined || title !== undefined) {
-      await rewardAnniversaryToday(req.user.id, req.params.id, title || '', eventDate || '');
-    }
+    await rewardAnniversaryToday(req.user.id, req.params.id, title, eventDate);
     res.json({ code: 200, message: 'updated' });
   } catch (err) {
     console.error('Update anniversary failed:', err);

@@ -97,6 +97,39 @@ router.put('/:id/active', authRequired, async (req, res) => {
   }
 });
 
+// 删除我的券（仅发行人；仅已下架且无兑换记录——兑换记录承载豆流水追溯，不随券物理清除）
+router.delete('/:id', authRequired, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
+    const [rows] = await pool.query(
+      `SELECT is_active,
+              (SELECT COUNT(*) FROM voucher_redemptions r WHERE r.template_id = voucher_templates.id) AS redeemed_count
+       FROM voucher_templates WHERE id = ? AND creator_id = ?`,
+      [id, req.user.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ code: 404, message: '券不存在' });
+    if (rows[0].is_active) return res.status(400).json({ code: 400, message: '先下架再删除' });
+    if (rows[0].redeemed_count > 0) {
+      return res.status(409).json({ code: 409, message: '这张券有兑换记录，不能删除' });
+    }
+    // 条件重查防竞态：下架/兑换状态在下决断瞬间再校验一次
+    const [del] = await pool.query(
+      `DELETE FROM voucher_templates
+       WHERE id = ? AND creator_id = ? AND is_active = 0
+         AND NOT EXISTS (SELECT 1 FROM voucher_redemptions r WHERE r.template_id = voucher_templates.id)`,
+      [id, req.user.id]
+    );
+    if (del.affectedRows === 0) {
+      return res.status(409).json({ code: 409, message: '状态刚有变化，刷新后再试' });
+    }
+    res.json({ code: 200, message: '已删除' });
+  } catch (err) {
+    console.error('[Voucher] delete failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 // ========== 兑换与流转 ==========
 
 // 兑换（花豆）；幂等由豆流水 source_id = redemption_id 保证回滚

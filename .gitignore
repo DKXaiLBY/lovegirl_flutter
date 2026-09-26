@@ -61,6 +61,11 @@ server_fixes/.env
 # Claude Code
 .claude/
 
+# IDE / 工具本地缓存（曾误入库，含机器信息；已出索引）
+.dart_appdata/
+.dart_localappdata/
+.azure/
+
 # Debug artifacts (kept on disk, excluded from git; some are evidence referenced by docs)
 tmp_*
 build_log*
