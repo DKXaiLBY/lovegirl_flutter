@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.33.0+162（2026-09-26 已发布）。视觉风格：**暖纸底 + 彩色贴纸插画层**（`assets/images/illus/` 33 张，IllusImg 组件，清爽化 v2 批次 0-7 全部落地：空状态/天气/启动页/纪念日/拍立得全面插画风，用户数据自选 emoji 保留）。v3.28 已按用户决策砍掉爱情树与拇指之吻（服务器路由下线、表保留）。
+当前版本 v3.34.0+164（2026-09-26 已发布）。视觉风格：**白色简洁（倒数日风）**——纯白底 #FFFFFF、白卡浅描边 #ECECEC、大数字特黑 #1A1A1A、彩色插画点缀（illus/ 33 张）、陶土橘只给恋爱天数/爱心；**票根隐喻仅保留在票根类内容页**（travel_ticket_screen/ticket_styles 暖纸底未动）；深色模式为中性深灰体系。衣柜试穿/热量计算器/地图 tab 改色等方案已调研存档，等用户召唤再启动。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
