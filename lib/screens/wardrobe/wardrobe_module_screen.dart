@@ -7,6 +7,7 @@ import '../../widgets/lovegirl_ui.dart';
 import 'outfit_capture_screen.dart';
 import 'outfit_compose_screen.dart';
 import 'outfit_timeline_screen.dart';
+import 'wardrobe_avatar_screen.dart';
 import 'wardrobe_home_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 
@@ -126,7 +127,7 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
     );
   }
 
-  /// 「+」行为随分段（§0 全局约定）
+  /// 「+」行为随分段（§0 全局约定）；穿搭段加"我的数字形象"（M2a）
   void _onAdd() {
     final options = _seg == 0
         ? [
@@ -136,6 +137,7 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
         : [
             (Icons.photo_camera_rounded, '实拍记录', '/capture'),
             (Icons.auto_awesome_mosaic_rounded, '创建搭配', '/compose'),
+            (Icons.person_outline_rounded, '我的数字形象', '/avatar'),
           ];
     showModalBottomSheet<void>(
       context: context,
@@ -164,6 +166,8 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
                         _push(const OutfitComposeScreen());
                       case '/capture':
                         _push(const OutfitCaptureScreen());
+                      case '/avatar':
+                        _push(const WardrobeAvatarScreen());
                     }
                   },
                 ),

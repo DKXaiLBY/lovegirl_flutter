@@ -174,6 +174,37 @@ class WardrobeOutfit {
       );
 }
 
+/// 我的数字形象（M2a P12）
+class WardrobeAvatar {
+  final int id;
+  final String imageUrl;
+  final String? thumbnailUrl;
+  final String? cutoutUrl;
+  final bool isDefault;
+  final DateTime? createdAt;
+
+  const WardrobeAvatar({
+    required this.id,
+    required this.imageUrl,
+    this.thumbnailUrl,
+    this.cutoutUrl,
+    this.isDefault = false,
+    this.createdAt,
+  });
+
+  /// 换装白板底图优先抠图图（透明人形）
+  String get displayImage => cutoutUrl ?? imageUrl;
+
+  factory WardrobeAvatar.fromJson(Map<String, dynamic> j) => WardrobeAvatar(
+        id: (j['id'] as num?)?.toInt() ?? 0,
+        imageUrl: (j['image_url'] ?? '').toString(),
+        thumbnailUrl: j['thumbnail_url']?.toString(),
+        cutoutUrl: j['cutout_url']?.toString(),
+        isDefault: (j['is_default'] as num?)?.toInt() == 1,
+        createdAt: DateTime.tryParse((j['created_at'] ?? '').toString()),
+      );
+}
+
 extension _StringX on String {
   String slice0(int n) => length <= n ? this : substring(0, n);
 }

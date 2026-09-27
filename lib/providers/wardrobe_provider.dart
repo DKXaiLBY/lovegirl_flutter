@@ -43,6 +43,7 @@ class WardrobeProvider extends ChangeNotifier {
 
   List<WardrobeItem> items = [];
   List<WardrobeOutfit> outfits = [];
+  List<WardrobeAvatar> avatars = [];
   bool loading = false;
   String? error;
   final WardrobeFilter filter = WardrobeFilter();
@@ -51,8 +52,10 @@ class WardrobeProvider extends ChangeNotifier {
   String? todayTemp;
   String? todayBand;
 
-  /// 抠图开关（S3 默认关，App 隐藏抠图步骤）
+  /// 抠图能力位（M2a）：person=形象抠图；object=衣服抠图（换装白板前置）
   bool bgEnabled = false;
+  bool bgPerson = false;
+  bool bgObject = false;
 
   /// 新增成功后滚动定位目标
   int? focusItemId;
@@ -72,7 +75,8 @@ class WardrobeProvider extends ChangeNotifier {
     error = null;
     notifyListeners();
     await _loadPrefs();
-    await Future.wait([_loadItems(), _loadOutfits(), _loadBg(), _loadWeather()]);
+    await Future.wait(
+        [_loadItems(), _loadOutfits(), _loadAvatars(), _loadBg(), _loadWeather()]);
     loading = false;
     notifyListeners();
   }
@@ -117,8 +121,93 @@ class WardrobeProvider extends ChangeNotifier {
       final res = await _api.getWardrobeBgStatus();
       final data = res.data?['data'];
       bgEnabled = data is Map && data['enabled'] == true;
+      bgPerson = data is Map && data['person'] == true;
+      bgObject = data is Map && data['object'] == true;
     } catch (_) {
       bgEnabled = false;
+      bgPerson = false;
+      bgObject = false;
+    }
+  }
+
+  Future<void> _loadAvatars() async {
+    try {
+      final res = await _api.getWardrobeAvatars();
+      final data = res.data?['data'];
+      avatars = (data is List)
+          ? data
+              .whereType<Map>()
+              .map((e) => WardrobeAvatar.fromJson(e.cast<String, dynamic>()))
+              .toList()
+          : [];
+    } catch (_) {}
+  }
+
+  WardrobeAvatar? get defaultAvatar {
+    for (final a in avatars) {
+      if (a.isDefault) return a;
+    }
+    return avatars.isEmpty ? null : avatars.first;
+  }
+
+  Future<String?> addAvatar(String filePath) async {
+    try {
+      await _api.createWardrobeAvatar(filePath);
+      await _loadAvatars();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return extractServerMessage(e, fallback: '上传失败，再试一次');
+    }
+  }
+
+  /// 上传后自动人像抠图并回写；失败返回 null（不阻断，可重试）
+  Future<String?> cutoutAvatar(int id, String filePath) async {
+    try {
+      final res = await _api.removeWardrobeBg(filePath, 'person');
+      final cutoutUrl = res.data?['data']?['cutoutUrl']?.toString();
+      if (cutoutUrl != null && cutoutUrl.isNotEmpty) {
+        await _api.saveWardrobeAvatarCutout(id, cutoutUrl);
+        await _loadAvatars();
+        notifyListeners();
+      }
+      return null;
+    } catch (e) {
+      return extractServerMessage(e, fallback: '抠图失败了，稍后可在形象页重试');
+    }
+  }
+
+  /// 对服务器已有形象原图直接抠图（avatarId 模式，服务端自动回写）
+  Future<String?> cutoutAvatarFromExisting(WardrobeAvatar a) async {
+    try {
+      await _api.cutoutWardrobeAvatar(a.id);
+      await _loadAvatars();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return extractServerMessage(e, fallback: '抠图失败了，稍后重试一次');
+    }
+  }
+
+  Future<String?> setAvatarDefault(int id) async {
+    try {
+      await _api.setWardrobeAvatarDefault(id);
+      await _loadAvatars();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return extractServerMessage(e, fallback: '操作失败，再试一次');
+    }
+  }
+
+  Future<String?> deleteAvatar(int id) async {
+    try {
+      await _api.deleteWardrobeAvatar(id);
+      await _loadAvatars();
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return extractServerMessage(e, fallback: '删除失败，再试一次');
     }
   }
 

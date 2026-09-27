@@ -176,7 +176,7 @@ router.get('/items', authRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT id, image_url, thumbnail_url, category, temperature, occasions, styles, color,
-              brand, price, status, wear_count, created_at
+              brand, price, status, wear_count, bg_removed, cutout_url, item_layout, created_at
        FROM wardrobe_items WHERE user_id = ? AND deleted_at IS NULL
        ORDER BY created_at DESC, id DESC`,
       [req.user.id]
@@ -194,10 +194,10 @@ router.get('/items/:id', authRequired, async (req, res) => {
     if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
     const [rows] = await pool.query(
       `SELECT i.id, i.image_url, i.thumbnail_url, i.category, i.temperature, i.occasions, i.styles,
-              i.color, i.brand, i.price, i.status, i.wear_count, i.created_at,
+              i.color, i.brand, i.price, i.status, i.wear_count, i.bg_removed, i.cutout_url,
+              i.item_layout, i.created_at,
               (SELECT COUNT(*) FROM wardrobe_outfits o
-                WHERE o.user_id = i.user_id AND o.item_ids IS NOT NULL
-                  AND JSON_CONTAINS(o.item_ids, CAST(i.id AS JSON))) AS outfit_refs_count
+                WHERE o.user_id = i.user_id AND i.id MEMBER OF (o.item_ids)) AS outfit_refs_count
        FROM wardrobe_items i
        WHERE i.id = ? AND i.user_id = ? AND i.deleted_at IS NULL`,
       [id, req.user.id]
@@ -248,7 +248,7 @@ router.put('/items/:id', authRequired, wrapUpload('image'), async (req, res) => 
     const id = parseInt(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
     const [rows] = await pool.query(
-      'SELECT id, image_url, thumbnail_url FROM wardrobe_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      'SELECT id, image_url, thumbnail_url, cutout_url FROM wardrobe_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
       [id, req.user.id]
     );
     if (rows.length === 0) return res.status(404).json({ code: 404, message: '单品不存在' });
@@ -269,18 +269,29 @@ router.put('/items/:id', authRequired, wrapUpload('image'), async (req, res) => 
     let imageUrl = rows[0].image_url;
     let thumbnailUrl = rows[0].thumbnail_url;
     let oldUrls = null;
+    let cutoutInvalidated = false;
     if (req.file) {
       imageUrl = `/uploads/wardrobe/${req.file.filename}`;
       try { thumbnailUrl = await makeThumbnail(req.file.path); } catch (e) { console.error('[Wardrobe] thumb failed:', e.message); }
-      oldUrls = [rows[0].image_url, rows[0].thumbnail_url];
+      // 换图后旧抠图与位置记忆一并失效（审查 P1-3）
+      oldUrls = [rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url];
+      cutoutInvalidated = true;
     }
 
-    await pool.query(
-      `UPDATE wardrobe_items SET image_url = ?, thumbnail_url = ?, category = ?, temperature = ?,
-              occasions = ?, styles = ?, color = ?, brand = ?, price = ? WHERE id = ? AND user_id = ?`,
-      [imageUrl, thumbnailUrl, category, temperature,
-       JSON.stringify(occasions), JSON.stringify(styles), color, brand, price, id, req.user.id]
-    );
+    // 两条完整内联字面量（Mimosa 红线：禁止变量拼 SET 子句）
+    if (cutoutInvalidated) {
+      await pool.query(
+        'UPDATE wardrobe_items SET image_url = ?, thumbnail_url = ?, category = ?, temperature = ?, occasions = ?, styles = ?, color = ?, brand = ?, price = ?, bg_removed = 0, cutout_url = NULL, item_layout = NULL WHERE id = ? AND user_id = ?',
+        [imageUrl, thumbnailUrl, category, temperature,
+         JSON.stringify(occasions), JSON.stringify(styles), color, brand, price, id, req.user.id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE wardrobe_items SET image_url = ?, thumbnail_url = ?, category = ?, temperature = ?, occasions = ?, styles = ?, color = ?, brand = ?, price = ? WHERE id = ? AND user_id = ?',
+        [imageUrl, thumbnailUrl, category, temperature,
+         JSON.stringify(occasions), JSON.stringify(styles), color, brand, price, id, req.user.id]
+      );
+    }
     if (oldUrls) removeFilesQuiet(oldUrls); // 换图旧文件：提交后清理
     res.json({ code: 200, message: '已保存', data: { id, imageUrl, thumbnailUrl } });
   } catch (err) {
@@ -318,7 +329,7 @@ router.delete('/items/:id', authRequired, async (req, res) => {
     }
     await conn.beginTransaction();
     const [rows] = await conn.query(
-      'SELECT image_url, thumbnail_url FROM wardrobe_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL FOR UPDATE',
+      'SELECT image_url, thumbnail_url, cutout_url FROM wardrobe_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL FOR UPDATE',
       [id, req.user.id]
     );
     if (rows.length === 0) {
@@ -332,7 +343,7 @@ router.delete('/items/:id', authRequired, async (req, res) => {
     );
     await conn.commit();
     conn.release();
-    removeFilesQuiet([rows[0].image_url, rows[0].thumbnail_url]); // 事务提交后清理文件
+    removeFilesQuiet([rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]); // 事务提交后清理文件
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -372,16 +383,16 @@ router.post('/outfits', authRequired, wrapUpload('photo'), async (req, res) => {
   const conn = await pool.getConnection();
   try {
     const source = cleanText(req.body.source, 10);
-    if (!['实拍', '组合'].includes(source)) {
+    if (!['实拍', '组合', '换装'].includes(source)) {
       conn.release();
       return res.status(400).json({ code: 400, message: '来源不对' });
     }
     const wornDate = cleanText(req.body.wornDate, 10);
     const today = bjToday();
-    const maxDate = source === '组合' ? addDays(today, 90) : today;
+    const maxDate = source === '实拍' ? today : addDays(today, 90);
     if (!isValidDate(wornDate) || wornDate < '2000-01-01' || wornDate > maxDate) {
       conn.release();
-      return res.status(400).json({ code: 400, message: source === '组合' ? '日期要在 2000-01-01 ~ 今天+90 天内' : '实拍日期不能是未来' });
+      return res.status(400).json({ code: 400, message: source === '实拍' ? '实拍日期不能是未来' : '日期要在 2000-01-01 ~ 今天+90 天内' });
     }
     const note = cleanText(req.body.note, 200) || null;
 
@@ -395,15 +406,16 @@ router.post('/outfits', authRequired, wrapUpload('photo'), async (req, res) => {
         return res.status(400).json({ code: 400, message: '搭配要 2-8 件单品' });
       }
     } else {
+      // 实拍与换装都需要照片（换装 photo_url=合成图）；关联件数：换装 1-8、实拍 0-8
       if (!req.file) {
         conn.release();
-        return res.status(400).json({ code: 400, message: '先拍一张今天的穿搭吧' });
+        return res.status(400).json({ code: 400, message: source === '换装' ? '缺少合成图，请重新保存穿搭' : '先拍一张今天的穿搭吧' });
       }
       photoUrl = `/uploads/wardrobe/${req.file.filename}`;
-      itemIds = parseItemIds(req.body.itemIds, 0, 8);
+      itemIds = parseItemIds(req.body.itemIds, source === '换装' ? 1 : 0, 8);
       if (itemIds == null) {
         conn.release();
-        return res.status(400).json({ code: 400, message: '关联单品不对' });
+        return res.status(400).json({ code: 400, message: source === '换装' ? '穿搭至少要 1 件单品' : '关联单品不对' });
       }
     }
 
@@ -460,7 +472,7 @@ router.put('/outfits/:id', authRequired, wrapUpload('photo'), async (req, res) =
     const oldItems = itemsOf(row);
 
     const wornDate = cleanText(req.body.wornDate, 10) || sqlDateStr(row.worn_date);
-    const maxDate = row.source === '组合' ? addDays(bjToday(), 90) : bjToday();
+    const maxDate = row.source === '实拍' ? bjToday() : addDays(bjToday(), 90);
     if (!isValidDate(wornDate) || wornDate < '2000-01-01' || wornDate > maxDate) {
       await conn.rollback();
       conn.release();
@@ -470,11 +482,12 @@ router.put('/outfits/:id', authRequired, wrapUpload('photo'), async (req, res) =
 
     let itemIds = oldItems;
     if (req.body.itemIds !== undefined) {
-      const parsed = parseItemIds(req.body.itemIds, row.source === '组合' ? 2 : 0, 8);
+      const minIds = row.source === '组合' ? 2 : row.source === '换装' ? 1 : 0;
+      const parsed = parseItemIds(req.body.itemIds, minIds, 8);
       if (parsed == null) {
         await conn.rollback();
         conn.release();
-        return res.status(400).json({ code: 400, message: row.source === '组合' ? '搭配要 2-8 件单品' : '关联单品不对' });
+        return res.status(400).json({ code: 400, message: row.source === '组合' ? '搭配要 2-8 件单品' : row.source === '换装' ? '穿搭至少要 1 件单品' : '关联单品不对' });
       }
       if (parsed.length > 0) {
         const owned = await ownedOnCabIds(conn, req.user.id, parsed);
@@ -606,17 +619,266 @@ router.delete('/outfits/:id', authRequired, async (req, res) => {
   }
 });
 
-// ---------- 抠图（S3，默认关） ----------
+// ---------- 抠图（M2a：人像分割真实现；物体分割待 S0 定标） ----------
+const cutoutDir = path.join(uploadDir, 'cutout');
+if (!fs.existsSync(cutoutDir)) fs.mkdirSync(cutoutDir, { recursive: true });
+
+// 单飞队列：同一时间仅 1 个云 API 调用（防限流拖垮主接口）
+let cutoutChain = Promise.resolve();
+let dailyCount = { date: new Date().toISOString().slice(0, 10), map: new Map() };
+
+function cutoutQuotaLeft(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (dailyCount.date !== today) {
+    dailyCount = { date: today, map: new Map() };
+  }
+  const used = dailyCount.map.get(userId) || 0;
+  return Math.max(0, 50 - used);
+}
+
+function cutoutConsume(userId) {
+  dailyCount.map.set(userId, (dailyCount.map.get(userId) || 0) + 1);
+}
+
+function cutoutEnabled() {
+  return process.env.WARDROBE_CUTOUT_ON === '1' &&
+    !!process.env.TENCENT_SECRET_ID &&
+    !!process.env.TENCENT_SECRET_KEY;
+}
+
+// 人像分割：输入原图路径 → 输出透明 PNG 落盘，返回 cutout url
+async function runPortraitCutout(absPath) {
+  const { bda } = require('tencentcloud-sdk-nodejs-bda');
+  let input = await sharp(absPath).rotate().jpeg({ quality: 90 }).toBuffer();
+  if (input.length > 5 * 1024 * 1024) {
+    input = await sharp(absPath).rotate().resize(1600, 1600, { fit: 'inside' }).jpeg({ quality: 85 }).toBuffer();
+  }
+  const client = new bda.v20200324.Client({
+    credential: {
+      secretId: process.env.TENCENT_SECRET_ID,
+      secretKey: process.env.TENCENT_SECRET_KEY,
+    },
+    region: 'ap-guangzhou',
+    profile: { httpProfile: { endpoint: 'bda.tencentcloudapi.com', reqTimeout: 15 } },
+  });
+  const r = await client.SegmentPortraitPic({ ImageBase64: input.toString('base64') });
+  if (!r.ResultImage) throw new Error('empty result');
+  // 文件名纯程序生成（时间戳+随机），无用户输入成分；输出路径校验边界
+  const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+  const outPath = path.resolve(cutoutDir, outName);
+  if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
+  fs.writeFileSync(outPath, Buffer.from(r.ResultImage, 'base64'));
+  return `/uploads/wardrobe/cutout/${outName}`;
+}
+
 router.get('/bg-status', authRequired, (req, res) => {
-  res.json({ code: 200, data: { enabled: process.env.WARDROBE_BG_ON === '1' } });
+  res.json({
+    code: 200,
+    data: {
+      enabled: cutoutEnabled(),
+      person: cutoutEnabled(),
+      object: false, // S0 定标后由实现驱动
+    },
+  });
 });
 
 router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
-  // 开启前必须过 G2 三段闸（容器 musl 加载 / 样图 benchmark / 主接口 P95），见 M1 方案
-  if (process.env.WARDROBE_BG_ON !== '1') {
+  if (!cutoutEnabled()) {
     return res.status(503).json({ code: 503, message: '抠图服务未开启' });
   }
-  return res.status(503).json({ code: 503, message: '抠图服务暂不可用' });
+  const kind = cleanText(req.body.kind, 10) === 'person' ? 'person' : 'object';
+  if (kind !== 'person') {
+    return res.status(503).json({ code: 503, message: '衣服抠图服务尚未就绪' });
+  }
+  // 两种输入：multipart image（新文件）或 avatarId（服务器已有形象原图，免 App 中转）
+  const avatarId = parseInt(req.body.avatarId);
+  let sourcePath = null;
+  if (req.file) {
+    sourcePath = req.file.path;
+  } else if (Number.isInteger(avatarId)) {
+    // 文件名取自 DB 记录，非用户输入
+  } else {
+    return res.status(400).json({ code: 400, message: '缺少图片' });
+  }
+  if (cutoutQuotaLeft(req.user.id) <= 0) {
+    return res.status(429).json({ code: 429, message: '今天抠图次数用完了，明天再来吧' });
+  }
+  // 入队串行执行；闭包持有本次请求上下文与响应
+  const theFile = req.file;
+  cutoutChain = cutoutChain.then(async () => {
+    let absPath = theFile ? theFile.path : null;
+    if (!absPath) {
+      const [rows] = await pool.query(
+        'SELECT image_url FROM wardrobe_avatars WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+        [avatarId, req.user.id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ code: 404, message: '形象不存在' });
+      }
+      absPath = path.resolve(__dirname, '..', rows[0].image_url);
+      // 边界校验：只允许 wardrobe 上传目录内的文件
+      const upDir = path.resolve(__dirname, '..', 'uploads');
+      if (!absPath.startsWith(upDir + path.sep)) {
+        return res.status(400).json({ code: 400, message: '图片路径不对' });
+      }
+      if (!fs.existsSync(absPath)) {
+        return res.status(404).json({ code: 404, message: '原图文件已不存在，请重新上传形象' });
+      }
+    }
+    const t0 = Date.now();
+    const cutoutUrl = await runPortraitCutout(absPath);
+    cutoutConsume(req.user.id);
+    // avatarId 模式自动回写形象抠图
+    if (!theFile && Number.isInteger(avatarId)) {
+      await pool.query(
+        'UPDATE wardrobe_avatars SET cutout_url = ? WHERE id = ? AND user_id = ?',
+        [cutoutUrl, avatarId, req.user.id]
+      );
+    }
+    console.log(`[Wardrobe] cutout ok ${Date.now() - t0}ms user=${req.user.id}`);
+    res.json({ code: 200, data: { cutoutUrl } });
+  }).catch((err) => {
+    console.error('[Wardrobe] cutout failed:', err.code || '', String(err.message || err).slice(0, 120));
+    if (!res.headersSent) {
+      res.status(502).json({ code: 502, message: '抠图失败了，稍后重试一次' });
+    }
+  });
+});
+
+// ---------- 形象（M2a P12） ----------
+router.get('/avatars', authRequired, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, image_url, thumbnail_url, cutout_url, is_default, created_at FROM wardrobe_avatars WHERE user_id = ? AND deleted_at IS NULL ORDER BY is_default DESC, created_at DESC, id DESC',
+      [req.user.id]
+    );
+    res.json({ code: 200, data: rows });
+  } catch (err) {
+    console.error('[Wardrobe] avatars list failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.post('/avatars', authRequired, wrapUpload('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ code: 400, message: '先上传一张全身照吧' });
+    const imageUrl = `/uploads/wardrobe/${req.file.filename}`;
+    let thumbnailUrl = null;
+    try { thumbnailUrl = await makeThumbnail(req.file.path); } catch (e) { console.error('[Wardrobe] thumb failed:', e.message); }
+    const [result] = await pool.query(
+      'INSERT INTO wardrobe_avatars (user_id, image_url, thumbnail_url) VALUES (?, ?, ?)',
+      [req.user.id, imageUrl, thumbnailUrl]
+    );
+    res.json({ code: 200, message: '形象已保存', data: { id: result.insertId, imageUrl, thumbnailUrl } });
+  } catch (err) {
+    console.error('[Wardrobe] avatar create failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.patch('/avatars/:id/default', authRequired, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const id = parseInt(req.params.id);
+    if (!Number.isInteger(id)) {
+      conn.release();
+      return res.status(400).json({ code: 400, message: '参数不对' });
+    }
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id FROM wardrobe_avatars WHERE id = ? AND user_id = ? AND deleted_at IS NULL FOR UPDATE',
+      [id, req.user.id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ code: 404, message: '形象不存在' });
+    }
+    await conn.query('UPDATE wardrobe_avatars SET is_default = 0 WHERE user_id = ? AND is_default = 1', [req.user.id]);
+    await conn.query('UPDATE wardrobe_avatars SET is_default = 1 WHERE id = ? AND user_id = ?', [id, req.user.id]);
+    await conn.commit();
+    conn.release();
+    res.json({ code: 200, message: '已设为默认形象' });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
+    console.error('[Wardrobe] avatar default failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.delete('/avatars/:id', authRequired, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const id = parseInt(req.params.id);
+    if (!Number.isInteger(id)) {
+      conn.release();
+      return res.status(400).json({ code: 400, message: '参数不对' });
+    }
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT image_url, thumbnail_url, cutout_url FROM wardrobe_avatars WHERE id = ? AND user_id = ? AND deleted_at IS NULL FOR UPDATE',
+      [id, req.user.id]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ code: 404, message: '形象不存在' });
+    }
+    await conn.query(
+      'UPDATE wardrobe_avatars SET deleted_at = NOW(), is_default = 0 WHERE id = ? AND user_id = ?',
+      [id, req.user.id]
+    );
+    await conn.commit();
+    conn.release();
+    removeFilesQuiet([rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]);
+    res.json({ code: 200, message: '已删除' });
+  } catch (err) {
+    await conn.rollback().catch(() => {});
+    conn.release();
+    console.error('[Wardrobe] avatar delete failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+router.put('/avatars/:id/cutout', authRequired, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const cutoutUrl = cleanText(req.body.cutoutUrl, 500);
+    if (!Number.isInteger(id) || !cutoutUrl) return res.status(400).json({ code: 400, message: '参数不对' });
+    const [r] = await pool.query(
+      'UPDATE wardrobe_avatars SET cutout_url = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [cutoutUrl, id, req.user.id]
+    );
+    if (r.affectedRows === 0) return res.status(404).json({ code: 404, message: '形象不存在' });
+    res.json({ code: 200, message: '抠图已保存' });
+  } catch (err) {
+    console.error('[Wardrobe] avatar cutout failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+// ---------- 单品抠图回写（M2a） ----------
+router.put('/items/:id/cutout', authRequired, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const cutoutUrl = cleanText(req.body.cutoutUrl, 500);
+    const layoutRaw = typeof req.body.itemLayout === 'string' ? req.body.itemLayout : '';
+    let layout = null;
+    if (layoutRaw) {
+      try { layout = JSON.stringify(JSON.parse(layoutRaw)); } catch { layout = null; }
+    }
+    if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
+    const [r] = await pool.query(
+      'UPDATE wardrobe_items SET cutout_url = ?, bg_removed = 1, item_layout = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [cutoutUrl || null, layout, id, req.user.id]
+    );
+    if (r.affectedRows === 0) return res.status(404).json({ code: 404, message: '单品不存在' });
+    res.json({ code: 200, message: '抠图已保存' });
+  } catch (err) {
+    console.error('[Wardrobe] item cutout failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
 });
 
 module.exports = router;

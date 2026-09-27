@@ -502,6 +502,29 @@ class ApiService {
   Future getWardrobeItem(int id) => get('/api/wardrobe/items/$id');
   Future getWardrobeOutfits() => get('/api/wardrobe/outfits');
   Future getWardrobeBgStatus() => get('/api/wardrobe/bg-status');
+  Future getWardrobeAvatars() => get('/api/wardrobe/avatars');
+  Future createWardrobeAvatar(String filePath) =>
+      uploadWithFields('/api/wardrobe/avatars', filePath, const {},
+          fieldName: 'image');
+  Future setWardrobeAvatarDefault(int id) =>
+      patch('/api/wardrobe/avatars/$id/default');
+  Future deleteWardrobeAvatar(int id) => delete('/api/wardrobe/avatars/$id');
+  Future saveWardrobeAvatarCutout(int id, String cutoutUrl) =>
+      put('/api/wardrobe/avatars/$id/cutout', data: {'cutoutUrl': cutoutUrl});
+  Future saveWardrobeItemCutout(int id, String cutoutUrl,
+          {Map<String, double>? itemLayout}) =>
+      put('/api/wardrobe/items/$id/cutout', data: {
+        'cutoutUrl': cutoutUrl,
+        if (itemLayout != null) 'itemLayout': jsonEncode(itemLayout),
+      });
+  Future removeWardrobeBg(String filePath, String kind) => uploadWithFields(
+      '/api/wardrobe/bg-remove', filePath, {'kind': kind},
+      fieldName: 'image');
+
+  /// 对服务器已有形象原图直接抠图（免 App 中转），服务端自动回写 cutout
+  Future cutoutWardrobeAvatar(int avatarId) => post(
+      '/api/wardrobe/bg-remove',
+      data: {'kind': 'person', 'avatarId': avatarId});
 
   /// filePath 为 null 表示不换图（仅 PUT 编辑用）
   Future saveWardrobeItem(String filePath, Map<String, String> fields,
