@@ -11,7 +11,7 @@
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
 - **git 可执行文件 PATH 已失效**：用全路径 `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 `D:\Git Setup\Git\cmd` 是死路径）；Git 自带 ssh/scp 不可用，用系统 `C:\Windows\System32\OpenSSH\`；中文 commit 信息用 UTF-8 文件 + `git commit -F`（PowerShell Set-Content 会带 BOM，可接受）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
-- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）。**发布令牌（DEPLOY_TOKEN）安全规程**：①令牌明文**禁止进入 Agent 上下文**——不读取、不展示、不写入推理/输出/日志/任何文件（含仓库文件与临时文件）；②唯一合法引用方式=发布脚本在**服务器端**取 `TOKEN=$(docker exec lovegirl-server printenv DEPLOY_TOKEN)` 后仅在脚本内引用变量（最小权限引用，勿改成 cat .env / 传回本地等其他方式）；③对外上传动作固定写在已过安全审查的发布脚本里，**未经用户明确指示本次发布时，先向用户确认版本号与变更内容再执行**；字段 apk/v/c/s/l。→ 发布后修正 app_versions 表的 version_name/changelog（见下"发布坑"）。历史提交里曾含明文令牌，仓库若公开需在服务器换 DEPLOY_TOKEN 轮换
+- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（**对外上传动作**：未经用户明确指示本次发布时，先向用户确认版本号与变更内容；深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）。**发布令牌（DEPLOY_TOKEN）严禁进入 Agent 上下文**——不读取、不展示、不写入推理/输出/日志/任何文件（含仓库文件）；完整规程（令牌三规/接口字段/app_versions 修正/上传上限/验证命令）已迁至本地记忆 `lovegirl-deploy-protocol`，发布前必读。历史提交里曾含明文令牌，仓库若公开需在服务器换 DEPLOY_TOKEN 轮换
 
 ## 必读文档（按优先级）
 
