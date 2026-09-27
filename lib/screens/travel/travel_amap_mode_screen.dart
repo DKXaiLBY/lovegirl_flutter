@@ -304,6 +304,7 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
 
         if (provider.mapSpots.isEmpty) {
           return _EmptyMapScaffold(
+            embedded: _embedded,
             onBack: _embedded
                 ? (widget.onExit ?? () => Navigator.of(context).pop())
                 : () => Navigator.of(context).pop(),
@@ -404,130 +405,111 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
 }
 
 class _EmptyMapScaffold extends StatelessWidget {
+  final bool embedded;
   final VoidCallback onBack;
   final VoidCallback onAddSpot;
 
   const _EmptyMapScaffold({
+    required this.embedded,
     required this.onBack,
     required this.onAddSpot,
   });
 
   @override
   Widget build(BuildContext context) {
+    // 空态只保留一层引导：返回钮（独立模式）+ 居中卡片 + 卡内主按钮。
+    // 旧版同时渲染顶部说明卡（"一键串成路线"还是空回调）+ 引导大卡 +
+    // 帮助横幅 + 底部按钮行，四层叠一屏且底部按钮被悬浮 tab 压住。
     return Scaffold(
       backgroundColor: context.lgBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _TopOverlay(
-                hasRoute: false,
-                onBack: onBack,
-                onDismiss: () {},
-                onPreviewRoute: () {},
-              ),
-              SizedBox(height: 16),
-              Expanded(
-                child: LoveTicketCard(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: context.lgSecondarySoft,
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                LoveStickerIcon(
-                                  icon: Icons.map_outlined,
-                                  color: LoveGirlTheme.secondary,
-                                  size: 42,
-                                  iconSize: 20,
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    '先放一个想去的地方进来',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                      color: context.lgTextPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              '真地图适合出发前看顺不顺路，也适合旅行时边走边看。现在还没有地点，先新增一个地点会更顺手。',
-                              style: TextStyle(
-                                fontSize: 13,
-                                height: 1.5,
-                                fontWeight: FontWeight.w600,
-                                color: context.lgTextSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _MapHelpBanner(onAddSpot: onAddSpot, onBack: onBack),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: onBack,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: context.lgTextPrimary,
-                                side: BorderSide(
-                                  color: context.lgSeparator.withAlpha(180),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              child: const Text('回到预览'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: onAddSpot,
-                              icon: const Icon(
-                                Icons.add_location_alt_rounded,
-                                size: 18,
-                              ),
-                              label: const Text('新增地点'),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: LoveGirlTheme.secondary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                padding:
-                                    EdgeInsets.symmetric(vertical: 14),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+              if (!embedded)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _CircleButton(
+                    icon: Icons.arrow_back_rounded,
+                    tooltip: '返回',
+                    onTap: onBack,
                   ),
                 ),
+              const Spacer(),
+              LoveTicketCard(
+                color: Colors.white,
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        LoveStickerIcon(
+                          icon: Icons.map_outlined,
+                          color: LoveGirlTheme.secondary,
+                          size: 42,
+                          iconSize: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '先放一个想去的地方进来',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: context.lgTextPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '真地图适合出发前看顺不顺路，也适合旅行时边走边看。放一个地点，地图就活了。',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                        color: context.lgTextSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: onAddSpot,
+                      icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                      label: const Text('新增地点',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w800)),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: LoveGirlTheme.secondary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                    if (!embedded) ...[
+                      const SizedBox(height: 10),
+                      OutlinedButton(
+                        onPressed: onBack,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: context.lgTextPrimary,
+                          side: BorderSide(
+                              color: context.lgSeparator.withAlpha(180)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('回到预览'),
+                      ),
+                    ],
+                  ],
+                ),
               ),
+              const Spacer(),
             ],
           ),
         ),
@@ -1150,30 +1132,6 @@ class _MissingCoordinateBanner extends StatelessWidget {
     return _NoticeCard(
       title: '这些地点还没有地图坐标',
       text: '地点信息已经保存了，但缺少经纬度，真地图暂时无法把它们标出来。回到预览页补一下地址或坐标会更省心。',
-    );
-  }
-}
-
-class _MapHelpBanner extends StatelessWidget {
-  final VoidCallback? onAddSpot;
-  final VoidCallback? onBack;
-
-  const _MapHelpBanner({
-    required this.onAddSpot,
-    required this.onBack,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _NoticeCard(
-      title: '真地图现在还比较空',
-      text: '先新增一个地点，就能开始标记路线；如果底图一直发黑，也可以回到预览地图继续安排。',
-      actions: [
-        if (onBack != null)
-          OutlinedButton(onPressed: onBack, child: const Text('回到预览')),
-        if (onAddSpot != null)
-          FilledButton(onPressed: onAddSpot, child: const Text('新增地点')),
-      ],
     );
   }
 }
