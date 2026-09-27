@@ -5,6 +5,7 @@ import 'widgets/todo_list.dart';
 import 'widgets/finance_list.dart';
 import 'widgets/schedule_list.dart';
 import '../mood/mood_screen.dart';
+import '../wardrobe/wardrobe_module_screen.dart';
 
 class LifeScreen extends StatefulWidget {
   final int initialTab;
@@ -22,7 +23,7 @@ class _LifeScreenState extends State<LifeScreen>
   void initState() {
     super.initState();
     _tabController =
-        TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
+        TabController(length: 5, vsync: this, initialIndex: widget.initialTab);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -62,6 +63,7 @@ class _LifeScreenState extends State<LifeScreen>
                   FinanceListWidget(),
                   ScheduleListWidget(),
                   MoodScreen(),
+                  WardrobeModuleScreen(),
                 ],
               ),
             ),
@@ -175,6 +177,16 @@ class _LifeScreenState extends State<LifeScreen>
               ],
             ),
           ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.checkroom_rounded, size: 15),
+                SizedBox(width: 4),
+                Text('衣橱'),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -188,6 +200,8 @@ class _LifeScreenState extends State<LifeScreen>
         return '课程';
       case 3:
         return '心情';
+      case 4:
+        return '衣橱';
       default:
         return '清单';
     }
@@ -201,6 +215,8 @@ class _LifeScreenState extends State<LifeScreen>
         return Icons.school_rounded;
       case 3:
         return Icons.mood_rounded;
+      case 4:
+        return Icons.checkroom_rounded;
       default:
         return Icons.favorite_border_rounded;
     }

@@ -182,11 +182,26 @@ class ApiService {
 
   Future<Response> delete(String path) => _dio.delete(path);
 
+  Future<Response> patch(String path, {dynamic data}) =>
+      _dio.patch(path, data: data);
+
   Future<Response> upload(String path, String filePath,
       {String fieldName = 'file'}) async {
     final formData = FormData.fromMap({
       fieldName: await MultipartFile.fromFile(filePath),
     });
+    return _dio.post(path, data: formData);
+  }
+
+  /// 带文本字段的单文件上传（衣柜单品/穿搭用）
+  Future<Response> uploadWithFields(String path, String? filePath,
+      Map<String, String> fields, {String fieldName = 'image'}) async {
+    final formData = FormData();
+    fields.forEach((k, v) => formData.fields.add(MapEntry(k, v)));
+    if (filePath != null) {
+      formData.files.add(MapEntry(
+          fieldName, await MultipartFile.fromFile(filePath)));
+    }
     return _dio.post(path, data: formData);
   }
 
@@ -481,4 +496,48 @@ class ApiService {
   Future updateFeedingProduct(int id, Map data) =>
       put('/api/feeding/products/$id', data: data);
   Future deleteFeedingProduct(int id) => delete('/api/feeding/products/$id');
+
+  // ========== 电子衣柜 ==========
+  Future getWardrobeItems() => get('/api/wardrobe/items');
+  Future getWardrobeItem(int id) => get('/api/wardrobe/items/$id');
+  Future getWardrobeOutfits() => get('/api/wardrobe/outfits');
+  Future getWardrobeBgStatus() => get('/api/wardrobe/bg-status');
+
+  /// filePath 为 null 表示不换图（仅 PUT 编辑用）
+  Future saveWardrobeItem(String filePath, Map<String, String> fields,
+          {int? id}) =>
+      id == null
+          ? uploadWithFields('/api/wardrobe/items', filePath, fields,
+              fieldName: 'image')
+          : uploadWithFields('/api/wardrobe/items/$id', filePath, fields,
+              fieldName: 'image');
+
+  Future updateWardrobeItemFields(int id, Map<String, String> fields) =>
+      put('/api/wardrobe/items/$id', data: fields);
+
+  Future setWardrobeItemStatus(int id, String status) =>
+      patch('/api/wardrobe/items/$id/status', data: {'status': status});
+
+  Future deleteWardrobeItem(int id) => delete('/api/wardrobe/items/$id');
+
+  Future createWardrobeOutfit(Map<String, String> fields, {String? filePath}) =>
+      filePath == null
+          ? post('/api/wardrobe/outfits', data: fields)
+          : uploadWithFields('/api/wardrobe/outfits', filePath, fields,
+              fieldName: 'photo');
+
+  Future updateWardrobeOutfit(int id, Map<String, String> fields,
+          {String? filePath}) =>
+      filePath == null
+          ? put('/api/wardrobe/outfits/$id', data: fields)
+          : uploadWithFields('/api/wardrobe/outfits/$id', filePath, fields,
+              fieldName: 'photo');
+
+  Future setWardrobeOutfitStatus(int id, String status) =>
+      patch('/api/wardrobe/outfits/$id/status', data: {'status': status});
+
+  Future deleteWardrobeOutfit(int id) => delete('/api/wardrobe/outfits/$id');
+
+  Future getTodayWeather(String city) =>
+      get('/api/weather', query: {'city': city});
 }
