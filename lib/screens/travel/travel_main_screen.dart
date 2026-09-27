@@ -238,20 +238,21 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   Widget build(BuildContext context) {
     return Consumer<TravelProvider>(
       builder: (context, provider, _) {
-        // 三视图：地图（全屏高德）/ 地点清单 / 票根回忆；底部悬浮 tab 切换
-        return Scaffold(
+          return Scaffold(
           backgroundColor: context.lgBg,
           body: Stack(
             children: [
-              IndexedStack(
-                index: _viewIndex,
-                children: [
-                  TravelAmapModeScreen(
-                      embedded: true, onExit: () => _setView(1)),
-                  _buildListPage(provider),
-                  _buildTicketPage(provider),
-                ],
-              ),
+              if (_viewIndex == 0)
+                TravelAmapModeScreen(
+                    embedded: true, onExit: () => _setView(1)),
+              if (_viewIndex != 0)
+                IndexedStack(
+                  index: _viewIndex - 1,
+                  children: [
+                    _buildListPage(provider),
+                    _buildTicketPage(provider),
+                  ],
+                ),
               Positioned(
                 left: 0,
                 right: 0,
@@ -318,7 +319,9 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                // 底部 210：悬浮 tab(76) + FAB(72) + 余量——否则最后几条卡片和
+                // 卡上的"生成票根"按钮被"记一个地点"FAB 挡住点不到
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 210),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {

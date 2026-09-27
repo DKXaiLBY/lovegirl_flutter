@@ -138,51 +138,56 @@ class _LifeScreenState extends State<LifeScreen>
         splashFactory: NoSplash.splashFactory,
         tabs: const [
           Tab(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.checklist_rounded, size: 15),
-                SizedBox(width: 4),
+                SizedBox(height: 2),
                 Text('待办'),
               ],
             ),
           ),
           Tab(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.account_balance_wallet_rounded, size: 15),
-                SizedBox(width: 4),
+                SizedBox(height: 2),
                 Text('记账'),
               ],
             ),
           ),
           Tab(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.calendar_month_rounded, size: 15),
-                SizedBox(width: 4),
+                SizedBox(height: 2),
                 Text('课程'),
               ],
             ),
           ),
           Tab(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.mood_rounded, size: 15),
-                SizedBox(width: 4),
+                SizedBox(height: 2),
                 Text('心情'),
               ],
             ),
           ),
           Tab(
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.checkroom_rounded, size: 15),
-                SizedBox(width: 4),
+                SizedBox(height: 2),
                 Text('衣橱'),
               ],
             ),

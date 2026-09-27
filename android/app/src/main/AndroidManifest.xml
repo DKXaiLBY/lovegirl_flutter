@@ -36,6 +36,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- image_cropper 8.x 插件 manifest 为空，UCropActivity 必须宿主声明，
+             否则启动裁剪时 ActivityNotFoundException 未捕获直接杀死进程（衣柜拍照闪退根因） -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <meta-data
             android:name="io.flutter.embedding.android.EnableImpeller"
             android:value="false" />

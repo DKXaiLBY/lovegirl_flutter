@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.35.0+165（2026-09-27 已发布：电子衣柜 M1）。视觉风格：**白色简洁（倒数日风）**——纯白底 #FFFFFF、白卡浅描边 #ECECEC、大数字特黑 #1A1A1A、彩色插画点缀（illus/ 33 张）、陶土橘只给恋爱天数/爱心；**票根隐喻仅保留在票根类内容页**（travel_ticket_screen/ticket_styles 暖纸底未动）；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器/地图 tab 改色等方案已调研存档，等用户召唤再启动。
+当前版本 v3.35.1+166（2026-09-27 已发布：电子衣柜 M1 + 五连修）。视觉风格：**白色简洁（倒数日风）**——纯白底 #FFFFFF、白卡浅描边 #ECECEC、大数字特黑 #1A1A1A、彩色插画点缀（illus/ 33 张）、陶土橘只给恋爱天数/爱心；**票根隐喻仅保留在票根类内容页**（travel_ticket_screen/ticket_styles 暖纸底未动）；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器/地图 tab 改色等方案已调研存档，等用户召唤再启动。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
@@ -65,10 +65,15 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 12. **Dismissible 删除必须把 API 调用放 confirmDismiss**：放 onDismissed 会在失败时行已收起造成"假删"（v3.32 对抗审查 P1）；busy 期间 direction 置 none 禁手势
 13. **image_cropper 新版用 Color.toARGB32()（Flutter 3.28+ 才有）**：本仓 Flutter 3.27.4 下 analyze 过但 test/编译挂——钉 `image_cropper: 8.0.2` + dependency_overrides `image_cropper_platform_interface: 7.1.0`；升 Flutter 3.28+ 后可解除
 14. **发布接口上传上限**：/api/deploy/publish multer 原为 50MB 整，v3.35 APK 52.4MB 触顶报 "File too large"→500——已调 100MB（服务器 git f17a7d8）；APK 再超 100MB 需先调它
+15. **image_cropper 8.x 还需宿主声明 UCropActivity**：插件自带 manifest 为空，不声明时启动裁剪抛 ActivityNotFoundException（Java 层未捕获→**进程直接死**，Dart try/catch 救不了）=「拍照后闪退」。已在 android/app/src/main/AndroidManifest.xml 注册（验证：`aapt2 dump xmltree --file AndroidManifest.xml`）
+16. **无 GMS 国产机定位**：geolocator 走 FusedLocationProvider 永远超时（"超过12秒"提示即 timeLimit 到点）——超时后必须 `getLastKnownPosition()` 兜底（LocationManager 缓存不依赖 GMS），timeLimit 已 12→18s（travel_map_widget._acquireSystemFix）
+17. **IndexedStack 放高德地图 PlatformView**：非激活页的原生视图仍渲染并浮上来（票根 tab 透出地图画面+交互按钮）——地图必须条件渲染（_viewIndex==0 才 build），列表/票根才用 IndexedStack 保活
 
 ## 待办 / 未竟
 
-- **v3.35.0+165（2026-09-27 已发布上线）：电子衣柜 M1**——生活 tab 第 5 页签「衣橱」+模块壳（顶部「衣橱|穿搭」分段+右上「+」）；P1 分类网格(空节隐藏/多选:加入搭配·退役·删除)/P2P4 表单(1:1 裁剪+压1600)/P3 详情/P5 组合(≥2≤8+计划日期)/P6 实拍(即已通过,日期上限今天)/P7 时间线(计划中/今天/昨天/本周更早/更早)/P9 详情(软删灰占位)/P10 筛选(含状态两态)+「今天N°C」胶囊(复用 weather_city 偏好)；服务器 routes/wardrobe.js（wardrobe_items/wardrobe_outfits 两表、软删 deleted_at、两态、wear_count 条件更新四路径 smoke 全绿，服务器 git 6242c97）。文档：`docs/wardrobe-interaction.md` v1.0 + `docs/wardrobe-prd.md` v1.0 + `docs/implementation/wardrobe-m1-plan.md` v1.1。素材生成器 `tools/generate_wardrobe_assets.py`（icon_wardrobe 三色+6 角标）。**衣柜待办：M2（月历/TA视角/在洗收纳/细节多图/抠图）；G1 两张豆包空态插画未入库（当前 illus ui_couple/ui_timeline 占位，换 `lib/screens/wardrobe/widgets/wardrobe_widgets.dart` 顶部常量）；抠图 S3 未验证（musl 探针两次超时，开关默认关，侧车路线见 M1 方案）；真机待验全流程+深浅两态**
+- **v3.35.1+166（2026-09-27 已发布上线）：五连修**——衣柜拍照闪退（UCropActivity 宿主注册，教训 15）/旅行定位兜底（getLastKnownPosition+18s，教训 16）/清单页"记一个地点"FAB 遮挡（列表底部 padding 120→210）/票根透图（IndexedStack 里地图改条件渲染，教训 17）/生活 tab 5 标签改纵排（Row→Column）。**真机回归清单：衣柜拍照→裁剪→保存全流程、旅行地图定位（重点无 GMS 机）、清单底部卡片按钮、票根 tab、生活 tab 视觉**
+- **v3.35.0+165（2026-09-27 已发布上线）：电子衣柜 M1**——生活 tab 第 5 页签「衣橱」+模块壳（顶部「衣橱|穿搭」分段+右上「+」）；P1 分类网格(空节隐藏/多选:加入搭配·退役·删除)/P2P4 表单(1:1 裁剪+压1600)/P3 详情/P5 组合(≥2≤8+计划日期)/P6 实拍(即已通过,日期上限今天)/P7 时间线(计划中/今天/昨天/本周更早/更早)/P9 详情(软删灰占位)/P10 筛选(含状态两态)+「今天N°C」胶囊(复用 weather_city 偏好)；服务器 routes/wardrobe.js（wardrobe_items/wardrobe_outfits 两表、软删 deleted_at、两态、wear_count 条件更新四路径 smoke 全绿，服务器 git 6242c97）。文档：`docs/wardrobe-interaction.md` v1.0 + `docs/wardrobe-prd.md` v1.0 + `docs/implementation/wardrobe-m1-plan.md` v1.1。素材生成器 `tools/generate_wardrobe_assets.py`（icon_wardrobe 三色+6 角标）。**衣柜待办：M2（月历/TA视角/在洗收纳/细节多图/抠图）；G1 两张豆包空态插画未入库（当前 illus ui_couple/ui_timeline 占位，换 `lib/screens/wardrobe/widgets/wardrobe_widgets.dart` 顶部常量）；抠图 S3 未验证（musl 探针两次超时，开关默认关，侧车路线见 M1 方案）**
+- **左滑交互升级（待拍板施工）**：旅行清单卡片左滑现只有删除且一滑就弹确认，体验差——方案：flutter_slidable 三键（编辑/置顶/删除），置顶需 travel_spots 加 pinned 字段+列表排序 pinned DESC, created_at DESC；已向用户汇报待确认
 - **v3.32.0+161（2026-09-26 已发布上线）**：批次 0/1/2 完成——33 张贴纸插画入库+6 处空状态 emoji 换插画（IllusImg 组件）、全 App 中文 locale、纪念日表单行内校验+动态 hint、我的页删右上圆钮、兑换券左滑删除（服务器 DELETE /api/voucher/:id，服务器 git b0f9f88）、旅行地图重排（右侧单列控件含"+"、进图定位优先、定位 loading 10s、删左 rail/底部大按钮/重复入口）。施工图 `docs/implementation/v3.32-plan.md`；对抗性审查 3 项 P1 已修；模拟器截图 `docs/implementation/v332-emulator-shots/`。**真机待验：地图右列布局+定位正负向（x86 模拟器验不了，见教训 11）**
 - **v3.33.0+162（2026-09-26 已发布上线）**：批次 3-7 完成——首页两行头部+38px 天数数字 hero、拍立得复刻（点按 3D 翻面看牛皮纸背卡，back_message 字段，photos 加列，保存拍立得 PNG）、月度小报（GET /api/report/monthly 聚合+月报页+保存分享卡）、纪念日双列倒数卡（类型插画角标，服务器 anniversary 路由补 type/description/is_lunar/repeat_type 四列存取 f3ad353——修复了自 v1 起类型字段从不落库的暗病）、清爽化 pass（EmptyState 插画参数/天气四态插画/启动页插画）。**对抗审查两轮均为 SHIP/修复后 SHIP**
 - **真机待验**：旅行地图右列布局+进图定位（x86 模拟器验不了）；拍立得翻面/保存；月度小报

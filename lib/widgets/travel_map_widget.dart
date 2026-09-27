@@ -138,7 +138,9 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
 
   /// 直接向系统要一次定位（不依赖高德蓝点回调——部分机型蓝点定位长时间不出值）。
   /// 系统定位开关没开时给出带"去设置"的提示并返回 null。
-  Future<Position?> _acquireSystemFix({int maxSeconds = 12}) async {
+  /// 无 GMS 机型（荣耀/老华为等国产机）geolocator 走 FusedLocationProvider
+  /// 永远超时——超时后回落系统"最后已知位置"（LocationManager 缓存，不依赖 GMS）。
+  Future<Position?> _acquireSystemFix({int maxSeconds = 18}) async {
     final serviceOn = await Geolocator.isLocationServiceEnabled();
     if (!serviceOn) {
       if (!mounted) return null;
@@ -158,7 +160,11 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
         timeLimit: Duration(seconds: maxSeconds),
       );
     } on TimeoutException {
-      return null;
+      try {
+        return await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        return null;
+      }
     } catch (_) {
       return null;
     }
