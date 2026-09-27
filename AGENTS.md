@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.35.1+166（2026-09-27 已发布：电子衣柜 M1 + 五连修）。视觉风格：**白色简洁（倒数日风）**——纯白底 #FFFFFF、白卡浅描边 #ECECEC、大数字特黑 #1A1A1A、彩色插画点缀（illus/ 33 张）、陶土橘只给恋爱天数/爱心；**票根隐喻仅保留在票根类内容页**（travel_ticket_screen/ticket_styles 暖纸底未动）；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器/地图 tab 改色等方案已调研存档，等用户召唤再启动。
+当前版本 v3.35.2+167（2026-09-27 已发布：电子衣柜 M1 + 五连修 + 衣柜列表解析修复）。视觉风格：**白色简洁（倒数日风）**——纯白底 #FFFFFF、白卡浅描边 #ECECEC、大数字特黑 #1A1A1A、彩色插画点缀（illus/ 33 张）、陶土橘只给恋爱天数/爱心；**票根隐喻仅保留在票根类内容页**（travel_ticket_screen/ticket_styles 暖纸底未动）；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器/地图 tab 改色等方案已调研存档，等用户召唤再启动。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
@@ -68,9 +68,12 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 15. **image_cropper 8.x 还需宿主声明 UCropActivity**：插件自带 manifest 为空，不声明时启动裁剪抛 ActivityNotFoundException（Java 层未捕获→**进程直接死**，Dart try/catch 救不了）=「拍照后闪退」。已在 android/app/src/main/AndroidManifest.xml 注册（验证：`aapt2 dump xmltree --file AndroidManifest.xml`）
 16. **无 GMS 国产机定位**：geolocator 走 FusedLocationProvider 永远超时（"超过12秒"提示即 timeLimit 到点）——超时后必须 `getLastKnownPosition()` 兜底（LocationManager 缓存不依赖 GMS），timeLimit 已 12→18s（travel_map_widget._acquireSystemFix）
 17. **IndexedStack 放高德地图 PlatformView**：非激活页的原生视图仍渲染并浮上来（票根 tab 透出地图画面+交互按钮）——地图必须条件渲染（_viewIndex==0 才 build），列表/票根才用 IndexedStack 保活
+18. **mysql2 的 DECIMAL 列返回字符串**（如 price="100.00"）——fromJson 里 `as num` 会在单字段上炸掉整个列表解析→界面显示空态（v3.35.1 线上事故：上传成功但衣橱显示空）。数字字段一律 `_asInt/_asDouble`（tryParse 兜底），单测已回归。**诊断套路：用户报"看不到数据"先查 DB 有没有行 + GET 接口状态码/字节数，DB 有数据=App 解析问题**
 
 ## 待办 / 未竟
 
+- **v3.35.2+167（2026-09-27 已发布上线）**：衣柜列表解析修复——DECIMAL price 字符串炸 fromJson 致"上传成功但衣橱空"（教训 18），_asInt/_asDouble 健壮化+回归单测
+- **用户待确认**：旅行地图"错位"具体所指（v3.35.1 已修清单 FAB 遮挡+票根透图，用户报"错位还在"但无截图）——需用户截图/描述定位；地图右下控件组 bottomInset=86 高于悬浮 tab(76) 理论不重叠
 - **v3.35.1+166（2026-09-27 已发布上线）：五连修**——衣柜拍照闪退（UCropActivity 宿主注册，教训 15）/旅行定位兜底（getLastKnownPosition+18s，教训 16）/清单页"记一个地点"FAB 遮挡（列表底部 padding 120→210）/票根透图（IndexedStack 里地图改条件渲染，教训 17）/生活 tab 5 标签改纵排（Row→Column）。**真机回归清单：衣柜拍照→裁剪→保存全流程、旅行地图定位（重点无 GMS 机）、清单底部卡片按钮、票根 tab、生活 tab 视觉**
 - **v3.35.0+165（2026-09-27 已发布上线）：电子衣柜 M1**——生活 tab 第 5 页签「衣橱」+模块壳（顶部「衣橱|穿搭」分段+右上「+」）；P1 分类网格(空节隐藏/多选:加入搭配·退役·删除)/P2P4 表单(1:1 裁剪+压1600)/P3 详情/P5 组合(≥2≤8+计划日期)/P6 实拍(即已通过,日期上限今天)/P7 时间线(计划中/今天/昨天/本周更早/更早)/P9 详情(软删灰占位)/P10 筛选(含状态两态)+「今天N°C」胶囊(复用 weather_city 偏好)；服务器 routes/wardrobe.js（wardrobe_items/wardrobe_outfits 两表、软删 deleted_at、两态、wear_count 条件更新四路径 smoke 全绿，服务器 git 6242c97）。文档：`docs/wardrobe-interaction.md` v1.0 + `docs/wardrobe-prd.md` v1.0 + `docs/implementation/wardrobe-m1-plan.md` v1.1。素材生成器 `tools/generate_wardrobe_assets.py`（icon_wardrobe 三色+6 角标）。**衣柜待办：M2（月历/TA视角/在洗收纳/细节多图/抠图）；G1 两张豆包空态插画未入库（当前 illus ui_couple/ui_timeline 占位，换 `lib/screens/wardrobe/widgets/wardrobe_widgets.dart` 顶部常量）；抠图 S3 未验证（musl 探针两次超时，开关默认关，侧车路线见 M1 方案）**
 - **左滑交互升级（待拍板施工）**：旅行清单卡片左滑现只有删除且一滑就弹确认，体验差——方案：flutter_slidable 三键（编辑/置顶/删除），置顶需 travel_spots 加 pinned 字段+列表排序 pinned DESC, created_at DESC；已向用户汇报待确认

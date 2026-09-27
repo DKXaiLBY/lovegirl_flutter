@@ -71,7 +71,7 @@ class WardrobeItem {
   bool get retired => status == '退役';
 
   factory WardrobeItem.fromJson(Map<String, dynamic> j) => WardrobeItem(
-        id: (j['id'] as num?)?.toInt() ?? 0,
+        id: _asInt(j['id']),
         imageUrl: (j['image_url'] ?? '').toString(),
         thumbnailUrl: j['thumbnail_url']?.toString(),
         category: (j['category'] ?? '').toString(),
@@ -80,12 +80,22 @@ class WardrobeItem {
         styles: _strList(j['styles']),
         color: j['color']?.toString(),
         brand: j['brand']?.toString(),
-        price: (j['price'] as num?)?.toDouble(),
+        // DECIMAL 列 mysql2 返回字符串（如 "100.00"），必须 tryParse——
+        // as num 会在单个字段上炸掉整个列表解析（v3.35.1 线上事故）
+        price: _asDouble(j['price']),
         status: (j['status'] ?? '在柜').toString(),
-        wearCount: (j['wear_count'] as num?)?.toInt() ?? 0,
-        refCount: (j['outfit_refs_count'] as num?)?.toInt() ?? 0,
+        wearCount: _asInt(j['wear_count']),
+        refCount: _asInt(j['outfit_refs_count']),
         createdAt: DateTime.tryParse((j['created_at'] ?? '').toString()),
       );
+
+  static int _asInt(dynamic v) => v is num ? v.toInt() : (int.tryParse('${v ?? ''}') ?? 0);
+
+  static double? _asDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v == null) return null;
+    return double.tryParse(v.toString());
+  }
 
   static List<String> _strList(dynamic v) =>
       v is List ? v.map((e) => e.toString()).toList() : <String>[];

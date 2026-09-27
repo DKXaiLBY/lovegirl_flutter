@@ -40,6 +40,27 @@ void main() {
       expect(it.occasions, isEmpty);
       expect(it.wearCount, 0);
     });
+
+    test('DECIMAL 价格为字符串时不炸解析（v3.35.1 线上事故回归）', () {
+      final it = WardrobeItem.fromJson({
+        'id': 4,
+        'image_url': '/y.jpg',
+        'category': '上装',
+        'price': '100.00', // mysql2 DECIMAL 列返回字符串
+        'status': '在柜',
+      });
+      expect(it.price, 100.0);
+      expect(it.category, '上装');
+      // 价格为 null 也安全
+      final noPrice = WardrobeItem.fromJson({
+        'id': 5,
+        'image_url': '/z.jpg',
+        'category': '裤装',
+        'price': null,
+        'status': '在柜',
+      });
+      expect(noPrice.price, isNull);
+    });
   });
 
   group('WardrobeOutfit.fromJson', () {
