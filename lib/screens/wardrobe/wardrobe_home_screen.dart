@@ -7,6 +7,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'outfit_compose_screen.dart';
+import 'wardrobe_dimension_sheet.dart';
 import 'wardrobe_filter_sheet.dart';
 import 'wardrobe_item_detail_screen.dart';
 import 'wardrobe_item_form_screen.dart';
@@ -51,6 +52,9 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
               children: [
                 _toolbar(p),
                 const SizedBox(height: 12),
+                // 三层钻取第一层：维度圆片（M2b，阿Fi不在案例）
+                WardrobeDimensionRow(),
+                const SizedBox(height: 14),
                 if (!p.anyVisible) _noMatch(p),
                 for (final entry in p.groupedItems.entries)
                   _section(p, entry.key, entry.value),
