@@ -38,7 +38,7 @@ router.get('/', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
     const [rows] = await pool.query(
-      'SELECT id, url, thumbnail_url, description, back_message, photo_date, created_at FROM photos WHERE user_id = ? ORDER BY created_at DESC',
+      'SELECT id, url, thumbnail_url, description, back_message, photo_date, polaroid_theme, frame_note, ink_strokes, created_at FROM photos WHERE user_id = ? ORDER BY created_at DESC',
       [userId]
     );
     res.json({ code: 200, data: rows });
@@ -125,6 +125,46 @@ router.put('/:id/back_message', authRequired, async (req, res) => {
     res.json({ code: 200, message: '已保存', data: { back_message: text } });
   } catch (err) {
     console.error('[Photo] 背卡保存失败:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
+// PUT /api/photo/:id/polaroid — 拍立得样式（主题/白框手写字/背卡笔迹）
+const POLAROID_THEMES = ['classic', 'tape', 'film', 'letter'];
+router.put('/:id/polaroid', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const photoId = parseInt(req.params.id);
+    const theme = String(req.body.theme ?? '').trim();
+    if (!POLAROID_THEMES.includes(theme)) {
+      return res.status(400).json({ code: 400, message: '相框主题不对' });
+    }
+    const frameNote = String(req.body.frameNote ?? '').trim().slice(0, 200);
+    const inkRaw = String(req.body.inkStrokes ?? '').trim();
+    // ink_strokes 限 32KB（涂鸦笔迹 JSON），格式校验后原样存储
+    let inkStrokes = null;
+    if (inkRaw.isNotEmpty) {
+      if (inkRaw.length > 32 * 1024) {
+        return res.status(400).json({ code: 400, message: '涂鸦太复杂了，精简一点' });
+      }
+      try {
+        const parsed = JSON.parse(inkRaw);
+        if (!Array.isArray(parsed)) throw new Error('not array');
+        inkStrokes = JSON.stringify(parsed);
+      } catch {
+        return res.status(400).json({ code: 400, message: '笔迹数据不对' });
+      }
+    }
+    const [result] = await pool.query(
+      'UPDATE photos SET polaroid_theme = ?, frame_note = ?, ink_strokes = ? WHERE id = ? AND user_id = ?',
+      [theme, frameNote || null, inkStrokes, photoId, userId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ code: 404, message: '照片不存在' });
+    }
+    res.json({ code: 200, message: '已保存' });
+  } catch (err) {
+    console.error('[Photo] 拍立得样式保存失败:', err);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 });

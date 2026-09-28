@@ -322,6 +322,15 @@ class ApiService {
   Future updatePhotoBackMessage(int id, String backMessage) =>
       put('/api/photo/$id/back_message', data: {'backMessage': backMessage});
 
+  /// 拍立得样式（主题/白框手写字/背卡笔迹），inkStrokes 为 JSON 字符串
+  Future savePhotoPolaroid(int id,
+      {required String theme, String frameNote = '', String? inkStrokes}) =>
+      put('/api/photo/$id/polaroid', data: {
+        'theme': theme,
+        'frameNote': frameNote,
+        if (inkStrokes != null) 'inkStrokes': inkStrokes,
+      });
+
   // ========== 心情 ==========
   Future getMoods(String month) => get('/api/mood', query: {'month': month});
   Future recordMood(Map data) => post('/api/mood', data: data);

@@ -1,0 +1,5 @@
+-- 拍立得主题列（v3.38 Step2）
+ALTER TABLE photos
+  ADD COLUMN polaroid_theme VARCHAR(20) DEFAULT NULL,
+  ADD COLUMN frame_note VARCHAR(200) DEFAULT NULL,
+  ADD COLUMN ink_strokes MEDIUMTEXT DEFAULT NULL;

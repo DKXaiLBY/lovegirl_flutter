@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' show ImageByteFormat;
@@ -14,6 +15,7 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
+import '../../widgets/polaroid_theme.dart';
 import 'photo_flipbook_screen.dart';
 
 /// 云端相册 · 拍立得收集本
@@ -174,20 +176,31 @@ class _PhotoScreenState extends State<PhotoScreen> {
     _loadPhotos();
   }
 
-  String _handDate(dynamic createdAt) {
-    final s = createdAt?.toString() ?? '';
-    final d = DateTime.tryParse(s.replaceFirst(' ', 'T'));
-    if (d == null) return '';
-    return '${d.month}/${d.day}';
-  }
-
-  /// 故事背卡：正面照片预览，背面故事文字（可编辑保存）
+  /// 故事背卡：正面照片预览（四主题相框+白框手写字+涂鸦），背面故事文字（可编辑保存）
   Future<void> _showStorySheet(Map<String, dynamic> photo) async {
     final id = (photo['id'] as num?)?.toInt() ?? 0;
     final descCtrl =
         TextEditingController(text: photo['description']?.toString() ?? '');
     final backCtrl =
         TextEditingController(text: photo['back_message']?.toString() ?? '');
+    final noteCtrl = TextEditingController(
+        text: photo['frame_note']?.toString() ?? '');
+    var themeIdx = PolaroidTheme.values.indexOf(PolaroidThemeX.fromName(
+        photo['polaroid_theme']?.toString() ?? 'classic'));
+    if (themeIdx < 0) themeIdx = 0;
+    var inkStrokes = <InkStroke>[];
+    final existingInk = photo['ink_strokes']?.toString() ?? '';
+    if (existingInk.isNotEmpty) {
+      try {
+        final arr = (jsonDecode(existingInk) as List)
+            .whereType<Map>()
+            .map((e) => InkStroke.fromJson(
+                e.cast<String, dynamic>(), InkStroke.decodePoint))
+            .toList();
+        inkStrokes = arr;
+      } catch (_) {}
+    }
+    var inkMode = false;
     final url = (photo['url'] ?? photo['image'] ?? '').toString();
     final fullUrl =
         url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
@@ -257,56 +270,175 @@ class _PhotoScreenState extends State<PhotoScreen> {
                 Center(
                   child: RepaintBoundary(
                     key: boundaryKey,
-                    child: Container(
-                      width: 220,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withAlpha(30),
-                              blurRadius: 14,
-                              offset: const Offset(0, 8)),
-                        ],
-                      ),
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                      child: Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: SizedBox(
-                              height: 190,
-                              width: double.infinity,
-                              child: CachedNetworkImage(
-                                imageUrl: fullUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) =>
-                                    Container(color: context.lgBg),
-                                errorWidget: (_, __, ___) => Container(
-                                    color: context.lgBg,
-                                    child: const Icon(Icons.broken_image,
-                                        color: LoveGirlTheme.textMuted)),
+                    child: Builder(builder: (ctx) {
+                      final theme = PolaroidTheme.values[themeIdx];
+                      final t = theme.style;
+                      final date = DateTime.tryParse((photo['photo_date'] ??
+                              photo['created_at'] ??
+                              '')
+                          .toString());
+                      return Container(
+                        width: 220,
+                        decoration: BoxDecoration(
+                          color: t.frameColor,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withAlpha(30),
+                                blurRadius: 14,
+                                offset: const Offset(0, 8)),
+                          ],
+                        ),
+                        padding: t.framePadding,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (t.topDecor != null) t.topDecor!,
+                            Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: SizedBox(
+                                    height: 185,
+                                    width: double.infinity,
+                                    child: CachedNetworkImage(
+                                      imageUrl: fullUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) =>
+                                          Container(color: context.lgBg),
+                                      errorWidget: (_, __, ___) => Container(
+                                          color: context.lgBg,
+                                          child: const Icon(Icons.broken_image,
+                                              color:
+                                                  LoveGirlTheme.textMuted)),
+                                    ),
+                                  ),
+                                ),
+                                // 涂鸦笔迹层（inkMode 开启时可画）
+                                Positioned.fill(
+                                  child: InkCanvas(
+                                    strokes: inkStrokes,
+                                    defaultColor: theme == PolaroidTheme.film ||
+                                            theme == PolaroidTheme.tape
+                                        ? const Color(0xFFECECEE)
+                                        : const Color(0xFF2B2B2E),
+                                    onChanged: (s) => inkStrokes = s,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            // 白框区：手写日期戳（左）+ 白框手写字（右/占位）
+                            SizedBox(
+                              height: 30,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  HandwrittenDate(
+                                    date: date ?? DateTime.now(),
+                                    color: t.captionColor,
+                                    fontSize: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: noteCtrl,
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontFamily: 'Caveat',
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                        color: t.captionColor,
+                                      ),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: '写点什么…',
+                                        hintStyle: TextStyle(
+                                            fontFamily: 'Caveat',
+                                            fontSize: 15,
+                                            color: t.captionColor
+                                                .withAlpha(110)),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          Container(
-                            height: 30,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _handDate(photo['photo_date'] ??
-                                  photo['created_at']),
-                              style: const TextStyle(
-                                fontSize: 19,
-                                fontFamily: 'Caveat',
-                                fontWeight: FontWeight.w700,
-                                color: LoveGirlTheme.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                          ],
+                        ),
+                      );
+                    }),
                   ),
+                ),
+                const SizedBox(height: 10),
+                // 四主题选择条
+                SizedBox(
+                  height: 34,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (final th in PolaroidTheme.values)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: GestureDetector(
+                            onTap: () => setSheet(() => themeIdx = th.index),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: themeIdx == th.index
+                                    ? context.lgInk
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: themeIdx == th.index
+                                      ? context.lgInk
+                                      : LoveGirlTheme.separator,
+                                ),
+                              ),
+                              child: Text(
+                                th.label,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: themeIdx == th.index
+                                      ? Colors.white
+                                      : context.lgTextSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => setSheet(() => inkMode = !inkMode),
+                      icon: Icon(Icons.draw_rounded,
+                          size: 16,
+                          color: inkMode ? context.lgInk : context.lgTextMuted),
+                      label: Text(inkMode ? '涂鸦中（手指在照片上画）' : '在照片上涂鸦',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: inkMode
+                                  ? context.lgInk
+                                  : context.lgTextSecondary)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => setSheet(() {
+                        inkStrokes = [];
+                      }),
+                      icon: const Icon(Icons.undo_rounded, size: 15),
+                      label: const Text('清空涂鸦',
+                          style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
                 ),
                 Align(
                   alignment: Alignment.centerRight,
@@ -431,6 +563,26 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                       duration: const Duration(seconds: 1)));
                                   return;
                                 }
+                                // 拍立得样式（主题/白框手写字/背卡笔迹）静默保存，
+                                // 失败不阻断（下次进样式页会再存）
+                                try {
+                                  await _api.savePhotoPolaroid(
+                                    id,
+                                    theme: PolaroidTheme
+                                        .values[themeIdx].name,
+                                    frameNote: noteCtrl.text.trim(),
+                                    inkStrokes: inkStrokes.isEmpty
+                                        ? null
+                                        : jsonEncode(inkStrokes
+                                            .map((s) => s.toJson(
+                                                InkStroke.encodePoint,
+                                                InkStroke.decodePoint))
+                                            .toList()),
+                                  );
+                                  photo['polaroid_theme'] =
+                                      PolaroidTheme.values[themeIdx].name;
+                                  photo['frame_note'] = noteCtrl.text.trim();
+                                } catch (_) {}
                                 if (!ctx.mounted) return;
                                 Navigator.pop(ctx);
                                 if (!mounted) return;
