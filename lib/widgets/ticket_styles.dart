@@ -74,7 +74,7 @@ class TicketNotchLine extends StatelessWidget {
     final notch = Container(
       width: axis == Axis.horizontal ? 18 : 10,
       height: axis == Axis.horizontal ? 10 : 18,
-      color: const Color(0xFFFFFCF8),
+      color: const Color(0xFFFFFFFF),
     );
     final line = axis == Axis.horizontal
         ? SizedBox(
@@ -170,7 +170,7 @@ class HorizontalTicketStub extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF8),
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -295,7 +295,7 @@ class VerticalPostcardTicket extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFCF8),
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(

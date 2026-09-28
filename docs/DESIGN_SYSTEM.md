@@ -1,5 +1,11 @@
 # LoveGirl Design System v1.0
 
+> ⚠️ **v3.37 工具风修订（2026-09-28，最新）——与本文件旧内容冲突时，以本节为准。**
+> 全局视觉基调已从"纸质手账暖白"切换为**倒数日式冷白工具风**：纯白底 `#FFFFFF`、黑灰字阶、主行动黑底白字，**暖色全部清零**（陶土橘/杏黄/橙/暖渐变已删除；恋爱天数与爱心同正文黑色；功能性红 `#E95B4E` 仅删除/警示）。
+> **当前权威色板**（与 `lib/utils/lovegirl_theme.dart` 同步）：
+> `primary #1A1A1A` · `primaryLight #4A4A4A` · `primarySoft #F4F4F5` · `secondary #7A9E7E`（绿=完成/健康语义，保留）· `accent #B0B0B5`（灰）· `orange #8E8E93`（灰）· `brandEmotion #1A1A1A`（黑）· `red #E95B4E` · `bgLight/paper #FFFFFF` · `paperWarm #F7F7F8`（冷灰白）· `separator #ECECEC` · `textPrimary #1A1A1A` · `planned #9E9AD1` · `visited #4CAF50`
+> **下方旧版色板表（陶土橘 primary / #FFF9F5 / #FFF5EC / #EAE4DC 等）全部作废**；§3 起的字阶/圆角/间距/组件规范仍有效。天气状态色与 illus 插画为内容语义，暂保留彩色（重生成计划见 asset-prompts.md）。回滚：revert 对应 commit 即可。
+
 > 适用范围：LoveGirl Flutter App（com.lovegirl.lovegirl_flutter）全部页面
 > 事实来源：`lib/utils/lovegirl_theme.dart` + 全量代码统计（262 处圆角、600+ 处字号/字重）+ 真机截图走查
 > 本文档同时是重构验收标准：新代码不符合本规范 = 不予合入

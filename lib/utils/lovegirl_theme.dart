@@ -14,14 +14,16 @@ class LoveGirlTheme {
   static const Color primarySoft = Color(0xFFF4F4F5);
   static const Color secondary = Color(0xFF7A9E7E);
   static const Color secondarySoft = Color(0xFFEFF2EF);
-  static const Color accent = Color(0xFFE7B78A);
+
+  // v3.37 工具风去暖：accent/orange 由暖色降级为中性灰阶（语义位保留，值转灰）
+  static const Color accent = Color(0xFFB0B0B5);
   static const Color red = Color(0xFFE95B4E);
-  static const Color orange = Color(0xFFE7A25D);
+  static const Color orange = Color(0xFF8E8E93);
   static const Color pink = primary;
   static const Color pinkLight = primaryLight;
 
-  // v3.27 情感色：陶土橘只给"和 TA 有关"的元素（恋爱天数/爱心/对方动态）
-  static const Color brandEmotion = Color(0xFFB85C38);
+  // v3.37 情感色黑化：恋爱天数/爱心与正文同黑（回滚点=独立 commit）
+  static const Color brandEmotion = Color(0xFF1A1A1A);
 
   // v3.34 白色简洁（浅色）与中性深色（深色同步去暖）
   static const Color bgLight = Color(0xFFFFFFFF);
@@ -56,7 +58,7 @@ class LoveGirlTheme {
   static const double spaceXl = 32;
 
   static const List<Color> gradientLove = [primary, primaryLight];
-  static const List<Color> gradientSunset = [primary, accent];
+  static const List<Color> gradientSunset = [primary, Color(0xFF6E6E73)];
   static const List<Color> gradientOcean = [
     Color(0xFF7B8CFF),
     Color(0xFF6BD4FF)

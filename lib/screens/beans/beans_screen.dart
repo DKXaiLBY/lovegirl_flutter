@@ -518,7 +518,7 @@ class _BeanBurstPainter extends CustomPainter {
       final pos = origin +
           Offset(cos(angle) * speed * t * 1.6,
               sin(angle) * speed * t + 42 * t * t);
-      paint.color = const Color(0xFFE7A25D)
+      paint.color = const Color(0xFF8E8E93)
           .withAlpha(((1 - t) * 255).toInt().clamp(0, 255));
       canvas.drawCircle(pos, 3.4 * (1 - t * 0.5), paint);
     }
