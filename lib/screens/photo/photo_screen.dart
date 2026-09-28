@@ -15,6 +15,7 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
+import '../../widgets/polaroid_frame.dart';
 import '../../widgets/polaroid_theme.dart';
 import 'photo_flipbook_screen.dart';
 
@@ -247,11 +248,27 @@ class _PhotoScreenState extends State<PhotoScreen> {
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(ctx).size.height * 0.88),
             decoration: const BoxDecoration(
-              color: LoveGirlTheme.bgLight,
+              // 参考图：灰米纸面（拍立得放在纸面上，不是放在白色表单上）
+              color: Color(0xFFE9E4DC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: SingleChildScrollView(
+            child: Stack(
+              children: [
+                // 纸面纹理
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: 0.4,
+                      child: Image(
+                        image:
+                            AssetImage('assets/images/deco/paper_grain.png'),
+                        repeat: ImageRepeat.repeat,
+                      ),
+                    ),
+                  ),
+                ),
+                SingleChildScrollView(
               child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,185 +287,102 @@ class _PhotoScreenState extends State<PhotoScreen> {
                 Center(
                   child: RepaintBoundary(
                     key: boundaryKey,
-                    child: Builder(builder: (ctx) {
-                      final theme = PolaroidTheme.values[themeIdx];
-                      final t = theme.style;
-                      final date = DateTime.tryParse((photo['photo_date'] ??
-                              photo['created_at'] ??
-                              '')
-                          .toString());
-                      return Container(
-                        width: 220,
-                        decoration: BoxDecoration(
-                          color: t.frameColor,
-                          borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black.withAlpha(30),
-                                blurRadius: 14,
-                                offset: const Offset(0, 8)),
-                          ],
+                    child: Transform.rotate(
+                      angle: -0.02,
+                      child: SizedBox(
+                        width: 224,
+                        child: PolaroidFrame(
+                          photo: CachedNetworkImage(
+                            imageUrl: fullUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) =>
+                                Container(color: context.lgBg),
+                            errorWidget: (_, __, ___) => Container(
+                                color: context.lgBg,
+                                child: const Icon(Icons.broken_image,
+                                    color: LoveGirlTheme.textMuted)),
+                          ),
+                          date: DateTime.tryParse((photo['photo_date'] ??
+                                  photo['created_at'] ??
+                                  '')
+                              .toString()
+                              .replaceFirst(' ', 'T')),
+                          caption: noteCtrl.text,
+                          theme: PolaroidTheme.values[themeIdx],
+                          inkStrokes: inkStrokes,
+                          inkEnabled: inkMode,
+                          onInkChanged: (s) => inkStrokes = s,
+                          onCaptionTap: () => _editFrameNote(
+                              ctx, noteCtrl, () => setSheet(() {})),
                         ),
-                        padding: t.framePadding,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (t.topDecor != null) t.topDecor!,
-                            Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(2),
-                                  child: SizedBox(
-                                    height: 185,
-                                    width: double.infinity,
-                                    child: CachedNetworkImage(
-                                      imageUrl: fullUrl,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) =>
-                                          Container(color: context.lgBg),
-                                      errorWidget: (_, __, ___) => Container(
-                                          color: context.lgBg,
-                                          child: const Icon(Icons.broken_image,
-                                              color:
-                                                  LoveGirlTheme.textMuted)),
-                                    ),
-                                  ),
-                                ),
-                                // 涂鸦笔迹层（inkMode 开启时可画）
-                                Positioned.fill(
-                                  child: InkCanvas(
-                                    strokes: inkStrokes,
-                                    defaultColor: theme == PolaroidTheme.film ||
-                                            theme == PolaroidTheme.tape
-                                        ? const Color(0xFFECECEE)
-                                        : const Color(0xFF2B2B2E),
-                                    onChanged: (s) => inkStrokes = s,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            // 白框区：手写日期戳（左）+ 白框手写字（右/占位）
-                            SizedBox(
-                              height: 30,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  HandwrittenDate(
-                                    date: date ?? DateTime.now(),
-                                    color: t.captionColor,
-                                    fontSize: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: noteCtrl,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        fontFamily: 'Caveat',
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w700,
-                                        color: t.captionColor,
-                                      ),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        hintText: '写点什么…',
-                                        hintStyle: TextStyle(
-                                            fontFamily: 'Caveat',
-                                            fontSize: 15,
-                                            color: t.captionColor
-                                                .withAlpha(110)),
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                // 四主题选择条
-                SizedBox(
-                  height: 34,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      for (final th in PolaroidTheme.values)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                          child: GestureDetector(
-                            onTap: () => setSheet(() => themeIdx = th.index),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: themeIdx == th.index
-                                    ? context.lgInk
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: themeIdx == th.index
-                                      ? context.lgInk
-                                      : LoveGirlTheme.separator,
-                                ),
-                              ),
-                              child: Text(
-                                th.label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: themeIdx == th.index
-                                      ? Colors.white
-                                      : context.lgTextSecondary,
-                                ),
-                              ),
+                const SizedBox(height: 8),
+                // 四主题选择（Wrap 防窄屏挤压溢出）
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    for (final th in PolaroidTheme.values)
+                      GestureDetector(
+                        onTap: () => setSheet(() => themeIdx = th.index),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: themeIdx == th.index
+                                ? context.lgInk
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: themeIdx == th.index
+                                  ? context.lgInk
+                                  : LoveGirlTheme.separator,
+                            ),
+                          ),
+                          child: Text(
+                            th.label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: themeIdx == th.index
+                                  ? Colors.white
+                                  : context.lgTextSecondary,
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => setSheet(() => inkMode = !inkMode),
-                      icon: Icon(Icons.draw_rounded,
-                          size: 16,
-                          color: inkMode ? context.lgInk : context.lgTextMuted),
-                      label: Text(inkMode ? '涂鸦中（手指在照片上画）' : '在照片上涂鸦',
-                          style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                              color: inkMode
-                                  ? context.lgInk
-                                  : context.lgTextSecondary)),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => setSheet(() {
-                        inkStrokes = [];
-                      }),
-                      icon: const Icon(Icons.undo_rounded, size: 15),
-                      label: const Text('清空涂鸦',
-                          style: TextStyle(fontSize: 12)),
-                    ),
+                      ),
                   ],
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => savePolaroid(ctx),
-                    icon: const Icon(Icons.save_alt_rounded, size: 16),
-                    label: const Text('保存拍立得',
-                        style: TextStyle(
-                            fontSize: 12.5, fontWeight: FontWeight.w800)),
-                  ),
+                const SizedBox(height: 8),
+                // 控制行：等高胶囊（涂鸦/清空/保存），不再三个 TextButton 挤两行
+                Row(
+                  children: [
+                    _sheetPill(
+                      label: inkMode ? '涂鸦中…' : '照片涂鸦',
+                      icon: Icons.draw_rounded,
+                      active: inkMode,
+                      onTap: () => setSheet(() => inkMode = !inkMode),
+                    ),
+                    const SizedBox(width: 8),
+                    _sheetPill(
+                      label: '清空',
+                      icon: Icons.undo_rounded,
+                      onTap: inkStrokes.isNotEmpty
+                          ? () => setSheet(() => inkStrokes = [])
+                          : null,
+                    ),
+                    const Spacer(),
+                    _sheetPill(
+                      label: '保存拍立得',
+                      icon: Icons.save_alt_rounded,
+                      active: true,
+                      onTap: () => savePolaroid(ctx),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 const Text('这张照片背后的故事',
@@ -603,6 +537,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
               ],
             ),
             ),
+              ],
+            ),
           ),
         ),
       ),
@@ -610,6 +546,95 @@ class _PhotoScreenState extends State<PhotoScreen> {
     // 弹层已关闭，释放输入控制器
     descCtrl.dispose();
     backCtrl.dispose();
+  }
+
+  /// 样式页统一胶囊按钮（等高，防歪歪扭扭；onTap=null 时置灰）
+  Widget _sheetPill({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onTap,
+    bool active = false,
+  }) {
+    final disabled = onTap == null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active && !disabled ? context.lgInk : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: disabled
+                ? LoveGirlTheme.separator.withAlpha(90)
+                : active
+                    ? context.lgInk
+                    : LoveGirlTheme.separator,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: disabled
+                  ? LoveGirlTheme.textMuted
+                  : active
+                      ? Colors.white
+                      : context.lgTextSecondary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: disabled
+                    ? LoveGirlTheme.textMuted
+                    : active
+                        ? Colors.white
+                        : context.lgTextPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 白框手写字：点相框底边弹出输入（相框内显示为"写好的字"，非输入框）
+  Future<void> _editFrameNote(BuildContext sheetCtx,
+      TextEditingController ctrl, VoidCallback refresh) async {
+    final c = TextEditingController(text: ctrl.text);
+    final v = await showDialog<String>(
+      context: sheetCtx,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('白框手写字',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          maxLength: 40,
+          style: const TextStyle(fontFamily: 'Caveat', fontSize: 20),
+          decoration: const InputDecoration(hintText: '比如：我们的第一场海'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dctx),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(dctx, c.text.trim()),
+              child: const Text('写好了')),
+        ],
+      ),
+    );
+    if (v == null) return;
+    ctrl.text = v;
+    refresh();
   }
 
   void _showFullScreen(String url) {
@@ -718,7 +743,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 18,
                                   crossAxisSpacing: 14,
-                                  childAspectRatio: 0.72,
+                                  childAspectRatio: 1 / 1.216, // 拍立得相纸比例 88:107
                                 ),
                                 itemCount: _photos.length,
                                 itemBuilder: (context, index) {
@@ -949,97 +974,69 @@ class _PolaroidTileState extends State<_PolaroidTile>
     final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
     final hasBack = (widget.photo['description']?.toString() ?? '').isNotEmpty ||
         (widget.photo['back_message']?.toString() ?? '').isNotEmpty;
+    final theme = PolaroidThemeX.fromName(
+        widget.photo['polaroid_theme']?.toString() ?? 'classic');
+    final date = DateTime.tryParse(
+        (widget.photo['photo_date'] ?? widget.photo['created_at'] ?? '')
+            .toString()
+            .replaceFirst(' ', 'T'));
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
         border: widget.selected
-            ? Border.all(color: LoveGirlTheme.brandEmotion, width: 2.5)
-            : Border.all(color: Colors.white),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(26),
-              blurRadius: 10,
-              offset: const Offset(0, 5)),
-        ],
+            ? Border.all(color: context.lgInk, width: 2.5)
+            : null,
       ),
-      padding: const EdgeInsets.fromLTRB(7, 7, 7, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: CachedNetworkImage(
-                    imageUrl: fullUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: context.lgBg),
-                    errorWidget: (_, __, ___) => Container(
-                      color: context.lgBg,
-                      child:
-                          Icon(Icons.broken_image, color: context.lgTextMuted),
-                    ),
-                  ),
-                ),
-                if (widget.selectionMode)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.selected
-                            ? LoveGirlTheme.brandEmotion
-                            : Colors.black.withAlpha(70),
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: widget.selected
-                          ? const Icon(Icons.check_rounded,
-                              size: 16, color: Colors.white)
-                          : null,
-                    ),
-                  ),
-              ],
-            ),
+      child: PolaroidFrame(
+        theme: theme,
+        date: date,
+        caption: (widget.photo['frame_note'] ?? '').toString(),
+        photo: CachedNetworkImage(
+          imageUrl: fullUrl,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(color: context.lgBg),
+          errorWidget: (_, __, ___) => Container(
+            color: context.lgBg,
+            child: Icon(Icons.broken_image, color: context.lgTextMuted),
           ),
-          // 拍立得宽底边：手写感日期（拍摄日优先）+ 翻面暗示角标
-          Container(
-            height: 34,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _handDate(widget.photo['photo_date'] ??
-                        widget.photo['created_at']),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontFamily: 'Caveat',
-                      fontWeight: FontWeight.w700,
-                      color: LoveGirlTheme.textSecondary,
-                    ),
-                  ),
-                ),
-                Icon(
-                  hasBack
-                      ? Icons.sticky_note_2_outlined
-                      : Icons.flip_rounded,
-                  size: 13,
-                  color: LoveGirlTheme.textMuted,
-                ),
-              ],
+        ),
+        overlay: Stack(
+          children: [
+            // 翻面暗示：有背卡=留言角标，无=翻转角标
+            Positioned(
+              bottom: 6,
+              right: 6,
+              child: Icon(
+                hasBack
+                    ? Icons.sticky_note_2_outlined
+                    : Icons.flip_rounded,
+                size: 13,
+                color: Colors.white.withAlpha(200),
+              ),
             ),
-          ),
-        ],
+            if (widget.selectionMode)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.selected
+                        ? context.lgInk
+                        : Colors.black.withAlpha(70),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: widget.selected
+                      ? const Icon(Icons.check_rounded,
+                          size: 16, color: Colors.white)
+                      : null,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1048,10 +1045,14 @@ class _PolaroidTileState extends State<_PolaroidTile>
   Widget _buildBack(BuildContext context) {
     final story = widget.photo['description']?.toString() ?? '';
     final message = widget.photo['back_message']?.toString() ?? '';
-    final kraft = context.lgIsDark
-        ? const Color(0xFF4A4034)
-        : const Color(0xFFD9C7A4);
-    final ink = context.lgIsDark ? const Color(0xFFE8E0D9) : const Color(0xFF3E3327);
+    // 背卡颜色跟随相框主题（参考图：白框=米白纸、tape/film=暗卡、letter=暖白笺）
+    final t = PolaroidThemeX.fromName(
+            widget.photo['polaroid_theme']?.toString() ?? 'classic')
+        .style;
+    final kraft = context.lgIsDark ? const Color(0xFF232326) : t.backColor;
+    final ink = context.lgIsDark
+        ? const Color(0xFFD8D8DC)
+        : t.backTextColor;
 
     return Container(
       decoration: BoxDecoration(

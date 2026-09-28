@@ -16,6 +16,9 @@ class PolaroidStyle {
   final Color backTextColor;
   final Widget? topDecor;
 
+  /// 顶部装饰条总占高（含下间距）——必须计入高度预算，否则 Column 溢出
+  final double topDecorHeight;
+
   const PolaroidStyle({
     required this.frameColor,
     required this.framePadding,
@@ -23,6 +26,7 @@ class PolaroidStyle {
     required this.backColor,
     required this.backTextColor,
     this.topDecor,
+    this.topDecorHeight = 0,
   });
 }
 
@@ -52,6 +56,7 @@ extension PolaroidThemeX on PolaroidTheme {
           backColor: const Color(0xFF1C1C1E),
           backTextColor: const Color(0xFFD8D8DC),
           topDecor: const _BackTapeStrip(),
+          topDecorHeight: 30,
         );
       case PolaroidTheme.film:
         return PolaroidStyle(
@@ -61,6 +66,7 @@ extension PolaroidThemeX on PolaroidTheme {
           backColor: const Color(0xFF101012),
           backTextColor: const Color(0xFFD8D8DC),
           topDecor: const _FilmSprocketStrip(),
+          topDecorHeight: 22,
         );
       case PolaroidTheme.letter:
         return PolaroidStyle(
@@ -212,11 +218,13 @@ extension _ColorX on Color {
 }
 
 /// 笔迹画布：手势采集 → 自绘。归一化坐标（0-1），与尺寸解耦。
+/// enabled=false 时忽略手势（不阻塞父级滚动）。
 class InkCanvas extends StatefulWidget {
   final List<InkStroke> strokes;
   final ValueChanged<List<InkStroke>> onChanged;
   final Color defaultColor;
   final double strokeWidth;
+  final bool enabled;
 
   const InkCanvas({
     super.key,
@@ -224,6 +232,7 @@ class InkCanvas extends StatefulWidget {
     required this.onChanged,
     this.defaultColor = const Color(0xFF2B2B2E),
     this.strokeWidth = 2.2,
+    this.enabled = true,
   });
 
   @override
@@ -267,13 +276,17 @@ class _InkCanvasState extends State<InkCanvas> {
 
   @override
   Widget build(BuildContext context) {
+    final canvas = CustomPaint(
+      painter: _InkPainter(strokes: _live),
+      child: const SizedBox.expand(),
+    );
+    if (!widget.enabled) {
+      return IgnorePointer(child: canvas);
+    }
     return GestureDetector(
       onPanUpdate: _onDrag,
       onPanEnd: _onDragEnd,
-      child: CustomPaint(
-        painter: _InkPainter(strokes: _live),
-        child: const SizedBox.expand(),
-      ),
+      child: canvas,
     );
   }
 }
