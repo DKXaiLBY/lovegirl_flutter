@@ -264,35 +264,22 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               ),
             ],
           ),
-          floatingActionButton: _viewIndex == 1
-              ? Padding(
-                  // 底部避让：FAB 抬到悬浮 tab(高76+20)之上，防内容不足一屏时两者重叠
-                  padding: const EdgeInsets.only(bottom: 100),
-                  child: FloatingActionButton.extended(
-                    onPressed: () async {
-                      final travelProvider = context.read<TravelProvider>();
-                      final result = await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const TravelFormScreen(),
-                        ),
-                      );
-                      if (!mounted) return;
-                      if (result == true) {
-                        travelProvider.refreshAll();
-                      }
-                    },
-                    backgroundColor: context.lgInk,
-                    foregroundColor: Colors.white,
-                    icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                    label: const Text('记一个地点',
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w800)),
-                  ),
-                )
-              : null,
+          floatingActionButton: null, // 「记一个地点」已移到清单标题行（用户拍板）
         );
       },
     );
+  }
+
+  /// 清单标题行「记一个地点」：打开新增表单
+  Future<void> _openAddSpotForm() async {
+    final travelProvider = context.read<TravelProvider>();
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TravelFormScreen()),
+    );
+    if (!mounted) return;
+    if (result == true) {
+      travelProvider.refreshAll();
+    }
   }
 
   /// 清单视图：搜索 / 筛选排序 / 地点列表（地图已独立为全屏主视图）
@@ -323,9 +310,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               )
             else
               SliverPadding(
-                // 底部 210：悬浮 tab(76) + FAB(72) + 余量——否则最后几条卡片和
-                // 卡上的"生成票根"按钮被"记一个地点"FAB 挡住点不到
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 210),
+                // 底部 120：悬浮 tab(76) + 余量（「记一个地点」已移至标题行，无需再为 FAB 预留）
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -537,6 +523,31 @@ class _TravelMainScreenState extends State<TravelMainScreen>
           ),
           const SizedBox(width: 8),
           _buildSortMenu(provider),
+          const SizedBox(width: 8),
+          // 「记一个地点」入口（用户拍板：从悬浮 FAB 移到标题行，与搜索/排序同排）
+          GestureDetector(
+            onTap: _openAddSpotForm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.lgInk,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.add_location_alt_rounded,
+                      size: 15, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text('记一个地点',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
