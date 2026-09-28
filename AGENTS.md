@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.37.0+169（2026-09-28 已发布：全局去暖工具风，独立 commit 56758ae 可整体回滚）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；天气状态色与 illus 暖色插画为内容语义暂保留（重生成计划见 asset-prompts.md）；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
+当前版本 v3.37.1+170（2026-09-28 已发布：去暖补丁 13 处散落暖色清零 + 旅行清单 FAB 避让悬浮 tab；仅存暖色=天气"晴"语义色+illus 暖色插画，随重生成处理）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
