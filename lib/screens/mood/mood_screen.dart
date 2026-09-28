@@ -46,16 +46,16 @@ class _MoodScreenState extends State<MoodScreen> {
     '烦躁'
   ];
   static const _moodColors = [
-    Color(0xFFFFB347),
-    Color(0xFFFF6B8A),
-    Color(0xFFFF8FA8),
+    Color(0xFF8FAE8B),
     Color(0xFF7B8CFF),
-    Color(0xFFFF4757),
+    Color(0xFF6BD4FF),
+    Color(0xFF7B8CFF),
+    Color(0xFFE95B4E),
     Color(0xFF9E9EAD),
     Color(0xFF00BCD4),
     Color(0xFF4CAF50),
-    Color(0xFFE040FB),
-    Color(0xFFFF9800),
+    Color(0xFF9E9AD1),
+    Color(0xFF8E8E93),
   ];
 
   @override

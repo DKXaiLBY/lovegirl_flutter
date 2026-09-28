@@ -428,7 +428,7 @@ class AuroraBackground extends StatefulWidget {
     this.colors = const [
       Color(0xFF635BFF),
       Color(0xFF00D4AA),
-      Color(0xFFFF6B8A)
+      Color(0xFF7B8CFF)
     ],
   });
 

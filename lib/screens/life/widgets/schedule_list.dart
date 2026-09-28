@@ -34,9 +34,9 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
 
   static const _defaultColors = [
     Color(0xFF635BFF),
-    Color(0xFFFF6B8A),
+    Color(0xFF7B8CFF),
     Color(0xFF00D4AA),
-    Color(0xFFFF9800),
+    Color(0xFF8E8E93),
     Color(0xFF9C27B0),
     Color(0xFF2196F3),
     Color(0xFF4CAF50),

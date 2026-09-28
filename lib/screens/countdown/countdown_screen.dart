@@ -33,17 +33,17 @@ class _CountdownScreenState extends State<CountdownScreen> {
   };
 
   static const _iconColors = <int, Color>{
-    0xe87d: Color(0xFFFF6B8A),
-    0xe1b7: Color(0xFFFFB347),
+    0xe87d: Color(0xFF7B8CFF),
+    0xe1b7: Color(0xFF8FAE8B),
     0xe539: Color(0xFF7B8CFF),
     0xe80c: Color(0xFF4CAF50),
-    0xe88a: Color(0xFFFF9800),
+    0xe88a: Color(0xFF8E8E93),
     0xe769: Color(0xFFE040FB),
     0xe838: Color(0xFFFFD700),
     0xe3a3: Color(0xFF26C6DA),
-    0xe405: Color(0xFFFF6B8A),
+    0xe405: Color(0xFF7B8CFF),
     0xe865: Color(0xFF7B8CFF),
-    0xe56c: Color(0xFFFF9800),
+    0xe56c: Color(0xFF8E8E93),
     0xe8f9: Color(0xFF6B6B7B),
   };
 

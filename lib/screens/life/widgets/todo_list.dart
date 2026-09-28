@@ -462,7 +462,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       case '运动':
         return const Color(0xFF27AE60);
       case '购物':
-        return const Color(0xFFFF6B8A);
+        return const Color(0xFF7B8CFF);
       case '其他':
         return const Color(0xFF95A5A6);
       default:

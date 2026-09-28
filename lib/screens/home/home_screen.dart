@@ -334,7 +334,7 @@ class _BellBadge extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBE3E3),
+                  color: const Color(0xFFF4F4F5),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: const Color(0xFFECECEC)),
                 ),

@@ -265,25 +265,29 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             ],
           ),
           floatingActionButton: _viewIndex == 1
-              ? FloatingActionButton.extended(
-                  onPressed: () async {
-                    final travelProvider = context.read<TravelProvider>();
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const TravelFormScreen(),
-                      ),
-                    );
-                    if (!mounted) return;
-                    if (result == true) {
-                      travelProvider.refreshAll();
-                    }
-                  },
-                  backgroundColor: context.lgInk,
-                  foregroundColor: Colors.white,
-                  icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                  label: const Text('记一个地点',
-                      style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w800)),
+              ? Padding(
+                  // 底部避让：FAB 抬到悬浮 tab(高76+20)之上，防内容不足一屏时两者重叠
+                  padding: const EdgeInsets.only(bottom: 100),
+                  child: FloatingActionButton.extended(
+                    onPressed: () async {
+                      final travelProvider = context.read<TravelProvider>();
+                      final result = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TravelFormScreen(),
+                        ),
+                      );
+                      if (!mounted) return;
+                      if (result == true) {
+                        travelProvider.refreshAll();
+                      }
+                    },
+                    backgroundColor: context.lgInk,
+                    foregroundColor: Colors.white,
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                    label: const Text('记一个地点',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w800)),
+                  ),
                 )
               : null,
         );
@@ -806,7 +810,7 @@ Color _statusColor(BuildContext context, String status) {
     case 'visited':
       return const Color(0xFF4CAF50);
     case 'wish':
-      return const Color(0xFFFF9800);
+      return const Color(0xFF8E8E93);
     case 'planned':
       return const Color(0xFF9C27B0);
     default:
@@ -1213,7 +1217,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               _statusChip(
                 'wish',
                 '\u2605 \u5fc3\u613f\u5355',
-                const Color(0xFFFF9800),
+                const Color(0xFF8E8E93),
               ),
               const SizedBox(width: 8),
               _statusChip(
@@ -1641,7 +1645,7 @@ class _SpotDetailSheet extends StatelessWidget {
       case 'visited':
         return const Color(0xFF4CAF50);
       case 'wish':
-        return const Color(0xFFFF9800);
+        return const Color(0xFF8E8E93);
       case 'planned':
         return const Color(0xFF9C27B0);
       default:

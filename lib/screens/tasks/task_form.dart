@@ -20,7 +20,7 @@ class _TaskFormState extends State<TaskForm> {
 
   static const _categoryColors = <String, Color>{
     '旅行': Color(0xFF2196F3),
-    '美食': Color(0xFFFF9800),
+    '美食': Color(0xFF6BD4FF),
     '运动': Color(0xFF4CAF50),
     '学习': Color(0xFF9C27B0),
     '生活': Color(0xFFE91E63),

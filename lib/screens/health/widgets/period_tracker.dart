@@ -47,7 +47,7 @@ extension PeriodStatusExt on PeriodStatus {
       case PeriodStatus.menstrual: return context.lgInk;
       case PeriodStatus.safe: return const Color(0xFF4CAF50);
       case PeriodStatus.ovulation: return const Color(0xFFE040FB);
-      case PeriodStatus.premenstrual: return const Color(0xFFFF9800);
+      case PeriodStatus.premenstrual: return const Color(0xFF8E8E93);
       case PeriodStatus.unknown: return context.lgTextMuted;
     }
   }
@@ -100,7 +100,7 @@ class PeriodAnalysis {
     switch (regularity) { case 'regular': return '周期规律'; case 'irregular': return '不太规律'; default: return '数据不足'; }
   }
   Color regularityColor(BuildContext context) {
-    switch (regularity) { case 'regular': return const Color(0xFF4CAF50); case 'irregular': return const Color(0xFFFF9800); default: return context.lgTextMuted; }
+    switch (regularity) { case 'regular': return const Color(0xFF4CAF50); case 'irregular': return const Color(0xFF8E8E93); default: return context.lgTextMuted; }
   }
 }
 
