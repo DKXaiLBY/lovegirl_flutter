@@ -5,7 +5,7 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.37.1+170（2026-09-28 已发布：去暖补丁 13 处散落暖色清零 + 旅行清单 FAB 避让悬浮 tab；仅存暖色=天气"晴"语义色+illus 暖色插画，随重生成处理）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
+当前版本 v3.38.0+172（2026-09-28 已发布：拍立得复刻 Step2——四主题相框/白框手写字/背卡涂鸦 + 「记一个地点」移标题行）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
@@ -71,6 +71,8 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 18. **mysql2 的 DECIMAL 列返回字符串**（如 price="100.00"）——fromJson 里 `as num` 会在单字段上炸掉整个列表解析→界面显示空态（v3.35.1 线上事故：上传成功但衣橱显示空）。数字字段一律 `_asInt/_asDouble`（tryParse 兜底），单测已回归。**诊断套路：用户报"看不到数据"先查 DB 有没有行 + GET 接口状态码/字节数，DB 有数据=App 解析问题**
 
 ## 待办 / 未竟
+
+- **v3.38.0+172（2026-09-28 已发布上线）：拍立得复刻 Step2**——photos 表加 polaroid_theme/frame_note/ink_strokes 三列；新组件 `lib/widgets/polaroid_theme.dart`（PolaroidTheme 四主题 classic 白框/tape 黑胶带 BACK 条/film 暗胶片齿孔/letter 红字信笺 + PolaroidStyle + HandwrittenDate + InkStroke/InkCanvas 归一化笔迹引擎）；照片故事 sheet 实时主题预览+涂鸦+白框手写字+样式持久化（PUT /api/photo/:id/polaroid，服务器 036fb58 后续提交）。**待办：相框样式应用到列表网格卡与全屏页（现在只有故事 sheet 有）、收集册活页夹形态（缓）、保存模板三选一+字体切换（缓）、v3.37 遗留（插画重生成/衣橱 MIROIR 化/换装白板）**
 
 - **v3.37.0+169（2026-09-28 已发布上线）：全局去暖工具风**——用户拍板砍掉陶土橘走纯工具风；theme 三 token 转灰/黑+首页铃铛+爱心豆粒子+票根纯白化+DESIGN_SYSTEM 顶部修订声明；**独立 commit 56758ae，用户不满意 git revert 即整体回滚暖色**。用户验收后再继续：插画重生成提示词（Step 3）→ 拍立得复刻（Step 2，四主题相框/手写日期/背卡涂鸦，参考图 docs/design/refs 第二批 7 张）→ 衣橱 MIROIR 化（Step 4）→ 换装白板（Step 5，前置衣服抠图定标）。**小程序交接包已建：D:\Projects\Personal\Online wardrobe（HANDOFF.md+三文档+icons+MIROIR 参考图，零凭据零其他模块），小程序版由另一会话开发**
 
