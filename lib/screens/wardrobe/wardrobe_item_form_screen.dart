@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -323,6 +324,11 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
     if (err != null) {
       _toast(err);
       return;
+    }
+    // 保存成功后自动补抠（object 能力位；后台静默执行不阻断返回，方案 A2）
+    final newId = _isEdit ? widget.edit!.id : p.focusItemId;
+    if (newId != null && (_isEdit ? _imageFile != null : true)) {
+      unawaited(p.cutoutItem(newId));
     }
     Navigator.of(context).pop();
   }

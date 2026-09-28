@@ -189,6 +189,20 @@ class WardrobeProvider extends ChangeNotifier {
     }
   }
 
+  /// 单品抠图（object 能力位）：保存后自动补抠/详情页手动补抠。
+  /// object=false 或失败时静默（保留原图，不阻断）
+  Future<String?> cutoutItem(int itemId) async {
+    if (!bgObject) return null;
+    try {
+      await _api.cutoutWardrobeItem(itemId);
+      await _loadItems();
+      notifyListeners();
+      return null;
+    } catch (_) {
+      return null; // 静默：抠图是增强能力，失败不提示（方案 A2）
+    }
+  }
+
   Future<String?> setAvatarDefault(int id) async {
     try {
       await _api.setWardrobeAvatarDefault(id);

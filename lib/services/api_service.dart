@@ -526,6 +526,11 @@ class ApiService {
       '/api/wardrobe/bg-remove',
       data: {'kind': 'person', 'avatarId': avatarId});
 
+  /// 对服务器已有单品原图直接抠图（kind=object，S0 定标后启用）
+  Future cutoutWardrobeItem(int itemId) => post(
+      '/api/wardrobe/bg-remove',
+      data: {'kind': 'object', 'itemId': itemId});
+
   /// filePath 为 null 表示不换图（仅 PUT 编辑用）
   Future saveWardrobeItem(String filePath, Map<String, String> fields,
           {int? id}) =>

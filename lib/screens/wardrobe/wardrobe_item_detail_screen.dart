@@ -89,6 +89,40 @@ class WardrobeItemDetailScreen extends StatelessWidget {
               ...item.styles.map((e) => _tag(context, e)),
             ],
           ),
+          const SizedBox(height: 10),
+          if (p.bgObject) ...[
+            // M2a 存量补抠入口（object 能力位可用时显示）
+            Row(
+              children: [
+                Icon(Icons.auto_fix_high_rounded,
+                    size: 16, color: context.lgTextSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    item.cutoutUrl != null
+                        ? '已抠图（白底透明版，换装可用）'
+                        : '还没有抠图，换装白板需要透明图',
+                    style: TextStyle(
+                        fontSize: 12, color: context.lgTextSecondary),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final err = await p.cutoutItem(item.id);
+                    if (!context.mounted) return;
+                    if (err != null) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(err)));
+                    } else if (item.cutoutUrl == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('抠图完成啦')));
+                    }
+                  },
+                  child: Text(item.cutoutUrl != null ? '重新抠图' : '生成抠图'),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 14),
           LovePaper(
             padding: const EdgeInsets.all(14),

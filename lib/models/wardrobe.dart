@@ -49,6 +49,8 @@ class WardrobeItem {
   final String status; // 在柜 / 退役
   final int wearCount;
   final int refCount; // 被多少条穿搭引用（详情接口）
+  final bool bgRemoved; // 已抠图（M2a）
+  final String? cutoutUrl; // 抠图透明图（M2a）
   final DateTime? createdAt;
 
   const WardrobeItem({
@@ -65,10 +67,15 @@ class WardrobeItem {
     required this.status,
     this.wearCount = 0,
     this.refCount = 0,
+    this.bgRemoved = false,
+    this.cutoutUrl,
     this.createdAt,
   });
 
   bool get retired => status == '退役';
+
+  /// 换装白板/透明展示用抠图图
+  bool get hasCutout => bgRemoved && (cutoutUrl?.isNotEmpty ?? false);
 
   factory WardrobeItem.fromJson(Map<String, dynamic> j) => WardrobeItem(
         id: _asInt(j['id']),
@@ -86,6 +93,8 @@ class WardrobeItem {
         status: (j['status'] ?? '在柜').toString(),
         wearCount: _asInt(j['wear_count']),
         refCount: _asInt(j['outfit_refs_count']),
+        bgRemoved: _asInt(j['bg_removed']) == 1,
+        cutoutUrl: j['cutout_url']?.toString(),
         createdAt: DateTime.tryParse((j['created_at'] ?? '').toString()),
       );
 

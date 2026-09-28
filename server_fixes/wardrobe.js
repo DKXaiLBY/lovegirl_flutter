@@ -690,13 +690,16 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
   if (kind !== 'person') {
     return res.status(503).json({ code: 503, message: '衣服抠图服务尚未就绪' });
   }
-  // 两种输入：multipart image（新文件）或 avatarId（服务器已有形象原图，免 App 中转）
+  // 两种输入：multipart image（新文件）或 avatarId/itemId（服务器已有原图，免 App 中转）
   const avatarId = parseInt(req.body.avatarId);
+  const itemId = parseInt(req.body.itemId);
   let sourcePath = null;
   if (req.file) {
     sourcePath = req.file.path;
-  } else if (Number.isInteger(avatarId)) {
+  } else if (Number.isInteger(avatarId) && kind === 'person') {
     // 文件名取自 DB 记录，非用户输入
+  } else if (Number.isInteger(itemId) && kind === 'object') {
+    // 同上
   } else {
     return res.status(400).json({ code: 400, message: '缺少图片' });
   }
@@ -707,29 +710,31 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
   const theFile = req.file;
   cutoutChain = cutoutChain.then(async () => {
     let absPath = theFile ? theFile.path : null;
+    let cutoutUrl = null;
     if (!absPath) {
+      const table = kind === 'person' ? 'wardrobe_avatars' : 'wardrobe_items';
       const [rows] = await pool.query(
-        'SELECT image_url FROM wardrobe_avatars WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
-        [avatarId, req.user.id]
+        `SELECT image_url FROM ${table} WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+        [kind === 'person' ? avatarId : itemId, req.user.id]
       );
       if (rows.length === 0) {
-        return res.status(404).json({ code: 404, message: '形象不存在' });
+        return res.status(404).json({ code: 404, message: '记录不存在' });
       }
       absPath = path.resolve(__dirname, '..', rows[0].image_url);
-      // 边界校验：只允许 wardrobe 上传目录内的文件
+      // 边界校验：只允许 uploads 目录内的文件
       const upDir = path.resolve(__dirname, '..', 'uploads');
       if (!absPath.startsWith(upDir + path.sep)) {
         return res.status(400).json({ code: 400, message: '图片路径不对' });
       }
       if (!fs.existsSync(absPath)) {
-        return res.status(404).json({ code: 404, message: '原图文件已不存在，请重新上传形象' });
+        return res.status(404).json({ code: 404, message: '原图文件已不存在，请重新上传' });
       }
     }
     const t0 = Date.now();
-    const cutoutUrl = await runPortraitCutout(absPath);
+    cutoutUrl = await runPortraitCutout(absPath);
     cutoutConsume(req.user.id);
-    // avatarId 模式自动回写形象抠图
-    if (!theFile && Number.isInteger(avatarId)) {
+    // 直取模式自动回写
+    if (!theFile && Number.isInteger(avatarId) && kind === 'person') {
       await pool.query(
         'UPDATE wardrobe_avatars SET cutout_url = ? WHERE id = ? AND user_id = ?',
         [cutoutUrl, avatarId, req.user.id]
