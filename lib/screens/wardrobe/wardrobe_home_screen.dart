@@ -50,10 +50,48 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
               children: [
+                // MIROIR 化：搜索框（品牌/类别/颜色模糊匹配）
+                TextField(
+                  onChanged: (v) {
+                    p.filter.query = v.trim();
+                    p.applyFilter();
+                  },
+                  style: const TextStyle(fontSize: 13.5),
+                  decoration: InputDecoration(
+                    hintText: '搜索单品…（品牌/类别/颜色）',
+                    hintStyle:
+                        TextStyle(fontSize: 13, color: context.lgTextMuted),
+                    prefixIcon: Icon(Icons.search_rounded,
+                        size: 19, color: context.lgTextMuted),
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: context.lgSeparator)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: context.lgSeparator)),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 _toolbar(p),
                 const SizedBox(height: 12),
                 // 三层钻取第一层：维度圆片（M2b，阿Fi不在案例）
                 WardrobeDimensionRow(),
+                const SizedBox(height: 14),
+                // MIROIR 化：分类 chips（全部 + 8 类，点击预填筛选）
+                SizedBox(
+                  height: 32,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _catChip(p, '全部', null),
+                      for (final cat in WardrobeTax.categories)
+                        _catChip(p, cat, cat),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 14),
                 if (!p.anyVisible) _noMatch(p),
                 for (final entry in p.groupedItems.entries)
@@ -311,6 +349,39 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// MIROIR 化分类 chip：点击预填 filter.category（全部=null）
+  Widget _catChip(WardrobeProvider p, String label, String? category) {
+    final selected = p.filter.category == category;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () {
+          p.filter.category = category;
+          p.applyFilter();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? context.lgInk : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? context.lgInk : context.lgSeparator,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : context.lgTextSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _openForm() {

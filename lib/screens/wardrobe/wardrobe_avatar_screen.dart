@@ -9,7 +9,8 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'widgets/wardrobe_widgets.dart';
 
-/// P12 我的数字形象（M2a）：上传全身照 → 自动人像抠图 → 换装白板的地基
+/// P12 我的数字形象（M2a，MIROIR 化双 Tab）：
+/// 照片库=原图管理（上传/抠图/设默认/删除）；数字形象=抠图成果（进换装白板）
 class WardrobeAvatarScreen extends StatefulWidget {
   const WardrobeAvatarScreen({super.key});
 
@@ -17,14 +18,20 @@ class WardrobeAvatarScreen extends StatefulWidget {
   State<WardrobeAvatarScreen> createState() => _WardrobeAvatarScreenState();
 }
 
-class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen> {
+class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
+    with SingleTickerProviderStateMixin {
   int? _cutoutingId;
+  late final TabController _tab = TabController(length: 2, vsync: this);
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.watch<WardrobeProvider>();
-    final avatars = p.avatars;
-
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
@@ -37,66 +44,159 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen> {
                 fontWeight: FontWeight.w800,
                 color: context.lgTextPrimary)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      body: Column(
         children: [
-          LovePaper(
-            padding: const EdgeInsets.all(14),
-            radius: 16,
-            child: Row(
-              children: [
-                const LoveStickerIcon(
-                    icon: Icons.person_outline_rounded),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    '上传一张清晰的全身照，抠成透明人形，就能在换装白板给自己"穿衣服"啦。建议纯色背景、露出全身。',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.5,
-                        color: context.lgTextSecondary),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: LovePaper(
+              padding: const EdgeInsets.all(14),
+              radius: 16,
+              child: Row(
+                children: [
+                  const LoveStickerIcon(icon: Icons.person_outline_rounded),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '上传一张清晰的全身照，抠成透明人形，就能在换装白板给自己"穿衣服"啦。建议纯色背景、露出全身。',
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.5,
+                          color: context.lgTextSecondary),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+            child: LovePaper(
+              padding: const EdgeInsets.all(4),
+              radius: 14,
+              elevated: false,
+              child: TabBar(
+                controller: _tab,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: context.lgInk,
                 ),
-              ],
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: Colors.white,
+                unselectedLabelColor: context.lgTextSecondary,
+                labelStyle:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                dividerColor: Colors.transparent,
+                splashFactory: NoSplash.splashFactory,
+                tabs: const [Tab(text: '照片库'), Tab(text: '数字形象')],
+              ),
             ),
           ),
-          const SizedBox(height: 14),
-          if (avatars.isEmpty) ...[
-            const SizedBox(height: 60),
-            EmptyState(
-              icon: Icons.person_add_alt_1_rounded,
-              illustration: kWardrobeEmptyIllus,
-              title: '还没有数字形象',
-              subtitle: '传一张全身照，开始你的电子衣娃',
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: [_photosTab(p), _cutoutsTab(p)],
             ),
-            const SizedBox(height: 12),
-          ],
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.72,
-            ),
-            itemCount: avatars.length,
-            itemBuilder: (_, i) {
-              final a = avatars[i];
-              return _avatarCard(p, a);
-            },
-          ),
-          const SizedBox(height: 16),
-          LovePrimaryButton(
-            text: '上传全身照',
-            icon: Icons.add_a_photo_rounded,
-            onPressed: _pick,
           ),
         ],
       ),
     );
   }
 
+  // ---------- Tab1 照片库：原图管理 ----------
+  Widget _photosTab(WardrobeProvider p) {
+    final avatars = p.avatars;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        if (avatars.isEmpty) ...[
+          const SizedBox(height: 60),
+          EmptyState(
+            icon: Icons.person_add_alt_1_rounded,
+            illustration: kWardrobeEmptyIllus,
+            title: '还没有数字形象',
+            subtitle: '传一张全身照，开始你的电子衣娃',
+          ),
+          const SizedBox(height: 12),
+        ],
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 0.72,
+          ),
+          itemCount: avatars.length,
+          itemBuilder: (_, i) => _avatarCard(p, avatars[i]),
+        ),
+        const SizedBox(height: 16),
+        LovePrimaryButton(
+          text: '上传全身照',
+          icon: Icons.add_a_photo_rounded,
+          onPressed: _pick,
+        ),
+      ],
+    );
+  }
+
+  // ---------- Tab2 数字形象：抠图成果 ----------
+  Widget _cutoutsTab(WardrobeProvider p) {
+    final withCutout = p.avatars.where((a) => a.cutoutUrl != null).toList();
+    if (withCutout.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 60, 16, 32),
+        children: [
+          EmptyState(
+            icon: Icons.auto_fix_high_rounded,
+            illustration: kOutfitEmptyIllus,
+            title: '还没有抠图形象',
+            subtitle: '去「照片库」上传并抠图，这里就会出现透明人形',
+          ),
+        ],
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.72,
+      ),
+      itemCount: withCutout.length,
+      itemBuilder: (_, i) {
+        final a = withCutout[i];
+        return LovePaper(
+          padding: EdgeInsets.zero,
+          radius: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Container(
+                  color: context.lgPrimarySoft,
+                  padding: const EdgeInsets.all(8),
+                  child: WnThumb(a.cutoutUrl, fit: BoxFit.contain),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  a.isDefault ? '默认形象 · 用于换装白板' : '透明人形 · 可用于换装白板',
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(fontSize: 10.5, color: context.lgTextSecondary),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------- 卡片与动作 ----------
   Widget _avatarCard(WardrobeProvider p, WardrobeAvatar a) {
     final cutouting = _cutoutingId == a.id;
     return LovePaper(
@@ -112,15 +212,24 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 有抠图显示透明人形（棋盘格衬底），否则原图
+                  // 照片库显示原图；已抠图的右下角小标提示
+                  WnThumb(a.imageUrl),
                   if (a.cutoutUrl != null)
-                    Container(
-                      color: context.lgPrimarySoft,
-                      padding: const EdgeInsets.all(6),
-                      child: WnThumb(a.cutoutUrl, fit: BoxFit.contain),
-                    )
-                  else
-                    WnThumb(a.imageUrl),
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text('已抠图',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 10)),
+                      ),
+                    ),
                   if (a.isDefault)
                     Positioned(
                       left: 6,
@@ -152,7 +261,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen> {
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _op(Icons.photo_camera_rounded, '抠图',
+                      _op(Icons.photo_camera_rounded, a.cutoutUrl == null ? '抠图' : '重抠',
                           () => _cutout(p, a)),
                       if (!a.isDefault)
                         _op(Icons.star_border_rounded, '设默认',
@@ -176,8 +285,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen> {
           Icon(icon, size: 18, color: context.lgTextSecondary),
           const SizedBox(height: 2),
           Text(label,
-              style: TextStyle(
-                  fontSize: 10, color: context.lgTextSecondary)),
+              style: TextStyle(fontSize: 10, color: context.lgTextSecondary)),
         ],
       ),
     );

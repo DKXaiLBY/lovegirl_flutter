@@ -17,6 +17,9 @@ class WardrobeFilter {
   /// 状态多选；默认只看"在柜"，勾选"退役"才出现（v1.0 两态）
   final Set<String> statuses = {'在柜'};
 
+  /// 搜索词（MIROIR 化：品牌/类别文字模糊匹配）
+  String query = '';
+
   bool get isDefault =>
       temperature == null &&
       category == null &&
@@ -24,7 +27,8 @@ class WardrobeFilter {
       occasions.isEmpty &&
       styles.isEmpty &&
       statuses.length == 1 &&
-      statuses.contains('在柜');
+      statuses.contains('在柜') &&
+      query.isEmpty;
 
   void reset() {
     temperature = null;
@@ -35,6 +39,7 @@ class WardrobeFilter {
     statuses
       ..clear()
       ..add('在柜');
+    query = '';
   }
 }
 
@@ -268,6 +273,14 @@ class WardrobeProvider extends ChangeNotifier {
     }
     if (filter.styles.isNotEmpty && !filter.styles.every(it.styles.contains)) {
       return false;
+    }
+    // MIROIR 化搜索：品牌/类别/颜色文字模糊匹配
+    final q = filter.query.toLowerCase();
+    if (q.isNotEmpty) {
+      final inBrand = (it.brand ?? '').toLowerCase().contains(q);
+      final inCategory = it.category.contains(filter.query);
+      final inColor = (it.color ?? '').contains(filter.query);
+      if (!inBrand && !inCategory && !inColor) return false;
     }
     return true;
   }
