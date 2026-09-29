@@ -72,6 +72,8 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 
 ## 待办 / 未竟
 
+- **S0 衣服抠图已上线（2026-09-29，服务器 git 40869d5，免发版即时生效待用户真机验证）**：数据万象 CI GoodsMatting（¥0.01/次）+AIPicMatting（¥0.02/次）兜底接进 bg-remove 的 object 分支；`.pic.` 域名（`.ci.` 新域名本账号 404 InvalidUrl，勿再试）；私有桶 lovegirl-ci-1496866501（tmp/ 1 天生命周期）；**无主体判定=解码后 alphaMax===0**（GoodsMatting 无商品返回 200 全透明 PNG，HTTP 状态不可靠）；422 只认 AIPicMatting 自己确认全透明，基础设施故障一律 502；itemId 直取成功回写 `bg_removed=1+cutout_url`（App cutoutItem 不调 PUT cutout，必须服务端落库）；单次尝试 7s×2<15s App 超时，promise 必 settle 防单飞链挂死；输入无条件缩 1600/输出 1200 png。**端到端 smoke 全绿：object:true→传图→2468ms→落库验证→清理**。新教训 21：**容器 /app/node_modules 被匿名卷遮蔽（compose 挂载只盖 /app 本体），宿主机 npm i 对容器不可见——装依赖必须 docker exec npm i，并把 package.json+lock 随服务器 git 提交**。数据万象是用户控制台手动开通的（2026-09-29）
+
 - **拍立得立体感四项（2026-09-29 已施工，未发版待用户验收）**：①厚度侧边（翻面时近缘卡纸截面竖条，`polaroidEdgeWidth/EdgeOnLeft`——golden 实测 rotationY 正角=右缘朝观察者，前半程条在右、换面后在左）②相纸微弯（上下边缘极轻压暗+1px 受光亮线，静置态；**会进"保存拍立得"PNG=成品外观变化，验收时注意**）③动态光泽（PolaroidFrame glossShift 参数，tile 传 sin(θ)）④落影随动（tile 层在翻面旋转之外绘制，`polaroidCastShadows`——静置=原双层影，翻起变大变虚下移变淡）+翻面透视 setEntry(3,2,0.0015)。**新教训：GridView cell 紧约束下卡片只占约 83% cell 宽（polaroidCardSize 收缩公式），tile 内新建 Stack 画阴影必须用同一公式算卡片尺寸，拿 cell 尺寸会错出一圈矩形暗影（对抗审查 P0）**。版本号未动（发版时两处同升 v3.40.0+177）
 
 - **v3.39.0+176（2026-09-28 已发布上线）：Step4 衣橱 MIROIR 化**——P1 主页搜索框（品牌/类别/颜色模糊）+分类 chips（预填 filter 与 P10 联动）；P12 形象页双 Tab（照片库原图管理/数字形象抠图成果墙）；安全清理：publish.py 等三废弃脚本下线（Mimosa L3 push 闸拦历史遗留，已清）、weather.js 输入校验、love_report.js IN 插值改固定占位（服务器 7b4be6f 已部署 smoke 过）
