@@ -72,6 +72,8 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 
 ## 待办 / 未竟
 
+- **拍立得立体感四项（2026-09-29 已施工，未发版待用户验收）**：①厚度侧边（翻面时近缘卡纸截面竖条，`polaroidEdgeWidth/EdgeOnLeft`——golden 实测 rotationY 正角=右缘朝观察者，前半程条在右、换面后在左）②相纸微弯（上下边缘极轻压暗+1px 受光亮线，静置态；**会进"保存拍立得"PNG=成品外观变化，验收时注意**）③动态光泽（PolaroidFrame glossShift 参数，tile 传 sin(θ)）④落影随动（tile 层在翻面旋转之外绘制，`polaroidCastShadows`——静置=原双层影，翻起变大变虚下移变淡）+翻面透视 setEntry(3,2,0.0015)。**新教训：GridView cell 紧约束下卡片只占约 83% cell 宽（polaroidCardSize 收缩公式），tile 内新建 Stack 画阴影必须用同一公式算卡片尺寸，拿 cell 尺寸会错出一圈矩形暗影（对抗审查 P0）**。版本号未动（发版时两处同升 v3.40.0+177）
+
 - **v3.39.0+176（2026-09-28 已发布上线）：Step4 衣橱 MIROIR 化**——P1 主页搜索框（品牌/类别/颜色模糊）+分类 chips（预填 filter 与 P10 联动）；P12 形象页双 Tab（照片库原图管理/数字形象抠图成果墙）；安全清理：publish.py 等三废弃脚本下线（Mimosa L3 push 闸拦历史遗留，已清）、weather.js 输入校验、love_report.js IN 插值改固定占位（服务器 7b4be6f 已部署 smoke 过）
 
 - **v3.38.1+173（2026-09-28 已发布上线）：拍立得实体相纸返工**——用户反馈 v3.38.0"根本不像拍立得"（旧版=白 Container+TextField，是 UI 卡片不是实体相纸）。新组件 `lib/widgets/polaroid_frame.dart`：比例锁 88:107/相纸纸纹贴片（tools/gen_paper_grain.py）/照片窗内凹/显影色 ColorFilter+斜向光泽/双层实体阴影/日期戳微歪/letter 红框 DATE 牌；编辑页灰米纸面背景+白框字改弹窗+涂鸦 enabled 开关+按钮等高胶囊；tape/film topDecorHeight 计入高度预算（教训 20）。**教训 20：matchesGoldenFile 是 UI 视觉验证利器（--update-goldens 生成 PNG 人工比对）但 goldens 依赖机器字体渲染不可入库，用后即删；另外 flutter_test 根节点是 800×600 紧约束，组件必须自查紧约束下的溢出**。遗留：收集册活页夹/保存模板三选一+字体切换（Step 6）；用户验收拍立得新样式后再继续

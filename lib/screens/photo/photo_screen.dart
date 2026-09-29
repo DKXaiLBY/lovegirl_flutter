@@ -985,29 +985,109 @@ class _PolaroidTileState extends State<_PolaroidTile>
       onLongPress: widget.onLongPress,
       child: Transform.rotate(
         angle: widget.selectionMode ? 0 : widget.rotation,
-        child: AnimatedBuilder(
-          animation: _flip,
-          builder: (context, _) {
-            final angle = _flip.value * math.pi;
-            final showBack = _flip.value >= 0.5;
-            return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY(angle),
-              child: showBack
-                  ? Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.rotationY(math.pi),
-                      child: _buildBack(context),
-                    )
-                  : _buildFront(context),
-            );
-          },
-        ),
+        child: LayoutBuilder(builder: (context, box) {
+          // 卡片实际尺寸与 PolaroidFrame 必须同一公式：cell 是紧约束，
+          // 卡片只占约 83% cell 宽，拿 cell 尺寸画阴影会错出一圈矩形暗影
+          final theme = PolaroidThemeX.fromName(
+              widget.photo['polaroid_theme']?.toString() ?? 'classic');
+          final card = polaroidCardSize(box,
+              topDecorHeight: theme.style.topDecorHeight);
+          final cellW = box.maxWidth;
+
+          // 厚度侧边几何：卡片绕中心转，近缘 = 中线 ± 投影半宽，条贴在近缘外侧
+          double edgeLeft(double angle) {
+            final halfProj = card.width * math.cos(angle).abs() / 2;
+            final nearEdgeX = polaroidEdgeOnLeft(angle)
+                ? (cellW - card.width) / 2 + card.width / 2 - halfProj
+                : (cellW - card.width) / 2 + card.width / 2 + halfProj;
+            return polaroidEdgeOnLeft(angle)
+                ? nearEdgeX - polaroidEdgeWidth(card.width, angle)
+                : nearEdgeX;
+          }
+
+          return AnimatedBuilder(
+            animation: _flip,
+            builder: (context, _) {
+              final angle = _flip.value * math.pi;
+              final showBack = _flip.value >= 0.5;
+              final edgeW = polaroidEdgeWidth(card.width, angle);
+              final onLeft = polaroidEdgeOnLeft(angle);
+              return Stack(
+                alignment: Alignment.topCenter,
+                // 透视中段近缘会探出 cell、阴影 blur 出框——不裁
+                //（GridView 只在屏幕边缘裁，翻面 480ms 内越界可接受）
+                clipBehavior: Clip.none,
+                children: [
+                  // 落影层：在翻面旋转之外——影子不随卡旋转，翻起时变形变大变虚
+                  SizedBox(
+                    width: card.width,
+                    height: card.height,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: polaroidCastShadows(angle),
+                      ),
+                    ),
+                  ),
+                  // 翻面主体：透视 + rotationY（中段近大远小，配厚度侧边构成 3D 感）
+                  Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0015)
+                      ..rotateY(angle),
+                    child: showBack
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.rotationY(math.pi),
+                            child: _buildBack(context),
+                          )
+                        : _buildFront(context, polaroidGlossShift(angle)),
+                  ),
+                  // 厚度侧边：翻面中贴近缘露出卡纸截面（静置宽=0 不渲染）
+                  if (edgeW > 0.2)
+                    Positioned(
+                      top: 2,
+                      height: card.height - 4,
+                      left: edgeLeft(angle),
+                      width: edgeW,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.horizontal(
+                              left: onLeft
+                                  ? const Radius.circular(2)
+                                  : Radius.zero,
+                              right: onLeft
+                                  ? Radius.zero
+                                  : const Radius.circular(2),
+                            ),
+                            // 纸芯截面：外侧受光亮、贴面侧暗
+                            gradient: LinearGradient(
+                              begin: onLeft
+                                  ? Alignment.centerLeft
+                                  : Alignment.centerRight,
+                              end: onLeft
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              colors: const [
+                                Color(0xFFF7F4EC),
+                                Color(0xFFC9C2B4),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildFront(BuildContext context) {
+  Widget _buildFront(BuildContext context, double glossShift) {
     final url = (widget.photo['url'] ?? widget.photo['image'] ?? '').toString();
     final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
     final hasBack = (widget.photo['description']?.toString() ?? '').isNotEmpty ||
@@ -1030,6 +1110,9 @@ class _PolaroidTileState extends State<_PolaroidTile>
         theme: theme,
         date: date,
         caption: (widget.photo['frame_note'] ?? '').toString(),
+        // 落影由 tile 层在翻面旋转之外绘制（polaroidCastShadows），frame 关自绘
+        shadows: false,
+        glossShift: glossShift,
         photo: CachedNetworkImage(
           imageUrl: fullUrl,
           fit: BoxFit.cover,
@@ -1096,12 +1179,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(26),
-              blurRadius: 10,
-              offset: const Offset(0, 5)),
-        ],
+        // 落影统一由 tile 层 polaroidCastShadows 负责（正背面阴影体系一致）
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
