@@ -33,10 +33,29 @@ class PolaroidBack extends StatelessWidget {
     };
   }
 
+  /// POD 纹理背景（黑/米白两种），替代平涂——真实质感的来源
+  Widget _textureBg({required bool dark, required Widget child}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Opacity(
+          opacity: 0.9,
+          child: Image(
+            image: AssetImage(dark
+                ? 'assets/images/deco/polaroid_back_dark.png'
+                : 'assets/images/deco/polaroid_back_cream.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
   // ---------- classic：实物 POD 黑背 ----------
   Widget _classicBack(String msg) {
-    return Container(
-      color: const Color(0xFF131315),
+    return _textureBg(
+      dark: true,
       child: Column(
         children: [
           // 警示印字条
@@ -78,8 +97,8 @@ class PolaroidBack extends StatelessWidget {
 
   // ---------- tape：印字带×2 + 白色留言 ----------
   Widget _tapeBack(String msg) {
-    return Container(
-      color: const Color(0xFF1C1C1E),
+    return _textureBg(
+      dark: true,
       child: Column(
         children: [
           // 顶部警示印字带
@@ -177,8 +196,8 @@ class PolaroidBack extends StatelessWidget {
 
   // ---------- letter：米白信笺 + 红字 ----------
   Widget _letterBack(String msg) {
-    return Container(
-      color: const Color(0xFFF7F4EE),
+    return _textureBg(
+      dark: false,
       child: Stack(
         children: [
           // 纸张褶皱：两条斜向高光（简化褶皱感）
