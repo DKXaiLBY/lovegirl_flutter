@@ -661,7 +661,15 @@ async function runPortraitCutout(absPath) {
     region: 'ap-guangzhou',
     profile: { httpProfile: { endpoint: 'bda.tencentcloudapi.com', reqTimeout: 15 } },
   });
-  const r = await client.SegmentPortraitPic({ ImageBase64: input.toString('base64') });
+  const r = await client.SegmentPortraitPic({
+    Image: input.toString('base64'), // 参数名=Image（bda 2020-03-24），探针实证
+    RspImgType: 'base64',
+  });
+  if (r.HasForeground === false) {
+    const e = new Error('no person detected');
+    e.noPerson = true;
+    throw e;
+  }
   if (!r.ResultImage) throw new Error('empty result');
   // 文件名纯程序生成（时间戳+随机），无用户输入成分；输出路径校验边界
   const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
@@ -720,7 +728,8 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
       if (rows.length === 0) {
         return res.status(404).json({ code: 404, message: '记录不存在' });
       }
-      absPath = path.resolve(__dirname, '..', rows[0].image_url);
+      // join（非 resolve）：image_url 以 / 开头，resolve 会丢弃前缀越出容器
+      absPath = path.join(__dirname, '..', rows[0].image_url);
       // 边界校验：只允许 uploads 目录内的文件
       const upDir = path.resolve(__dirname, '..', 'uploads');
       if (!absPath.startsWith(upDir + path.sep)) {
@@ -745,7 +754,11 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
   }).catch((err) => {
     console.error('[Wardrobe] cutout failed:', err.code || '', String(err.message || err).slice(0, 120));
     if (!res.headersSent) {
-      res.status(502).json({ code: 502, message: '抠图失败了，稍后重试一次' });
+      if (err.noPerson) {
+        res.status(422).json({ code: 422, message: '照片里没找到人，换一张试试吧' });
+      } else {
+        res.status(502).json({ code: 502, message: '抠图失败了，稍后重试一次' });
+      }
     }
   });
 });

@@ -28,6 +28,12 @@ router.get('/coords', async (req, res) => {
   try {
     const { lat, lng } = req.query;
     if (!lat || !lng) return res.status(400).json({ code: 400, message: '请提供经纬度' });
+    // 输入加固：经纬度必须是合法数值（防注入/SSRF 探测）
+    const latN = parseFloat(lat), lngN = parseFloat(lng);
+    if (!Number.isFinite(latN) || !Number.isFinite(lngN) ||
+        latN < -90 || latN > 90 || lngN < -180 || lngN > 180) {
+      return res.status(400).json({ code: 400, message: '经纬度格式不对' });
+    }
 
     const axios = require('axios');
     const GAODE_KEY = process.env.GAODE_API_KEY || '';
@@ -66,7 +72,7 @@ router.get('/coords', async (req, res) => {
     let weatherData = null;
     if (GAODE_KEY) {
       try {
-        const weatherParam = adcode || city;
+        const weatherParam = String(adcode || city || '').replace(/[^一-龥A-Za-z0-9]/g, '').slice(0, 50);
         const liveUrl = 'https://restapi.amap.com/v3/weather/weatherInfo';
         const [liveRes, forecastRes] = await Promise.all([
           axios.get(liveUrl, { params: { key: GAODE_KEY, city: weatherParam, extensions: 'base' }, timeout: 8000 }),

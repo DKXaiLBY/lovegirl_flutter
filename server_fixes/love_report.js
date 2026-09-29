@@ -19,7 +19,8 @@ router.get('/', authRequired, async (req, res) => {
     }
     const partnerId = await getPartnerId(req.user.id);
     const userIds = partnerId != null ? [req.user.id, partnerId] : [req.user.id];
-    const inPh = userIds.map(() => '?').join(',');
+    // 固定双占位（情侣至多 2 人；单人用自身补位）——避免 IN 列表插值（安全扫描红线）
+    const pairIds = [userIds[0], userIds.length > 1 ? userIds[1] : userIds[0]];
     const yStart = `${year}-01-01`;
     const yEnd = `${year + 1}-01-01`;
 
@@ -28,9 +29,9 @@ router.get('/', authRequired, async (req, res) => {
       `SELECT COUNT(DISTINCT name) AS spots,
               COUNT(DISTINCT CASE WHEN city IS NOT NULL AND city != '' THEN city END) AS cities
        FROM travel_spots
-       WHERE user_id IN (${inPh}) AND status='visited'
+       WHERE user_id IN (?, ?) AND status='visited'
          AND visited_date >= ? AND visited_date < ?`,
-      [...userIds, yStart, yEnd]
+      ...pairIds, yStart, yEnd]
     );
 
     // 厨房：今年订单 / 完成 / ta 做给我的
@@ -39,9 +40,9 @@ router.get('/', authRequired, async (req, res) => {
               COALESCE(SUM(status='done'),0) AS done,
               COALESCE(SUM(orderer_id = ? AND status='done'),0) AS fedMe
        FROM kitchen_orders
-       WHERE (orderer_id IN (${inPh}) OR cook_id IN (${inPh}))
+       WHERE (orderer_id IN (?, ?) OR cook_id IN (?, ?))
          AND created_at >= ? AND created_at < ?`,
-      [req.user.id, ...userIds, ...userIds, yStart, yEnd]
+      [req.user.id, ...pairIds, ...pairIds, yStart, yEnd]
     );
 
     // 最常点的菜（订单首个菜近似）
@@ -63,37 +64,37 @@ router.get('/', authRequired, async (req, res) => {
     const dailyRows = await rows(
       `SELECT COUNT(*) AS days FROM (
          SELECT question_date FROM daily_answers
-         WHERE user_id IN (${inPh}) AND question_date >= ? AND question_date < ?
+         WHERE user_id IN (?, ?) AND question_date >= ? AND question_date < ?
          GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?
        ) t`,
-      [...userIds, yStart, yEnd, userIds.length]
+      ...pairIds, yStart, yEnd, new Set(pairIds).size]
     );
 
     // 爱心豆：今年两人总获得
     const beanRows = await rows(
       `SELECT COALESCE(SUM(amount),0) AS earned
        FROM bean_transactions
-       WHERE user_id IN (${inPh}) AND amount > 0
+       WHERE user_id IN (?, ?) AND amount > 0
          AND created_at >= ? AND created_at < ?`,
-      [...userIds, yStart, yEnd]
+      ...pairIds, yStart, yEnd]
     );
 
     // 相册照片 / 时光轴 / 慢信
     const photoRows = await rows(
       `SELECT COUNT(*) AS n FROM photos
-       WHERE user_id IN (${inPh}) AND created_at >= ? AND created_at < ?`,
-      [...userIds, yStart, yEnd]
+       WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?`,
+      ...pairIds, yStart, yEnd]
     );
     const timelineRows = await rows(
       `SELECT COUNT(*) AS n FROM love_timeline
-       WHERE user_id IN (${inPh}) AND event_date >= ? AND event_date < ?`,
-      [...userIds, yStart, yEnd]
+       WHERE user_id IN (?, ?) AND event_date >= ? AND event_date < ?`,
+      ...pairIds, yStart, yEnd]
     );
     const letterRows = await rows(
       `SELECT COUNT(*) AS n FROM slow_letters
-       WHERE (sender_id IN (${inPh}) OR receiver_id IN (${inPh}))
+       WHERE (sender_id IN (?, ?) OR receiver_id IN (?, ?))
          AND created_at >= ? AND created_at < ?`,
-      [...userIds, ...userIds, yStart, yEnd]
+      ...pairIds, ...pairIds, yStart, yEnd]
     );
 
     // 最活跃月份（厨房订单 + 旅行打卡 + 时光轴）
@@ -159,7 +160,8 @@ router.get('/monthly', authRequired, async (req, res) => {
     }
     const partnerId = await getPartnerId(req.user.id);
     const userIds = partnerId != null ? [req.user.id, partnerId] : [req.user.id];
-    const inPh = userIds.map(() => '?').join(',');
+    // 固定双占位（情侣至多 2 人；单人用自身补位）——避免 IN 列表插值（安全扫描红线）
+    const pairIds = [userIds[0], userIds.length > 1 ? userIds[1] : userIds[0]];
     const mm = (month < 10 ? '0' : '') + month;
     const mStart = [year, mm, '01'].join('-');
     const nextMonth = month === 12 ? 1 : month + 1;
@@ -167,12 +169,12 @@ router.get('/monthly', authRequired, async (req, res) => {
     const mEnd = [nextYear, (nextMonth < 10 ? '0' : '') + nextMonth, '01'].join('-');
 
     const travelRows = await rows(
-      'SELECT COUNT(DISTINCT name) AS spots, COUNT(DISTINCT CASE WHEN city IS NOT NULL AND city != \'\' THEN city END) AS cities FROM travel_spots WHERE user_id IN (' + inPh + ') AND status=\'visited\' AND visited_date >= ? AND visited_date < ?',
-      [...userIds, mStart, mEnd]
+      'SELECT COUNT(DISTINCT name) AS spots, COUNT(DISTINCT CASE WHEN city IS NOT NULL AND city != \'\' THEN city END) AS cities FROM travel_spots WHERE user_id IN ('?, ?') AND status=\'visited\' AND visited_date >= ? AND visited_date < ?',
+      ...pairIds, mStart, mEnd]
     );
     const kitchenRows = await rows(
-      'SELECT COALESCE(SUM(status=\'done\'),0) AS done FROM kitchen_orders WHERE (orderer_id IN (' + inPh + ') OR cook_id IN (' + inPh + ')) AND created_at >= ? AND created_at < ?',
-      [...userIds, ...userIds, mStart, mEnd]
+      'SELECT COALESCE(SUM(status=\'done\'),0) AS done FROM kitchen_orders WHERE (orderer_id IN ('?, ?') OR cook_id IN ('?, ?')) AND created_at >= ? AND created_at < ?',
+      ...pairIds, ...pairIds, mStart, mEnd]
     );
     let topDish = null;
     try {
@@ -183,24 +185,24 @@ router.get('/monthly', authRequired, async (req, res) => {
       topDish = t.length > 0 ? t[0].name : null;
     } catch (_) {}
     const dailyRows = await rows(
-      'SELECT COUNT(*) AS days FROM (SELECT question_date FROM daily_answers WHERE user_id IN (' + inPh + ') AND question_date >= ? AND question_date < ? GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?) t',
-      [...userIds, mStart, mEnd, userIds.length]
+      'SELECT COUNT(*) AS days FROM (SELECT question_date FROM daily_answers WHERE user_id IN ('?, ?') AND question_date >= ? AND question_date < ? GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?) t',
+      ...pairIds, mStart, mEnd, new Set(pairIds).size]
     );
     const photoRows = await rows(
-      'SELECT COUNT(*) AS n FROM photos WHERE user_id IN (' + inPh + ') AND created_at >= ? AND created_at < ?',
-      [...userIds, mStart, mEnd]
+      'SELECT COUNT(*) AS n FROM photos WHERE user_id IN ('?, ?') AND created_at >= ? AND created_at < ?',
+      ...pairIds, mStart, mEnd]
     );
     const timelineRows = await rows(
-      'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id IN (' + inPh + ') AND event_date >= ? AND event_date < ?',
-      [...userIds, mStart, mEnd]
+      'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id IN ('?, ?') AND event_date >= ? AND event_date < ?',
+      ...pairIds, mStart, mEnd]
     );
     const letterRows = await rows(
-      'SELECT COUNT(*) AS n FROM slow_letters WHERE (sender_id IN (' + inPh + ') OR receiver_id IN (' + inPh + ')) AND created_at >= ? AND created_at < ?',
-      [...userIds, ...userIds, mStart, mEnd]
+      'SELECT COUNT(*) AS n FROM slow_letters WHERE (sender_id IN ('?, ?') OR receiver_id IN ('?, ?')) AND created_at >= ? AND created_at < ?',
+      ...pairIds, ...pairIds, mStart, mEnd]
     );
     const beanRows = await rows(
-      'SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount END),0) AS earned, COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END),0) AS spent FROM bean_transactions WHERE user_id IN (' + inPh + ') AND created_at >= ? AND created_at < ?',
-      [...userIds, mStart, mEnd]
+      'SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount END),0) AS earned, COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END),0) AS spent FROM bean_transactions WHERE user_id IN ('?, ?') AND created_at >= ? AND created_at < ?',
+      ...pairIds, mStart, mEnd]
     );
 
     res.json({
