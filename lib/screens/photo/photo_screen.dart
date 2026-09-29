@@ -15,6 +15,7 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
+import '../../widgets/polaroid_back.dart';
 import '../../widgets/polaroid_frame.dart';
 import '../../widgets/polaroid_theme.dart';
 import 'photo_flipbook_screen.dart';
@@ -202,6 +203,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
       } catch (_) {}
     }
     var inkMode = false;
+    var showBack = false;
     final url = (photo['url'] ?? photo['image'] ?? '').toString();
     final fullUrl =
         url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
@@ -291,7 +293,28 @@ class _PhotoScreenState extends State<PhotoScreen> {
                       angle: -0.02,
                       child: SizedBox(
                         width: 224,
-                        child: PolaroidFrame(
+                        child: showBack
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: SizedBox(
+                                  height: 224 * 107 / 88,
+                                  child: PolaroidBack(
+                                    theme: PolaroidTheme.values[themeIdx],
+                                    message: backCtrl.text.trim().isEmpty
+                                        ? (photo['description']?.toString() ?? '')
+                                        : backCtrl.text.trim(),
+                                    photo: CachedNetworkImage(
+                                      imageUrl: fullUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) =>
+                                          Container(color: Colors.black),
+                                      errorWidget: (_, __, ___) => Container(
+                                          color: const Color(0xFF101012)),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : PolaroidFrame(
                           photo: CachedNetworkImage(
                             imageUrl: fullUrl,
                             fit: BoxFit.cover,
@@ -318,6 +341,21 @@ class _PhotoScreenState extends State<PhotoScreen> {
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 8),
+                // 正/背面预览切换
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _sheetPill(
+                      label: showBack ? '正在看背面' : '正在看正面',
+                      icon: showBack
+                          ? Icons.flip_to_back_rounded
+                          : Icons.flip_to_front_rounded,
+                      active: true,
+                      onTap: () => setSheet(() => showBack = !showBack),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 // 四主题选择（Wrap 防窄屏挤压溢出）
@@ -1041,22 +1079,21 @@ class _PolaroidTileState extends State<_PolaroidTile>
     );
   }
 
-  /// 牛皮纸背卡：档案头（日期+编号）→ 故事 → 留言 → "BACK"印字 + 编辑。
+  /// 拍立得背面：按主题渲染完整背面版式（v3.38 复刻返工，参考图 1:1）。
   Widget _buildBack(BuildContext context) {
     final story = widget.photo['description']?.toString() ?? '';
     final message = widget.photo['back_message']?.toString() ?? '';
-    // 背卡颜色跟随相框主题（参考图：白框=米白纸、tape/film=暗卡、letter=暖白笺）
-    final t = PolaroidThemeX.fromName(
-            widget.photo['polaroid_theme']?.toString() ?? 'classic')
-        .style;
-    final kraft = context.lgIsDark ? const Color(0xFF232326) : t.backColor;
-    final ink = context.lgIsDark
-        ? const Color(0xFFD8D8DC)
-        : t.backTextColor;
+    // 背卡文字：故事优先，其次留言；两者都有时拼接（背面是一整面可写区）
+    final combined = story.isNotEmpty && message.isNotEmpty
+        ? '$story\n$message'
+        : (story.isNotEmpty ? story : message);
+    final theme = PolaroidThemeX.fromName(
+        widget.photo['polaroid_theme']?.toString() ?? 'classic');
+    final url = (widget.photo['url'] ?? widget.photo['image'] ?? '').toString();
+    final fullUrl = url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
 
     return Container(
       decoration: BoxDecoration(
-        color: kraft,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white),
         boxShadow: [
@@ -1066,102 +1103,23 @@ class _PolaroidTileState extends State<_PolaroidTile>
               offset: const Offset(0, 5)),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                _handDate(widget.photo['photo_date'] ??
-                    widget.photo['created_at']),
-                style: TextStyle(
-                  fontSize: 17,
-                  fontFamily: 'Caveat',
-                  fontWeight: FontWeight.w700,
-                  color: ink,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'No.${widget.photo['id'] ?? ''}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'Caveat',
-                  fontWeight: FontWeight.w700,
-                  color: ink.withAlpha(150),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Expanded(
-            child: Text(
-              story.isEmpty ? '背面还没有故事，点右下角写一笔。' : story,
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                height: 1.35,
-                color: ink.withAlpha(story.isEmpty ? 130 : 230),
-              ),
-            ),
-          ),
-          if (message.isNotEmpty)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.white.withAlpha(70),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  height: 1.3,
-                  fontStyle: FontStyle.italic,
-                  color: ink,
-                ),
-              ),
-            ),
-          Row(
-            children: [
-              Text(
-                'BACK',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontFamily: 'Caveat',
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
-                  color: ink.withAlpha(140),
-                ),
-              ),
-              const Spacer(),
-              InkWell(
-                onTap: widget.onEdit,
-                borderRadius: BorderRadius.circular(999),
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: Icon(Icons.edit_rounded, size: 15, color: ink),
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: PolaroidBack(
+          theme: theme,
+          message: combined,
+          photo: theme == PolaroidTheme.film
+              ? CachedNetworkImage(
+                  imageUrl: fullUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(color: Colors.black),
+                  errorWidget: (_, __, ___) =>
+                      Container(color: const Color(0xFF101012)),
+                )
+              : null,
+        ),
       ),
     );
-  }
-
-  String _handDate(dynamic createdAt) {
-    final s = createdAt?.toString() ?? '';
-    final d = DateTime.tryParse(s.replaceFirst(' ', 'T'));
-    if (d == null) return '';
-    return '${d.month}/${d.day}';
   }
 }
 
