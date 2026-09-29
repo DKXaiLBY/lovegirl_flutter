@@ -1,6 +1,7 @@
 // 电子衣柜数据模型（M1）— 口径见 docs/wardrobe-interaction.md v1.0
 // 单品两态（在柜/退役）；穿搭实拍即已通过、组合 待确认⇄已通过；
 // 日期在未来 = 计划（叠加显示，非独立状态）。
+import 'dart:convert';
 
 /// 标签枚举（与服务器白名单一致）
 class WardrobeTax {
@@ -51,6 +52,7 @@ class WardrobeItem {
   final int refCount; // 被多少条穿搭引用（详情接口）
   final bool bgRemoved; // 已抠图（M2a）
   final String? cutoutUrl; // 抠图透明图（M2a）
+  final Map<String, WardrobeItemLayout>? itemLayout; // 白板位置记忆 {avatarId: 布局}（W1）
   final DateTime? createdAt;
 
   const WardrobeItem({
@@ -69,6 +71,7 @@ class WardrobeItem {
     this.refCount = 0,
     this.bgRemoved = false,
     this.cutoutUrl,
+    this.itemLayout,
     this.createdAt,
   });
 
@@ -95,7 +98,30 @@ class WardrobeItem {
         refCount: _asInt(j['outfit_refs_count']),
         bgRemoved: _asInt(j['bg_removed']) == 1,
         cutoutUrl: j['cutout_url']?.toString(),
+        itemLayout: WardrobeItemLayout.parse(j['item_layout']),
         createdAt: DateTime.tryParse((j['created_at'] ?? '').toString()),
+      );
+
+  /// 白板拖缩后就地更新位置记忆（provider 内存副本用，P1-5）
+  WardrobeItem copyWith({Map<String, WardrobeItemLayout>? itemLayout}) =>
+      WardrobeItem(
+        id: id,
+        imageUrl: imageUrl,
+        thumbnailUrl: thumbnailUrl,
+        category: category,
+        temperature: temperature,
+        occasions: occasions,
+        styles: styles,
+        color: color,
+        brand: brand,
+        price: price,
+        status: status,
+        wearCount: wearCount,
+        refCount: refCount,
+        bgRemoved: bgRemoved,
+        cutoutUrl: cutoutUrl,
+        itemLayout: itemLayout ?? this.itemLayout,
+        createdAt: createdAt,
       );
 
   static int _asInt(dynamic v) => v is num ? v.toInt() : (int.tryParse('${v ?? ''}') ?? 0);
@@ -109,6 +135,102 @@ class WardrobeItem {
   static List<String> _strList(dynamic v) =>
       v is List ? v.map((e) => e.toString()).toList() : <String>[];
 }
+
+/// 白板位置记忆（W1）：归一化 0-1，nx/ny=图层中心点，scale=图层宽/画布宽。
+/// mysql2 的 JSON 列返回**对象**而非字符串（同 DECIMAL 家族的坑），Map-first 解析。
+class WardrobeItemLayout {
+  final double nx;
+  final double ny;
+  final double scale;
+
+  const WardrobeItemLayout({
+    required this.nx,
+    required this.ny,
+    required this.scale,
+  });
+
+  static WardrobeItemLayout? _fromEntry(dynamic v) {
+    if (v is! Map) return null;
+    final nx = _d(v['nx']), ny = _d(v['ny']), sc = _d(v['scale']);
+    if (nx == null || ny == null || sc == null) return null;
+    return WardrobeItemLayout(nx: nx, ny: ny, scale: sc);
+  }
+
+  static double? _d(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v == null) return null;
+    return double.tryParse(v.toString());
+  }
+
+  static Map<String, WardrobeItemLayout>? parse(dynamic v) {
+    Map map;
+    if (v is Map) {
+      map = v;
+    } else if (v is String && v.isNotEmpty) {
+      try {
+        final p = jsonDecode(v);
+        if (p is Map) {
+          map = p;
+        } else {
+          return null;
+        }
+      } catch (_) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+    final out = <String, WardrobeItemLayout>{};
+    map.forEach((k, val) {
+      final e = _fromEntry(val);
+      if (e != null) out[k.toString()] = e;
+    });
+    return out.isEmpty ? null : out;
+  }
+}
+
+/// 换装白板槽位归类（互斥矩阵口径见 wardrobe-interaction §P13）
+String wardrobeSlotOf(String category) => switch (category) {
+      '上装' || '连体装' => '上身',
+      '裤装' || '裙装' => '下身',
+      '外套' => '外套',
+      '鞋子' => '鞋',
+      '包袋' => '包',
+      '配饰' => '配饰',
+      _ => '',
+    };
+
+/// 图层 z 序（小者底）：形象固定第 0 层
+int wardrobeZOf(String category) => switch (category) {
+      '裤装' || '裙装' => 1,
+      '上装' || '连体装' => 2,
+      '外套' => 3,
+      '鞋子' => 4,
+      '包袋' => 5,
+      '配饰' => 6,
+      _ => 0,
+    };
+
+/// 放入 category 时应从板上移除的既有类别（互斥=替换并 toast）
+List<String> wardrobeConflictsOf(String category) => switch (category) {
+      '上装' => const ['连体装'],
+      '连体装' => const ['上装', '裤装', '裙装'],
+      '裤装' => const ['裙装', '连体装'],
+      '裙装' => const ['裤装', '连体装'],
+      _ => const [],
+    };
+
+/// 类别预设锚点 (nx, ny, scale)——无该形象位置记忆时回落；scale 按类别手调
+const Map<String, (double, double, double)> wardrobePresetAnchors = {
+  '上装': (0.5, 0.32, 0.55),
+  '连体装': (0.5, 0.48, 0.62),
+  '裤装': (0.5, 0.62, 0.50),
+  '裙装': (0.5, 0.55, 0.55),
+  '外套': (0.5, 0.30, 0.58),
+  '鞋子': (0.5, 0.88, 0.28),
+  '包袋': (0.72, 0.55, 0.30),
+  '配饰': (0.5, 0.12, 0.18),
+};
 
 /// 穿搭里的单品摘要（服务端解析 item_ids；软删条目保留 category 供占位）
 class WardrobeItemSummary {

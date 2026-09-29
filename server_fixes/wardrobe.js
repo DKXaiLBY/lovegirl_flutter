@@ -990,4 +990,40 @@ router.put('/items/:id/cutout', authRequired, async (req, res) => {
   }
 });
 
+// 位置记忆（W1 白板）：item_layout = {avatarId: {nx, ny, scale}}，客户端合并后整体保存。
+// 纯 JSON 不套 wrapUpload；8KB+键数 64 双闸；nx/ny/scale 必须 finite
+router.put('/items/:id/layout', authRequired, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
+    const layoutRaw = req.body.layout;
+    if (typeof layoutRaw !== 'string' || layoutRaw.length > 8192) {
+      return res.status(400).json({ code: 400, message: '布局数据不对' });
+    }
+    let parsed;
+    try { parsed = JSON.parse(layoutRaw); } catch (_) { return res.status(400).json({ code: 400, message: '布局数据不对' }); }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return res.status(400).json({ code: 400, message: '布局数据不对' });
+    }
+    const keys = Object.keys(parsed);
+    if (keys.length > 64) return res.status(400).json({ code: 400, message: '布局数据不对' });
+    for (const k of keys) {
+      const v = parsed[k];
+      if (!v || typeof v !== 'object') return res.status(400).json({ code: 400, message: '布局数据不对' });
+      if (!Number.isFinite(Number(v.nx)) || !Number.isFinite(Number(v.ny)) || !Number.isFinite(Number(v.scale))) {
+        return res.status(400).json({ code: 400, message: '布局数据不对' });
+      }
+    }
+    const [r] = await pool.query(
+      'UPDATE wardrobe_items SET item_layout = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
+      [layoutRaw, id, req.user.id]
+    );
+    if (r.affectedRows === 0) return res.status(404).json({ code: 404, message: '单品不存在' });
+    res.json({ code: 200, message: '已记住位置' });
+  } catch (err) {
+    console.error('[Wardrobe] item layout failed:', err);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 module.exports = router;

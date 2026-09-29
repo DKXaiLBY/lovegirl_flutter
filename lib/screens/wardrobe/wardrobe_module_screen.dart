@@ -10,6 +10,7 @@ import 'outfit_timeline_screen.dart';
 import 'wardrobe_avatar_screen.dart';
 import 'wardrobe_home_screen.dart';
 import 'wardrobe_item_form_screen.dart';
+import 'wardrobe_whiteboard_screen.dart';
 
 /// 衣柜模块壳（生活 tab 第 5 页签）：顶部分段「衣橱｜穿搭」+ 右上「+」
 /// 决策 Q1/Q2：内嵌形态，不用底部双 Tab（避免与主 App 底栏叠加）
@@ -127,8 +128,10 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
     );
   }
 
-  /// 「+」行为随分段（§0 全局约定）；穿搭段加"我的数字形象"（M2a）
+  /// 「+」行为随分段（§0 全局约定）；穿搭段加"我的数字形象"（M2a）；
+  /// 换装试穿随 bgObject 能力闸显隐（W1，降级链路：无衣服抠图则无白板）
   void _onAdd() {
+    final wardrobe = context.read<WardrobeProvider>();
     final options = _seg == 0
         ? [
             (Icons.checkroom_rounded, '添加单品', '/item'),
@@ -137,6 +140,8 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
         : [
             (Icons.photo_camera_rounded, '实拍记录', '/capture'),
             (Icons.auto_awesome_mosaic_rounded, '创建搭配', '/compose'),
+            if (wardrobe.bgObject)
+              (Icons.dry_cleaning_rounded, '换装试穿', '/whiteboard'),
             (Icons.person_outline_rounded, '我的数字形象', '/avatar'),
           ];
     showModalBottomSheet<void>(
@@ -168,6 +173,8 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
                         _push(const OutfitCaptureScreen());
                       case '/avatar':
                         _push(const WardrobeAvatarScreen());
+                      case '/whiteboard':
+                        _push(const WardrobeWhiteboardScreen());
                     }
                   },
                 ),

@@ -208,6 +208,36 @@ class WardrobeProvider extends ChangeNotifier {
     }
   }
 
+  bool _layoutSaving = false;
+  final Map<int, String> _layoutPending = {}; // itemId -> 最新 payload（在飞合并）
+
+  /// 白板位置记忆（W1）：就地更新内存副本（P1-5 会话内立即对位），
+  /// 在飞请求合并去重（同件只留最新，防旧覆盖新）；服务器 404/失败静默
+  Future<void> saveItemLayout(int itemId, String layoutJson) async {
+    final parsed = WardrobeItemLayout.parse(layoutJson);
+    final i = items.indexWhere((e) => e.id == itemId);
+    if (i >= 0) {
+      items[i] = items[i].copyWith(itemLayout: parsed);
+      notifyListeners();
+    }
+    _layoutPending[itemId] = layoutJson;
+    if (_layoutSaving) return;
+    _layoutSaving = true;
+    try {
+      while (_layoutPending.isNotEmpty) {
+        final batch = Map.of(_layoutPending);
+        _layoutPending.clear();
+        for (final e in batch.entries) {
+          try {
+            await _api.saveWardrobeItemLayout(e.key, e.value);
+          } catch (_) {} // 静默：位置记忆是增强能力
+        }
+      }
+    } finally {
+      _layoutSaving = false;
+    }
+  }
+
   Future<String?> setAvatarDefault(int id) async {
     try {
       await _api.setWardrobeAvatarDefault(id);

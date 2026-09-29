@@ -530,6 +530,11 @@ class ApiService {
       '/api/wardrobe/bg-remove', filePath, {'kind': kind},
       fieldName: 'image');
 
+  /// 白板位置记忆（W1）：layout = jsonEncode({avatarId: {nx, ny, scale}})；
+  /// 旧服务器无此端点 → 404 由调用方静默吞掉
+  Future saveWardrobeItemLayout(int id, String layout) =>
+      put('/api/wardrobe/items/$id/layout', data: {'layout': layout});
+
   /// 对服务器已有形象原图直接抠图（免 App 中转），服务端自动回写 cutout
   Future cutoutWardrobeAvatar(int avatarId) => post(
       '/api/wardrobe/bg-remove',
