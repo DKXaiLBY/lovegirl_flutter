@@ -619,7 +619,7 @@ router.delete('/outfits/:id', authRequired, async (req, res) => {
   }
 });
 
-// ---------- 抠图（M2a 人像=bda；M2-S0 衣服=数据万象 CI GoodsMatting+AIPicMatting 兜底） ----------
+// ---------- 抠图（人像=bda SegmentPortraitPic；衣服=阿里云 SegmentCloth 服饰级分割） ----------
 const cutoutDir = path.join(uploadDir, 'cutout');
 if (!fs.existsSync(cutoutDir)) fs.mkdirSync(cutoutDir, { recursive: true });
 
