@@ -123,6 +123,7 @@ app.use('/api/privacy', require('./routes/privacy'));
 app.use('/api/couple', require('./routes/couple'));
 app.use('/api/kitchen', require('./routes/kitchen'));
 app.use('/api/deploy', require('./routes/deploy_api'));
+app.use('/api/wardrobe', require('./routes/wardrobe'));
 
 // ========== 404 Handler (all paths return JSON) ==========
 app.use((req, res) => {
@@ -142,6 +143,10 @@ app.use((err, req, res, next) => {
   }
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
     return res.status(400).json({ code: 400, message: '上传文件超出限制' });
+  }
+  // 各路由 fileFilter 拒绝非图片（kitchen/user 等）——原样冒泡会变 500
+  if (err.message === 'only image allowed' || err.message === '仅支持图片文件') {
+    return res.status(400).json({ code: 400, message: '只支持图片文件' });
   }
   if (err.name === 'UnauthorizedError' || err.status === 401) {
     return res.status(401).json({ code: 401, message: '未授权，请重新登录' });
