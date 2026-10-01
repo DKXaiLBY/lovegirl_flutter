@@ -679,92 +679,115 @@ async function runPortraitCutout(absPath) {
   return `/uploads/wardrobe/cutout/${outName}`;
 }
 
-// 衣服抠图（M2-S0）：数据万象 CI。探针实证要点：
-// - 该账号走 {bucket}.pic.{region} 域名（{bucket}.ci.{region} 新域名 404 InvalidUrl）
-// - 无主体不报错：GoodsMatting 返回 200 全透明 PNG（alphaMax=0）→ 以 alpha 判空，
-//   HTTP 状态映射不可靠（404=域名/签名/配置故障）；422 只认 AIPicMatting 自己确认全透明
-// - 白底单品 1.6-1.7s / 4000×6000 大图 4.4s；输出 PNG 可达 16MB → 落盘前必须压缩
-const CI_MATTING_BUCKET = 'lovegirl-ci-1496866501'; // 私有桶（tmp/ 前缀 1 天生命周期）
-const CI_MATTING_REGION = 'ap-guangzhou';           // 与桶绑成一组常量，勿单改其一
+// 衣服抠图（M2-S2）：阿里云 SegmentCloth 服饰级分割（按品类出像素级透明图）。
+// 腾讯 GoodsMatting/AIPicMatting 已删除（只抠主体，无法"人物去掉只留衣服"）。
+// 要点：
+// - 图片经公网 URL 传入（uploads 由本服务静态托管，origin 从请求推导）
+// - 限制：≤3MB、≤3000×3000（输入统一缩 1600 天然满足）；结果为 30 分钟临时 URL，下载后落盘
+// - ClothClass 七类=tops/coat/skirt/pants/bag/shoes/hat；连体装/配饰无对应类→outMode=0 主体服饰整体
+// - 无服饰→422；钥匙未配置→503（bg-status.object=false 让 App 隐藏入口）；其余→502
+const ALIYUN_CLOTH_CLASS = {
+  '上装': ['tops'],
+  '外套': ['coat'],
+  '裙装': ['skirt'],
+  '裤装': ['pants'],
+  '包袋': ['bag'],
+  '鞋子': ['shoes'],
+};
 
-// CI 处理 GET：COS 签名（Key 不含 query）+ pic 域名；单次尝试 7s（两次最坏 14s < App 15s
-// 接收超时）；timeout/aborted 必 reject，保证单飞链 promise 永不挂死
-function ciMattingGet(cos, key, proc) {
-  const https = require('https');
-  const host = `${CI_MATTING_BUCKET}.pic.${CI_MATTING_REGION}.myqcloud.com`;
+function itemCutoutReady() {
+  return !!process.env.ALIYUN_ACCESS_KEY_ID &&
+    !!process.env.ALIYUN_ACCESS_KEY_SECRET;
+}
+
+// 下载结果图（30 分钟临时链接，https）：15s 超时 + 40MB 硬顶，timeout/aborted 必 reject
+function httpDownload(url) {
   return new Promise((resolve, reject) => {
-    const auth = cos.getAuth({ Method: 'get', Key: key, Expires: 900 });
-    const req = https.request(
-      { host, path: `/${key}?ci-process=${proc}`, method: 'GET', headers: { Authorization: auth, Host: host } },
-      (res) => {
-        const chunks = [];
-        let total = 0;
-        let done = false;
-        res.on('data', (c) => {
-          total += c.length;
-          if (total > 40 * 1024 * 1024) { done = true; req.destroy(); reject(new Error('ci response > 40MB')); return; }
-          chunks.push(c);
-        });
-        res.on('end', () => { if (!done) { done = true; resolve({ status: res.statusCode, type: res.headers['content-type'] || '', buf: Buffer.concat(chunks) }); } });
-        res.on('aborted', () => { if (!done) { done = true; reject(new Error('ci response aborted')); } });
+    let done = false;
+    const finishErr = (e) => { if (!done) { done = true; reject(e); } };
+    const req = require('https').get(url, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        return finishErr(new Error('download http ' + res.statusCode));
       }
-    );
-    req.setTimeout(7000, () => req.destroy(new Error('ci timeout 7s')));
-    req.on('error', (e) => { if (!done) { done = true; reject(e); } });
-    req.end();
+      const chunks = [];
+      let total = 0;
+      res.on('data', (c) => {
+        total += c.length;
+        if (total > 40 * 1024 * 1024) { done = true; req.destroy(); finishErr(new Error('download > 40MB')); return; }
+        chunks.push(c);
+      });
+      res.on('end', () => { if (!done) { done = true; resolve(Buffer.concat(chunks)); } });
+      res.on('aborted', () => finishErr(new Error('download aborted')));
+    });
+    req.setTimeout(15000, () => req.destroy(new Error('download timeout 15s')));
+    req.on('error', finishErr);
   });
 }
 
-// 衣服抠图：原图规整 → 传私有桶 → GoodsMatting（空主体兜底 AIPicMatting）→ 压缩落盘
-async function runItemCutout(absPath) {
-  const COS = require('cos-nodejs-sdk-v5');
-  const cos = new COS({
-    SecretId: process.env.TENCENT_SECRET_ID,
-    SecretKey: process.env.TENCENT_SECRET_KEY,
-  });
-  // 无条件缩 1600（低细节大图 JPEG 可 <5MB 穿透体积阈值，全尺寸送 CI 换回 16MB PNG + 解码尖峰）
-  const input = await sharp(absPath).rotate().resize(1600, 1600, { fit: 'inside' }).jpeg({ quality: 85 }).toBuffer();
-  const tmpKey = `tmp/${new Date().toISOString().slice(0, 10)}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
-  await new Promise((resolve, reject) => {
-    cos.putObject({ Bucket: CI_MATTING_BUCKET, Region: CI_MATTING_REGION, Key: tmpKey, Body: input, ContentType: 'image/jpeg' }, (e) => e ? reject(new Error('cos put: ' + (e.code || e.message))) : resolve());
-  });
-  const fails = [];
-  let aipicConfirmedEmpty = false;
-  try {
-    for (const proc of ['GoodsMatting', 'AIPicMatting']) {
-      let r;
-      try {
-        r = await ciMattingGet(cos, tmpKey, proc);
-      } catch (e) {
-        fails.push(`${proc}:${String(e.message).slice(0, 80)}`);
-        continue;
-      }
-      if (r.status !== 200 || !/^image\//.test(r.type)) {
-        fails.push(`${proc}:http${r.status}:${r.buf.toString('utf8').slice(0, 100).replace(/\s+/g, ' ')}`);
-        continue;
-      }
-      const st = await sharp(r.buf).stats();
-      const alphaMax = st.channels.length > 3 ? st.channels[3].max : 255;
-      if (alphaMax === 0) {
-        // 全透明 = 无主体（GoodsMatting 无商品的标准形态；AIPicMatting 确认才是真没有）
-        fails.push(`${proc}:empty-subject`);
-        if (proc === 'AIPicMatting') aipicConfirmedEmpty = true;
-        continue;
-      }
-      const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
-      const outPath = path.resolve(cutoutDir, outName);
-      if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
-      const out = await sharp(r.buf).resize(1200, 1200, { fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
-      fs.writeFileSync(outPath, out);
-      return `/uploads/wardrobe/cutout/${outName}`;
-    }
-  } finally {
-    // 临时对象 best-effort 删除（DeleteObject 幂等；生命周期 tmp/ 1 天兜底）
-    cos.deleteObject({ Bucket: CI_MATTING_BUCKET, Region: CI_MATTING_REGION, Key: tmpKey }, (e) => { if (e) console.error('[Wardrobe] ci tmp del failed:', e.code || e.message); });
+// 衣服抠图：原图规整 → 公网 URL → SegmentCloth（按类目，未知类走整体）→ 下载压缩落盘
+async function runItemCutout(absPath, category, publicOrigin) {
+  if (!itemCutoutReady()) {
+    const e = new Error('aliyun not configured');
+    e.notConfigured = true;
+    throw e;
   }
-  const err = new Error('ci matting failed: ' + fails.join(' | '));
-  if (aipicConfirmedEmpty) err.noPerson = true; // 422；基础设施故障不带此标记 → 502
-  throw err;
+  const input = await sharp(absPath).rotate().resize(1600, 1600, { fit: 'inside' }).jpeg({ quality: 85 }).toBuffer();
+  if (input.length > 3 * 1024 * 1024) {
+    // SegmentCloth 硬限 3MB：降一档尺寸重出
+    const smaller = await sharp(absPath).rotate().resize(1200, 1200, { fit: 'inside' }).jpeg({ quality: 80 }).toBuffer();
+    if (smaller.length < input.length) {
+      return runItemCutoutWithBuffer(smaller, category, publicOrigin);
+    }
+  }
+  return runItemCutoutWithBuffer(input, category, publicOrigin);
+}
+
+async function runItemCutoutWithBuffer(input, category, publicOrigin) {
+  // 输入先落一个中转文件拿公网 URL（uploads/wardrobe 内、文件名纯程序生成）
+  const tmpName = `src_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const tmpPath = path.resolve(cutoutDir, '..', tmpName);
+  const upDir = path.resolve(__dirname, '..', 'uploads');
+  if (!tmpPath.startsWith(upDir + path.sep)) throw new Error('bad tmp path');
+  fs.writeFileSync(tmpPath, input);
+  const imageUrl = `${publicOrigin}/uploads/wardrobe/${tmpName}`;
+  try {
+    const imageseg = require('@alicloud/imageseg20191230');
+    const OpenApi = require('@alicloud/openapi-client');
+    const config = new OpenApi.Config({
+      accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID,
+      accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET,
+      endpoint: 'imageseg.cn-shanghai.aliyuncs.com',
+    });
+    const client = new imageseg.default(config);
+    const req = new imageseg.SegmentClothRequest({ imageURL: imageUrl });
+    const classes = ALIYUN_CLOTH_CLASS[category];
+    if (classes) {
+      req.clothClass = classes;
+      req.outMode = 1; // 指定类别组合分割
+    } else {
+      req.outMode = 0; // 主体服饰整体分割（连体装/配饰/未知类）
+    }
+    const resp = await client.segmentClothWithOptions(req, new OpenApi.RuntimeOptions({}));
+    const el = resp && resp.body && Array.isArray(resp.body.data && resp.body.data.elements)
+      ? resp.body.data.elements[0] : null;
+    const resultUrl = el && (el.imageURL || el.imageUrl);
+    if (!resultUrl) {
+      const e = new Error('no garment detected');
+      e.noPerson = true;
+      throw e;
+    }
+    const png = await httpDownload(resultUrl);
+    const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+    const outPath = path.resolve(cutoutDir, outName);
+    if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
+    const out = await sharp(png).resize(1200, 1200, { fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+    fs.writeFileSync(outPath, out);
+    return `/uploads/wardrobe/cutout/${outName}`;
+  } finally {
+    // 中转原图即删（扣图结果才长期保存）
+    fs.unlink(tmpPath, () => {});
+  }
 }
 
 router.get('/bg-status', authRequired, (req, res) => {
@@ -773,7 +796,7 @@ router.get('/bg-status', authRequired, (req, res) => {
     data: {
       enabled: cutoutEnabled(),
       person: cutoutEnabled(),
-      object: cutoutEnabled(), // M2-S0：数据万象 GoodsMatting+AIPicMatting 已接通
+      object: process.env.WARDROBE_CUTOUT_ON === '1' && itemCutoutReady(), // S2：阿里云服饰分割
     },
   });
 });
@@ -783,6 +806,13 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
     return res.status(503).json({ code: 503, message: '抠图服务未开启' });
   }
   const kind = cleanText(req.body.kind, 10) === 'person' ? 'person' : 'object';
+  // 能力闸分语义：人像=bda（腾讯），衣服=SegmentCloth（阿里云）
+  if (kind === 'person' && !cutoutEnabled()) {
+    return res.status(503).json({ code: 503, message: '人像抠图服务未开启' });
+  }
+  if (kind === 'object' && !(process.env.WARDROBE_CUTOUT_ON === '1' && itemCutoutReady())) {
+    return res.status(503).json({ code: 503, message: '衣服抠图服务未配置' });
+  }
   // 两种输入：multipart image（新文件）或 avatarId/itemId（服务器已有原图，免 App 中转）
   const avatarId = parseInt(req.body.avatarId);
   const itemId = parseInt(req.body.itemId);
@@ -803,16 +833,20 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
   const theFile = req.file;
   cutoutChain = cutoutChain.then(async () => {
     let absPath = theFile ? theFile.path : null;
+    let itemCategory = null;
     let cutoutUrl = null;
     if (!absPath) {
       const table = kind === 'person' ? 'wardrobe_avatars' : 'wardrobe_items';
       const [rows] = await pool.query(
-        `SELECT image_url FROM ${table} WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+        kind === 'person'
+          ? 'SELECT image_url FROM wardrobe_avatars WHERE id = ? AND user_id = ? AND deleted_at IS NULL'
+          : 'SELECT image_url, category FROM wardrobe_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
         [kind === 'person' ? avatarId : itemId, req.user.id]
       );
       if (rows.length === 0) {
         return res.status(404).json({ code: 404, message: '记录不存在' });
       }
+      if (kind === 'object') itemCategory = rows[0].category || null;
       // join（非 resolve）：image_url 以 / 开头，resolve 会丢弃前缀越出容器
       absPath = path.join(__dirname, '..', rows[0].image_url);
       // 边界校验：只允许 uploads 目录内的文件
@@ -825,7 +859,10 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
       }
     }
     const t0 = Date.now();
-    cutoutUrl = kind === 'person' ? await runPortraitCutout(absPath) : await runItemCutout(absPath);
+    const publicOrigin = `${req.protocol}://${req.get('host')}`;
+    cutoutUrl = kind === 'person'
+      ? await runPortraitCutout(absPath)
+      : await runItemCutout(absPath, itemCategory, publicOrigin);
     cutoutConsume(req.user.id);
     // 直取模式自动回写（App 的 cutoutItem 不调 PUT cutout，必须在这里落库）
     if (!theFile && Number.isInteger(avatarId) && kind === 'person') {
@@ -845,8 +882,10 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
   }).catch((err) => {
     console.error('[Wardrobe] cutout failed:', err.code || '', String(err.message || err).slice(0, 120));
     if (!res.headersSent) {
-      if (err.noPerson) {
-        res.status(422).json({ code: 422, message: kind === 'person' ? '照片里没找到人，换一张试试吧' : '照片里没找到可抠的主体，换一张试试' });
+      if (err.notConfigured) {
+        res.status(503).json({ code: 503, message: '衣服抠图服务未配置' });
+      } else if (err.noPerson) {
+        res.status(422).json({ code: 422, message: kind === 'person' ? '照片里没找到人，换一张试试吧' : '照片里没找到可抠的衣服，试试平铺或挂拍的照片' });
       } else {
         res.status(502).json({ code: 502, message: '抠图失败了，稍后重试一次' });
       }

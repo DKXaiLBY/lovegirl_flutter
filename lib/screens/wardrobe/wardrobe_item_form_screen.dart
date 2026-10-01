@@ -202,6 +202,10 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
                       Text('拍一张或从相册选（方形裁剪）',
                           style: TextStyle(
                               fontSize: 12.5, color: context.lgTextMuted)),
+                      const SizedBox(height: 4),
+                      Text('平铺或挂拍拍摄，抠图效果最佳',
+                          style: TextStyle(
+                              fontSize: 11, color: context.lgTextMuted)),
                     ],
                   ),
                 ),

@@ -110,13 +110,11 @@ class WardrobeItemDetailScreen extends StatelessWidget {
                   onPressed: () async {
                     final err = await p.cutoutItem(item.id);
                     if (!context.mounted) return;
-                    if (err != null) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(err)));
-                    } else if (item.cutoutUrl == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('抠图完成啦')));
-                    }
+                    // err=null=成功；失败带服务端文案（修复"失败也弹抠图完成啦"）
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(err ?? '抠图完成啦'),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 2)));
                   },
                   child: Text(item.cutoutUrl != null ? '重新抠图' : '生成抠图'),
                 ),

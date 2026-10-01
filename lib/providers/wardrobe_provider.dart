@@ -195,16 +195,16 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   /// 单品抠图（object 能力位）：保存后自动补抠/详情页手动补抠。
-  /// object=false 或失败时静默（保留原图，不阻断）
+  /// 返回 null=成功；失败返回错误文案（自动补抠调用方忽略返回值即保持静默）
   Future<String?> cutoutItem(int itemId) async {
-    if (!bgObject) return null;
+    if (!bgObject) return '衣服抠图服务不可用';
     try {
       await _api.cutoutWardrobeItem(itemId);
       await _loadItems();
       notifyListeners();
       return null;
-    } catch (_) {
-      return null; // 静默：抠图是增强能力，失败不提示（方案 A2）
+    } catch (e) {
+      return extractServerMessage(e, fallback: '抠图失败了，稍后重试一次');
     }
   }
 
