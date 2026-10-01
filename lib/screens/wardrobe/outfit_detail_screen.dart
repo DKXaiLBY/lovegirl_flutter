@@ -8,6 +8,7 @@ import '../../widgets/lovegirl_ui.dart';
 import 'outfit_capture_screen.dart';
 import 'outfit_compose_screen.dart';
 import 'wardrobe_item_detail_screen.dart';
+import 'wardrobe_whiteboard_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
 
 /// P9 穿搭详情【M1】：大图/组合单品横排（软删=灰占位不可点）/元信息/状态流转
@@ -117,9 +118,26 @@ class OutfitDetailScreen extends StatelessWidget {
               side: BorderSide(color: context.lgInk),
             ),
           ),
+          const SizedBox(height: 10),
+          if (p.bgObject)
+            OutlinedButton.icon(
+              onPressed: () => _tryOn(context, p, o),
+              icon: const Icon(Icons.dry_cleaning_rounded, size: 18),
+              label: const Text('在形象上试穿'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: context.lgInk),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// 在形象上试穿：带组合单品进白板预选（无抠图件白板里自动跳过并提示）
+  void _tryOn(BuildContext context, WardrobeProvider p, WardrobeOutfit o) {
+    Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+        builder: (_) => WardrobeWhiteboardScreen(preselectItemIds: o.itemIds)));
   }
 
   Widget _comboRow(BuildContext context, WardrobeOutfit o) {

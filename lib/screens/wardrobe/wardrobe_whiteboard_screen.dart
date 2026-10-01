@@ -22,7 +22,9 @@ import 'wardrobe_avatar_screen.dart';
 /// 换装穿搭（状态=待确认）。口径：wardrobe-interaction §P13 / m2-plan A3。
 /// 白底固定不随主题（导出口径）；无旋转、无画布平移；互斥=替换并 toast。
 class WardrobeWhiteboardScreen extends StatefulWidget {
-  const WardrobeWhiteboardScreen({super.key});
+  final List<int>? preselectItemIds; // 组合详情"在形象上试穿"预选（无抠图件自动跳过）
+
+  const WardrobeWhiteboardScreen({super.key, this.preselectItemIds});
 
   @override
   State<WardrobeWhiteboardScreen> createState() =>
@@ -66,6 +68,12 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
       _p.items.where((e) => e.hasCutout && !e.retired).toList();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applyPreselect());
+  }
+
+  @override
   void dispose() {
     for (final t in _layoutTimers.values) {
       t.cancel();
@@ -75,17 +83,9 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
 
   // ---------- 放置 / 移除 ----------
 
-  void _togglePlace(WardrobeItem item) {
-    final existed = _placed.where((e) => e.item.id == item.id).toList();
-    if (existed.isNotEmpty) {
-      setState(() {
-        _placed.removeWhere((e) => e.item.id == item.id);
-        if (_selectedId == item.id) _selectedId = null;
-      });
-      return;
-    }
+  /// 放置核心（互斥替换+锚点定位），返回被替换掉的类别说明；不弹 toast 不 setState
+  List<String> _placeCore(WardrobeItem item) {
     final removed = <String>[];
-    // 互斥=替换并 toast（interaction §P13）
     final conflicts = wardrobeConflictsOf(item.category);
     _placed.removeWhere((e) {
       if (conflicts.contains(e.item.category)) {
@@ -94,7 +94,6 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
       }
       return false;
     });
-    // 鞋/包各 1：替换
     final slot = wardrobeSlotOf(item.category);
     if (slot == '鞋' || slot == '包') {
       _placed.removeWhere((e) {
@@ -105,7 +104,6 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
         return false;
       });
     }
-    // 配饰 ≤3：移除最早
     if (item.category == '配饰') {
       final acc = _placed.where((e) => e.item.category == '配饰').toList();
       if (acc.length >= 3) {
@@ -117,9 +115,23 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
     final avatarId = _avatar?.id.toString();
     final memo = avatarId == null ? null : item.itemLayout?[avatarId];
     final preset = wardrobePresetAnchors[item.category] ?? (0.5, 0.5, 0.55);
+    _placed.add(_Placed(item, _seq++, memo?.nx ?? preset.$1,
+        memo?.ny ?? preset.$2, (memo?.scale ?? preset.$3).clamp(0.2, 1.5)));
+    return removed;
+  }
+
+  void _togglePlace(WardrobeItem item) {
+    final existed = _placed.where((e) => e.item.id == item.id).toList();
+    if (existed.isNotEmpty) {
+      setState(() {
+        _placed.removeWhere((e) => e.item.id == item.id);
+        if (_selectedId == item.id) _selectedId = null;
+      });
+      return;
+    }
+    List<String> removed = const [];
     setState(() {
-      _placed.add(_Placed(item, _seq++, memo?.nx ?? preset.$1,
-          memo?.ny ?? preset.$2, (memo?.scale ?? preset.$3).clamp(0.2, 1.5)));
+      removed = _placeCore(item);
       _selectedId = item.id;
     });
     if (removed.isNotEmpty) {
@@ -127,6 +139,36 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
           content: Text('已替换：${removed.toSet().join('、')}'),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 1)));
+    }
+  }
+
+  /// 组合详情"在形象上试穿"：预选件直接上板（无抠图/退役件跳过，汇总 toast）
+  void _applyPreselect() {
+    final ids = widget.preselectItemIds;
+    if (ids == null || ids.isEmpty) return;
+    if (_avatar == null) return; // 无形象时引导页自会展示
+    final byId = {for (final e in _p.items) e.id: e};
+    var skipped = 0;
+    final removedAll = <String>{};
+    for (final id in ids) {
+      final it = byId[id];
+      if (it == null || !it.hasCutout || it.retired) {
+        skipped++;
+        continue;
+      }
+      removedAll.addAll(_placeCore(it));
+    }
+    if (!mounted) return;
+    setState(() {});
+    final tips = <String>[
+      if (skipped > 0) '$skipped 件还没抠图已跳过',
+      if (removedAll.isNotEmpty) '已替换：${removedAll.join('、')}',
+    ];
+    if (tips.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(tips.join('；')),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2)));
     }
   }
 
