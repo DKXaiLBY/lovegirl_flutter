@@ -66,6 +66,7 @@ class TravelSpot {
   final double lat;
   final String emoji;
   final String status;
+  final int pinned; // 置顶（W3 左滑三键）
   final String? note;
   final String? noteMine;
   final String? noteHer;
@@ -104,6 +105,7 @@ class TravelSpot {
     this.lat = 0,
     this.emoji = '📍',
     this.status = 'wish',
+    this.pinned = 0,
     this.note,
     this.noteMine,
     this.noteHer,
@@ -145,6 +147,7 @@ class TravelSpot {
       lat: _asDouble(json['lat']),
       emoji: _asString(json['emoji'], fallback: '📍'),
       status: _asString(json['status'], fallback: 'wish'),
+      pinned: _asInt(json['pinned']),
       note: json['note']?.toString(),
       noteMine: (json['noteMine'] ?? json['note_mine'])?.toString(),
       noteHer: (json['noteHer'] ?? json['note_her'])?.toString(),
@@ -338,7 +341,13 @@ class TravelProvider extends ChangeNotifier {
         list = List.of(list)..sort((a, b) => a.city.compareTo(b.city));
         break;
     }
-    return list;
+    // 置顶恒居首（稳定分区：同 pinned 保持既有相对顺序，避免 List.sort 不稳定洗牌）
+    final pinnedTop = <TravelSpot>[];
+    final rest = <TravelSpot>[];
+    for (final s in list) {
+      (s.pinned == 1 ? pinnedTop : rest).add(s);
+    }
+    return [...pinnedTop, ...rest];
   }
 
   List<TravelSpot> get mapSpots =>
@@ -630,6 +639,18 @@ class TravelProvider extends ChangeNotifier {
       await _refreshActiveRoutePreview();
     } catch (_) {
       _error = '地点删除失败，请检查网络后重试';
+      notifyListeners();
+    }
+  }
+
+  /// 置顶切换（W3 左滑三键）：非乐观更新——PATCH 成功后 refreshAll（对齐惯例）
+  Future<void> togglePin(TravelSpot spot) async {
+    _error = null;
+    try {
+      await _api.pinTravelSpot(spot.id, spot.pinned == 1 ? 0 : 1);
+      await refreshAll();
+    } catch (_) {
+      _error = '置顶失败，请检查网络后重试';
       notifyListeners();
     }
   }

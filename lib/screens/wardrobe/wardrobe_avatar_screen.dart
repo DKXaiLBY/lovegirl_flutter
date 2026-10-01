@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 
 import '../../models/wardrobe.dart';
 import '../../providers/wardrobe_provider.dart';
+import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/parallax_avatar.dart';
 import 'widgets/wardrobe_widgets.dart';
 
 /// P12 我的数字形象（M2a，MIROIR 化双 Tab）：
@@ -118,6 +120,15 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
           ),
           const SizedBox(height: 12),
         ],
+        if (avatars.any((e) => e.cutoutUrl != null))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Center(
+              child: Text('左右拖动有抠图的形象试试，有立体感',
+                  style: TextStyle(
+                      fontSize: 11.5, color: context.lgTextMuted)),
+            ),
+          ),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -212,8 +223,18 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 照片库显示原图；已抠图的右下角小标提示
-                  WnThumb(a.imageUrl),
+                  // 照片库显示原图；已抠图的卡叠加视差（背景层+人像层），无抠图回退单层
+                  if (a.cutoutUrl != null)
+                    ParallaxAvatar(
+                      imageUrl:
+                          wnImgUrl(a.imageUrl, baseUrl: AppConstants.baseUrl),
+                      cutoutUrl:
+                          wnImgUrl(a.cutoutUrl, baseUrl: AppConstants.baseUrl),
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16)),
+                    )
+                  else
+                    WnThumb(a.imageUrl),
                   if (a.cutoutUrl != null)
                     Positioned(
                       right: 6,

@@ -234,6 +234,8 @@ class ApiService {
   Future updateTravelSpot(int id, Map data) =>
       put('/api/travel/spots/$id', data: data);
   Future deleteTravelSpot(int id) => delete('/api/travel/spots/$id');
+  Future pinTravelSpot(int id, int pinned) =>
+      patch('/api/travel/spots/$id/pinned', data: {'pinned': pinned});
   Future getTravelStats() => get('/api/travel/stats');
   Future getTravelRoutes() => get('/api/travel/routes');
   Future createTravelRoute(Map data) => post('/api/travel/routes', data: data);

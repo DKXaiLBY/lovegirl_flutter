@@ -37,6 +37,7 @@ dependencies:
   book_page_flip: ^0.1.0
   image_cropper: 8.0.2
   flutter_image_compress: ^2.1.0
+  flutter_slidable: ^4.0.3
 
 dependency_overrides:
   amap_flutter_base:

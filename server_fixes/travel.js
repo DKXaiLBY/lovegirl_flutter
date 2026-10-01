@@ -104,6 +104,7 @@ function normalizeSpot(row) {
     lat: Number(row.lat || 0),
     emoji: row.emoji || '馃搷',
     status: row.status || 'wish',
+    pinned: row.pinned ? 1 : 0,
     note: row.note || null,
     diary: row.diary || null,
     visitedDate: row.visited_date || null,
@@ -816,7 +817,7 @@ router.get('/spots', authRequired, async (req, res) => {
        LEFT JOIN users u ON u.id = COALESCE(s.created_by, s.user_id)
        WHERE ${where.join(' AND ')}
        GROUP BY s.id, u.nickname, u.avatar_url
-       ORDER BY s.updated_at DESC, s.created_at DESC`,
+       ORDER BY s.pinned DESC, s.updated_at DESC, s.created_at DESC`,
       params
     );
 
@@ -956,6 +957,42 @@ router.put('/spots/:id', authRequired, async (req, res) => {
   } catch (err) {
     console.error('[Travel] 鏇存柊鍦扮偣澶辫触:', err);
     res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
+  }
+});
+
+// 置顶切换（W3 左滑三键）：归属作用域与 PUT/DELETE 同款（user_id 可见域）
+// mysql2 未开 CLIENT_FOUND_ROWS：no-op 更新 affectedRows=0，补存在性判断防假 404
+// 可见域 IN 用固定 8 占位符补位（Mimosa 红线：SQL 模板内禁止 ${} 插值）；情侣场景 ≤2 人，冗余 IN 值无害
+router.patch('/spots/:id/pinned', authRequired, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const pinned = parseInt(req.body.pinned) === 1 ? 1 : 0;
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ code: 400, message: '参数不对' });
+    }
+    const visibleIds = await getVisibleUserIds(req.user.id);
+    if (visibleIds.length === 0 || visibleIds.length > 8) {
+      return res.status(500).json({ code: 500, message: 'server error' });
+    }
+    const ids = [...visibleIds];
+    while (ids.length < 8) ids.push(ids[0]);
+    const [result] = await pool.query(
+      'UPDATE travel_spots SET pinned = ? WHERE id = ? AND user_id IN (?, ?, ?, ?, ?, ?, ?, ?)',
+      [pinned, id, ...ids]
+    );
+    if (result.affectedRows === 0) {
+      const [rows] = await pool.query(
+        'SELECT id FROM travel_spots WHERE id = ? AND user_id IN (?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, ...ids]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ code: 404, message: 'spot not found' });
+      }
+    }
+    res.json({ code: 200, message: '已保存', data: { pinned } });
+  } catch (err) {
+    console.error('[Travel] 置顶失败:', err);
+    res.status(500).json({ code: 500, message: 'server error' });
   }
 });
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
@@ -282,6 +283,72 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     }
   }
 
+  /// 左滑"编辑"：直接进编辑表单（不是详情面板——语义按审查 P1-5 校正）
+  void _editSpot(BuildContext context, TravelSpot spot) {
+    Slidable.of(context)?.close();
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => TravelFormScreen(spot: spot)))
+        .then((result) {
+      if (result == true && context.mounted) {
+        context.read<TravelProvider>().refreshAll();
+      }
+    });
+  }
+
+  /// 左滑"删除"：确认后调用，失败 toast 不清行（教训 12 在 Slidable 下的落实）
+  Future<void> _confirmDeleteSpot(
+      BuildContext context, TravelSpot spot) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('删除地点'),
+        content: Text(
+          '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: const Text('删除', style: TextStyle(color: LoveGirlTheme.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) {
+      if (context.mounted) Slidable.of(context)?.close();
+      return;
+    }
+    if (!context.mounted) return;
+    final travelProvider = context.read<TravelProvider>();
+    await travelProvider.deleteSpot(spot.id);
+    if (!context.mounted) return;
+    if (travelProvider.hasError) {
+      Slidable.of(context)?.close();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(travelProvider.error ?? '删除失败，再试一次'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2)));
+    }
+  }
+
+  /// 左滑"置顶"：PATCH 后整体刷新（非乐观更新，对齐 provider 既有惯例）
+  Future<void> _togglePin(BuildContext context, TravelSpot spot) async {
+    Slidable.of(context)?.close();
+    final travelProvider = context.read<TravelProvider>();
+    await travelProvider.togglePin(spot);
+    if (!context.mounted) return;
+    if (travelProvider.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(travelProvider.error ?? '置顶失败，再试一次'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2)));
+    }
+  }
+
   /// 清单视图：搜索 / 筛选排序 / 地点列表（地图已独立为全屏主视图）
   Widget _buildListPage(TravelProvider provider) {
     return LovePage(
@@ -312,61 +379,70 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               SliverPadding(
                 // 底部 120：悬浮 tab(76) + 余量（「记一个地点」已移至标题行，无需再为 FAB 预留）
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final spot = provider.filteredSpots[index];
-                      return Dismissible(
-                        key: ValueKey('travel_spot_${spot.id}'),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 22),
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: LoveGirlTheme.red,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(Icons.delete_outline_rounded,
-                              color: Colors.white, size: 26),
-                        ),
-                        confirmDismiss: (_) async {
-                          return await showDialog<bool>(
-                            context: context,
-                            builder: (dCtx) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(18)),
-                              title: const Text('删除地点'),
-                              content: Text(
-                                '确定要删除“${_travelDisplayText(spot.name, '这个地点')}”吗？地图和路线会同步更新。',
+                sliver: SlidableAutoCloseBehavior(
+                  child: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final spot = provider.filteredSpots[index];
+                        return Slidable(
+                          key: ValueKey('travel_spot_${spot.id}'),
+                          // 起始侧：置顶/取消置顶（W3 左滑三键）
+                          startActionPane: ActionPane(
+                            motion: const DrawerMotion(),
+                            extentRatio: 0.26,
+                            children: [
+                              SlidableAction(
+                                onPressed: (_) => _togglePin(context, spot),
+                                backgroundColor: const Color(0xFF6B7A8F),
+                                foregroundColor: Colors.white,
+                                icon: spot.pinned == 1
+                                    ? Icons.push_pin_outlined
+                                    : Icons.push_pin_rounded,
+                                label: spot.pinned == 1 ? '取消置顶' : '置顶',
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(dCtx, false),
-                                  child: const Text('取消'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(dCtx, true),
-                                  child: const Text('删除',
-                                      style: TextStyle(
-                                          color: LoveGirlTheme.red)),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        onDismissed: (_) {
-                          context.read<TravelProvider>().deleteSpot(spot.id);
-                        },
-                        child: _SpotCard(
-                          spot: spot,
-                          index: index,
-                          onTap: () => _onMarkerTap(spot),
-                        ),
-                      );
-                    },
-                    childCount: provider.filteredSpots.length,
+                            ],
+                          ),
+                          // 结束侧：编辑 / 删除（教训 12：删除=确认后调用，失败 toast 不清行）
+                          endActionPane: ActionPane(
+                            motion: const DrawerMotion(),
+                            extentRatio: 0.56,
+                            children: [
+                              SlidableAction(
+                                onPressed: (_) => _editSpot(context, spot),
+                                backgroundColor: context.lgInk,
+                                foregroundColor: Colors.white,
+                                icon: Icons.edit_rounded,
+                                label: '编辑',
+                              ),
+                              SlidableAction(
+                                onPressed: (_) =>
+                                    _confirmDeleteSpot(context, spot),
+                                backgroundColor: LoveGirlTheme.red,
+                                foregroundColor: Colors.white,
+                                icon: Icons.delete_outline_rounded,
+                                label: '删除',
+                              ),
+                            ],
+                          ),
+                          child: _SpotCard(
+                            spot: spot,
+                            index: index,
+                            onTap: () => _onMarkerTap(spot),
+                          ),
+                        );
+                      },
+                      childCount: provider.filteredSpots.length,
+                      // 重排/删除时按 id 保 State，防入场交错动画重放（对抗审查 P2-8）
+                      findChildIndexCallback: (key) {
+                        final k = key as ValueKey<String>;
+                        final id = int.tryParse(
+                            k.value.replaceFirst('travel_spot_', ''));
+                        if (id == null) return null;
+                        final i = provider.filteredSpots
+                            .indexWhere((e) => e.id == id);
+                        return i >= 0 ? i : null;
+                      },
+                    ),
                   ),
                 ),
               ),
