@@ -14,6 +14,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/ticket_styles.dart';
+import 'package:gal/gal.dart';
 
 /// 全宽水平虚线分隔符（解决 LoveTicketDivider.length=double.infinity 在 CustomPaint 中的问题）
 class _FullWidthDashedLine extends StatelessWidget {
@@ -218,6 +219,10 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
       final filePath = '${ticketDir.path}/旅行票根_$timestamp.png';
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
+        // 写入系统相册（MediaStore/Photos）；失败不阻断，文件已留存
+        try {
+          await Gal.putImage(file.path, album: 'LoveGirl');
+        } catch (_) {}
 
       if (mounted) {
         _showSnack('票根已保存到: $filePath');

@@ -19,6 +19,7 @@ import '../../widgets/polaroid_back.dart';
 import '../../widgets/polaroid_frame.dart';
 import '../../widgets/polaroid_theme.dart';
 import 'photo_flipbook_screen.dart';
+import 'package:gal/gal.dart';
 
 /// 云端相册 · 拍立得收集本
 /// 纸感背景 + 两列拍立得流（随机小倾斜 + 底边日期）+ 翻转故事背卡 + 批量管理。
@@ -72,12 +73,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
   }
 
   Future<void> _pickAndUpload() async {
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
+    // 不加 maxWidth/quality 约束：保住原图 EXIF（拍摄时间），压缩由服务器 sharp 接管
+    final file = await _picker.pickImage(source: ImageSource.gallery);
     if (file == null || !mounted) return;
 
     setState(() => _uploading = true);
@@ -224,6 +221,10 @@ class _PhotoScreenState extends State<PhotoScreen> {
             'LoveGirl_polaroid_${id}_${DateTime.now().millisecondsSinceEpoch ~/ 1000}.png';
         final file = File('${dir.path}/$name');
         await file.writeAsBytes(data.buffer.asUint8List());
+        // 写入系统相册（MediaStore/Photos）；失败不阻断，文件已留存
+        try {
+          await Gal.putImage(file.path, album: 'LoveGirl');
+        } catch (_) {}
         if (!sheetCtx.mounted) return;
         ScaffoldMessenger.of(sheetCtx).showSnackBar(SnackBar(
             content: Text('拍立得已保存：$name'),

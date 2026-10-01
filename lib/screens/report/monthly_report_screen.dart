@@ -10,6 +10,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/lovegirl_ui.dart';
+import 'package:gal/gal.dart';
 
 /// 月度小报：当月两人小日子的聚合卡（照片/旅行/厨房/每日一问/时光轴/慢信/豆）。
 /// 卡片整体可保存为图片（RepaintBoundary 截图）。
@@ -109,6 +110,10 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       final name = 'LoveGirl_monthly_$snapYear$mm.png';
       final file = File('${dir.path}/$name');
       await file.writeAsBytes(data.buffer.asUint8List());
+        // 写入系统相册（MediaStore/Photos）；失败不阻断，文件已留存
+        try {
+          await Gal.putImage(file.path, album: 'LoveGirl');
+        } catch (_) {}
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('小报已保存：$name'),

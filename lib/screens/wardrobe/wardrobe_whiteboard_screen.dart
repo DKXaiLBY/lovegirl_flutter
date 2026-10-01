@@ -17,6 +17,7 @@ import '../../services/log_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'wardrobe_avatar_screen.dart';
+import 'package:gal/gal.dart';
 
 /// 换装白板（M2 W1，P13）：形象底图 + 已抠图单品拖缩摆放 → 合成 JPEG 白底 →
 /// 换装穿搭（状态=待确认）。口径：wardrobe-interaction §P13 / m2-plan A3。
@@ -382,6 +383,10 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
       final file = File(
           '${dir.path}/whiteboard_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await file.writeAsBytes(jpg);
+        // 写入系统相册（MediaStore/Photos）；失败不阻断，文件已留存
+        try {
+          await Gal.putImage(file.path, album: 'LoveGirl');
+        } catch (_) {}
       if (!mounted) return;
       final date = await showDatePicker(
         context: context,

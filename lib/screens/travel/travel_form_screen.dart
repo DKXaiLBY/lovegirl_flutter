@@ -53,24 +53,24 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
 
   bool get _isEditing => widget.spot != null;
 
-  // 天气选项
+  // 天气选项（图标替代 emoji：老设备 emoji 兼容坑——教训 3；存储值=label 不变）
   static const _weatherOptions = [
-    {'emoji': '☀️', 'label': '晴天'},
-    {'emoji': '🌤️', 'label': '多云'},
-    {'emoji': '🌧️', 'label': '雨天'},
-    {'emoji': '❄️', 'label': '雪天'},
-    {'emoji': '🌙', 'label': '夜晚'},
-    {'emoji': '🌈', 'label': '彩虹'},
+    {'icon': Icons.wb_sunny_rounded, 'label': '晴天'},
+    {'icon': Icons.filter_drama_rounded, 'label': '多云'},
+    {'icon': Icons.umbrella_rounded, 'label': '雨天'},
+    {'icon': Icons.ac_unit_rounded, 'label': '雪天'},
+    {'icon': Icons.dark_mode_rounded, 'label': '夜晚'},
+    {'icon': Icons.looks_rounded, 'label': '彩虹'},
   ];
 
   // 心情选项
   static const _moodOptions = [
-    {'emoji': '🥰', 'label': '甜蜜'},
-    {'emoji': '😊', 'label': '开心'},
-    {'emoji': '🤩', 'label': '兴奋'},
-    {'emoji': '😌', 'label': '平静'},
-    {'emoji': '🥹', 'label': '感动'},
-    {'emoji': '😎', 'label': '酷'},
+    {'icon': Icons.favorite_rounded, 'label': '甜蜜'},
+    {'icon': Icons.sentiment_satisfied_alt_rounded, 'label': '开心'},
+    {'icon': Icons.celebration_rounded, 'label': '兴奋'},
+    {'icon': Icons.self_improvement_rounded, 'label': '平静'},
+    {'icon': Icons.volunteer_activism_rounded, 'label': '感动'},
+    {'icon': Icons.mood_rounded, 'label': '酷'},
   ];
 
   @override
@@ -507,10 +507,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               spacing: 8,
               runSpacing: 8,
               children: _weatherOptions.map((w) {
-                final active = _weather == w['label'];
+                final active = _weather == w['label'] as String;
                 return GestureDetector(
                   onTap: () =>
-                      setState(() => _weather = active ? '' : w['label']!),
+                      setState(() => _weather = active ? '' : w['label'] as String),
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -525,15 +525,27 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                             : Colors.black.withAlpha(10),
                       ),
                     ),
-                    child: Text('${w['emoji']} ${w['label']}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: active
-                              ? context.lgInk
-                              : context.lgTextSecondary,
-                          fontWeight:
-                              active ? FontWeight.w600 : FontWeight.normal,
-                        )),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(w['icon'] as IconData,
+                            size: 15,
+                            color: active
+                                ? context.lgInk
+                                : context.lgTextSecondary),
+                        const SizedBox(width: 5),
+                        Text(w['label'] as String,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: active
+                                  ? context.lgInk
+                                  : context.lgTextSecondary,
+                              fontWeight: active
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            )),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
@@ -547,10 +559,10 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
               spacing: 8,
               runSpacing: 8,
               children: _moodOptions.map((m) {
-                final active = _mood == m['label'];
+                final active = _mood == m['label'] as String;
                 return GestureDetector(
                   onTap: () =>
-                      setState(() => _mood = active ? '' : m['label']!),
+                      setState(() => _mood = active ? '' : m['label'] as String),
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -565,15 +577,27 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                             : Colors.black.withAlpha(10),
                       ),
                     ),
-                    child: Text('${m['emoji']} ${m['label']}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: active
-                              ? context.lgInk
-                              : context.lgTextSecondary,
-                          fontWeight:
-                              active ? FontWeight.w600 : FontWeight.normal,
-                        )),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(m['icon'] as IconData,
+                            size: 15,
+                            color: active
+                                ? context.lgInk
+                                : context.lgTextSecondary),
+                        const SizedBox(width: 5),
+                        Text(m['label'] as String,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: active
+                                  ? context.lgInk
+                                  : context.lgTextSecondary,
+                              fontWeight: active
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            )),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),

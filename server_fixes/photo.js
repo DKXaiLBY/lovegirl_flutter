@@ -62,10 +62,33 @@ router.post('/upload', authRequired, upload.single('file'), async (req, res) => 
     const filename = req.file.filename;
     const url = `/uploads/photos/${filename}`;
 
+    // photo_date 来源补齐：先读原图 EXIF 拍摄时间（App 端上传原图；压缩会剥 EXIF 所以先读）
+    let photoDate = null;
+    try {
+      const ExifReader = require('exifreader');
+      const tags = ExifReader.load(req.file.path);
+      const v = tags['DateTimeOriginal'] || tags['DateTime'] || tags['DateTimeDigitized'];
+      const m = v && v.description
+        ? String(v.description).match(/(\d{4}):(\d{2}):(\d{2})[ T](\d{2}:\d{2}:\d{2})/)
+        : null;
+      if (m) photoDate = `${m[1]}-${m[2]}-${m[3]} ${m[4]}`;
+    } catch (_) {}
+
+    // 控制存储与加载体积：压到 ≤1920 q85（EXIF 已在上方读过，此步会剥掉）
+    try {
+      const sharp = require('sharp');
+      const buf = await sharp(req.file.path)
+        .rotate()
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      fs.writeFileSync(req.file.path, buf);
+    } catch (_) {}
+
     try {
       const [result] = await pool.query(
-        'INSERT INTO photos (user_id, url, description, created_at) VALUES (?, ?, ?, NOW())',
-        [userId, url, req.body.description || '']
+        'INSERT INTO photos (user_id, url, description, photo_date, created_at) VALUES (?, ?, ?, COALESCE(?, NOW()), NOW())',
+        [userId, url, req.body.description || '', photoDate]
       );
       res.json({
         code: 200,
