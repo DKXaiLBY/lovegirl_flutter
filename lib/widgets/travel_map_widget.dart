@@ -444,7 +444,9 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
               : null,
           markers: _mapReady ? _buildMarkers() : const <Marker>{},
           polylines: _mapReady
-              ? _buildPolylines(showOrderArrows: mapPrefs.showOrderArrows)
+              ? _buildPolylines(
+                  showOrderArrows: mapPrefs.showOrderArrows,
+                  showFootprints: mapPrefs.showFootprints)
               : const <Polyline>{},
           onMapCreated: (controller) async {
             _controller = controller;
@@ -494,6 +496,19 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
                 onTap: () => setState(() {
                   _trafficEnabled = !_trafficEnabled;
                 }),
+              ),
+              const SizedBox(height: 10),
+              _MapButton(
+                icon: mapPrefs.showFootprints
+                    ? Icons.route_rounded
+                    : Icons.route_outlined,
+                tooltip: mapPrefs.showFootprints
+                    ? '\u5173\u95ed\u8db3\u8ff9\u7ebf'
+                    : '\u6253\u5f00\u8db3\u8ff9\u7ebf',
+                isActive: mapPrefs.showFootprints,
+                onTap: () => context
+                    .read<MapPrefsProvider>()
+                    .setShowFootprints(!mapPrefs.showFootprints),
               ),
             ],
           ),
@@ -600,7 +615,8 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     }).toSet();
   }
 
-  Set<Polyline> _buildPolylines({required bool showOrderArrows}) {
+  Set<Polyline> _buildPolylines(
+      {required bool showOrderArrows, required bool showFootprints}) {
     final lines = <Polyline>{};
     final activeRoute = widget.activeRoute;
     final activeRoutePoints = activeRoute?.path
@@ -631,20 +647,21 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
       return lines;
     }
 
-    final visited = widget.spots
-        .where((s) => s.status == 'visited' && _isValidCoordinate(s.lat, s.lng))
-        .toList()
-      ..sort((a, b) => (a.visitedDate ?? '').compareTo(b.visitedDate ?? ''));
-    if (visited.length > 1) {
-      lines.add(
-        Polyline(
-          points: visited.map((s) => LatLng(s.lat, s.lng)).toList(),
-          width: 5,
-          color: context.lgInk.withAlpha(150),
-          capType: CapType.round,
-          joinType: JoinType.round,
-        ),
-      );
+    // 足迹回忆线（W5）：已打卡点按 visitedDate 升序的圆点虚线，开关记忆在 MapPrefs
+    if (showFootprints) {
+      final visited = footprintSpots(widget.spots);
+      if (visited.length > 1) {
+        lines.add(
+          Polyline(
+            points: visited.map((s) => LatLng(s.lat, s.lng)).toList(),
+            width: 3,
+            color: context.lgInk.withAlpha(120),
+            capType: CapType.round,
+            joinType: JoinType.round,
+            dashLineType: DashLineType.circle,
+          ),
+        );
+      }
     }
 
     // 顺序箭头线：按 routeDay/routeOrder 把地点串成"顺序表"
@@ -842,4 +859,25 @@ class _MapButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// W5 足迹线纯函数：已打卡 + 坐标有效 + visitedDate 非空，按日期升序（id 决胜防洗牌）。
+/// 独立于 State 便于单测（travel_map_widget_test.dart）。
+List<TravelSpot> footprintSpots(List<TravelSpot> spots) {
+  final list = spots
+      .where((s) =>
+          s.status == 'visited' &&
+          (s.visitedDate ?? '').isNotEmpty &&
+          s.lat >= -90 &&
+          s.lat <= 90 &&
+          s.lng >= -180 &&
+          s.lng <= 180 &&
+          !(s.lat == 0 && s.lng == 0))
+      .toList()
+    ..sort((a, b) {
+      final c = (a.visitedDate ?? '').compareTo(b.visitedDate ?? '');
+      if (c != 0) return c;
+      return a.id.compareTo(b.id);
+    });
+  return list;
 }

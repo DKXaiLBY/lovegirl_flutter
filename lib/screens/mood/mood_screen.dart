@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,7 +17,7 @@ class MoodScreen extends StatefulWidget {
 
 class _MoodScreenState extends State<MoodScreen> {
   final ApiService _api = ApiService();
-  Map<String, Map<String, dynamic>> _moodMap = {}; // date -> mood data
+  Map<String, List<Map<String, dynamic>>> _moodsByDay = {}; // date -> 该日全部心情（W5）
   List<Map<String, dynamic>> _moods = [];
   bool _loading = true;
   String? _error;
@@ -45,17 +47,18 @@ class _MoodScreenState extends State<MoodScreen> {
     '委屈',
     '烦躁'
   ];
+  // v3.42 消解同色/近色（幸福 vs 难过曾同色、疲惫/烦躁两灰难分、开心/悠闲同绿系）
   static const _moodColors = [
     Color(0xFF8FAE8B),
     Color(0xFF7B8CFF),
     Color(0xFF6BD4FF),
-    Color(0xFF7B8CFF),
+    Color(0xFF5B6EA8),
     Color(0xFFE95B4E),
     Color(0xFF9E9EAD),
     Color(0xFF00BCD4),
-    Color(0xFF4CAF50),
+    Color(0xFF4DB6A2),
     Color(0xFF9E9AD1),
-    Color(0xFF8E8E93),
+    Color(0xFFB58860),
   ];
 
   @override
@@ -79,13 +82,7 @@ class _MoodScreenState extends State<MoodScreen> {
       final data1 = results[0].data?['data'];
       List raw = data1 is List ? data1 : [];
       _moods = raw.map((e) => Map<String, dynamic>.from(e)).toList();
-      _moodMap = {};
-      for (final m in _moods) {
-        // 后端返回 recordDate，前端兼容 date
-        final dateRaw = (m['recordDate'] ?? m['date'] ?? '').toString();
-        final date = dateRaw.length >= 10 ? dateRaw.substring(0, 10) : dateRaw;
-        _moodMap[date] = m;
-      }
+      _moodsByDay = groupMoodsByDate(_moods);
       LogService().info('Mood', '加载${_moods.length}条记录');
     } catch (e) {
       _error = '加载失败';
@@ -108,10 +105,12 @@ class _MoodScreenState extends State<MoodScreen> {
     _loadData();
   }
 
-  MoodData _getDayMood(DateTime day) {
+  List<Map<String, dynamic>> _getDayMoods(DateTime day) {
     final key = DateFormat('yyyy-MM-dd').format(day);
-    final m = _moodMap[key];
-    if (m == null) return MoodData.empty();
+    return _moodsByDay[key] ?? const [];
+  }
+
+  MoodData _moodToData(Map<String, dynamic> m) {
     final idx = int.tryParse((m['emoji'] ?? '0').toString()) ?? 0;
     return MoodData(
       hasMood: true,
@@ -127,9 +126,16 @@ class _MoodScreenState extends State<MoodScreen> {
     );
   }
 
+  MoodData _getDayMood(DateTime day) {
+    final list = _getDayMoods(day);
+    if (list.isEmpty) return MoodData.empty();
+    return _moodToData(list.first);
+  }
+
   void _showDayDetail(DateTime day) {
-    final mood = _getDayMood(day);
-    if (!mood.hasMood) return;
+    final moods = _getDayMoods(day);
+    if (moods.isEmpty) return;
+    final items = moods.map(_moodToData).toList();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -139,52 +145,72 @@ class _MoodScreenState extends State<MoodScreen> {
           color: context.lgCard,
           borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.black12,
-                    borderRadius: BorderRadius.circular(2))),
-            SizedBox(height: 20),
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                  color: (mood.color ?? context.lgTextMuted).withAlpha(30),
-                  shape: BoxShape.circle),
-              child: Icon(mood.icon,
-                    size: 40, color: mood.color ?? context.lgTextMuted),
-            ),
-            SizedBox(height: 12),
-            Text(mood.label,
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: mood.color ?? context.lgTextMuted)),
-            SizedBox(height: 4),
-            Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
-                style: TextStyle(
-                    fontSize: 14, color: context.lgTextMuted)),
-            if (mood.note.isNotEmpty) ...[
-              SizedBox(height: 16),
+        child: ConstrainedBox(
+          // 多条记录时弹层限高（对抗审查 P2-4），单条布局与旧版一致
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                    color: context.lgBg,
-                    borderRadius: BorderRadius.circular(14)),
-                child: Text(mood.note,
-                    style: TextStyle(
-                        fontSize: 15,
-                        color: context.lgTextSecondary,
-                        height: 1.5)),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.black12,
+                      borderRadius: BorderRadius.circular(2))),
+              SizedBox(height: 20),
+              Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
+                  style: TextStyle(
+                      fontSize: 14, color: context.lgTextMuted)),
+              SizedBox(height: 16),
+              Flexible(
+                child: ListView(shrinkWrap: true, children: [
+                  for (final mood in items)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                                color: (mood.color ?? context.lgTextMuted)
+                                    .withAlpha(30),
+                                shape: BoxShape.circle),
+                            child: Icon(mood.icon,
+                                size: 30,
+                                color: mood.color ?? context.lgTextMuted),
+                          ),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(mood.label,
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: mood.color ??
+                                            context.lgTextMuted)),
+                                if (mood.note.isNotEmpty) ...[
+                                  SizedBox(height: 4),
+                                  Text(mood.note,
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          color: context.lgTextSecondary,
+                                          height: 1.4)),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ]),
               ),
+              SizedBox(height: 8),
             ],
-            SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
@@ -471,38 +497,54 @@ class _MoodScreenState extends State<MoodScreen> {
                     padding: const EdgeInsets.all(2),
                     child: GestureDetector(
                       onTap: () => _showDayDetail(day),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: mood.hasMood
-                              ? (mood.color ?? context.lgTextMuted).withAlpha(180)
-                              : context.lgBg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: today
-                              ? Border.all(
-                                  color: context.lgInk, width: 2)
-                              : Border.all(color: Colors.black.withAlpha(10)),
-                        ),
-                        child: mood.hasMood
-                            ? Center(
-                                child: Text('${day.day}',
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white)))
-                            : Center(
-                                child: Text('${day.day}',
-                                    style: TextStyle(
-                                        fontSize: 10,
-                                        color: context.lgTextMuted))),
-                      ),
+                      child: Builder(builder: (cellCtx) {
+                        // W5 弹药库 6.1：一日多心情 → SweepGradient 扇形（star_book 手法）
+                        final dayColors = dayGradientColors(
+                            _getDayMoods(day)
+                                .map((m) =>
+                                    _moodColors[_moodIndexOf(m)])
+                                .toList());
+                        final multi = dayColors.length >= 2;
+                        return Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            gradient: multi
+                                ? SweepGradient(
+                                    colors: dayColors,
+                                    startAngle: -math.pi / 2,
+                                    endAngle: -math.pi / 2 + 2 * math.pi,
+                                  )
+                                : null,
+                            color: mood.hasMood
+                                ? (multi
+                                    ? null
+                                    : (mood.color ?? context.lgTextMuted)
+                                        .withAlpha(180))
+                                : context.lgBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: today
+                                ? Border.all(
+                                    color: context.lgInk, width: 2)
+                                : Border.all(
+                                    color: Colors.black.withAlpha(10)),
+                          ),
+                          child: Center(
+                              child: Text('${day.day}',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: mood.hasMood
+                                          ? Colors.white
+                                          : context.lgTextMuted))),
+                        );
+                      }),
                     ),
                   );
                 }).toList(),
               ),
             )),
-        // Legend
+        // Legend（W5：单心情=心情色，多心情=渐变扇形）
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           Text('无记录',
@@ -523,7 +565,19 @@ class _MoodScreenState extends State<MoodScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  color: context.lgInk.withAlpha(180),
+                  color: _moodColors.first.withAlpha(180),
+                  borderRadius: BorderRadius.circular(8))),
+          SizedBox(width: 8),
+          Text('多心情',
+              style: TextStyle(fontSize: 10, color: context.lgTextMuted)),
+          SizedBox(width: 4),
+          Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                  gradient: SweepGradient(
+                      colors: [_moodColors[1], _moodColors[4], _moodColors[6]],
+                      startAngle: -math.pi / 2),
                   borderRadius: BorderRadius.circular(8))),
         ]),
       ]),
@@ -634,8 +688,11 @@ class _MoodScreenState extends State<MoodScreen> {
   Widget _buildRecentList() {
     if (_moods.isEmpty) return _buildEmpty();
     final recent = List<Map<String, dynamic>>.from(_moods);
-    recent.sort(
-        (a, b) => (b['date'] ?? '').toString().compareTo(a['date'] ?? ''));
+    recent.sort((a, b) {
+      final c = (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString());
+      if (c != 0) return c;
+      return _moodIndexOf(a).compareTo(_moodIndexOf(b));
+    });
     final display = recent.take(10).toList();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -645,8 +702,54 @@ class _MoodScreenState extends State<MoodScreen> {
               fontWeight: FontWeight.w600,
               color: context.lgTextPrimary)),
       SizedBox(height: 8),
-      ...display.map((m) => _buildMoodItem(m)),
+      // W5 弹药库 9.2：相邻记录心情色渐变连线（最后一条无线=时间尽头）
+      ...List.generate(display.length, (i) {
+        final m = display[i];
+        final color = _moodItemColor(m);
+        final nextColor = i + 1 < display.length ? _moodItemColor(display[i + 1]) : null;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 26,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 29), // 与卡片图标圆心对齐
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                    ),
+                    if (nextColor != null)
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [color, nextColor],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(child: _buildMoodItem(m)),
+            ],
+          ),
+        );
+      }),
     ]);
+  }
+
+  Color _moodItemColor(Map<String, dynamic> m) {
+    final idx = _moodIndexOf(m);
+    return (idx < _moodColors.length) ? _moodColors[idx] : context.lgInk;
   }
 
   Widget _buildEmpty() => Container(
@@ -728,4 +831,32 @@ class MoodData {
       this.note = '',
       this.raw = const {}});
   factory MoodData.empty() => MoodData(hasMood: false);
+}
+
+// ===== W5 弹药库纯函数（单测：mood_map_test.dart）=====
+
+/// 弹药库 6.2：按日分组心情记录（date/recordDate 双键兼容）
+Map<String, List<Map<String, dynamic>>> groupMoodsByDate(
+    List<Map<String, dynamic>> moods) {
+  final out = <String, List<Map<String, dynamic>>>{};
+  for (final m in moods) {
+    final dateRaw = (m['recordDate'] ?? m['date'] ?? '').toString();
+    final date = dateRaw.length >= 10 ? dateRaw.substring(0, 10) : dateRaw;
+    out.putIfAbsent(date, () => []).add(m);
+  }
+  return out;
+}
+
+/// 弹药库 6.1：一日多心情 → SweepGradient 色表（相邻同色合并，全同色回退单色）
+List<Color> dayGradientColors(List<Color> colors) {
+  final distinct = <Color>[];
+  for (final c in colors) {
+    if (distinct.isEmpty || distinct.last != c) distinct.add(c);
+  }
+  return distinct;
+}
+
+int _moodIndexOf(Map<String, dynamic> m) {
+  final idx = int.tryParse((m['emoji'] ?? '0').toString()) ?? 0;
+  return idx.clamp(0, 9);
 }

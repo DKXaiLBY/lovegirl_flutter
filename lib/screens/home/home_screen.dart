@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/daily_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/travel_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
@@ -16,6 +18,7 @@ import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../beans/beans_screen.dart';
 import '../cooking/cooking_log_screen.dart';
+import '../photo/photo_screen.dart';
 import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
@@ -38,6 +41,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<Map<String, dynamic>> _partnerRecent = [];
   bool _partnerBound = false;
+  Map<String, dynamic>? _memoryToday; // W5 弹药库 7.3/10.2：N 年前的今天
 
   @override
   void initState() {
@@ -49,8 +53,129 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         context.read<NotificationProvider>().refreshCount();
         context.read<DailyProvider>().refresh();
         _loadPartnerRecent();
+        _loadMemoryToday();
       }
     });
+  }
+
+  /// W5「N 年前的今天」回忆卡（白卡+蜜桃点缀；不进渐变白名单；X 关闭当天不再出现）
+  Widget _buildMemoryTodayCard() {
+    final m = _memoryToday!;
+    final years = m['years'] as int;
+    final isPhoto = m['type'] == 'photo';
+    final title = (m['title'] ?? '').toString().trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: Material(
+        color: context.lgCard,
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+          onTap: () {
+            _dismissMemoryToday();
+            if (isPhoto) {
+              _push(const PhotoScreen());
+            } else {
+              widget.onNavigateToTab?.call(1);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+              border: Border(left: BorderSide(color: LoveGirlTheme.peach, width: 3)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: LoveGirlTheme.peach.withAlpha(28),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.history_rounded,
+                      size: 22, color: LoveGirlTheme.peach),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$years 年前的今天',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: LoveGirlTheme.peachText)),
+                      const SizedBox(height: 2),
+                      Text(
+                        title.isEmpty
+                            ? (isPhoto ? '我们拍下过一张照片' : '我们去过一个地方')
+                            : title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: context.lgTextPrimary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.close_rounded,
+                      size: 16, color: context.lgTextMuted),
+                  onPressed: _dismissMemoryToday,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// W5「N 年前的今天」：轻量拉取照片+足迹，命中则渲染回忆卡（失败/无命中零痕迹）
+  Future<void> _loadMemoryToday() async {
+    List<Map<String, dynamic>> photos = const [];
+    List<TravelSpot> spots = const [];
+    try {
+      final res = await ApiService().getPhotos();
+      final d = res.data?['data'];
+      if (d is List) {
+        photos = d.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (_) {}
+    try {
+      final res = await ApiService().getTravelSpots();
+      final d = res.data?['data'];
+      if (d is List) {
+        spots = d
+            .map((e) =>
+                TravelSpot.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final now = DateTime.now();
+    final todayKey =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    if (prefs.getString('memory_dismiss_last') == todayKey) return;
+    final m = pickMemoryToday(photos, spots, now);
+    if (m == null || !mounted) return;
+    setState(() => _memoryToday = m);
+  }
+
+  Future<void> _dismissMemoryToday() async {
+    final now = DateTime.now();
+    final key =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('memory_dismiss_last', key);
+    if (mounted) setState(() => _memoryToday = null);
   }
 
   Future<void> _loadPartnerRecent() async {
@@ -110,6 +235,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   const SizedBox(height: 14),
+                  if (_memoryToday != null) ...[
+                    _buildMemoryTodayCard(),
+                    const SizedBox(height: 14),
+                  ],
                   if (_partnerBound) ...[
                     StaggerIn(
                       index: 0,
@@ -143,14 +272,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: _DailyQuestionTicket(onTap: () => _push(const DailyQuestionScreen())),
                   ),
                   const SizedBox(height: 18),
-                  StaggerIn(
-                    index: 3,
-                    child: _MemoryTicket(
-                      memory: home.memory,
-                      onTap: () => _push(TimelineScreen()),
-                      onGenerate: () => _showMemoryStubSheet(home.memory),
+                  if (_memoryToday == null)
+                    StaggerIn(
+                      index: 3,
+                      child: _MemoryTicket(
+                        memory: home.memory,
+                        onTap: () => _push(TimelineScreen()),
+                        onGenerate: () => _showMemoryStubSheet(home.memory),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 18),
                   StaggerIn(
                     index: 4,
@@ -1987,3 +2117,59 @@ class _CheckDrawPainter extends CustomPainter {
       oldDelegate.progress != progress;
 }
 
+/// W5 弹药库 7.3/10.2：确定性挑选「N 年前的今天」（年最远优先→照片优先→id 升序；
+  /// photo_date 空用 created_at 兜底；候选年 ≥ 当年跳过）
+Map<String, dynamic>? pickMemoryToday(
+    List<Map<String, dynamic>> photos,
+    List<TravelSpot> spots,
+    DateTime now) {
+  DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString();
+      if (s.length < 10) return null;
+      return DateTime.tryParse(s.replaceFirst(' ', 'T')) ??
+          DateTime.tryParse(s.substring(0, 10));
+    }
+
+  final candidates = <Map<String, dynamic>>[];
+  for (final p in photos) {
+      final d = parseDate(p['photo_date'] ?? p['created_at']);
+      if (d == null || !d.isBefore(now)) continue;
+      if (d.month != now.month || d.day != now.day) continue;
+      candidates.add({
+        'type': 'photo',
+        'date': d,
+        'id': (p['id'] as num?)?.toInt() ?? 0,
+        'title': p['description']?.toString() ?? '',
+      });
+    }
+  for (final s in spots) {
+      final d = parseDate(s.visitedDate);
+      if (d == null || !d.isBefore(now)) continue;
+      if (d.month != now.month || d.day != now.day) continue;
+      candidates.add({
+        'type': 'travel',
+        'date': d,
+        'id': s.id,
+        'title': s.name,
+      });
+    }
+  if (candidates.isEmpty) return null;
+  candidates.sort((a, b) {
+      final ya = (a['date'] as DateTime).year;
+      final yb = (b['date'] as DateTime).year;
+      if (ya != yb) return ya.compareTo(yb);
+      final pa = a['type'] == 'photo' ? 0 : 1;
+      final pb = b['type'] == 'photo' ? 0 : 1;
+      if (pa != pb) return pa.compareTo(pb);
+      return (a['id'] as int).compareTo(b['id'] as int);
+    });
+  final c = candidates.first;
+  final years = now.year - (c['date'] as DateTime).year;
+  return {
+      'type': c['type'],
+      'years': years,
+      'id': c['id'],
+      'title': c['title'],
+    };
+  }
