@@ -897,7 +897,7 @@ Color _statusColor(BuildContext context, String status) {
     case 'visited':
       return const Color(0xFF4CAF50);
     case 'wish':
-      return const Color(0xFF8E8E93);
+      return LoveGirlTheme.wish;
     case 'planned':
       return const Color(0xFF9C27B0);
     default:
@@ -1304,7 +1304,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               _statusChip(
                 'wish',
                 '\u2605 \u5fc3\u613f\u5355',
-                const Color(0xFF8E8E93),
+                LoveGirlTheme.wish,
               ),
               const SizedBox(width: 8),
               _statusChip(

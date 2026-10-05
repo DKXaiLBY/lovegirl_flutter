@@ -11,12 +11,15 @@ class LoveGirlTheme {
   // v3.24 主行动黑白化，品牌橘退位
   static const Color primary = Color(0xFF1A1A1A);
   static const Color primaryLight = Color(0xFF4A4A4A);
-  static const Color primarySoft = Color(0xFFF4F4F5);
+  static const Color primarySoft = Color(0xFFF0EAE0);
   static const Color secondary = Color(0xFF7A9E7E);
   static const Color secondarySoft = Color(0xFFEFF2EF);
 
-  // v3.37 工具风去暖：accent/orange 由暖色降级为中性灰阶（语义位保留，值转灰）
-  static const Color accent = Color(0xFFB0B0B5);
+  // v3.41 奶油暖白：accent 从中性灰转蜜桃珊瑚（图形/选中态/底色）；
+  // 文本场景一律用 peachText（对白 4.5:1）；蜜桃与功能红同族，删除按钮同屏需真机验证
+  static const Color accent = Color(0xFFF2704F);
+  static const Color peach = Color(0xFFF2704F);
+  static const Color peachText = Color(0xFFC9502E);
   static const Color red = Color(0xFFE95B4E);
   static const Color orange = Color(0xFF8E8E93);
   static const Color pink = primary;
@@ -25,26 +28,33 @@ class LoveGirlTheme {
   // v3.37 情感色黑化：恋爱天数/爱心与正文同黑（回滚点=独立 commit）
   static const Color brandEmotion = Color(0xFF1A1A1A);
 
-  // v3.34 白色简洁（浅色）与中性深色（深色同步去暖）
-  static const Color bgLight = Color(0xFFFFFFFF);
+  // v3.41 奶油暖白（浅色）：页面奶油底 + 白卡浮起
+  static const Color bgLight = Color(0xFFFAF6F0);
   static const Color paper = Color(0xFFFFFFFF);
-  static const Color paperWarm = Color(0xFFF7F7F8);
+  static const Color paperWarm = Color(0xFFF1E8DA);
   static const Color cardLight = Color(0xFFFFFFFF);
-  static const Color bgDark = Color(0xFF111113);
-  static const Color cardDark = Color(0xFF1C1C1E);
+  static const Color bgDark = Color(0xFF1C1917);
+  static const Color cardDark = Color(0xFF262220);
 
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF888888);
-  static const Color textMuted = Color(0xFF999999);
-  static const Color separator = Color(0xFFECECEC);
+  static const Color textPrimary = Color(0xFF2B2723);
+  static const Color textSecondary = Color(0xFF6E655B);
+  static const Color textMuted = Color(0xFF7A7062);
+  static const Color separator = Color(0xFFEEE8DF);
 
-  // v3.34 深色模式 token（中性深灰体系）
-  static const Color textPrimaryDark = Color(0xFFECECEE);
-  static const Color textSecondaryDark = Color(0xFF9E9EA3);
-  static const Color textMutedDark = Color(0xFF7C7C82);
-  static const Color separatorDark = Color(0xFF2C2C2E);
-  static const Color primarySoftDark = Color(0xFF2A2A2D);
-  static const Color secondarySoftDark = Color(0xFF232624);
+  // v3.41 深色模式 token（微暖深灰体系）
+  static const Color textPrimaryDark = Color(0xFFEFEAE4);
+  static const Color textSecondaryDark = Color(0xFFA89F95);
+  static const Color textMutedDark = Color(0xFF8D847A);
+  static const Color separatorDark = Color(0xFF33302B);
+  static const Color primarySoftDark = Color(0xFF2E2A26);
+  static const Color secondarySoftDark = Color(0xFF26221E);
+
+  // v3.41 蜜桃日出渐变（仅浅色态白名单三处：首页头部/纪念日倒数卡/月报头图；
+  // 深色态一律用 primarySoftDark 单色，不上渐变；装饰层不带正文文字）
+  static const List<Color> gradientSunrise = [
+    Color(0xFFFFE3C8),
+    Color(0xFFFFD9E3),
+  ];
 
   static const Color visited = Color(0xFF4CAF50); // 与 travel 模块状态绿统一
   static const Color wish = accent;

@@ -1375,7 +1375,7 @@ class _StatusBadge extends StatelessWidget {
     switch (status) {
       case 'visited':
         text = '已打卡';
-        color = LoveGirlTheme.accent;
+        color = LoveGirlTheme.visited;
         break;
       case 'planned':
         text = '计划中';

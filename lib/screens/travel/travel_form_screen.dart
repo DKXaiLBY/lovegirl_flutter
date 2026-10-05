@@ -454,7 +454,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
             children: [
               _statusChip('visited', '✅ 已打卡', const Color(0xFF4CAF50)),
               const SizedBox(width: 8),
-              _statusChip('wish', '⭐ 心愿单', const Color(0xFF8E8E93)),
+              _statusChip('wish', '⭐ 心愿单', LoveGirlTheme.wish),
               const SizedBox(width: 8),
               _statusChip('planned', '📋 计划中', const Color(0xFF9C27B0)),
             ],

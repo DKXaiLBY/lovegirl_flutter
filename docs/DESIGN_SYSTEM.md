@@ -7,9 +7,9 @@
 
 | 维度 | 结论 |
 |---|---|
-| 气质 | **冷白工具风（倒数日式）**：纯白、黑灰字阶、克制的功能色。私密但不是手账，效率但不冷淡 |
+| 气质 | **奶油暖白工具风（v3.41，倒数日式的暖化版）**：奶油底、暖炭字阶、白卡浮起、蜜桃点缀。私密但不手账，明亮但不糖果 |
 | 保留的温度 | 票根隐喻（打孔/锯齿/虚线，底色纯白）、拍立得实体复刻、手写字体 Caveat、少量插画的柔和色 |
-| 禁忌 | 暖橘/杏黄/暖渐变（已清零）、企业后台感、促销感、玻璃拟态 |
+| 禁忌 | 企业后台感、促销感、玻璃拟态、无白名单的渐变滥用（暖色自 v3.41 以「奶油底+蜜桃点缀」双轨回归：蜜桃=情感/点缀，冷灰 #8E8E93=内容中性态） |
 
 ## 1. 色板（与 theme.dart 同步，2026-09-30）
 
@@ -20,15 +20,19 @@
 | `primarySoft` | `#F4F4F5` | 墨色的浅底（chips 未选中、次级容器） |
 | `secondary` | `#7A9E7E` | 绿=完成/健康语义（保留的唯一彩色功能色） |
 | `red` | `#E95B4E` | 仅删除/警示（计数红点、删除按钮） |
-| `accent` / `orange` | `#B0B0B5` / `#8E8E93` | 已转灰（历史名保留防编译断裂，禁再当橙色用） |
-| `bgLight` / `paper` / `cardLight` | `#FFFFFF` | 页面底/卡底 |
-| `paperWarm` | `#F7F7F8` | 冷灰白（次级底） |
-| `textPrimary` / `textSecondary` / `textMuted` | `#1A1A1A` / `#888888` / `#999999` | 字阶 |
+| `orange` | `#8E8E93` | 内容中性态冷灰（历史名保留；与蜜桃双轨，见第 0 节） |
+| `bgLight` | `#FAF6F0` | 页面底（奶油白，v3.41） |
+| `paper` / `cardLight` | `#FFFFFF` | 卡底（在奶油底上浮起） |
+| `paperWarm` | `#F1E8DA` | 暖次级底（v3.41） |
+| `textPrimary` / `textSecondary` / `textMuted` | `#2B2723` / `#6E655B` / `#7A7062` | 暖炭字阶（v3.41；muted 对奶油底 4.5:1） |
+| `accent` / `peach` | `#F2704F` | 蜜桃珊瑚=情感/点缀/选中态（图形与底色专用，勿做正文色） |
+| `peachText` | `#C9502E` | 蜜桃文本档（对白 4.5:1，财务收入/标签文字用） |
+| `gradientSunrise` | `#FFE3C8→#FFD9E3` | 蜜桃日出渐变（白名单三处：首页头部/纪念日卡顶条/月报头图；仅浅色态） |
 | `separator` | `#ECECEC` | 分隔线/描边 |
 | `planned` | `#9E9AD1` | 计划态蓝钟（唯一紫） |
 | `visited` | `#4CAF50` | 已打卡 |
 
-**深色模式**（中性深灰体系）：`bgDark #111113` · `cardDark #1C1C1E` · `textPrimaryDark #ECECEE` · `textSecondaryDark #9E9EA3` · `textMutedDark #7C7C82` · `separatorDark #2C2C2E` · `primarySoftDark #2A2A2D`。语义色（secondary 绿/red/planned）两态通用。**发布前真机过深浅两态**是红线。
+**深色模式**（微暖深灰体系，v3.41）：`bgDark #1C1917` · `cardDark #262220` · `textPrimaryDark #EFEAE4` · `textSecondaryDark #A89F95` · `textMutedDark #8D847A` · `separatorDark #33302B` · `primarySoftDark #2E2A26`。语义色（secondary 绿/red/planned/peach）两态通用。**深色态不上日出渐变**（三处 hero 用 primarySoftDark 单色）。**发布前真机过深浅两态**是红线。
 
 ## 2. 字阶（沿用 v1.0 统计，未变）
 
@@ -54,6 +58,8 @@
 - **票根**：travel_ticket/ticket_styles 保留打孔/锯齿/虚线，底色纯白
 - **拍立得**：PolaroidFrame 实体复刻（88:107、纸纹、内凹、显影色、动态光泽、落影随动）——组件内自成体系，勿在外部叠加装饰
 - **角标**：高饱和小 pill（黑/红底白字）
+- **渐变 hero 白名单**：仅首页头部/纪念日卡顶条/月报头图三处；装饰层不带正文文字，渐变上只放墨黑系文字
+- **蜜桃双档**：`peach` 做图形/底色/描边，文字一律 `peachText`；与功能红 #E95B4E 同族，删除按钮同屏时真机验证
 
 ## 5. 状态与文案
 

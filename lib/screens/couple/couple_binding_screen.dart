@@ -529,7 +529,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                       : const Icon(Icons.link_rounded),
                   label: const Text('立即绑定'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: LoveGirlTheme.accent,
+                    backgroundColor: context.lgInk,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),

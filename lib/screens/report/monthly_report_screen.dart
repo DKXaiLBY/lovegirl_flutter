@@ -229,8 +229,22 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          // 蜜桃日出头图（渐变白名单；深色态 primarySoftDark 单色；随小报一起存进 PNG）
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              gradient: context.lgIsDark
+                  ? null
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: LoveGirlTheme.gradientSunrise,
+                    ),
+              color: context.lgIsDark ? LoveGirlTheme.primarySoftDark : null,
+              borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               IllusImg('ui_report', height: 76),
               const SizedBox(width: 14),
@@ -260,6 +274,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
                 ),
               ),
             ],
+          ),
           ),
           const SizedBox(height: 14),
           _statRow(Icons.photo_camera_outlined, '相册留影',

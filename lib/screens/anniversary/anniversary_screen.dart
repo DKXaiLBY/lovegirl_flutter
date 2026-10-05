@@ -594,8 +594,31 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
 
     return LoveTicketCard(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: next == null
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 蜜桃日出顶部条（渐变白名单；深色态 primarySoftDark 单色）
+          Container(
+            height: 10,
+            decoration: BoxDecoration(
+              gradient: context.lgIsDark
+                  ? null
+                  : const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFFFE3C8),
+                        Color(0xFFFFD9E3),
+                        Colors.white,
+                      ],
+                    ),
+              color: context.lgIsDark ? LoveGirlTheme.primarySoftDark : null,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: next == null
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -666,8 +689,11 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                   ],
                 ),
               ],
-            ),
-    );
+          ),
+        ),
+      ],
+    ),
+  );
   }
 
   Widget _buildSectionHeader() {

@@ -204,8 +204,21 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return KeyedSubtree(
       key: const ValueKey('home_header'),
-      // 两行结构：标题+天数 hero / 铃铛 → 天气 | 爱心豆，窄屏不再散成三行
-      child: Column(
+      // 蜜桃日出 hero（渐变白名单三处之一；深色态用 primarySoftDark 单色，不上渐变）
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.lgIsDark ? context.lgPrimarySoft : null,
+          gradient: context.lgIsDark
+              ? null
+              : const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: LoveGirlTheme.gradientSunrise,
+                ),
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -305,7 +318,8 @@ class _HomeHeader extends StatelessWidget {
             ],
           ),
         ],
-      ),
+      ),        // Column 收尾
+        ),      // Container（日出 hero）收尾
     );
   }
 }
@@ -334,14 +348,14 @@ class _BellBadge extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F5),
+                  color: context.lgCard,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFECECEC)),
+                  border: Border.all(color: context.lgSeparator),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.notifications_none_rounded,
                   size: 19,
-                  color: Color(0xFF1A1A1A),
+                  color: context.lgInk,
                 ),
               ),
             ),
@@ -1595,7 +1609,7 @@ class _FinancePiePainter extends CustomPainter {
     final slices = [
       (_SliceData(0.40, const Color(0xFFF5DCC2))),
       (_SliceData(0.34, const Color(0xFFD4D8B8))),
-      (_SliceData(0.26, const Color(0xFFF4F4F5))),
+      (_SliceData(0.26, LoveGirlTheme.primarySoft)),
     ];
 
     var start = -1.85;

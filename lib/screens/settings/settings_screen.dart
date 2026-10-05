@@ -366,7 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                       color: (_isEditing
-                              ? LoveGirlTheme.accent
+                              ? LoveGirlTheme.peach
                               : context.lgInk)
                           .withAlpha(25),
                       borderRadius: BorderRadius.circular(14)),
@@ -375,7 +375,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: _isEditing
-                              ? LoveGirlTheme.accent
+                              ? LoveGirlTheme.peachText
                               : context.lgInk)),
                 ),
               ),

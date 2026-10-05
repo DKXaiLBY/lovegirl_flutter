@@ -767,7 +767,7 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: LoveGirlTheme.accent,
+                  color: LoveGirlTheme.peachText,
                 ),
               ),
               Spacer(),

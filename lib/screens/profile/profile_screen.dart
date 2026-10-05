@@ -498,7 +498,7 @@ class _ProfileHero extends StatelessWidget {
                         LovePill(
                           text: '$beanBalance \u7231\u5fc3\u8c46',
                           icon: Icons.savings_rounded,
-                          color: LoveGirlTheme.accent,
+                          color: LoveGirlTheme.peachText,
                           background: const Color(0xFFFFF2E1),
                         ),
                       ],

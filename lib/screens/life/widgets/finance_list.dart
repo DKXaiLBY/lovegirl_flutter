@@ -350,7 +350,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                 '收入',
                                 style: TextStyle(
                                   color: type == '收入'
-                                      ? LoveGirlTheme.accent
+                                      ? LoveGirlTheme.peachText
                                       : context.lgTextMuted,
                                   fontWeight: type == '收入'
                                       ? FontWeight.w600
@@ -408,7 +408,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                     color: category == c
                                         ? (type == '支出'
                                             ? context.lgInk
-                                            : LoveGirlTheme.accent)
+                                            : LoveGirlTheme.peachText)
                                         : context.lgTextSecondary,
                                     fontWeight: category == c
                                         ? FontWeight.w600
@@ -932,14 +932,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   i.toDouble(), _trendData[i]['income']);
                             }),
                             isCurved: true,
-                            color: LoveGirlTheme.accent,
+                            color: LoveGirlTheme.peachText,
                             barWidth: 2,
                             dotData: FlDotData(
                               show: true,
                               getDotPainter: (spot, percent, bar, index) {
                                 return FlDotCirclePainter(
                                   radius: 3,
-                                  color: LoveGirlTheme.accent,
+                                  color: LoveGirlTheme.peachText,
                                   strokeWidth: 0,
                                 );
                               },
@@ -1315,7 +1315,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           '旅行花费',
                           style: TextStyle(
                             fontSize: 10,
-                            color: LoveGirlTheme.accent,
+                            color: LoveGirlTheme.peachText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1352,7 +1352,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isExpense ? context.lgInk : LoveGirlTheme.accent,
+                  color: isExpense ? context.lgInk : LoveGirlTheme.peachText,
                 ),
               ),
             ),
