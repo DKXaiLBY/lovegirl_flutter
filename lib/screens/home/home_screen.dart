@@ -150,8 +150,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     try {
       final res = await ApiService().getTravelSpots();
       final d = res.data?['data'];
-      if (d is List) {
-        spots = d
+      final rawList = d is List ? d : (d is Map ? d['list'] as List? : null);
+      if (rawList != null) {
+        spots = rawList
             .map((e) =>
                 TravelSpot.fromJson(Map<String, dynamic>.from(e)))
             .toList();

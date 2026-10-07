@@ -417,6 +417,9 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
     return Stack(
       children: [
         AMapWidget(
+          // 高德插件对 polylines 集合的热更新不可靠（真机实测：开关切换后旧线残留）——
+          // 覆盖层相关偏好变化时整地图重建（低频操作，闪烁可接受）
+          key: ValueKey('amap_${mapPrefs.showFootprints}_${mapPrefs.showOrderArrows}'),
           apiKey: const AMapApiKey(androidKey: _androidMapKey),
           privacyStatement: const AMapPrivacyStatement(
             hasContains: true,
