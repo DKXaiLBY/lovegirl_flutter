@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
+import 'package:lovegirl_flutter/screens/travel/china_memory_map_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_memory_movie_screen.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
@@ -522,6 +523,16 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => TravelMemoryMovieScreen(
                           spots: widget.spots))),
+                ),
+              ],
+              if (widget.spots.any((s) => s.status == 'visited')) ...[
+                const SizedBox(height: 10),
+                _MapButton(
+                  icon: Icons.public_rounded,
+                  tooltip: '\u7701\u4efd\u70b9\u4eae\u5730\u56fe',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) =>
+                          ChinaMemoryMapScreen(spots: widget.spots))),
                 ),
               ],
             ],
