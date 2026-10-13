@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../services/api_service.dart';
+import '../../providers/travel_provider.dart';
+import '../travel/travel_form_screen.dart';
 import '../../services/log_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -88,6 +90,39 @@ class _PhotoScreenState extends State<PhotoScreen> {
       if (url != null && url.isNotEmpty) {
         LogService().userAction('相册:上传照片');
         await _loadPhotos();
+        if (!mounted) return;
+        // W6 EXIF 建地点：上传原图带 GPS 时建议建旅行地点（无 GPS 零痕迹）
+        final gpsLat = data is Map ? (data['gpsLat'] as num?)?.toDouble() : null;
+        final gpsLng = data is Map ? (data['gpsLng'] as num?)?.toDouble() : null;
+        final photoDate = data is Map ? data['photoDate']?.toString() : null;
+        if (gpsLat != null && gpsLng != null) {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (dCtx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              title: const Text('这张照片带着位置记忆'),
+              content: const Text('要把它添加为旅行地点吗？坐标会自动填好。'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('不用了')),
+                TextButton(onPressed: () => Navigator.pop(dCtx, true), child: const Text('去添加')),
+              ],
+            ),
+          );
+          if (ok == true && mounted) {
+            await Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => TravelFormScreen(
+                prefill: TravelSpot(
+                  id: 0,
+                  name: '',
+                  status: 'visited',
+                  visitedDate: (photoDate ?? '').split(' ').first,
+                  lat: gpsLat,
+                  lng: gpsLng,
+                ),
+              ),
+            ));
+          }
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('上传失败，请重试'),

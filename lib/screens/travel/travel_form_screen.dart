@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/map_picker_screen.dart';
+import 'package:lovegirl_flutter/utils/amap_api.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
@@ -16,7 +17,10 @@ import '../../widgets/app_icon.dart';
 class TravelFormScreen extends StatefulWidget {
   final TravelSpot? spot;
 
-  const TravelFormScreen({super.key, this.spot});
+  /// W6 EXIF 建地点：全新建模式但预填坐标/拍摄日期（spot=null 时生效）
+  final TravelSpot? prefill;
+
+  const TravelFormScreen({super.key, this.spot, this.prefill});
 
   @override
   State<TravelFormScreen> createState() => _TravelFormScreenState();
@@ -76,6 +80,24 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
   @override
   void initState() {
     super.initState();
+    final pre = widget.prefill;
+    if (widget.spot == null && pre != null) {
+      _lat = pre.lat;
+      _lng = pre.lng;
+      _visitedDate = pre.visitedDate;
+      _status = 'visited';
+      // regeo 就近补城市/地址（失败静默，手填兜底）
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final regeo = await AmapApi.regeo(pre.lat, pre.lng);
+          if (!mounted || regeo == null) return;
+          setState(() {
+            _city = regeo.city;
+            _address = regeo.address;
+          });
+        } catch (_) {}
+      });
+    }
     final s = widget.spot;
     if (s != null) {
       _nameCtrl.text = s.name;

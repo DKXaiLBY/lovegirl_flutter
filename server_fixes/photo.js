@@ -64,6 +64,8 @@ router.post('/upload', authRequired, upload.single('file'), async (req, res) => 
 
     // photo_date 来源补齐：先读原图 EXIF 拍摄时间（App 端上传原图；压缩会剥 EXIF 所以先读）
     let photoDate = null;
+    let gpsLat = null;
+    let gpsLng = null;
     try {
       const ExifReader = require('exifreader');
       const tags = ExifReader.load(req.file.path);
@@ -72,6 +74,20 @@ router.post('/upload', authRequired, upload.single('file'), async (req, res) => 
         ? String(v.description).match(/(\d{4}):(\d{2}):(\d{2})[ T](\d{2}:\d{2}:\d{2})/)
         : null;
       if (m) photoDate = `${m[1]}-${m[2]}-${m[3]} ${m[4]}`;
+      // W6：GPS 经纬度（度分秒→十进制；S/W 取负）
+      const toDeg = (arr, ref) => {
+        if (!Array.isArray(arr) || arr.length !== 3) return null;
+        const deg = arr[0] + arr[1] / 60 + arr[2] / 3600;
+        if (!Number.isFinite(deg)) return null;
+        const hemisphere = String(ref || '').trim().charAt(0).toUpperCase();
+        return hemisphere === 'S' || hemisphere === 'W' ? -deg : deg;
+      };
+      const lat = toDeg(tags['GPSLatitude']?.value, tags['GPSLatitudeRef']?.description);
+      const lng = toDeg(tags['GPSLongitude']?.value, tags['GPSLongitudeRef']?.description);
+      if (lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+        gpsLat = lat;
+        gpsLng = lng;
+      }
     } catch (_) {}
 
     // 控制存储与加载体积：压到 ≤1920 q85（EXIF 已在上方读过，此步会剥掉）
@@ -93,7 +109,13 @@ router.post('/upload', authRequired, upload.single('file'), async (req, res) => 
       res.json({
         code: 200,
         message: '上传成功',
-        data: { id: result.insertId, url }
+        data: {
+          id: result.insertId,
+          url,
+          photoDate,
+          gpsLat,
+          gpsLng,
+        }
       });
     } catch (err) {
       if (err.code === 'ER_NO_SUCH_TABLE') {

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
+import 'package:lovegirl_flutter/screens/travel/travel_memory_movie_screen.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
@@ -513,6 +514,16 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
                     .read<MapPrefsProvider>()
                     .setShowFootprints(!mapPrefs.showFootprints),
               ),
+              if (widget.spots.where((s) => s.status == 'visited').length >= 2) ...[
+                const SizedBox(height: 10),
+                _MapButton(
+                  icon: Icons.movie_rounded,
+                  tooltip: '\u64ad\u653e\u65f6\u5149\u8f68\u8ff9',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => TravelMemoryMovieScreen(
+                          spots: widget.spots))),
+                ),
+              ],
             ],
           ),
         ),

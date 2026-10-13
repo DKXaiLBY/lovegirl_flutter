@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
@@ -86,12 +88,24 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   String? _error;
   List<Map<String, dynamic>> _anniversaries = const [];
   Map<String, dynamic>? _nextAnniversary;
-  int _nextDays = 0;
+  // W6 轮播（弹药库 4：map-for-love HomeProgress 规格——>1 条时每 5s 轮换）
+  Timer? _heroTimer;
+  int _heroIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _anniversaries.length <= 1) return;
+      setState(() => _heroIndex = (_heroIndex + 1) % _anniversaries.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _heroTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -113,7 +127,6 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
       setState(() {
         _anniversaries = list;
         _nextAnniversary = list.isEmpty ? null : list.first;
-        _nextDays = list.isEmpty ? 0 : _daysUntil(_nextOccurrence(list.first));
         _loading = false;
       });
       LogService().info(
@@ -583,8 +596,17 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   }
 
   Widget _buildHero() {
-    final next = _nextAnniversary;
+    // W6 轮播（弹药库 4）：>1 条时按 5s 轮换展示各纪念日（含未来倒数）
+    Map<String, dynamic>? next;
+    if (_anniversaries.isEmpty) {
+      next = null;
+    } else if (_anniversaries.length == 1) {
+      next = _nextAnniversary ?? _anniversaries.first;
+    } else {
+      next = _anniversaries[_heroIndex % _anniversaries.length];
+    }
     final nextDate = next == null ? null : _nextOccurrence(next);
+    final days = nextDate == null ? 0 : _daysUntil(nextDate);
     final name = next == null ? '' : _text(next['title'], fallback: '纪念日');
     final weekday = nextDate == null
         ? ''
@@ -674,7 +696,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text('$_nextDays',
+                    Text('$days',
                         style: TextStyle(
                             fontSize: 58,
                             height: 1,
