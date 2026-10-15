@@ -95,7 +95,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: Text('删除 $n 条时刻？', style: const TextStyle(fontSize: 16)),
         content: const Text('删除后不可恢复', style: TextStyle(fontSize: 13)),
         actions: [
@@ -159,7 +159,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
           ),
           decoration: BoxDecoration(
             color: context.lgCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl)),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -248,7 +248,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   decoration: BoxDecoration(
                     color: context.lgBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withAlpha(10)),
+                    border: Border.all(color: context.lgCardBorder),
                   ),
                   child: Row(
                     children: [

@@ -11,6 +11,7 @@ import 'wardrobe_avatar_screen.dart';
 import 'wardrobe_home_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 import 'wardrobe_whiteboard_screen.dart';
+import 'widgets/wardrobe_widgets.dart';
 
 /// 衣柜模块壳（生活 tab 第 5 页签）：顶部分段「衣橱｜穿搭」+ 右上「+」
 /// 决策 Q1/Q2：内嵌形态，不用底部双 Tab（避免与主 App 底栏叠加）
@@ -81,7 +82,7 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
   Widget _buildSegmented() {
     return LovePaper(
       padding: const EdgeInsets.all(4),
-      radius: 16,
+      radius: LoveGirlTheme.radius,
       elevated: false,
       child: Row(
         children: [
@@ -122,6 +123,7 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
         decoration: BoxDecoration(
           color: context.lgInk,
           borderRadius: BorderRadius.circular(13),
+          boxShadow: LoveGirlTheme.cardShadow(),
         ),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
       ),
@@ -148,10 +150,9 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
-        child: LovePaper(
-          margin: const EdgeInsets.all(12),
+        // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+        child: WnGlassSheet(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          radius: 20,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

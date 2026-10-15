@@ -37,7 +37,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: context.lgBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text('我的数字形象',
@@ -46,7 +46,10 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
                 fontWeight: FontWeight.w800,
                 color: context.lgTextPrimary)),
       ),
-      body: Column(
+      // v4.0：浅灰渐变页面底（Scaffold 纯色兜底）
+      body: wnPageBackground(
+        context,
+        child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -100,6 +103,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -262,7 +266,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
                           color: context.lgInk,
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Text('默认',
+                        child: Text('默认',
                             style: TextStyle(
                                 color: Colors.white, fontSize: 10)),
                       ),

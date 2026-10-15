@@ -58,7 +58,7 @@ class _OutfitComposeScreenState extends State<OutfitComposeScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: context.lgBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(_isEdit ? '编辑搭配' : '创建搭配',
@@ -67,7 +67,10 @@ class _OutfitComposeScreenState extends State<OutfitComposeScreen> {
                 fontWeight: FontWeight.w800,
                 color: context.lgTextPrimary)),
       ),
-      body: Column(
+      // v4.0：浅灰渐变页面底（Scaffold 纯色兜底）
+      body: wnPageBackground(
+        context,
+        child: Column(
         children: [
           Expanded(
             child: p.inCabItems.isEmpty
@@ -101,6 +104,7 @@ class _OutfitComposeScreenState extends State<OutfitComposeScreen> {
           ),
           _tray(p),
         ],
+        ),
       ),
     );
   }
@@ -177,7 +181,7 @@ class _OutfitComposeScreenState extends State<OutfitComposeScreen> {
       child: LovePaper(
         margin: const EdgeInsets.all(10),
         padding: const EdgeInsets.all(12),
-        radius: 18,
+        radius: LoveGirlTheme.radiusLg,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

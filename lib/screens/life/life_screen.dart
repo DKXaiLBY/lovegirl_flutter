@@ -74,8 +74,9 @@ class _LifeScreenState extends State<LifeScreen>
   }
 
   Widget _buildHeader() {
-    return LoveTicketCard(
-      color: Colors.white,
+    // v4.0：头部卡脱票根形态（票根隐喻只保留票根类内容页），LovePaper 大圆角
+    // + 1px cardBorder 细线；色走 lgPaper 默认（深色态 cardDark），不写死白色
+    return LovePaper(
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
@@ -120,16 +121,16 @@ class _LifeScreenState extends State<LifeScreen>
   Widget _buildTabBar() {
     return LovePaper(
       padding: const EdgeInsets.all(4),
-      radius: 18,
-      elevated: false,
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
+          // v4.0 参考图③：选中态黑胶囊（lgInk 浅=黑/深=米白）
           borderRadius: BorderRadius.circular(14),
           color: context.lgInk,
         ),
         indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Colors.white,
+        // lgInk 深色态为近白，选中字须随之反转（黑底白字↔白底深字）
+        labelColor: context.lgIsDark ? LoveGirlTheme.bgDark : Colors.white,
         unselectedLabelColor: context.lgTextSecondary,
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
         unselectedLabelStyle:

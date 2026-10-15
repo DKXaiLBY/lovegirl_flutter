@@ -324,7 +324,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(245),
+        // v4.0：语义卡底（深色 cardDark），搜索框文字 token 自动跟随
+        color: context.lgPaper.withAlpha(245),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -395,7 +396,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   itemCount: _searchResults.length,
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
-                    color: Colors.black.withAlpha(12),
+                    color: context.lgSeparator,
                   ),
                   itemBuilder: (context, index) {
                     final poi = _searchResults[index];
@@ -529,7 +530,8 @@ class _RoundButton extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(245),
+            // v4.0：语义卡底（深色 cardDark），图标 token 自动跟随
+            color: context.lgPaper.withAlpha(245),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(

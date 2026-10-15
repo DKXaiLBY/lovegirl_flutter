@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/map_picker_screen.dart';
+import 'package:lovegirl_flutter/screens/travel/travel_status_style.dart';
 import 'package:lovegirl_flutter/utils/amap_api.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
@@ -323,7 +324,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           SnackBar(
             content: Text(_isEditing ? '修改成功' : '添加成功'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF4CAF50),
+            backgroundColor: LoveGirlTheme.visited,
           ),
         );
         Navigator.of(context).pop(true);
@@ -429,7 +430,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                     border: Border.all(
                       color: _cityError != null
                           ? LoveGirlTheme.red
-                          : Colors.black.withAlpha(15),
+                          : context.lgCardBorder,
                     ),
                   ),
                   child: Row(
@@ -474,11 +475,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              _statusChip('visited', '✅ 已打卡', const Color(0xFF4CAF50)),
+              _statusChip('visited', '✅ 已打卡'),
               const SizedBox(width: 8),
-              _statusChip('wish', '⭐ 心愿单', LoveGirlTheme.wish),
+              _statusChip('wish', '⭐ 心愿单'),
               const SizedBox(width: 8),
-              _statusChip('planned', '📋 计划中', const Color(0xFF9C27B0)),
+              _statusChip('planned', '📋 计划中'),
             ],
           ),
           const SizedBox(height: 20),
@@ -500,7 +501,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 decoration: BoxDecoration(
                   color: context.lgBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black.withAlpha(15)),
+                  border: Border.all(color: context.lgCardBorder),
                 ),
                 child: Row(
                   children: [
@@ -544,7 +545,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                       border: Border.all(
                         color: active
                             ? context.lgInk
-                            : Colors.black.withAlpha(10),
+                            : context.lgCardBorder,
                       ),
                     ),
                     child: Row(
@@ -596,7 +597,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                       border: Border.all(
                         color: active
                             ? context.lgInk
-                            : Colors.black.withAlpha(10),
+                            : context.lgCardBorder,
                       ),
                     ),
                     child: Row(
@@ -639,7 +640,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                     child: Icon(
                       starIdx <= _rating ? Icons.star : Icons.star_border,
                       color: starIdx <= _rating
-                          ? const Color(0xFFFFB800)
+                          ? context.lgSoftYellowText
                           : context.lgTextMuted,
                       size: 32,
                     ),
@@ -689,11 +690,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
                 decoration: BoxDecoration(
                   color: context.lgBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black.withAlpha(15)),
+                  border: Border.all(color: context.lgCardBorder),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.event, size: 18, color: Color(0xFF9C27B0)),
+                    Icon(Icons.event, size: 18, color: LoveGirlTheme.planned),
                     SizedBox(width: 10),
                     Text(
                       _plannedDate ?? '点击选择计划日期',
@@ -800,7 +801,7 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         decoration: BoxDecoration(
           color: context.lgBg,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black.withAlpha(15)),
+          border: Border.all(color: context.lgCardBorder),
         ),
         child: Row(
           children: [
@@ -877,7 +878,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         Text(text,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         if (required)
-          const Text(' *', style: TextStyle(color: Colors.red, fontSize: 14)),
+          const Text(' *',
+              style: TextStyle(color: LoveGirlTheme.red, fontSize: 14)),
       ],
     );
   }
@@ -891,11 +893,11 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.black.withAlpha(15)),
+        borderSide: BorderSide(color: context.lgCardBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.black.withAlpha(15)),
+        borderSide: BorderSide(color: context.lgCardBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -904,24 +906,26 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
     );
   }
 
-  Widget _statusChip(String value, String label, Color color) {
+  Widget _statusChip(String value, String label) {
     final active = _status == value;
+    // v4.0 状态粉彩浅底+深字（绿=已打卡/紫=计划/蜜桃浅底=想去）
+    final style = travelStatusStyle(context, value);
     return GestureDetector(
       onTap: () => setState(() => _status = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: active ? color.withAlpha(30) : context.lgBg,
+          color: active ? style.bg : context.lgBg,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: active ? color : Colors.black.withAlpha(10),
+            color: active ? style.fg : context.lgCardBorder,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 14,
-            color: active ? color : context.lgTextSecondary,
+            color: active ? style.fg : context.lgTextSecondary,
             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -1022,7 +1026,7 @@ class _CheckInStampOverlayState extends State<_CheckInStampOverlay>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 26, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withAlpha(235),
+                            color: LoveGirlTheme.visited.withAlpha(235),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                                 color: Colors.white, width: 4),

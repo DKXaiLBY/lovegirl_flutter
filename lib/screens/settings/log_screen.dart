@@ -66,7 +66,8 @@ class _LogScreenState extends State<LogScreen> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                      borderRadius:
+                          BorderRadius.circular(LoveGirlTheme.radiusXl)),
                   title: const Text('清除日志'),
                   content: const Text('确定清除全部开发者日志吗？此操作不可撤销。'),
                   actions: [
@@ -204,7 +205,8 @@ class _LogScreenState extends State<LogScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: context.lgCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

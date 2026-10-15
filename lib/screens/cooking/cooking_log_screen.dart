@@ -77,7 +77,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
           child: Container(
             decoration: const BoxDecoration(
               color: LoveGirlTheme.bgLight,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl)),
             ),
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
             child: Column(
@@ -123,7 +123,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                   decoration: InputDecoration(
                     hintText: '一句话点评（选填）',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: context.lgCard,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide: const BorderSide(color: LoveGirlTheme.separator)),
@@ -283,10 +283,11 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  // v4.0 徽章浅底（深色安全）
+                                  color: context.lgBadgeBg,
                                   borderRadius: BorderRadius.circular(999),
-                                  border:
-                                      Border.all(color: LoveGirlTheme.separator),
+                                  border: Border.all(
+                                      color: context.lgCardBorder),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -845,9 +846,10 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: LoveGirlTheme.bgLight,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        // v4.0 弹层底色走语义 token（深浅两态跟随）
+        decoration: BoxDecoration(
+          color: context.lgBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         child: SingleChildScrollView(
@@ -877,7 +879,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                   width: double.infinity,
                   height: 150,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.lgCard,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                         color: _photoUrl != null
@@ -930,7 +932,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                   errorText: _titleError,
                   hintText: '这道菜叫什么？*',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.lgCard,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide:
@@ -972,9 +974,9 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.lgCard,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: LoveGirlTheme.separator),
+                    border: Border.all(color: context.lgCardBorder),
                   ),
                   child: Row(
                     children: [
@@ -1013,7 +1015,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                 decoration: InputDecoration(
                   hintText: '食谱做法（选填，下次照着做）',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.lgCard,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide:
@@ -1033,7 +1035,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                 decoration: InputDecoration(
                   hintText: '小故事（选填，比如第一次做翻车了）',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.lgCard,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide:
@@ -1059,12 +1061,12 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                             decoration: BoxDecoration(
                               color: _emoji == e
                                   ? LoveGirlTheme.primary.withAlpha(25)
-                                  : Colors.white,
+                                  : context.lgCard,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                   color: _emoji == e
                                       ? LoveGirlTheme.primary
-                                      : LoveGirlTheme.separator),
+                                      : context.lgCardBorder),
                             ),
                             child:
                                 Text(e, style: const TextStyle(fontSize: 20)),
@@ -1096,12 +1098,12 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
         decoration: BoxDecoration(
           color: selected
               ? LoveGirlTheme.primary.withAlpha(25)
-              : Colors.white,
+              : context.lgCard,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
               color: selected
                   ? LoveGirlTheme.primary
-                  : LoveGirlTheme.separator),
+                  : context.lgCardBorder),
         ),
         child: Text(label,
             style: TextStyle(

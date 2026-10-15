@@ -136,7 +136,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: const Text('解除绑定'),
         content: const Text('确定要解除与TA的绑定关系吗？\n解除后，隐私设置和投喂站将受影响。'),
         actions: [

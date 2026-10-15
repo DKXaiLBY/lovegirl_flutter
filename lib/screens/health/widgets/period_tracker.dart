@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-import 'package:lovegirl_flutter/utils/constants.dart';
+import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
@@ -45,9 +45,9 @@ extension PeriodStatusExt on PeriodStatus {
   Color color(BuildContext context) {
     switch (this) {
       case PeriodStatus.menstrual: return context.lgInk;
-      case PeriodStatus.safe: return const Color(0xFF4CAF50);
-      case PeriodStatus.ovulation: return const Color(0xFFE040FB);
-      case PeriodStatus.premenstrual: return const Color(0xFF8E8E93);
+      case PeriodStatus.safe: return LoveGirlTheme.secondary;
+      case PeriodStatus.ovulation: return LoveGirlTheme.planned;
+      case PeriodStatus.premenstrual: return LoveGirlTheme.orange;
       case PeriodStatus.unknown: return context.lgTextMuted;
     }
   }
@@ -99,8 +99,9 @@ class PeriodAnalysis {
   String get regularityLabel {
     switch (regularity) { case 'regular': return '周期规律'; case 'irregular': return '不太规律'; default: return '数据不足'; }
   }
-  Color regularityColor(BuildContext context) {
-    switch (regularity) { case 'regular': return const Color(0xFF4CAF50); case 'irregular': return const Color(0xFF8E8E93); default: return context.lgTextMuted; }
+  /// v4.0：徽章语义色档（绿=规律/中性灰=其余），只走 getter 配对（深色安全）
+  LoveBadgeStyle get regularityBadgeStyle {
+    switch (regularity) { case 'regular': return LoveBadgeStyle.green; default: return LoveBadgeStyle.neutral; }
   }
 }
 
@@ -182,7 +183,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     return RefreshIndicator(
       onRefresh: _loadData,
       color: context.lgInk,
-      child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+      child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: [
         _buildStatusRing(),
         SizedBox(height: 16),
         _buildActionButton(),
@@ -213,8 +214,10 @@ class _PeriodTrackerState extends State<PeriodTracker> {
       padding: const EdgeInsets.symmetric(vertical: 28),
       decoration: BoxDecoration(
         color: context.lgCard,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg),
-        boxShadow: [BoxShadow(color: color.withAlpha(20), blurRadius: 24, offset: const Offset(0, 8))],
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        // v4.0：立体感交给 1px 细线描边（cardBorder），去掉旧的彩色大阴影
+        border: Border.all(color: context.lgCardBorder),
+        boxShadow: LoveGirlTheme.cardShadow(),
       ),
       child: Column(children: [
         Stack(alignment: Alignment.center, children: [
@@ -242,7 +245,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         onPressed: _isSaving ? null : _togglePeriod,
         icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Icon(isOnPeriod ? Icons.stop_circle_outlined : Icons.play_circle_outline),
         label: Text(isOnPeriod ? '标记经期结束' : '标记经期开始', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-        style: ElevatedButton.styleFrom(backgroundColor: LoveGirlTheme.pink, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.borderRadius))),
+        style: ElevatedButton.styleFrom(backgroundColor: context.lgInk, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
       ),
     );
   }
@@ -251,14 +254,19 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     final a = _analysis!;
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: context.lgCard, borderRadius: BorderRadius.circular(AppConstants.borderRadiusLg)),
+      decoration: BoxDecoration(
+        color: context.lgCard,
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        border: Border.all(color: context.lgCardBorder),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(Icons.analytics_outlined, size: 18, color: context.lgInk),
           SizedBox(width: 8),
           Text('周期分析', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           Spacer(),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: a.regularityColor(context).withAlpha(25), borderRadius: BorderRadius.circular(8)), child: Text(a.regularityLabel, style: TextStyle(fontSize: 12, color: a.regularityColor(context), fontWeight: FontWeight.w500))),
+          // v4.0：语义浅底徽章（LoveBadge getter 配对，深色安全）
+          LoveBadge(text: a.regularityLabel, style: a.regularityBadgeStyle),
         ]),
         SizedBox(height: 16),
         Row(children: [
@@ -282,9 +290,10 @@ class _PeriodTrackerState extends State<PeriodTracker> {
   Widget _buildHistory() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        Icon(Icons.history, size: 18, color: context.lgTextPrimary),
+        Icon(Icons.history, size: 18, color: context.lgTextSecondary),
         SizedBox(width: 8),
-        Text('近期记录', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        // v4.0：分组小标题弱化（muted 色，参考图⑩）
+        Text('近期记录', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.lgTextMuted, letterSpacing: 0.2)),
         Spacer(),
         Text('共 ${_periods.length} 次', style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
       ]),
@@ -298,9 +307,13 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: context.lgCard, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: context.lgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.lgCardBorder),
+      ),
       child: Row(children: [
-        Container(width: 3, height: 36, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), gradient: LinearGradient(colors: [context.lgInk, LoveGirlTheme.pinkLight]))),
+        Container(width: 3, height: 36, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), gradient: LinearGradient(colors: [context.lgInk, context.lgInk.withValues(alpha: 0.45)]))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${df.format(r.startDate)} - ${r.endDate != null ? df.format(r.endDate!) : '进行中'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
@@ -313,10 +326,10 @@ class _PeriodTrackerState extends State<PeriodTracker> {
             ]),
           ],
         ])),
-        if (r.endDate == null) Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: context.lgInk.withAlpha(25), borderRadius: BorderRadius.circular(14)), child: Text('进行中', style: TextStyle(fontSize: 12, color: context.lgInk, fontWeight: FontWeight.w500))),
+        if (r.endDate == null) LoveBadge(text: '进行中', style: LoveBadgeStyle.purple),
       ]),
     );
   }
 
-  Widget _tag(String text) => Container(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: context.lgInk.withAlpha(12), borderRadius: BorderRadius.circular(8)), child: Text(text, style: TextStyle(fontSize: 10, color: context.lgInk)));
+  Widget _tag(String text) => Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: context.lgBadgeBg, borderRadius: BorderRadius.circular(999)), child: Text(text, style: TextStyle(fontSize: 10, color: context.lgBadgeText, fontWeight: FontWeight.w600)));
 }

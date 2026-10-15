@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
+import 'package:lovegirl_flutter/screens/travel/travel_status_style.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
@@ -438,7 +439,7 @@ class _EmptyMapScaffold extends StatelessWidget {
                 ),
               const Spacer(),
               LoveTicketCard(
-                color: Colors.white,
+                color: context.lgPaper,
                 padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -556,9 +557,11 @@ class _TopOverlay extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(232),
+              // v4.0：悬浮卡走语义卡底（深色 cardDark），文字 token 自动跟随，
+              // 修复深色模式白底浅字不可读
+              color: context.lgPaper.withAlpha(242),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withAlpha(120)),
+              border: Border.all(color: context.lgCardBorder.withAlpha(120)),
               boxShadow: LoveGirlTheme.cardShadow(),
             ),
             child: Column(
@@ -640,7 +643,8 @@ class _RouteTicket extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(238),
+        // v4.0：语义卡底（深色 cardDark），同 _TopOverlay 深色可读性修复
+        color: context.lgPaper.withAlpha(242),
         borderRadius: BorderRadius.circular(26),
         boxShadow: LoveGirlTheme.cardShadow(),
       ),
@@ -723,7 +727,7 @@ class _SpotSheet extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: LoveTicketCard(
-          color: Colors.white,
+          color: context.lgPaper,
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           child: SingleChildScrollView(
             child: Column(
@@ -1074,7 +1078,7 @@ class _MapMountPlaceholder extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(232),
+          color: context.lgPaper.withAlpha(242),
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
@@ -1261,7 +1265,8 @@ class _NoticeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(236),
+        // v4.0：语义卡底（深色 cardDark），同上深色可读性修复
+        color: context.lgPaper.withAlpha(242),
         borderRadius: BorderRadius.circular(18),
         boxShadow: LoveGirlTheme.cardShadow(),
       ),
@@ -1313,7 +1318,8 @@ class _SmallNotice extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F6),
+        // v4.0：浅底走 primarySoft（深色 primarySoftDark），配 ink 描边
+        color: context.lgPrimarySoft,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.lgInk.withAlpha(48)),
       ),
@@ -1351,7 +1357,8 @@ class _CircleButton extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(235),
+            // v4.0：语义卡底（深色 cardDark），图标 token 自动跟随
+            color: context.lgPaper.withAlpha(235),
             shape: BoxShape.circle,
             boxShadow: LoveGirlTheme.cardShadow(),
           ),
@@ -1369,29 +1376,27 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // v4.0 状态语义对统一走 travelStatusStyle（绿=已打卡/紫=计划/蜜桃浅底=想去）
+    final style = travelStatusStyle(context, status);
     late final String text;
-    late final Color color;
 
     switch (status) {
       case 'visited':
         text = '已打卡';
-        color = LoveGirlTheme.visited;
         break;
       case 'planned':
         text = '计划中';
-        color = LoveGirlTheme.secondary;
         break;
       case 'wish':
       default:
         text = '想去';
-        color = context.lgInk;
         break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withAlpha(18),
+        color: style.bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -1399,7 +1404,7 @@ class _StatusBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
-          color: color,
+          color: style.fg,
         ),
       ),
     );

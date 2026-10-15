@@ -186,14 +186,15 @@ class _BeansScreenState extends State<BeansScreen>
           Container(
             width: 54,
             height: 54,
+            // v4.0 豆子奶油块 -> softYellow 语义浅底对（深色走 getter 不回亮）
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF0D9),
+              color: context.lgSoftYellowBg,
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: const Color(0xFFF1D4B1)),
+              border: Border.all(color: context.lgSoftYellowBg),
             ),
-            child: const Center(
+            child: Center(
                 child: Icon(Icons.savings_rounded,
-                    size: 28, color: Color(0xFFB8860B))),
+                    size: 28, color: context.lgSoftYellowText)),
           ),
           SizedBox(width: 14),
           Expanded(
@@ -267,8 +268,8 @@ class _BeansScreenState extends State<BeansScreen>
                                   size: 24,
                                   color: LoveGirlTheme.secondary)
                               : const SizedBox.shrink())
-                          : const Icon(Icons.savings_outlined,
-                              size: 22, color: Color(0xFFB8860B)),
+                          : Icon(Icons.savings_outlined,
+                              size: 22, color: context.lgSoftYellowText),
                     ),
                   );
                 },
@@ -332,8 +333,8 @@ class _BeansScreenState extends State<BeansScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: context.lgPaper,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.lgSeparator.withAlpha(90)),
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
+          border: Border.all(color: context.lgCardBorder),
         ),
         child: Row(
           children: [
@@ -342,7 +343,7 @@ class _BeansScreenState extends State<BeansScreen>
                   ? Icons.savings_rounded
                   : Icons.shopping_bag_outlined,
               size: 20,
-              color: positive ? const Color(0xFFB8860B) : context.lgTextMuted,
+              color: positive ? context.lgSoftYellowText : context.lgTextMuted,
             ),
             SizedBox(width: 12),
             Expanded(
@@ -518,7 +519,7 @@ class _BeanBurstPainter extends CustomPainter {
       final pos = origin +
           Offset(cos(angle) * speed * t * 1.6,
               sin(angle) * speed * t + 42 * t * t);
-      paint.color = const Color(0xFF8E8E93)
+      paint.color = LoveGirlTheme.orange
           .withAlpha(((1 - t) * 255).toInt().clamp(0, 255));
       canvas.drawCircle(pos, 3.4 * (1 - t * 0.5), paint);
     }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' show ImageByteFormat;
+import 'dart:ui' show ImageByteFormat, ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +99,9 @@ class _PhotoScreenState extends State<PhotoScreen> {
           final ok = await showDialog<bool>(
             context: context,
             builder: (dCtx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(LoveGirlTheme.radiusLg)),
               title: const Text('这张照片带着位置记忆'),
               content: const Text('要把它添加为旅行地点吗？坐标会自动填好。'),
               actions: [
@@ -173,8 +175,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg)),
         title: Text('删除 $n 张照片？',
             style: const TextStyle(fontSize: 16)),
         content: const Text('删除后不可恢复',
@@ -285,28 +287,37 @@ class _PhotoScreenState extends State<PhotoScreen> {
           child: Container(
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(ctx).size.height * 0.88),
-            decoration: const BoxDecoration(
-              // 参考图：灰米纸面（拍立得放在纸面上，不是放在白色表单上）
-              color: Color(0xFFE9E4DC),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            decoration: BoxDecoration(
+              // v4.0 弹层统一口径：毛玻璃白 72% + radiusXl 28（参考图⑦）
+              color: context.lgPaper.withValues(alpha: 0.72),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border(
+                top: BorderSide(color: context.lgCardBorder),
+              ),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-            child: Stack(
-              children: [
-                // 纸面纹理
-                const Positioned.fill(
-                  child: IgnorePointer(
-                    child: Opacity(
-                      opacity: 0.4,
-                      child: Image(
-                        image:
-                            AssetImage('assets/images/deco/paper_grain.png'),
-                        repeat: ImageRepeat.repeat,
+            child: ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Stack(
+                  children: [
+                    // 纸面纹理保留（拍立得纸面隐喻；随玻璃口径降透明度）
+                    const Positioned.fill(
+                      child: IgnorePointer(
+                        child: Opacity(
+                          opacity: 0.18,
+                          child: Image(
+                            image: AssetImage(
+                                'assets/images/deco/paper_grain.png'),
+                            repeat: ImageRepeat.repeat,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                SingleChildScrollView(
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
               child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +327,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: LoveGirlTheme.separator,
+                      color: context.lgCardBorder,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -407,14 +418,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 7),
                           decoration: BoxDecoration(
+                            // v4.0：黑胶囊选中 / 白卡细线未选中（深色态底跟 lgCard）
                             color: themeIdx == th.index
                                 ? context.lgInk
-                                : Colors.white,
+                                : context.lgCard,
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
                               color: themeIdx == th.index
                                   ? context.lgInk
-                                  : LoveGirlTheme.separator,
+                                  : context.lgCardBorder,
                             ),
                           ),
                           child: Text(
@@ -470,15 +482,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   decoration: InputDecoration(
                     hintText: '写点什么…（拍照那天的心情、当时的梗）',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: context.lgCard,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide:
-                            const BorderSide(color: LoveGirlTheme.separator)),
+                            BorderSide(color: context.lgCardBorder)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide:
-                            const BorderSide(color: LoveGirlTheme.separator)),
+                            BorderSide(color: context.lgCardBorder)),
                     counterText: '',
                   ),
                 ),
@@ -494,15 +506,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   decoration: InputDecoration(
                     hintText: '比如：这是我们一起看的第一场海',
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: context.lgCard,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide:
-                            const BorderSide(color: LoveGirlTheme.separator)),
+                            BorderSide(color: context.lgCardBorder)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
                         borderSide:
-                            const BorderSide(color: LoveGirlTheme.separator)),
+                            BorderSide(color: context.lgCardBorder)),
                     counterText: '',
                   ),
                 ),
@@ -518,7 +530,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: context.lgInk,
                           side:
-                              const BorderSide(color: LoveGirlTheme.separator),
+                              BorderSide(color: context.lgCardBorder),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -609,9 +621,11 @@ class _PhotoScreenState extends State<PhotoScreen> {
                   ],
                 ),
               ],
-            ),
+              ),
             ),
               ],
+            ),
+              ),
             ),
           ),
         ),
@@ -637,14 +651,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active && !disabled ? context.lgInk : Colors.white,
+          // v4.0：黑胶囊选中 / 白卡细线未选中（深色态底跟 lgCard）
+          color: active && !disabled ? context.lgInk : context.lgCard,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: disabled
-                ? LoveGirlTheme.separator.withAlpha(90)
+                ? context.lgCardBorder.withValues(alpha: 0.45)
                 : active
                     ? context.lgInk
-                    : LoveGirlTheme.separator,
+                    : context.lgCardBorder,
           ),
         ),
         child: Row(
@@ -654,7 +669,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
               icon,
               size: 14,
               color: disabled
-                  ? LoveGirlTheme.textMuted
+                  ? context.lgTextMuted
                   : active
                       ? Colors.white
                       : context.lgTextSecondary,
@@ -666,7 +681,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: disabled
-                    ? LoveGirlTheme.textMuted
+                    ? context.lgTextMuted
                     : active
                         ? Colors.white
                         : context.lgTextPrimary,
@@ -685,8 +700,9 @@ class _PhotoScreenState extends State<PhotoScreen> {
     final v = await showDialog<String>(
       context: sheetCtx,
       builder: (dctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: context.lgPaper,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg)),
         title: const Text('白框手写字',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
         content: TextField(
@@ -766,12 +782,24 @@ class _PhotoScreenState extends State<PhotoScreen> {
                     : const Icon(Icons.add_rounded, size: 28),
               ),
         body: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/deco/paper_texture.png'),
-              repeat: ImageRepeat.repeat,
-              opacity: 0.55,
-            ),
+          // v4.0：浅灰渐变底（LovePage 同款 135° surfaceGradient）+ 纸纹理弱化叠印
+          //（相册纸面隐喻保留，纹理 0.55→0.16 让位于冷灰光感；深色维持纯色不上渐变）
+          decoration: BoxDecoration(
+            color: context.lgBg,
+            gradient: context.lgIsDark
+                ? null
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: LoveGirlTheme.surfaceGradient,
+                  ),
+            image: context.lgIsDark
+                ? null
+                : const DecorationImage(
+                    image: AssetImage('assets/images/deco/paper_texture.png'),
+                    repeat: ImageRepeat.repeat,
+                    opacity: 0.16,
+                  ),
           ),
           child: _uploading && _photos.isEmpty
               ? const Center(

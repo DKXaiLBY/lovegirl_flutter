@@ -72,7 +72,7 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: context.lgBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(_isEdit ? '编辑单品' : '添加单品',
@@ -81,7 +81,10 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
                 fontWeight: FontWeight.w800,
                 color: context.lgTextPrimary)),
       ),
-      body: ListView(
+      // v4.0：浅灰渐变页面底（Scaffold 纯色兜底）
+      body: wnPageBackground(
+        context,
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
           _imageArea(p),
@@ -131,11 +134,8 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
                   decoration: InputDecoration(
                     counterText: '',
                     labelText: '品牌（选填）',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: context.lgSeparator)),
+                    // v4.0 卡面 token（深浅两态安全），描边走主题细线
+                    fillColor: context.lgCard,
                   ),
                 ),
               ),
@@ -147,11 +147,7 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: '价格 ¥（选填）',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: context.lgSeparator)),
+                    fillColor: context.lgCard,
                   ),
                 ),
               ),
@@ -163,6 +159,7 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
             onPressed: _saving ? null : () => _save(p),
           ),
         ],
+      ),
       ),
     );
   }
@@ -179,11 +176,11 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
   Widget _imageArea(WardrobeProvider p) {
     return LovePaper(
       padding: EdgeInsets.zero,
-      radius: 18,
+      radius: LoveGirlTheme.radiusLg,
       child: AspectRatio(
         aspectRatio: 1,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
           child: Stack(
             fit: StackFit.expand,
             children: [

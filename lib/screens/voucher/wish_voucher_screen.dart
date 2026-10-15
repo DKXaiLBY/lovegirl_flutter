@@ -79,7 +79,7 @@ class _WishVoucherScreenState extends State<WishVoucherScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(ctx).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: Text('兑换「${v['title']}」？',
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
         content: Text(
@@ -508,7 +508,7 @@ class _MyVoucherRow extends StatelessWidget {
           builder: (ctx) => AlertDialog(
             backgroundColor: Theme.of(ctx).colorScheme.surface,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
             title: Text('删除「${v['title']}」？',
                 style:
                     const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),

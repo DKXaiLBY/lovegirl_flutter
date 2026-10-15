@@ -124,7 +124,7 @@ class WardrobeItemDetailScreen extends StatelessWidget {
           const SizedBox(height: 14),
           LovePaper(
             padding: const EdgeInsets.all(14),
-            radius: 16,
+            radius: LoveGirlTheme.radius,
             child: Column(
               children: [
                 _row(context, '品牌', item.brand?.isNotEmpty == true ? item.brand! : '—'),
@@ -153,7 +153,7 @@ class WardrobeItemDetailScreen extends StatelessWidget {
                               OutfitDetailScreen(outfitId: o.id))),
                   child: LovePaper(
                     padding: const EdgeInsets.all(10),
-                    radius: 16,
+                    radius: LoveGirlTheme.radius,
                     child: Row(
                       children: [
                         WnOutfitCover(o, size: 52),
@@ -299,10 +299,9 @@ class WardrobeItemDetailScreen extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
-        child: LovePaper(
-          margin: const EdgeInsets.all(12),
+        // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+        child: WnGlassSheet(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          radius: 20,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

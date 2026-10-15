@@ -52,7 +52,7 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: context.lgBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(_isEdit ? '编辑实拍' : '记录今天穿搭',
@@ -61,7 +61,10 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
                 fontWeight: FontWeight.w800,
                 color: context.lgTextPrimary)),
       ),
-      body: ListView(
+      // v4.0：浅灰渐变页面底（Scaffold 纯色兜底）
+      body: wnPageBackground(
+        context,
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
           _photoArea(),
@@ -80,9 +83,9 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.lgBadgeBg,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: context.lgSeparator),
+                    border: Border.all(color: context.lgCardBorder),
                   ),
                   child: Row(children: [
                     Icon(Icons.event_rounded,
@@ -154,11 +157,7 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
             decoration: InputDecoration(
               counterText: '',
               hintText: '今天的穿搭心情…（选填）',
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: context.lgSeparator)),
+              fillColor: context.lgCard,
             ),
           ),
           const SizedBox(height: 22),
@@ -168,17 +167,18 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _photoArea() {
     return LovePaper(
       padding: EdgeInsets.zero,
-      radius: 18,
+      radius: LoveGirlTheme.radiusLg,
       child: AspectRatio(
         aspectRatio: 3 / 4,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -257,15 +257,10 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) => SafeArea(
-        child: Container(
+        child: WnGlassSheet(
           constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.65),
-          margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.lgCard,
-            borderRadius: BorderRadius.circular(20),
-          ),
           child: Column(
             children: [
               Text('关联衣柜单品（可跳过）',

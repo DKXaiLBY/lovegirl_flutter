@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
+import 'package:lovegirl_flutter/screens/travel/travel_status_style.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
 import 'package:lovegirl_flutter/widgets/travel_photo_grid.dart';
 import 'package:lovegirl_flutter/widgets/city_picker.dart';
@@ -393,7 +394,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                             children: [
                               SlidableAction(
                                 onPressed: (_) => _togglePin(context, spot),
-                                backgroundColor: const Color(0xFF6B7A8F),
+                                backgroundColor: LoveGirlTheme.primaryLight,
                                 foregroundColor: Colors.white,
                                 icon: spot.pinned == 1
                                     ? Icons.push_pin_outlined
@@ -499,8 +500,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: context.lgPaper,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: context.lgSeparator),
+                borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+                border: Border.all(color: context.lgCardBorder),
               ),
               child: Column(
                 children: [
@@ -528,8 +529,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: context.lgPaper,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: context.lgSeparator),
+                  borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+                  border: Border.all(color: context.lgCardBorder),
                 ),
                 child: Row(
                   children: [
@@ -789,7 +790,9 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               label: Text(f['label']!),
               selected: active,
               onSelected: (_) => provider.setStatus(f['key']!),
-              selectedColor: LoveGirlTheme.primary.withAlpha(30),
+              // v4.0 选中态：中性浅底 token（深色 primarySoftDark 自动跟随）
+              selectedColor: context.lgPrimarySoft,
+              checkmarkColor: context.lgInk,
               labelStyle: TextStyle(
                 fontSize: 12,
                 color: active
@@ -892,22 +895,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   }
 }
 
-Color _statusColor(BuildContext context, String status) {
-  switch (status) {
-    case 'visited':
-      return const Color(0xFF4CAF50);
-    case 'wish':
-      return LoveGirlTheme.wish;
-    case 'planned':
-      return const Color(0xFF9C27B0);
-    default:
-      return context.lgInk;
-  }
-}
-
-
-
-
 class _SpotCard extends StatefulWidget {
   final TravelSpot spot;
   final int index;
@@ -959,7 +946,9 @@ class _SpotCardState extends State<_SpotCard>
   @override
   Widget build(BuildContext context) {
     final spot = widget.spot;
-    final color = _statusColor(context, spot.status);
+    // v4.0 状态语义对：粉彩浅底+深字（bar/图标用深字档保对比）
+    final style = travelStatusStyle(context, spot.status);
+    final color = style.fg;
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -968,13 +957,13 @@ class _SpotCardState extends State<_SpotCard>
         child: LovePaper(
           padding: EdgeInsets.zero,
           margin: const EdgeInsets.only(bottom: 10),
-          radius: 14,
+          radius: LoveGirlTheme.radius,
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
                 border: Border(
                   left: BorderSide(color: color, width: 3),
                 ),
@@ -987,7 +976,7 @@ class _SpotCardState extends State<_SpotCard>
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: color.withAlpha(20),
+                        color: style.bg,
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Center(
@@ -1018,15 +1007,14 @@ class _SpotCardState extends State<_SpotCard>
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color:
-                                        LoveGirlTheme.secondary.withAlpha(14),
+                                    color: context.lgSoftGreenBg,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
                                     spot.creatorNickname!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: LoveGirlTheme.secondary,
+                                      color: context.lgSoftGreenText,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -1050,8 +1038,9 @@ class _SpotCardState extends State<_SpotCard>
                                 SizedBox(width: 8),
                                 ...List.generate(
                                     spot.rating!,
-                                    (_) => const Icon(Icons.star,
-                                        size: 12, color: Color(0xFFFFB800))),
+                                    (_) => Icon(Icons.star,
+                                        size: 12,
+                                        color: context.lgSoftYellowText)),
                               ],
                             ],
                           ),
@@ -1092,13 +1081,13 @@ class _SpotCardState extends State<_SpotCard>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: color.withAlpha(20),
+                        color: style.bg,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(_statusLabel(spot.status),
                           style: TextStyle(
                               fontSize: 12,
-                              color: color,
+                              color: style.fg,
                               fontWeight: FontWeight.w600)),
                     ),
                   ],
@@ -1198,7 +1187,6 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           SnackBar(
             content: Text('\u6dfb\u52a0\u6210\u529f'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF4CAF50),
           ),
         );
       }
@@ -1227,7 +1215,8 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
       ),
       decoration: BoxDecoration(
         color: context.lgCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(LoveGirlTheme.radiusXl)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1238,7 +1227,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.black12,
+                color: context.lgCardBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1295,23 +1284,11 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           const SizedBox(height: 12),
           Row(
             children: [
-              _statusChip(
-                'visited',
-                '\u2713 \u5df2\u6253\u5361',
-                const Color(0xFF4CAF50),
-              ),
+              _statusChip('visited', '\u2713 \u5df2\u6253\u5361'),
               const SizedBox(width: 8),
-              _statusChip(
-                'wish',
-                '\u2605 \u5fc3\u613f\u5355',
-                LoveGirlTheme.wish,
-              ),
+              _statusChip('wish', '\u2605 \u5fc3\u613f\u5355'),
               const SizedBox(width: 8),
-              _statusChip(
-                'planned',
-                '\uD83D\uDDD3 \u8ba1\u5212\u4e2d',
-                const Color(0xFF9C27B0),
-              ),
+              _statusChip('planned', '\uD83D\uDDD3 \u8ba1\u5212\u4e2d'),
             ],
           ),
           const SizedBox(height: 16),
@@ -1348,24 +1325,26 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     );
   }
 
-  Widget _statusChip(String value, String label, Color color) {
+  Widget _statusChip(String value, String label) {
     final active = _status == value;
+    // v4.0 状态粉彩浅底+深字（绿=已打卡/紫=计划/蜜桃浅底=想去）
+    final style = travelStatusStyle(context, value);
     return GestureDetector(
       onTap: () => setState(() => _status = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? color.withAlpha(30) : context.lgBg,
+          color: active ? style.bg : context.lgBg,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: active ? color : Colors.black.withAlpha(10),
+            color: active ? style.fg : context.lgCardBorder,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
-            color: active ? color : context.lgTextSecondary,
+            color: active ? style.fg : context.lgTextSecondary,
             fontWeight: active ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -1447,13 +1426,16 @@ class _SpotDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(context, spot.status);
+    // v4.0 状态语义统一：粉彩浅底+深字（绿=已打卡/紫=计划/蜜桃浅底=想去）
+    final style = travelStatusStyle(context, spot.status);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       decoration: BoxDecoration(
-        color: context.lgPaperWarm,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        // v4.0 弹层统一口径：大圆角 radiusXl + 白卡浅底（参考图⑦形态）
+        color: context.lgPaper,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(LoveGirlTheme.radiusXl)),
       ),
       child: SafeArea(
         top: false,
@@ -1481,14 +1463,14 @@ class _SpotDetailSheet extends StatelessWidget {
                     padding:
                         EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: color.withAlpha(18),
+                      color: style.bg,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       _statusLabel(spot.status),
                       style: TextStyle(
                         fontSize: 12,
-                        color: color,
+                        color: style.fg,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1509,7 +1491,7 @@ class _SpotDetailSheet extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: color.withAlpha(18),
+                      color: style.bg,
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Center(
@@ -1725,19 +1707,6 @@ class _SpotDetailSheet extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Color _statusColor(BuildContext context, String status) {
-    switch (status) {
-      case 'visited':
-        return const Color(0xFF4CAF50);
-      case 'wish':
-        return const Color(0xFF8E8E93);
-      case 'planned':
-        return const Color(0xFF9C27B0);
-      default:
-        return context.lgInk;
-    }
   }
 
   String _statusLabel(String status) {

@@ -44,7 +44,7 @@ class OutfitDetailScreen extends StatelessWidget {
                 color: context.lgTextPrimary)),
         actions: [
           IconButton(
-            icon: Icon(Icons.delete_rounded, color: const Color(0xFFE95B4E)),
+            icon: const Icon(Icons.delete_rounded, color: LoveGirlTheme.red),
             onPressed: () => _delete(context, p, o),
           ),
         ],

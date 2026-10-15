@@ -5,6 +5,7 @@ import '../../models/wardrobe.dart';
 import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import 'widgets/wardrobe_widgets.dart';
 
 /// P14 三层钻取（M2b，源自阿Fi不在案例）：维度 → 标签 → 预填现有筛选
 /// 第一层=主页四维度圆片；第二层=本面板（维度下的标签列表+计数）；
@@ -42,15 +43,9 @@ class WardrobeDimensionSheet extends StatelessWidget {
         }).length;
 
     return SafeArea(
-      child: Container(
+      child: WnGlassSheet(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.65),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(22),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -90,7 +85,7 @@ class WardrobeDimensionSheet extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: LovePaper(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        radius: 14,
+        radius: LoveGirlTheme.radius,
         child: ListTile(
           contentPadding: EdgeInsets.zero,
           dense: true,
@@ -99,14 +94,14 @@ class WardrobeDimensionSheet extends StatelessWidget {
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
                   color: context.lgTextPrimary)),
+          // v4.0 疏朗行：文字计数 + 行尾中性徽章 + chevron（参考图④）
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('$count 件',
-                  style: TextStyle(
-                      fontSize: 12, color: context.lgTextMuted)),
+              LoveBadge(count: count),
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right_rounded, color: context.lgTextMuted),
+              Icon(Icons.chevron_right_rounded,
+                  size: 20, color: context.lgTextMuted),
             ],
           ),
           onTap: () {

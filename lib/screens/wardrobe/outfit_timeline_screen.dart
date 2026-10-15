@@ -84,7 +84,7 @@ class OutfitTimelineScreen extends StatelessWidget {
       onLongPress: () => _menu(context, p, o),
       child: LovePaper(
         padding: const EdgeInsets.all(10),
-        radius: 16,
+        radius: LoveGirlTheme.radius,
         child: Row(
           children: [
             WnOutfitCover(o, size: 68),
@@ -160,22 +160,23 @@ class OutfitTimelineScreen extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
-        child: LovePaper(
-          margin: const EdgeInsets.all(12),
+        // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+        child: WnGlassSheet(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          radius: 20,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final (label, icon, action) in items)
                 ListTile(
                   leading: Icon(icon,
-                      color: label == '删除' ? const Color(0xFFE95B4E) : context.lgInk),
+                      color: label == '删除'
+                          ? LoveGirlTheme.red
+                          : context.lgInk),
                   title: Text(label,
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: label == '删除'
-                              ? const Color(0xFFE95B4E)
+                              ? LoveGirlTheme.red
                               : context.lgTextPrimary)),
                   onTap: () async {
                     Navigator.pop(ctx);

@@ -1,6 +1,6 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/app_icon.dart';
@@ -32,31 +32,48 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     '第8节',
   ];
 
+  // v4.0 课程色板收敛（v4-ui-token-plan §4 生活页分类色板行）：
+  // Stripe 高饱靛蓝 10 色退役，换低饱和粉彩版（色相语义保留、饱和度降档，
+  // 参考图⑧课程表浅底卡）；新增课程才写新 hex，旧 hex 由 _legacyHex 归一
   static const _defaultColors = [
-    Color(0xFF635BFF),
-    Color(0xFF7B8CFF),
-    Color(0xFF00D4AA),
-    Color(0xFF8E8E93),
-    Color(0xFF9C27B0),
-    Color(0xFF2196F3),
-    Color(0xFF4CAF50),
-    Color(0xFFE91E63),
-    Color(0xFF3F51B5),
-    Color(0xFF009688),
+    Color(0xFF63609E), // 靛蓝→softPurpleText
+    Color(0xFFB58860), // 粉红→暖棕（mood 10 色同源）
+    Color(0xFF4DB6A2), // 薄荷绿降饱和
+    Color(0xFF9E9EAD), // 中性灰
+    Color(0xFFB0ACDD), // 紫→softPurpleText 深色档
+    Color(0xFF3A689F), // 蓝→softBlueText
+    Color(0xFF356B47), // 绿→softGreenText
+    Color(0xFFA8431F), // 玫红→softOrangeText
+    Color(0xFF5B6EA8), // 靛青→mood 难过同源
+    Color(0xFF4DB6A2), // 青绿→薄荷同源
   ];
 
   static const _colorHex = [
-    '#635BFF',
-    '#FF6B8A',
-    '#00D4AA',
-    '#FF9800',
-    '#9C27B0',
-    '#2196F3',
-    '#4CAF50',
-    '#E91E63',
-    '#3F51B5',
-    '#009688',
+    '#63609E',
+    '#B58860',
+    '#4DB6A2',
+    '#9E9EAD',
+    '#B0ACDD',
+    '#3A689F',
+    '#356B47',
+    '#A8431F',
+    '#5B6EA8',
+    '#4DB6A2',
   ];
+
+  /// 旧高饱 hex → 新低饱和版归一（老课程数据兼容；键=历史 _colorHex 全集）
+  static const _legacyHex = {
+    '#635BFF': '#63609E',
+    '#FF6B8A': '#B58860',
+    '#00D4AA': '#4DB6A2',
+    '#FF9800': '#A8431F',
+    '#9C27B0': '#B0ACDD',
+    '#2196F3': '#3A689F',
+    '#4CAF50': '#356B47',
+    '#E91E63': '#A8431F',
+    '#3F51B5': '#5B6EA8',
+    '#009688': '#4DB6A2',
+  };
 
   // 节次 → 开始时间映射（中国高校标准作息）
   static const _sectionStartTimes = [
@@ -126,331 +143,340 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
+      // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => ClipPath(
-          clipper: TopOrganicClipper(radius: 24),
-          child: Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 24,
-            ),
-            decoration: BoxDecoration(
-              color: context.lgCard,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(15),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+        builder: (ctx, setSheetState) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(LoveGirlTheme.radiusXl),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 24,
+              ),
+              decoration: BoxDecoration(
+                color: context.lgCard.withValues(alpha: 0.72),
+                border: Border(
+                  top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: context.lgTextMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: context.lgTextMuted.withValues(alpha: 0.24),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  '添加课程',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-                SizedBox(height: 20),
-                TextField(
-                  controller: nameCtrl,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    labelText: '课程名称',
-                    hintText: '例如：高等数学',
-                    prefixIcon: Icon(
-                      Icons.book_rounded,
-                      color: context.lgInk,
+                  SizedBox(height: 20),
+                  Text(
+                    '添加课程',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: context.lgTextPrimary,
                     ),
                   ),
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: teacherCtrl,
-                  decoration: InputDecoration(
-                    labelText: '授课教师（选填）',
-                    hintText: '教师姓名',
-                    prefixIcon: Icon(
-                      Icons.person_rounded,
-                      color: context.lgTextMuted,
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: nameCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: '课程名称',
+                      hintText: '例如：高等数学',
+                      prefixIcon: Icon(
+                        Icons.book_rounded,
+                        color: context.lgInk,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: roomCtrl,
-                  decoration: InputDecoration(
-                    labelText: '教室（选填）',
-                    hintText: '例如：教3-201',
-                    prefixIcon: Icon(
-                      Icons.meeting_room_rounded,
-                      color: context.lgTextMuted,
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: teacherCtrl,
+                    decoration: InputDecoration(
+                      labelText: '授课教师（选填）',
+                      hintText: '教师姓名',
+                      prefixIcon: Icon(
+                        Icons.person_rounded,
+                        color: context.lgTextMuted,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '上课时间',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: context.lgTextSecondary,
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: roomCtrl,
+                    decoration: InputDecoration(
+                      labelText: '教室（选填）',
+                      hintText: '例如：教3-201',
+                      prefixIcon: Icon(
+                        Icons.meeting_room_rounded,
+                        color: context.lgTextMuted,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: List.generate(7, (i) {
-                      final day = i + 1;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Text(
-                            _weekDays[i],
-                            style: const TextStyle(fontSize: 13),
+                  const SizedBox(height: 16),
+                  Text(
+                    '上课时间',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: context.lgTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: List.generate(7, (i) {
+                        final day = i + 1;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ChoiceChip(
+                            label: Text(
+                              _weekDays[i],
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            selected: dayOfWeek == day,
+                            selectedColor: context.lgPrimarySoft,
+                            labelStyle: TextStyle(
+                              color: dayOfWeek == day
+                                  ? context.lgInk
+                                  : context.lgTextSecondary,
+                              fontWeight: dayOfWeek == day
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            side: BorderSide(
+                              color: dayOfWeek == day
+                                  ? context.lgInk.withAlpha(80)
+                                  : context.lgCardBorder,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            onSelected: (_) =>
+                                setSheetState(() => dayOfWeek = day),
                           ),
-                          selected: dayOfWeek == day,
-                          selectedColor: LoveGirlTheme.primary.withAlpha(30),
-                          labelStyle: TextStyle(
-                            color: dayOfWeek == day
-                                ? context.lgInk
-                                : context.lgTextSecondary,
-                            fontWeight: dayOfWeek == day
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                          side: BorderSide(
-                            color: dayOfWeek == day
-                                ? context.lgInk.withAlpha(80)
-                                : context.lgTextMuted.withAlpha(40),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          onSelected: (_) =>
-                              setSheetState(() => dayOfWeek = day),
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '开始节次',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: context.lgTextSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: context.lgPrimarySoft,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: startSection,
+                                  isExpanded: true,
+                                  items: List.generate(
+                                    7,
+                                    (i) => DropdownMenuItem(
+                                      value: i + 1,
+                                      child: Text('第${i + 1}节'),
+                                    ),
+                                  ),
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setSheetState(() {
+                                        startSection = v;
+                                        if (endSection < v) {
+                                          endSection = v;
+                                        }
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '开始节次',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: context.lgTextSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: context.lgBg,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: startSection,
-                                isExpanded: true,
-                                items: List.generate(
-                                  7,
-                                  (i) => DropdownMenuItem(
-                                    value: i + 1,
-                                    child: Text('第${i + 1}节'),
-                                  ),
-                                ),
-                                onChanged: (v) {
-                                  if (v != null) {
-                                    setSheetState(() {
-                                      startSection = v;
-                                      if (endSection < v) {
-                                        endSection = v;
-                                      }
-                                    });
-                                  }
-                                },
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '结束节次',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: context.lgTextSecondary,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '结束节次',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: context.lgTextSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: context.lgBg,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: endSection,
-                                isExpanded: true,
-                                items: List.generate(
-                                  8 - startSection,
-                                  (i) => DropdownMenuItem(
-                                    value: startSection + i,
-                                    child: Text('第${startSection + i}节'),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: context.lgPrimarySoft,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: endSection,
+                                  isExpanded: true,
+                                  items: List.generate(
+                                    8 - startSection,
+                                    (i) => DropdownMenuItem(
+                                      value: startSection + i,
+                                      child: Text('第${startSection + i}节'),
+                                    ),
                                   ),
+                                  onChanged: (v) {
+                                    if (v != null) {
+                                      setSheetState(() => endSection = v);
+                                    }
+                                  },
                                 ),
-                                onChanged: (v) {
-                                  if (v != null) {
-                                    setSheetState(() => endSection = v);
-                                  }
-                                },
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '课程颜色',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: context.lgTextSecondary,
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 32,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: List.generate(_defaultColors.length, (i) {
-                      final isSelected = colorIndex == i;
-                      return GestureDetector(
-                        onTap: () => setSheetState(() => colorIndex = i),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            color: _defaultColors[i],
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(
+                  const SizedBox(height: 16),
+                  Text(
+                    '课程颜色',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: context.lgTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 32,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: List.generate(_defaultColors.length, (i) {
+                        final isSelected = colorIndex == i;
+                        return GestureDetector(
+                          onTap: () => setSheetState(() => colorIndex = i),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: _defaultColors[i],
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(
+                                      // 白卡上白描边不可见：选中态外扩细线随卡底
+                                      color:
+                                          context.lgCard.withValues(alpha: 0.9),
+                                      width: 3,
+                                    )
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: _defaultColors[i].withAlpha(100),
+                                        blurRadius: 8,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
                                     color: Colors.white,
-                                    width: 3,
+                                    size: 16,
                                   )
                                 : null,
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: _defaultColors[i].withAlpha(100),
-                                      blurRadius: 8,
-                                    ),
-                                  ]
-                                : null,
                           ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 16,
-                                )
-                              : null,
-                        ),
-                      );
-                    }),
+                        );
+                      }),
+                    ),
                   ),
-                ),
-                SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty) return;
-                      try {
-                        final startTime = _sectionStartTimes[startSection - 1];
-                        final endTime = _sectionEndTimes[endSection - 1];
-                        await _api.createCourse({
-                          'courseName': nameCtrl.text.trim(),
-                          'teacher': teacherCtrl.text.trim(),
-                          'classroom': roomCtrl.text.trim(),
-                          'dayOfWeek': dayOfWeek,
-                          'startTime': startTime,
-                          'endTime': endTime,
-                          'weekType': 'every',
-                          'startWeek': 1,
-                          'endWeek': 20,
-                          'color': _colorHex[colorIndex],
-                        });
-                        if (!ctx.mounted) return;
-                        Navigator.pop(ctx);
-                        await _loadCourses();
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                                content: Text('添加失败: $e'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2)),
-                          );
+                  SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (nameCtrl.text.trim().isEmpty) return;
+                        try {
+                          final startTime =
+                              _sectionStartTimes[startSection - 1];
+                          final endTime = _sectionEndTimes[endSection - 1];
+                          await _api.createCourse({
+                            'courseName': nameCtrl.text.trim(),
+                            'teacher': teacherCtrl.text.trim(),
+                            'classroom': roomCtrl.text.trim(),
+                            'dayOfWeek': dayOfWeek,
+                            'startTime': startTime,
+                            'endTime': endTime,
+                            'weekType': 'every',
+                            'startWeek': 1,
+                            'endWeek': 20,
+                            'color': _colorHex[colorIndex],
+                          });
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          await _loadCourses();
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                  content: Text('添加失败: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2)),
+                            );
+                          }
                         }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.lgInk,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.lgInk,
+                        foregroundColor:
+                            context.lgIsDark ? context.lgBg : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      '确定添加',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                      child: const Text(
+                        '确定添加',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -511,10 +537,12 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   }
 
   Color _getCourseColor(dynamic course) {
-    final hex = course['color']?.toString() ?? '#635BFF';
+    final hex = course['color']?.toString() ?? '#63609E';
+    // v4.0：旧高饱 hex 归一到新低饱和版后再解析
+    final normalized = _legacyHex[hex] ?? hex;
     // 尝试从 hex 颜色字符串创建 Color
     try {
-      final clean = hex.replaceAll('#', '');
+      final clean = normalized.replaceAll('#', '');
       if (clean.length == 6) {
         return Color(int.parse('FF$clean', radix: 16));
       }
@@ -695,27 +723,27 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     return Expanded(
                       child: Column(
                         children: [
-                          // 圆形日期标签
-                          ClipPath(
-                            clipper: OrganicClipper(borderRadius: 16),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              color: today
-                                  ? context.lgInk
-                                  : Colors.transparent,
-                              child: Center(
-                                child: Text(
-                                  _weekDays[i].substring(0, 1),
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: today
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                    color: today
-                                        ? Colors.white
-                                        : context.lgTextSecondary,
-                                  ),
+                          // 圆形日期标签（v4.0：去有机裁剪，圆块选中=lgInk）
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: today ? context.lgInk : Colors.transparent,
+                            ),
+                            child: Center(
+                              child: Text(
+                                _weekDays[i].substring(0, 1),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight:
+                                      today ? FontWeight.w700 : FontWeight.w500,
+                                  // lgInk 深色态近白，选中字随底反转
+                                  color: today
+                                      ? (context.lgIsDark
+                                          ? context.lgBg
+                                          : Colors.white)
+                                      : context.lgTextSecondary,
                                 ),
                               ),
                             ),
@@ -726,9 +754,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             '${DateTime.now().add(Duration(days: i - DateTime.now().weekday + 1)).day}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: today
-                                  ? context.lgInk
-                                  : context.lgTextMuted,
+                              color:
+                                  today ? context.lgInk : context.lgTextMuted,
                               fontWeight:
                                   today ? FontWeight.w600 : FontWeight.w400,
                             ),
@@ -761,12 +788,10 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: today
-                                ? context.lgInk.withAlpha(10)
-                                : null,
+                            color: today ? context.lgPrimarySoft : null,
                             border: Border(
                               bottom: BorderSide(
-                                color: context.lgTextMuted.withAlpha(15),
+                                color: context.lgSeparator,
                                 width: 1,
                               ),
                             ),
@@ -805,11 +830,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                     color: context.lgInk,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Text(
+                                  child: Text(
                                     '今天',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.white,
+                                      // lgInk 深色态近白，标签字随底反转
+                                      color: context.lgIsDark
+                                          ? context.lgBg
+                                          : Colors.white,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -883,35 +911,36 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         child: LovePaper(
           padding: const EdgeInsets.all(12),
-          color: color.withAlpha(10),
+          // v4.0 参考图⑧：课程卡=粉彩浅底（低饱和色 4% 着色）
+          color: color.withValues(alpha: 0.04),
           child: Row(
             children: [
-              // 节次信息（有机色块）
-              ClipPath(
-                clipper: OrganicClipper(borderRadius: 8),
-                child: Container(
-                  width: 52,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  color: color.withAlpha(22),
-                  child: Column(
-                    children: [
-                      Text(
-                        '$startSec-$endSec',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: color,
-                        ),
+              // 节次信息色块（去有机裁剪，圆角同体系）
+              Container(
+                width: 52,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.09),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '$startSec-$endSec',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: color,
                       ),
-                      Text(
-                        '节',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: color.withAlpha(180),
-                        ),
+                    ),
+                    Text(
+                      '节',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: color.withAlpha(180),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(width: 12),
@@ -990,19 +1019,19 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   ],
                 ),
               ),
-              // 删除
+              // 删除（红=删除语义保留：功能性红浅底+红字）
               GestureDetector(
                 onTap: () => _deleteCourse(id, name),
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: context.lgInk.withAlpha(15),
+                    color: LoveGirlTheme.red.withAlpha(18),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.delete_outline_rounded,
                     size: 16,
-                    color: context.lgInk,
+                    color: LoveGirlTheme.red,
                   ),
                 ),
               ),
@@ -1014,38 +1043,24 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   }
 
   Widget _buildFab() {
-    return ClipPath(
-      clipper: OrganicClipper(borderRadius: 18),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [context.lgInk, LoveGirlTheme.primaryLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: context.lgInk.withAlpha(60),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: context.lgInk.withAlpha(30),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _showAddDialog,
-            borderRadius: BorderRadius.circular(18),
-            child: const Center(
-              child: Icon(Icons.add, color: Colors.white, size: 28),
-            ),
+    // v4.0 主行动黑底白字：去有机裁剪/渐变/双层重阴影，回归圆角黑块
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: context.lgInk,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: LoveGirlTheme.cardShadowElevated(),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showAddDialog,
+          borderRadius: BorderRadius.circular(18),
+          child: Icon(
+            Icons.add,
+            color: context.lgIsDark ? context.lgBg : Colors.white,
+            size: 28,
           ),
         ),
       ),

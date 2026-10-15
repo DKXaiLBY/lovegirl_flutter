@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -335,17 +336,18 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return KeyedSubtree(
       key: const ValueKey('home_header'),
-      // 蜜桃日出 hero（渐变白名单三处之一；深色态用 primarySoftDark 单色，不上渐变）
+      // v4.0 浅灰渐变 hero（渐变白名单三处之一，接替 gradientSunrise；
+      // 深色态维持 primarySoftDark 单色不上渐变）
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: context.lgIsDark ? context.lgPrimarySoft : null,
+          color: context.lgPrimarySoft,
           gradient: context.lgIsDark
               ? null
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: LoveGirlTheme.gradientSunrise,
+                  colors: LoveGirlTheme.surfaceGradient,
                 ),
           borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
         ),
@@ -501,7 +503,8 @@ class _BellBadge extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: LoveGirlTheme.red,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    // 角标白圈随卡片底（深色跟随 cardDark，不再突兀白环）
+                    border: Border.all(color: context.lgCard, width: 1.5),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -540,10 +543,12 @@ class _BeanBadge extends StatelessWidget {
         Container(
           width: 30,
           height: 30,
+          // v4.0 奶油硬编码退役：豆子容器换黄族浅底徽章（getter 深色安全）+
+          // 中性细线描边；豆子图标本体=内容语义保留
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF0D9),
+            color: context.lgSoftYellowBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFF1D4B1)),
+            border: Border.all(color: context.lgCardBorder),
           ),
           child: const Center(child: _LoveBeanIcon(size: 22)),
         ),
@@ -670,9 +675,10 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.lgInk.withAlpha(40)),
+        // v4.0：底随主题（原 Colors.white 硬编码深色不破），细线描边对齐卡片体系
+        color: context.lgPaper,
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        border: Border.all(color: context.lgCardBorder),
       ),
       child: Row(
         children: [
@@ -801,10 +807,11 @@ class _CareEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeColor = switch (badgeTone) {
-      _CareBadgeTone.ok => LoveGirlTheme.secondary,
-      _CareBadgeTone.warn => LoveGirlTheme.orange,
-      _CareBadgeTone.neutral => context.lgTextMuted,
+    // v4.0 状态徽章语义浅底（深色走 primarySoftDark+浅 fg，参考图⑥）
+    final (badgeBg, badgeFg) = switch (badgeTone) {
+      _CareBadgeTone.ok => (context.lgSoftGreenBg, context.lgSoftGreenText),
+      _CareBadgeTone.warn => (context.lgSoftYellowBg, context.lgSoftYellowText),
+      _CareBadgeTone.neutral => (context.lgBadgeBg, context.lgBadgeText),
     };
     return PressableScale(
       child: GestureDetector(
@@ -814,8 +821,8 @@ class _CareEntry extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
             color: context.lgCard,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: context.lgSeparator),
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+            border: Border.all(color: context.lgCardBorder),
           ),
           child: Row(
             children: [
@@ -862,12 +869,12 @@ class _CareEntry extends StatelessWidget {
                 padding:
                     EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: badgeColor.withAlpha(26),
+                  color: badgeBg,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(badge,
                     style: TextStyle(
-                        color: badgeColor,
+                        color: badgeFg,
                         fontSize: 12,
                         fontWeight: FontWeight.w800)),
               ),
@@ -899,134 +906,149 @@ class _MemoryStubSheet extends StatelessWidget {
     final location = _asString(memory?['location'], fallback: '');
     final imageUrl = _memoryImageUrl(memory);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: LoveTicketCard(
-        color: context.lgPaper,
-        padding: const EdgeInsets.all(18),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LovePill(
-                  text: '回忆票根 · MEMORY STUB',
-                  icon: Icons.confirmation_number_outlined,
-                  color: context.lgInk,
-                ),
-                SizedBox(height: 14),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    height: 1.3,
-                    fontWeight: FontWeight.w900,
-                    color: context.lgTextPrimary,
+    // v4.0 弹层玻璃化统一口径：radiusXl 28 + 白 72%（withAlpha 184）+ blur 24
+    // + cardBorder 细线（DESIGN_SYSTEM 弹层口径；深色跟随 cardDark 72%）
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(LoveGirlTheme.radiusXl),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+          decoration: BoxDecoration(
+            color: (context.lgIsDark ? context.lgCard : Colors.white)
+                .withValues(alpha: 0.72),
+            border: Border(top: BorderSide(color: context.lgCardBorder)),
+          ),
+          child: Stack(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LovePill(
+                    text: '回忆票根 · MEMORY STUB',
+                    icon: Icons.confirmation_number_outlined,
+                    color: context.lgInk,
                   ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 13, color: context.lgTextSecondary),
-                ),
-                SizedBox(height: 12),
-                if (imageUrl.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 180),
-                      child: Image.network(
-                        imageUrl,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
+                  SizedBox(height: 14),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      height: 1.3,
+                      fontWeight: FontWeight.w900,
+                      color: context.lgTextPrimary,
                     ),
-                  )
-                else
-                  Container(
-                    height: 110,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          context.lgPrimarySoft,
-                          LoveGirlTheme.accent.withAlpha(90),
-                        ],
-                      ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13, color: context.lgTextSecondary),
+                  ),
+                  SizedBox(height: 12),
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Center(
-                      child: Text('♥', style: TextStyle(fontSize: 34, color: context.lgInk)),
-                    ),
-                  ),
-                SizedBox(height: 12),
-                LoveTicketDivider(),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    if (location.isNotEmpty)
-                      Expanded(
-                        child: Text(
-                          location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12, color: context.lgTextMuted),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: Image.network(
+                          imageUrl,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const SizedBox.shrink(),
                         ),
                       ),
-                    Text(
-                      eventDate,
-                      style: TextStyle(
-                          fontSize: 12, color: context.lgTextMuted),
+                    )
+                  else
+                    Container(
+                      height: 110,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            context.lgPrimarySoft,
+                            context.lgBadgeBg,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text('♥',
+                            style: TextStyle(
+                                fontSize: 34, color: context.lgInk)),
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const LoveBarcode(width: 90, height: 34),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: LovePrimaryButton(
-                    text: '去时光轴记录更多',
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => TimelineScreen()));
-                    },
+                  SizedBox(height: 12),
+                  LoveTicketDivider(),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (location.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12, color: context.lgTextMuted),
+                          ),
+                        ),
+                      Text(
+                        eventDate,
+                        style: TextStyle(
+                            fontSize: 12, color: context.lgTextMuted),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            Positioned(
-              right: 0,
-              top: 8,
-              child: Transform.rotate(
-                angle: -0.3,
-                child: Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    border:
-                        Border.all(color: context.lgInk, width: 2),
-                    borderRadius: BorderRadius.circular(8),
-                    color: context.lgPrimarySoft.withAlpha(200),
+                  const SizedBox(height: 10),
+                  const LoveBarcode(width: 90, height: 34),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: LovePrimaryButton(
+                      text: '去时光轴记录更多',
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => TimelineScreen()));
+                      },
+                    ),
                   ),
-                  child: Text('珍藏 ♥',
-                      style: TextStyle(
-                          color: context.lgInk,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12)),
+                ],
+              ),
+              Positioned(
+                right: 0,
+                top: 8,
+                child: Transform.rotate(
+                  angle: -0.3,
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      border:
+                          Border.all(color: context.lgInk, width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                      color: context.lgPrimarySoft.withAlpha(200),
+                    ),
+                    child: Text('珍藏 ♥',
+                        style: TextStyle(
+                            color: context.lgInk,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12)),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1062,11 +1084,11 @@ class _PartnerRecentCard extends StatelessWidget {
       child: Container(
         key: const ValueKey('home_partner_recent'),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        // v4.0：1px 细线替代阴影（参考图②）
         decoration: BoxDecoration(
           color: context.lgPaper,
           borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-          border: Border.all(color: context.lgSeparator),
-          boxShadow: LoveGirlTheme.cardShadow(),
+          border: Border.all(color: context.lgCardBorder),
         ),
         child: visible.isEmpty
             ? Row(
@@ -1178,23 +1200,27 @@ class _DailyQuestionTicket extends StatelessWidget {
       child: Container(
         key: const ValueKey('home_daily_question'),
         padding: const EdgeInsets.all(16),
+        // v4.0：纯白卡+细线描边（阴影≈0，立体感交描边）
         decoration: BoxDecoration(
-          color: context.lgPaperWarm,
+          color: context.lgPaper,
           borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-          border: Border.all(color: context.lgSeparator),
-          boxShadow: LoveGirlTheme.cardShadow(),
+          border: Border.all(color: context.lgCardBorder),
         ),
         child: Row(
           children: [
             Container(
               width: 40,
               height: 40,
+              // v4.0 黑底座图标：深色态用米白底+深色图标（原白图标对浅底对比度塌陷）
               decoration: BoxDecoration(
                 color: context.lgEmotion,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.quiz_rounded,
-                  size: 20, color: Colors.white),
+              child: Icon(Icons.quiz_rounded,
+                  size: 20,
+                  color: context.lgIsDark
+                      ? LoveGirlTheme.bgDark
+                      : Colors.white),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1243,10 +1269,10 @@ class _DailyQuestionTicket extends StatelessWidget {
             const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              // v4.0：状态胶囊走中性徽章体系（lgBadgeBg 深色安全）
               decoration: BoxDecoration(
-                color: context.lgBg,
+                color: context.lgBadgeBg,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: context.lgSeparator),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1258,7 +1284,7 @@ class _DailyQuestionTicket extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: context.lgEmotion,
+                      color: context.lgInk,
                     ),
                   ),
                 ],
@@ -1738,8 +1764,9 @@ class _FinancePiePainter extends CustomPainter {
     canvas.drawCircle(center.translate(0, 6), radius, shadowPaint);
 
     final slices = [
-      (_SliceData(0.40, const Color(0xFFF5DCC2))),
-      (_SliceData(0.34, const Color(0xFFD4D8B8))),
+      // v4.0 冷灰三档（原暖米/灰绿硬编码退役）：墨 14% / 墨 8% / primarySoft
+      (_SliceData(0.40, LoveGirlTheme.primary.withAlpha(36))),
+      (_SliceData(0.34, LoveGirlTheme.primary.withAlpha(20))),
       (_SliceData(0.26, LoveGirlTheme.primarySoft)),
     ];
 
@@ -1894,8 +1921,8 @@ class _TodoCareTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: context.lgCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.lgSeparator),
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        border: Border.all(color: context.lgCardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1928,18 +1955,18 @@ class _TodoCareTile extends StatelessWidget {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  // v4.0 状态徽章：完成=绿族浅底，未完=中性浅灰（getter 深色安全）
                   decoration: BoxDecoration(
-                    color: (allDone
-                            ? LoveGirlTheme.secondary
-                            : context.lgTextMuted)
-                        .withAlpha(26),
+                    color: allDone
+                        ? context.lgSoftGreenBg
+                        : context.lgBadgeBg,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(badge,
                       style: TextStyle(
                           color: allDone
-                              ? LoveGirlTheme.secondary
-                              : context.lgTextMuted,
+                              ? context.lgSoftGreenText
+                              : context.lgBadgeText,
                           fontSize: 12,
                           fontWeight: FontWeight.w800)),
                 ),

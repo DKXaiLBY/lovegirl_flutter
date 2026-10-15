@@ -12,7 +12,6 @@ import 'wardrobe_filter_sheet.dart';
 import 'wardrobe_item_detail_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
 /// P1 衣橱主页【M1】：8 类分节 2 列网格（空节隐藏、节内添加时间倒序）、
 /// 「今天」胶囊、筛选、多选（加入搭配/退役/删除）
 class WardrobeHomeScreen extends StatefulWidget {
@@ -43,37 +42,35 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _selecting && mounted) setState(() => _selected.clear());
       },
-      child: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: () => p.loadAll(),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-              children: [
-                // MIROIR 化：搜索框（品牌/类别/颜色模糊匹配）
-                TextField(
-                  onChanged: (v) {
-                    p.filter.query = v.trim();
-                    p.applyFilter();
-                  },
-                  style: const TextStyle(fontSize: 13.5),
-                  decoration: InputDecoration(
-                    hintText: '搜索单品…（品牌/类别/颜色）',
-                    hintStyle:
-                        TextStyle(fontSize: 13, color: context.lgTextMuted),
-                    prefixIcon: Icon(Icons.search_rounded,
-                        size: 19, color: context.lgTextMuted),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: context.lgSeparator)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: context.lgSeparator)),
+      // v4.0：浅灰渐变页面底（模块壳 Scaffold 纯色兜底）
+      child: wnPageBackground(
+        context,
+        child: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: () => p.loadAll(),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+                children: [
+                  // MIROIR 化：搜索框（品牌/类别/颜色模糊匹配）
+                  TextField(
+                    onChanged: (v) {
+                      p.filter.query = v.trim();
+                      p.applyFilter();
+                    },
+                    style: const TextStyle(fontSize: 13.5),
+                    decoration: InputDecoration(
+                      hintText: '搜索单品…（品牌/类别/颜色）',
+                      hintStyle: TextStyle(
+                          fontSize: 13, color: context.lgTextMuted),
+                      prefixIcon: Icon(Icons.search_rounded,
+                          size: 19, color: context.lgTextMuted),
+                      isDense: true,
+                      filled: true,
+                      // v4.0 深浅两态安全的卡面 token（白卡 1px 细线在主题里）
+                      fillColor: context.lgCard,
+                    ),
                   ),
-                ),
                 const SizedBox(height: 10),
                 _toolbar(p),
                 const SizedBox(height: 12),
@@ -101,6 +98,7 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
           ),
           if (_selecting) _actionBar(p),
         ],
+        ),
       ),
     );
   }
@@ -141,10 +139,11 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                color: capsuleActive ? context.lgInk : Colors.white,
+                // v4.0：未选中性浅底 badgeBg + 细线，选中黑胶囊不变
+                color: capsuleActive ? context.lgInk : context.lgBadgeBg,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: capsuleActive ? context.lgInk : context.lgSeparator,
+                  color: capsuleActive ? context.lgInk : context.lgCardBorder,
                 ),
               ),
               child: Text(
@@ -183,7 +182,7 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
   Widget _noMatch(WardrobeProvider p) {
     return LovePaper(
       padding: const EdgeInsets.symmetric(vertical: 28),
-      radius: 18,
+      radius: LoveGirlTheme.radiusLg,
       child: Column(
         children: [
           Text('没有匹配的衣服',
@@ -215,9 +214,8 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
                       fontWeight: FontWeight.w800,
                       color: context.lgTextPrimary)),
               const SizedBox(width: 6),
-              Text('${list.length} 件',
-                  style: TextStyle(
-                      fontSize: 12, color: context.lgTextMuted)),
+              // v4.0 行尾中性计数徽章（参考图⑥）
+              LoveBadge(count: list.length),
             ],
           ),
           const SizedBox(height: 8),
@@ -267,7 +265,8 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: context.lgInk,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+            boxShadow: LoveGirlTheme.cardShadowElevated(),
           ),
           child: Row(
             children: [
@@ -364,10 +363,11 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: selected ? context.lgInk : Colors.white,
+            // v4.0：未选中性浅底 badgeBg + 细线，选中黑胶囊（参考图③）
+            color: selected ? context.lgInk : context.lgBadgeBg,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: selected ? context.lgInk : context.lgSeparator,
+              color: selected ? context.lgInk : context.lgCardBorder,
             ),
           ),
           alignment: Alignment.center,

@@ -19,12 +19,13 @@ class _TasksScreenState extends State<TasksScreen>
   static const _storageKey = 'couple_tasks';
   static const _categories = ['全部', '旅行', '美食', '运动', '学习', '生活'];
 
+  // v4.0 分类色低饱和收敛（色相保留，饱和度降档对齐参考图⑧粉彩语义）
   static const _categoryColors = <String, Color>{
-    '旅行': Color(0xFF2196F3),
-    '美食': Color(0xFF6BD4FF),
-    '运动': Color(0xFF4CAF50),
-    '学习': Color(0xFF9C27B0),
-    '生活': Color(0xFFE91E63),
+    '旅行': LoveGirlTheme.softBlueText,
+    '美食': LoveGirlTheme.softOrangeText,
+    '运动': LoveGirlTheme.softGreenText,
+    '学习': LoveGirlTheme.softPurpleText,
+    '生活': LoveGirlTheme.peachText,
   };
 
   static const _categoryIcons = <String, IconData>{

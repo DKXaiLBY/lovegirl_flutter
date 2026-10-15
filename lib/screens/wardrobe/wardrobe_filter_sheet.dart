@@ -18,15 +18,9 @@ class WardrobeFilterSheet extends StatelessWidget {
     final f = p.filter;
 
     return SafeArea(
-      child: Container(
+      child: WnGlassSheet(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.8),
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(22),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

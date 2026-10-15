@@ -44,7 +44,8 @@ Future<void> showUpdateDialog(
           ),
           decoration: BoxDecoration(
             color: context.lgCard,
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
+            border: Border.all(color: context.lgCardBorder),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -337,7 +338,7 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
                         ? LoveGirlTheme.red
                         : downloading
                             ? context.lgInk
-                            : const Color(0xFF4CAF50),
+                            : LoveGirlTheme.secondary,
                     size: 28,
                   ),
                 ),

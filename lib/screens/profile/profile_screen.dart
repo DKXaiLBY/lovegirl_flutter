@@ -205,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String? partnerName,
   ) {
     return LoveTicketCard(
-      color: Colors.white,
+      color: context.lgPaper,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -475,7 +475,7 @@ class _ProfileHero extends StatelessWidget {
 
     return LoveTicketCard(
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      color: Colors.white,
+      color: context.lgPaper,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -498,8 +498,8 @@ class _ProfileHero extends StatelessWidget {
                         LovePill(
                           text: '$beanBalance \u7231\u5fc3\u8c46',
                           icon: Icons.savings_rounded,
-                          color: LoveGirlTheme.peachText,
-                          background: const Color(0xFFFFF2E1),
+                          color: context.lgSoftYellowText,
+                          background: context.lgSoftYellowBg,
                         ),
                       ],
                     ),
@@ -601,11 +601,12 @@ class _ProfileHero extends StatelessWidget {
                         horizontal: 12,
                         vertical: 10,
                       ),
+                      // v4.0：半透明白条换 paperWarm+细线（深色可读）
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(170),
-                        borderRadius: BorderRadius.circular(18),
+                        color: context.lgPaperWarm,
+                        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
                         border: Border.all(
-                          color: context.lgSeparator.withAlpha(120),
+                          color: context.lgCardBorder,
                         ),
                       ),
                       child: Row(
@@ -678,7 +679,7 @@ class _AvatarBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: 34,
-      backgroundColor: Colors.white,
+      backgroundColor: context.lgPaper,
       child: CircleAvatar(
         radius: 31,
         backgroundColor: tint ?? context.lgSecondarySoft,

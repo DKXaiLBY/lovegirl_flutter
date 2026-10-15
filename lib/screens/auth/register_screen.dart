@@ -73,16 +73,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        // v4.0：注册页渐变取自 gradientOcean/gradientForest 同色相（token 源值）
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF7B8CFF),
-              Color(0xFF6BD4FF),
-              Color(0xFF8FAE8B),
-            ],
-            stops: [0.0, 0.5, 1.0],
+            colors: LoveGirlTheme.gradientOcean,
           ),
         ),
         child: SafeArea(
@@ -274,11 +270,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF7B8CFF), Color(0xFF6BD4FF)],
+                    colors: LoveGirlTheme.gradientOcean,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF7B8CFF).withAlpha(80),
+                      color: LoveGirlTheme.gradientOcean[0].withAlpha(80),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),

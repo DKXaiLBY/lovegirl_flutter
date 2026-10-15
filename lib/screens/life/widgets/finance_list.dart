@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
@@ -12,7 +13,7 @@ class WaveDividerPainter extends CustomPainter {
   final double amplitude;
 
   WaveDividerPainter({
-    this.color = Colors.white,
+    this.color = const Color(0xFFECEEF1), // LoveGirlTheme.separator 同值默认兜底
     this.amplitude = 4.0,
   });
 
@@ -214,322 +215,328 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
+      // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => ClipPath(
-          clipper: TopOrganicClipper(radius: 24),
-          child: Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 24,
-            ),
-            decoration: BoxDecoration(
-              color: context.lgCard,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(15),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+        builder: (ctx, setSheetState) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(LoveGirlTheme.radiusXl),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 24,
+              ),
+              decoration: BoxDecoration(
+                color: context.lgCard.withValues(alpha: 0.72),
+                border: Border(
+                  top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: context.lgTextMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: context.lgTextMuted.withValues(alpha: 0.24),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '添加账单',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: context.lgTextPrimary,
+                  const SizedBox(height: 20),
+                  Text(
+                    '添加账单',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: context.lgTextPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                // 类型切换
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setSheetState(() {
-                            type = '支出';
-                            category = expenseCategories.contains(category)
-                                ? category
-                                : expenseCategories[0];
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: type == '支出'
-                                ? context.lgInk.withAlpha(25)
-                                : context.lgBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: type == '支出'
-                                  ? context.lgInk.withAlpha(60)
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.trending_down_rounded,
-                                size: 18,
+                  const SizedBox(height: 20),
+                  // 类型切换
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setSheetState(() {
+                              type = '支出';
+                              category = expenseCategories.contains(category)
+                                  ? category
+                                  : expenseCategories[0];
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              // v4.0：支出选中=primarySoft 中性浅底（未选中同底，靠描边区分）
+                              color: context.lgPrimarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
                                 color: type == '支出'
-                                    ? context.lgInk
-                                    : context.lgTextMuted,
+                                    ? context.lgInk.withAlpha(60)
+                                    : Colors.transparent,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '支出',
-                                style: TextStyle(
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.trending_down_rounded,
+                                  size: 18,
                                   color: type == '支出'
                                       ? context.lgInk
                                       : context.lgTextMuted,
-                                  fontWeight: type == '支出'
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setSheetState(() {
-                            type = '收入';
-                            category = incomeCategories.contains(category)
-                                ? category
-                                : incomeCategories[0];
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: type == '收入'
-                                ? LoveGirlTheme.accent.withAlpha(25)
-                                : context.lgBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: type == '收入'
-                                  ? LoveGirlTheme.accent.withAlpha(60)
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.trending_up_rounded,
-                                size: 18,
-                                color: type == '收入'
-                                    ? LoveGirlTheme.accent
-                                    : context.lgTextMuted,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                '收入',
-                                style: TextStyle(
-                                  color: type == '收入'
-                                      ? LoveGirlTheme.peachText
-                                      : context.lgTextMuted,
-                                  fontWeight: type == '收入'
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 14),
-                // 金额
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: '金额',
-                    hintText: '0.00',
-                    prefixText: '¥ ',
-                    prefixStyle: TextStyle(
-                      color: context.lgTextPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.monetization_on_rounded,
-                      color: context.lgInk,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // 分类
-                SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children:
-                        (type == '支出' ? expenseCategories : incomeCategories)
-                            .map(
-                              (c) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ChoiceChip(
-                                  label: Text(c),
-                                  selected: category == c,
-                                  selectedColor: (type == '支出'
-                                          ? context.lgInk
-                                          : LoveGirlTheme.accent)
-                                      .withAlpha(30),
-                                  labelStyle: TextStyle(
-                                    color: category == c
-                                        ? (type == '支出'
-                                            ? context.lgInk
-                                            : LoveGirlTheme.peachText)
-                                        : context.lgTextSecondary,
-                                    fontWeight: category == c
+                                const SizedBox(width: 6),
+                                Text(
+                                  '支出',
+                                  style: TextStyle(
+                                    color: type == '支出'
+                                        ? context.lgInk
+                                        : context.lgTextMuted,
+                                    fontWeight: type == '支出'
                                         ? FontWeight.w600
                                         : FontWeight.w400,
                                   ),
-                                  side: BorderSide(
-                                    color: category == c
-                                        ? (type == '支出'
-                                                ? context.lgInk
-                                                : LoveGirlTheme.accent)
-                                            .withAlpha(80)
-                                        : context.lgTextMuted.withAlpha(40),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  onSelected: (_) =>
-                                      setSheetState(() => category = c),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                ),
-                SizedBox(height: 12),
-                // 日期
-                TextField(
-                  controller: dateCtrl,
-                  readOnly: true,
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2035),
-                      builder: (context, child) => Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: context.lgInk,
+                              ],
+                            ),
                           ),
                         ),
-                        child: child!,
                       ),
-                    );
-                    if (picked != null) {
-                      setSheetState(() {
-                        dateCtrl.text =
-                            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    labelText: '日期',
-                    prefixIcon: Icon(
-                      Icons.calendar_today_rounded,
-                      color: context.lgInk,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12),
-                // 备注
-                TextField(
-                  controller: noteCtrl,
-                  decoration: InputDecoration(
-                    labelText: '备注（选填）',
-                    hintText: '备注信息...',
-                    prefixIcon: Icon(
-                      Icons.notes_rounded,
-                      color: context.lgTextMuted,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final amount = double.tryParse(amountCtrl.text);
-                      if (amount == null || amount <= 0) return;
-                      try {
-                        // 字段名映射：前端 -> 后端
-                        await _api.addFinanceRecord({
-                          'type': type == '支出' ? 'expense' : 'income',
-                          'category': category,
-                          'amount': amount,
-                          'recordDate': dateCtrl.text,
-                          'description': noteCtrl.text.trim(),
-                        });
-                        if (!ctx.mounted) return;
-                        Navigator.pop(ctx);
-                        await _loadData();
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                                content: Text('添加失败: $e'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2)),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.lgInk,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setSheetState(() {
+                              type = '收入';
+                              category = incomeCategories.contains(category)
+                                  ? category
+                                  : incomeCategories[0];
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              // v4.0：收入选中浅底走 softOrange 语义（蜜桃浅底徽章族），
+                              // 未选中与支出侧一致=primarySoft 中性浅底
+                              color: type == '收入'
+                                  ? context.lgSoftOrangeBg
+                                  : context.lgPrimarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: type == '收入'
+                                    ? context.lgSoftOrangeText
+                                        .withValues(alpha: 0.35)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.trending_up_rounded,
+                                  size: 18,
+                                  color: type == '收入'
+                                      ? context.lgSoftOrangeText
+                                      : context.lgTextMuted,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  '收入',
+                                  style: TextStyle(
+                                    color: type == '收入'
+                                        ? context.lgSoftOrangeText
+                                        : context.lgTextMuted,
+                                    fontWeight: type == '收入'
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      elevation: 0,
+                    ],
+                  ),
+                  SizedBox(height: 14),
+                  // 金额
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                    child: const Text(
-                      '确定添加',
-                      style: TextStyle(
+                    decoration: InputDecoration(
+                      labelText: '金额',
+                      hintText: '0.00',
+                      prefixText: '¥ ',
+                      prefixStyle: TextStyle(
+                        color: context.lgTextPrimary,
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
+                      prefixIcon: Icon(
+                        Icons.monetization_on_rounded,
+                        color: context.lgInk,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  // 分类
+                  SizedBox(
+                    height: 44,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children:
+                          (type == '支出' ? expenseCategories : incomeCategories)
+                              .map(
+                                (c) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ChoiceChip(
+                                    label: Text(c),
+                                    selected: category == c,
+                                    selectedColor: (type == '支出'
+                                        ? context.lgPrimarySoft
+                                        : context.lgSoftOrangeBg),
+                                    labelStyle: TextStyle(
+                                      color: category == c
+                                          ? (type == '支出'
+                                              ? context.lgInk
+                                              : context.lgSoftOrangeText)
+                                          : context.lgTextSecondary,
+                                      fontWeight: category == c
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                    ),
+                                    side: BorderSide(
+                                      color: category == c
+                                          ? (type == '支出'
+                                                  ? context.lgInk
+                                                  : context.lgSoftOrangeText)
+                                              .withAlpha(80)
+                                          : context.lgCardBorder,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    onSelected: (_) =>
+                                        setSheetState(() => category = c),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  // 日期
+                  TextField(
+                    controller: dateCtrl,
+                    readOnly: true,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                        // 深浅两态：色板跟随当前亮度
+                        builder: (context, child) => Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: context.lgIsDark
+                                ? ColorScheme.dark(primary: context.lgInk)
+                                : ColorScheme.light(primary: context.lgInk),
+                          ),
+                          child: child!,
+                        ),
+                      );
+                      if (picked != null) {
+                        setSheetState(() {
+                          dateCtrl.text =
+                              '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: '日期',
+                      prefixIcon: Icon(
+                        Icons.calendar_today_rounded,
+                        color: context.lgInk,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  // 备注
+                  TextField(
+                    controller: noteCtrl,
+                    decoration: InputDecoration(
+                      labelText: '备注（选填）',
+                      hintText: '备注信息...',
+                      prefixIcon: Icon(
+                        Icons.notes_rounded,
+                        color: context.lgTextMuted,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final amount = double.tryParse(amountCtrl.text);
+                        if (amount == null || amount <= 0) return;
+                        try {
+                          // 字段名映射：前端 -> 后端
+                          await _api.addFinanceRecord({
+                            'type': type == '支出' ? 'expense' : 'income',
+                            'category': category,
+                            'amount': amount,
+                            'recordDate': dateCtrl.text,
+                            'description': noteCtrl.text.trim(),
+                          });
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          await _loadData();
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                  content: Text('添加失败: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2)),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.lgInk,
+                        foregroundColor:
+                            context.lgIsDark ? context.lgBg : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        '确定添加',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -712,18 +719,23 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: context.lgInk,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.add_rounded,
-                                size: 16, color: Colors.white),
-                            SizedBox(width: 4),
+                                size: 16,
+                                color: context.lgIsDark
+                                    ? context.lgBg
+                                    : Colors.white),
+                            const SizedBox(width: 4),
                             Text('记一笔',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: context.lgIsDark
+                                      ? context.lgBg
+                                      : Colors.white,
                                 )),
                           ],
                         ),
@@ -749,10 +761,9 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
             ),
           ),
 
-          // ---- 概览卡片 ----
-          LoveTicketCard(
+          // ---- 概览卡片（v4.0：脱票根形态，LovePaper 细线白卡） ----
+          LovePaper(
             padding: EdgeInsets.zero,
-            color: context.lgPaperWarm,
             margin: const EdgeInsets.only(bottom: 16),
             child: Column(
               children: [
@@ -792,42 +803,44 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   ),
                 ),
                 // 底部结余
-                ClipPath(
-                  clipper: OrganicClipper(borderRadius: 12),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.lgPaperWarm,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(LoveGirlTheme.radiusLg),
                     ),
-                    color: context.lgPaper.withAlpha(180),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          balance >= 0
-                              ? Icons.savings_rounded
-                              : Icons.warning_amber_rounded,
-                          size: 16,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        balance >= 0
+                            ? Icons.savings_rounded
+                            : Icons.warning_amber_rounded,
+                        size: 16,
+                        color: context.lgTextSecondary,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        balance >= 0 ? '本月结余  ' : '本月超支  ',
+                        style: TextStyle(
                           color: context.lgTextSecondary,
+                          fontSize: 14,
                         ),
-                        SizedBox(width: 6),
-                        Text(
-                          balance >= 0 ? '本月结余  ' : '本月超支  ',
-                          style: TextStyle(
-                            color: context.lgTextSecondary,
-                            fontSize: 14,
-                          ),
+                      ),
+                      Text(
+                        '¥${balance.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: context.lgTextPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
                         ),
-                        Text(
-                          '¥${balance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: context.lgTextPrimary,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -890,8 +903,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                   '${(value / 1000).toStringAsFixed(0)}k',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color:
-                                        context.lgTextMuted.withAlpha(150),
+                                    color: context.lgTextMuted.withAlpha(150),
                                   ),
                                 );
                               },
@@ -907,8 +919,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                                     '${_trendData[idx]['month']}月',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: context.lgTextMuted
-                                          .withAlpha(150),
+                                      color: context.lgTextMuted.withAlpha(150),
                                     ),
                                   );
                                 }
@@ -925,28 +936,28 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         ),
                         borderData: FlBorderData(show: false),
                         lineBarsData: [
-                          // 收入线
+                          // 收入线（v4.0：lgPeachText 深色态自动切 peachTextDark）
                           LineChartBarData(
                             spots: List.generate(_trendData.length, (i) {
                               return FlSpot(
                                   i.toDouble(), _trendData[i]['income']);
                             }),
                             isCurved: true,
-                            color: LoveGirlTheme.peachText,
+                            color: context.lgPeachText,
                             barWidth: 2,
                             dotData: FlDotData(
                               show: true,
                               getDotPainter: (spot, percent, bar, index) {
                                 return FlDotCirclePainter(
                                   radius: 3,
-                                  color: LoveGirlTheme.peachText,
+                                  color: context.lgPeachText,
                                   strokeWidth: 0,
                                 );
                               },
                             ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: LoveGirlTheme.accent.withAlpha(20),
+                              color: context.lgPeachText.withAlpha(20),
                             ),
                           ),
                           // 支出线
@@ -986,7 +997,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                         width: 12,
                         height: 3,
                         decoration: BoxDecoration(
-                          color: LoveGirlTheme.accent,
+                          color: context.lgPeachText,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1151,14 +1162,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: active
-              ? context.lgInk.withAlpha(25)
-              : context.lgBg,
-          borderRadius: BorderRadius.circular(18),
+          color: active ? context.lgPrimarySoft : context.lgBadgeBg,
+          borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: active
-                ? context.lgInk.withAlpha(80)
-                : context.lgTextMuted.withAlpha(40),
+            color: active ? context.lgInk.withAlpha(80) : context.lgCardBorder,
           ),
         ),
         child: Text(
@@ -1236,21 +1243,18 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
         }
         return false;
       },
-      background: ClipPath(
-        clipper: OrganicClipper(borderRadius: 12),
-        child: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [context.lgInk, LoveGirlTheme.pinkLight],
-            ),
-          ),
-          child: const Icon(
-            Icons.delete_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
+      // v4.0：删除手势底改功能性红（红=删除语义保留），不再墨色渐变
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: LoveGirlTheme.red,
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
+        ),
+        child: const Icon(
+          Icons.delete_rounded,
+          color: Colors.white,
+          size: 24,
         ),
       ),
       child: Container(
@@ -1263,26 +1267,26 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               ? null
               : Border(
                   bottom: BorderSide(
-                    color: context.lgTextMuted.withAlpha(15),
+                    color: context.lgSeparator,
                     width: 1,
                   ),
                 ),
         ),
         child: Row(
           children: [
-            // 分类图标
+            // 分类图标（收入=蜜桃文字档 lgPeachText，深色态 6.62:1）
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: (isExpense ? context.lgInk : LoveGirlTheme.accent)
+                color: (isExpense ? context.lgInk : context.lgPeachText)
                     .withAlpha(18),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
                 size: 20,
-                color: isExpense ? context.lgInk : LoveGirlTheme.accent,
+                color: isExpense ? context.lgInk : context.lgPeachText,
               ),
             ),
             SizedBox(width: 12),
@@ -1308,14 +1312,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           vertical: 1,
                         ),
                         decoration: BoxDecoration(
-                          color: LoveGirlTheme.accent.withAlpha(20),
+                          color: context.lgSoftOrangeBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '旅行花费',
                           style: TextStyle(
                             fontSize: 10,
-                            color: LoveGirlTheme.peachText,
+                            color: context.lgSoftOrangeText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1336,14 +1340,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 ],
               ),
             ),
-            // 金额
+            // 金额（收入=蜜桃文字档 lgPeachText：方案步骤 5 点名，深色态用 peachTextDark）
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10,
                 vertical: 4,
               ),
               decoration: BoxDecoration(
-                color: (isExpense ? context.lgInk : LoveGirlTheme.accent)
+                color: (isExpense ? context.lgInk : context.lgPeachText)
                     .withAlpha(12),
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1352,7 +1356,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isExpense ? context.lgInk : LoveGirlTheme.peachText,
+                  color: isExpense ? context.lgInk : context.lgPeachText,
                 ),
               ),
             ),

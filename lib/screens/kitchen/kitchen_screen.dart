@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -438,18 +439,10 @@ class _DishCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
+    return LovePaper(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.lgPaper,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(14),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      radius: LoveGirlTheme.radiusLg,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -672,6 +665,34 @@ class _CartBar extends StatelessWidget {
 
 // ================= 购物车下单 =================
 
+/// v4.0 弹层玻璃化统一口径外壳（radiusXl 28 / 白 72% / blur 24），
+/// 深色=cardDark 72% 同成立；键盘 inset 由调用方 Padding 负责。
+class _KitchenGlassSheet extends StatelessWidget {
+  final Widget child;
+
+  const _KitchenGlassSheet({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl));
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.lgPaper.withValues(alpha: 0.72),
+            borderRadius: radius,
+            border: Border(top: BorderSide(color: context.lgCardBorder)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _CartSheet extends StatefulWidget {
   const _CartSheet();
 
@@ -694,12 +715,8 @@ class _CartSheetState extends State<_CartSheet> {
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.lgBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+      child: _KitchenGlassSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,8 +838,11 @@ class _MyKitchenTab extends StatelessWidget {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (dCtx) => AlertDialog(
+                          // v4.0 弹层大圆角 + 1px 细线
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18)),
+                              borderRadius:
+                                  BorderRadius.circular(LoveGirlTheme.radiusXl),
+                              side: BorderSide(color: dCtx.lgCardBorder)),
                           title: const Text('下架菜品'),
                           content: Text('把「${dish.name}」从菜单上撤下来吗？'),
                           actions: [
@@ -880,18 +900,10 @@ class _MyDishCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
+    return LovePaper(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.lgPaper,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(14),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      radius: LoveGirlTheme.radiusLg,
       child: Row(
         children: [
           ClipRRect(
@@ -1011,12 +1023,8 @@ class _DishEditSheetState extends State<_DishEditSheet> {
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.lgBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+      child: _KitchenGlassSheet(
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1098,10 +1106,11 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                     .map((c) => ChoiceChip(
                           label: Text(c),
                           selected: _category == c,
-                          selectedColor: context.lgPrimarySoft,
+                          // v4.0 选中=黑胶囊白字（参考图③）
+                          selectedColor: context.lgInk,
                           labelStyle: TextStyle(
                               color: _category == c
-                                  ? context.lgInk
+                                  ? Colors.white
                                   : context.lgTextSecondary,
                               fontWeight: FontWeight.w600),
                           onSelected: (_) => setState(() => _category = c),
@@ -1434,18 +1443,10 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kitchen = context.read<KitchenProvider>();
-    return Container(
+    // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
+    return LovePaper(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.lgPaper,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withAlpha(14),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      radius: LoveGirlTheme.radiusLg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1516,8 +1517,11 @@ class _OrderCard extends StatelessWidget {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (dCtx) => AlertDialog(
+                        // v4.0 弹层大圆角 + 1px 细线
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18)),
+                            borderRadius:
+                                BorderRadius.circular(LoveGirlTheme.radiusXl),
+                            side: BorderSide(color: dCtx.lgCardBorder)),
                         title: const Text('取消订单'),
                         content: const Text('确定不想吃这单了吗？'),
                         actions: [
@@ -1617,12 +1621,8 @@ class _FulfillSheetState extends State<_FulfillSheet> {
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.lgBg,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
+      child: _KitchenGlassSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

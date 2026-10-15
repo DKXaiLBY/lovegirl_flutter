@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../utils/constants.dart';
 import 'countdown_form.dart';
 
 /// 倒计时管理页面
@@ -32,19 +31,22 @@ class _CountdownScreenState extends State<CountdownScreen> {
     0xe8f9: Icons.work_rounded,
   };
 
+  /// v4.0：彩虹图标色并入低饱和收敛（参考图⑧粉彩浅底色块）——
+  /// 蜜桃/计划紫/完成绿/中性灰对应语义 token，两处蓝统一 gradientOcean 蓝，
+  /// 青/洋红/金降为同饱和档浅色；色相保留，饱和度降档
   static const _iconColors = <int, Color>{
-    0xe87d: Color(0xFF7B8CFF),
-    0xe1b7: Color(0xFF8FAE8B),
-    0xe539: Color(0xFF7B8CFF),
-    0xe80c: Color(0xFF4CAF50),
-    0xe88a: Color(0xFF8E8E93),
-    0xe769: Color(0xFFE040FB),
-    0xe838: Color(0xFFFFD700),
-    0xe3a3: Color(0xFF26C6DA),
+    0xe87d: LoveGirlTheme.accent,
+    0xe1b7: LoveGirlTheme.secondary,
+    0xe539: LoveGirlTheme.planned,
+    0xe80c: LoveGirlTheme.secondary,
+    0xe88a: LoveGirlTheme.orange,
+    0xe769: LoveGirlTheme.planned,
+    0xe838: LoveGirlTheme.softYellowText,
+    0xe3a3: Color(0xFF6BB6C9),
     0xe405: Color(0xFF7B8CFF),
     0xe865: Color(0xFF7B8CFF),
-    0xe56c: Color(0xFF8E8E93),
-    0xe8f9: Color(0xFF6B6B7B),
+    0xe56c: LoveGirlTheme.orange,
+    0xe8f9: LoveGirlTheme.textMuted,
   };
 
   @override
@@ -129,7 +131,10 @@ class _CountdownScreenState extends State<CountdownScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        // v4.0 弹层大圆角 + 1px 细线
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
+            side: BorderSide(color: ctx.lgCardBorder)),
         title: const Text('删除倒计时'),
         content: Text('确定删除「${item['name'] ?? ''}」吗？'),
         actions: [
@@ -221,7 +226,8 @@ class _CountdownScreenState extends State<CountdownScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.lgCard,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+          border: Border.all(color: context.lgCardBorder),
           boxShadow: LoveGirlTheme.cardShadow(),
         ),
         child: Row(

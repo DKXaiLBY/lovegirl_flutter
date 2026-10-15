@@ -138,11 +138,8 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
   Future<void> _openPicker() async {
     final picked = await showModalBottomSheet<List<String>>(
       context: context,
-      backgroundColor: const Color(0xFF211C18),
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
       builder: (_) => _PhotoPickerSheet(
         allUrls: widget.photoUrls,
         initialSelected: List.of(_bookUrls),
@@ -172,7 +169,8 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
   Widget build(BuildContext context) {
     final spreadTotal = (_bookUrls.length / 2).ceil();
     return Scaffold(
-      backgroundColor: const Color(0xFF171310),
+      // 翻页书=暗房语境（深浅两态恒暗），底色对齐 bgDark token 消硬编码
+      backgroundColor: LoveGirlTheme.bgDark,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
@@ -273,106 +271,137 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
     final mq = MediaQuery.of(context);
     // 横屏高度有限：网格高度随可用高度收缩，整板可滚动兜底
     final gridH = (mq.size.height * 0.40).clamp(160.0, 260.0);
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Text('挑照片装订成册',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 17)),
-                const SizedBox(width: 8),
-                Text('点选顺序 = 页序',
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 12)),
-                const Spacer(),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => _selected = List.of(widget.allUrls)),
-                  child: const Text('全选',
-                      style: TextStyle(color: Colors.white54)),
-                ),
-                TextButton(
-                  onPressed: () => setState(() => _selected = []),
-                  child: const Text('清空',
-                      style: TextStyle(color: Colors.white54)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            SizedBox(
-              height: gridH,
-              child: GridView.builder(
-                itemCount: widget.allUrls.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                ),
-                itemBuilder: (context, i) {
-                  final url = widget.allUrls[i];
-                  final order = _selected.indexOf(url);
-                  final picked = order >= 0;
-                  return GestureDetector(
-                    onTap: () => _toggle(url),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: url,
-                            fit: BoxFit.cover,
-                            color: picked
-                                ? null
-                                : Colors.black38,
-                            colorBlendMode:
-                                picked ? null : BlendMode.darken,
-                          ),
-                        ),
-                        if (picked)
-                          Positioned(
-                            right: 4,
-                            top: 4,
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: Text('${order + 1}',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.black)),
-                            ),
-                          ),
-                      ],
+    // v4.0 弹层统一口径：暗室场景（弹层浮在黑色书页上）保持深色玻璃
+    //（radiusXl 28 + 卡色 88% + blur 24），沿用深色相册暗房语境，不引暖米旧值
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: LoveGirlTheme.cardDark.withValues(alpha: 0.88),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: LoveGirlTheme.cardBorderDark)),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text('挑照片装订成册',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17)),
+                      const SizedBox(width: 8),
+                      Text('点选顺序 = 页序',
+                          style: const TextStyle(
+                              color: Colors.white38, fontSize: 12)),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _selected = List.of(widget.allUrls)),
+                        child: const Text('全选',
+                            style: TextStyle(color: Colors.white54)),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _selected = []),
+                        child: const Text('清空',
+                            style: TextStyle(color: Colors.white54)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: gridH,
+                    child: GridView.builder(
+                      itemCount: widget.allUrls.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                      ),
+                      itemBuilder: (context, i) {
+                        final url = widget.allUrls[i];
+                        final order = _selected.indexOf(url);
+                        final picked = order >= 0;
+                        return GestureDetector(
+                          onTap: () => _toggle(url),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                  imageUrl: url,
+                                  fit: BoxFit.cover,
+                                  color: picked
+                                      ? null
+                                      : Colors.black38,
+                                  colorBlendMode:
+                                      picked ? null : BlendMode.darken,
+                                ),
+                              ),
+                              if (picked)
+                                Positioned(
+                                  right: 4,
+                                  top: 4,
+                                  child: Container(
+                                    width: 22,
+                                    height: 22,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text('${order + 1}',
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.black)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, _selected),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Text('重新装订（已选 ${_selected.length} 张）'),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context, _selected),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                ),
-                child: Text('重新装订（已选 ${_selected.length} 张）'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

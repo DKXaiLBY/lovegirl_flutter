@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,8 +7,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../utils/constants.dart';
 import '../../widgets/app_icon.dart';
+import '../../widgets/lovegirl_ui.dart';
 
 class MoodScreen extends StatefulWidget {
   const MoodScreen({super.key});
@@ -136,81 +137,68 @@ class _MoodScreenState extends State<MoodScreen> {
     final moods = _getDayMoods(day);
     if (moods.isEmpty) return;
     final items = moods.map(_moodToData).toList();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        child: ConstrainedBox(
-          // 多条记录时弹层限高（对抗审查 P2-4），单条布局与旧版一致
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(2))),
-              SizedBox(height: 20),
-              Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
-                  style: TextStyle(
-                      fontSize: 14, color: context.lgTextMuted)),
-              SizedBox(height: 16),
-              Flexible(
-                child: ListView(shrinkWrap: true, children: [
-                  for (final mood in items)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                                color: (mood.color ?? context.lgTextMuted)
-                                    .withAlpha(30),
-                                shape: BoxShape.circle),
-                            child: Icon(mood.icon,
-                                size: 30,
-                                color: mood.color ?? context.lgTextMuted),
-                          ),
-                          SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(mood.label,
+    _showGlassSheet(
+      ctx: context,
+      builder: (ctx) => ConstrainedBox(
+        // 多条记录时弹层限高（对抗审查 P2-4），单条布局与旧版一致
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSheetGrabber(),
+            SizedBox(height: 20),
+            Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
+                style: TextStyle(
+                    fontSize: 14, color: context.lgTextMuted)),
+            SizedBox(height: 16),
+            Flexible(
+              child: ListView(shrinkWrap: true, children: [
+                for (final mood in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                              color: (mood.color ?? context.lgTextMuted)
+                                  .withValues(alpha: 0.12),
+                              shape: BoxShape.circle),
+                          child: Icon(mood.icon,
+                              size: 30,
+                              color: mood.color ?? context.lgTextMuted),
+                        ),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(mood.label,
+                                  style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: mood.color ??
+                                          context.lgTextMuted)),
+                              if (mood.note.isNotEmpty) ...[
+                                SizedBox(height: 4),
+                                Text(mood.note,
                                     style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: mood.color ??
-                                            context.lgTextMuted)),
-                                if (mood.note.isNotEmpty) ...[
-                                  SizedBox(height: 4),
-                                  Text(mood.note,
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          color: context.lgTextSecondary,
-                                          height: 1.4)),
-                                ],
+                                        fontSize: 14,
+                                        color: context.lgTextSecondary,
+                                        height: 1.4)),
                               ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                ]),
-              ),
-              SizedBox(height: 8),
-            ],
-          ),
+                  ),
+              ]),
+            ),
+            SizedBox(height: 8),
+          ],
         ),
       ),
     );
@@ -219,31 +207,18 @@ class _MoodScreenState extends State<MoodScreen> {
   void _showAddDialog() {
     int selectedIdx = 0;
     final noteCtrl = TextEditingController();
-    showModalBottomSheet(
-      context: context,
+    _showGlassSheet(
+      ctx: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 24),
-          decoration: BoxDecoration(
-              color: context.lgCard,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+        builder: (ctx, setSheetState) => Padding(
+          // 键盘避让在外层 _showGlassSheet 已处理；这里只留输入区与按钮的呼吸位
+          padding: const EdgeInsets.only(bottom: 4, top: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                  child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                          color: Colors.black12,
-                          borderRadius: BorderRadius.circular(2)))),
+              _buildSheetGrabber(width: 36),
               const SizedBox(height: 20),
               const Text('记录今天的心情',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
@@ -261,12 +236,12 @@ class _MoodScreenState extends State<MoodScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: sel
-                            ? _moodColors[i].withAlpha(30)
+                            ? _moodColors[i].withValues(alpha: 0.14)
                             : context.lgBg,
                         border: Border.all(
                             color: sel
                                 ? _moodColors[i]
-                                : Colors.black.withAlpha(10),
+                                : context.lgCardBorder,
                             width: sel ? 2 : 1),
                       ),
                       child: Column(
@@ -295,7 +270,14 @@ class _MoodScreenState extends State<MoodScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: context.lgInk,
+                    foregroundColor:
+                        context.lgIsDark ? context.lgBg : Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999)),
+                  ),
                   onPressed: () async {
                     try {
                       final now =
@@ -326,12 +308,62 @@ class _MoodScreenState extends State<MoodScreen> {
     );
   }
 
+  /// v4.0 弹层统一口径（v4-ui-token-plan §4）：半透明白卡玻璃化 +
+  /// BackdropFilter blur 24 + radiusXl 28 + cardBorder 顶线。
+  void _showGlassSheet({
+    required BuildContext ctx,
+    required WidgetBuilder builder,
+    bool isScrollControlled = false,
+  }) {
+    showModalBottomSheet<void>(
+      context: ctx,
+      isScrollControlled: isScrollControlled,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Padding(
+        // 键盘避让集中在外层（detail 无键盘时 viewInsets.bottom=0 不产生留白）
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+        child: ClipRRect(
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(LoveGirlTheme.radiusXl)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              decoration: BoxDecoration(
+                color: context.lgPaper.withValues(alpha: 0.72),
+                border: Border(
+                    top: BorderSide(color: context.lgCardBorder, width: 1)),
+              ),
+              child: builder(sheetCtx),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 弹层顶部抓手条：浅色模式黑 12%（既有视觉），深色模式白 12% 玻璃线
+  Widget _buildSheetGrabber({double width = 40}) => Center(
+        child: Container(
+            width: width,
+            height: 4,
+            decoration: BoxDecoration(
+                color: context.lgIsDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(2))),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // v4.0：纯色 bgLight/bgDark 兜底，实际底色由 LovePage 135° 浅灰渐变承担
+      //（v4-ui-token-plan §4 LovePage；转场/键盘露出的裸 Scaffold 不破）
       backgroundColor: context.lgBg,
       appBar: AppBar(
-        backgroundColor: context.lgBg,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('心情日记'),
@@ -356,8 +388,10 @@ class _MoodScreenState extends State<MoodScreen> {
               : _buildContent(),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
+        // 黑底白字主行动（浅色）/米白底深字（深色，lgInk 深色态为近白，图标不能恒白）
         backgroundColor: context.lgInk,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add,
+            color: context.lgIsDark ? context.lgBg : Colors.white),
       ),
     );
   }
@@ -377,21 +411,26 @@ class _MoodScreenState extends State<MoodScreen> {
       );
 
   Widget _buildContent() {
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-          children: [
-            _buildMonthSwitcher(),
-            const SizedBox(height: 16),
-            _buildHeatmap(),
-            const SizedBox(height: 24),
-            if (_moods.length >= 2) ...[
-              _buildTrendChart(),
+    // v4.0：底色=LovePage 135° surfaceGradient（浅灰光感），深色自动回落纯色 bgDark
+    return LovePage(
+      // ListView 自身滚动+下拉刷新；LovePage 默认上下 padding 收敛为 0
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+            padding: const EdgeInsets.only(top: 8),
+            children: [
+              _buildMonthSwitcher(),
+              const SizedBox(height: 16),
+              _buildHeatmap(),
               const SizedBox(height: 24),
-            ],
-            _buildRecentList(),
-          ]),
+              if (_moods.length >= 2) ...[
+                _buildTrendChart(),
+                const SizedBox(height: 24),
+              ],
+              _buildRecentList(),
+            ]),
+      ),
     );
   }
 
@@ -412,12 +451,8 @@ class _MoodScreenState extends State<MoodScreen> {
       '十一月',
       '十二月'
     ];
-    return Container(
+    return LovePaper(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          boxShadow: LoveGirlTheme.cardShadow()),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         IconButton(icon: const Icon(Icons.chevron_left), onPressed: _prevMonth),
         Text('${_currentMonth.year}年 ${months[_currentMonth.month]}',
@@ -454,12 +489,8 @@ class _MoodScreenState extends State<MoodScreen> {
       weeks.add(currentWeek);
     }
 
-    return Container(
+    return LovePaper(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          boxShadow: LoveGirlTheme.cardShadow()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('本月心情',
             style: TextStyle(
@@ -499,10 +530,13 @@ class _MoodScreenState extends State<MoodScreen> {
                       onTap: () => _showDayDetail(day),
                       child: Builder(builder: (cellCtx) {
                         // W5 弹药库 6.1：一日多心情 → SweepGradient 扇形（star_book 手法）
+                        // v4.0 参考图⑧：格色降为粉彩浅底（色相语义不动，v3.42 消同色成果保留），
+                        // 数字字色由白转墨；真机验收预留 alpha 0.11-0.22 档重调
                         final dayColors = dayGradientColors(
                             _getDayMoods(day)
                                 .map((m) =>
-                                    _moodColors[_moodIndexOf(m)])
+                                    _moodColors[_moodIndexOf(m)]
+                                        .withValues(alpha: 0.11))
                                 .toList());
                         final multi = dayColors.length >= 2;
                         return Container(
@@ -520,14 +554,13 @@ class _MoodScreenState extends State<MoodScreen> {
                                 ? (multi
                                     ? null
                                     : (mood.color ?? context.lgTextMuted)
-                                        .withAlpha(180))
-                                : context.lgBg,
+                                        .withValues(alpha: 0.11))
+                                : context.lgPrimarySoft,
                             borderRadius: BorderRadius.circular(8),
                             border: today
                                 ? Border.all(
                                     color: context.lgInk, width: 2)
-                                : Border.all(
-                                    color: Colors.black.withAlpha(10)),
+                                : Border.all(color: context.lgCardBorder),
                           ),
                           child: Center(
                               child: Text('${day.day}',
@@ -535,7 +568,7 @@ class _MoodScreenState extends State<MoodScreen> {
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: mood.hasMood
-                                          ? Colors.white
+                                          ? context.lgInk
                                           : context.lgTextMuted))),
                         );
                       }),
@@ -544,7 +577,7 @@ class _MoodScreenState extends State<MoodScreen> {
                 }).toList(),
               ),
             )),
-        // Legend（W5：单心情=心情色，多心情=渐变扇形）
+        // Legend（W5：单心情=心情色浅底，多心情=渐变扇形）
         const SizedBox(height: 8),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
           Text('无记录',
@@ -554,9 +587,9 @@ class _MoodScreenState extends State<MoodScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  color: context.lgBg,
+                  color: context.lgPrimarySoft,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.black.withAlpha(10)))),
+                  border: Border.all(color: context.lgCardBorder))),
           SizedBox(width: 8),
           Text('有记录',
               style: TextStyle(fontSize: 10, color: context.lgTextMuted)),
@@ -565,7 +598,7 @@ class _MoodScreenState extends State<MoodScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  color: _moodColors.first.withAlpha(180),
+                  color: _moodColors.first.withValues(alpha: 0.11),
                   borderRadius: BorderRadius.circular(8))),
           SizedBox(width: 8),
           Text('多心情',
@@ -576,7 +609,11 @@ class _MoodScreenState extends State<MoodScreen> {
               height: 14,
               decoration: BoxDecoration(
                   gradient: SweepGradient(
-                      colors: [_moodColors[1], _moodColors[4], _moodColors[6]],
+                      colors: [
+                        _moodColors[1].withValues(alpha: 0.11),
+                        _moodColors[4].withValues(alpha: 0.11),
+                        _moodColors[6].withValues(alpha: 0.11),
+                      ],
                       startAngle: -math.pi / 2),
                   borderRadius: BorderRadius.circular(8))),
         ]),
@@ -599,12 +636,8 @@ class _MoodScreenState extends State<MoodScreen> {
       }
     }
 
-    return Container(
+    return LovePaper(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-          boxShadow: LoveGirlTheme.cardShadow()),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('心情趋势',
             style: TextStyle(
@@ -673,8 +706,9 @@ class _MoodScreenState extends State<MoodScreen> {
                           radius: 3,
                           color: context.lgInk,
                           strokeWidth: 0)),
-                  belowBarData: BarAreaData(
-                      show: true, color: context.lgInk.withAlpha(25)),
+                      belowBarData: BarAreaData(
+                          show: true,
+                          color: context.lgInk.withValues(alpha: 0.10)),
                 ),
               ],
             ),
@@ -699,8 +733,9 @@ class _MoodScreenState extends State<MoodScreen> {
       Text('最近记录',
           style: TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: context.lgTextPrimary)),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+              color: context.lgTextMuted)),
       SizedBox(height: 8),
       // W5 弹药库 9.2：相邻记录心情色渐变连线（最后一条无线=时间尽头）
       ...List.generate(display.length, (i) {
@@ -728,10 +763,15 @@ class _MoodScreenState extends State<MoodScreen> {
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(2),
+                            // v4.0：连线随月历格降为粉彩浅底（withAlpha 28 档，
+                            // 色相渐变语义保留；真机验收预留 alpha 36-56 重调）
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [color, nextColor],
+                              colors: [
+                                color.withValues(alpha: 0.11),
+                                nextColor.withValues(alpha: 0.11),
+                              ],
                             ),
                           ),
                         ),
@@ -776,18 +816,17 @@ class _MoodScreenState extends State<MoodScreen> {
     final label = mood['label'] ?? '';
     final note = mood['note'] ?? '';
     final date = mood['date'] ?? '';
-    return Container(
+    // v4.0 参考图④：疏朗行（图标圆底 + 文字 + 右侧日期），LovePaper 细线卡
+    return LovePaper(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: context.lgCard,
-          borderRadius: BorderRadius.circular(AppConstants.borderRadius)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      radius: LoveGirlTheme.radius,
       child: Row(children: [
         Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-                color: color.withAlpha(25), shape: BoxShape.circle),
+                color: color.withValues(alpha: 0.11), shape: BoxShape.circle),
             child: Icon(icon, size: 22, color: color)),
         SizedBox(width: 12),
         Expanded(
@@ -798,9 +837,11 @@ class _MoodScreenState extends State<MoodScreen> {
                 style: TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w600, color: color)),
             Spacer(),
-            Text(date.toString().substring(5),
-                style: TextStyle(
-                    fontSize: 12, color: context.lgTextMuted)),
+            // 右侧日期=计数徽章形态（参考图⑥中性浅底徽章）
+            LoveBadge(
+              text: date.toString().substring(5),
+              style: LoveBadgeStyle.neutral,
+            ),
           ]),
           if (note.isNotEmpty) ...[
             SizedBox(height: 4),

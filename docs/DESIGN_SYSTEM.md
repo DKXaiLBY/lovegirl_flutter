@@ -1,44 +1,39 @@
-# LoveGirl Design System v2.0（冷白工具风）
+# LoveGirl Design System v3.0（冷灰工具风 v4）
 
 > 事实来源：`lib/utils/lovegirl_theme.dart`（tokens 唯一权威）。本文件与代码冲突时以代码为准并回改文档。
-> v1.0（纸质手账暖白）已整体作废——v3.37 起全局切换**倒数日式冷白工具风**，v3.40 巩固。旧版可在 git 历史查（`git show v3.39.0:docs/DESIGN_SYSTEM.md`）。
+> v2.0（v3.41 奶油暖白）自 v4 token 批次（2026-10-16）起由 v3.0 取代，全文其余章节待后续批次渐进修订；旧版可在 git 历史查（`git show v3.42.0:docs/DESIGN_SYSTEM.md`）。
 
-## 0. 产品气质（v2.0）
+## 0. 产品气质（v3.0）
 
 | 维度 | 结论 |
 |---|---|
-| 气质 | **奶油暖白工具风（v3.41，倒数日式的暖化版）**：奶油底、暖炭字阶、白卡浮起、蜜桃点缀。私密但不手账，明亮但不糖果 |
-| 保留的温度 | 票根隐喻（打孔/锯齿/虚线，底色纯白）、拍立得实体复刻、手写字体 Caveat、少量插画的柔和色 |
-| 禁忌 | 企业后台感、促销感、玻璃拟态、无白名单的渐变滥用（暖色自 v3.41 以「奶油底+蜜桃点缀」双轨回归：蜜桃=情感/点缀，冷灰 #8E8E93=内容中性态） |
+| 气质 | **冷灰工具风（v4.0，倒数日式回归）**：浅灰渐变底（LovePage 135° `surfaceGradient #F7F8FA→#ECEEF2`）、纯白卡 1px 细线描边、中性近黑字阶、黑胶囊主行动。奶油底与暖炭字阶退役 |
+| 保留的温度 | 票根隐喻（打孔/锯齿/虚线，底色纯白）、拍立得实体复刻、手写字体 Caveat、少量插画的柔和色、蜜桃点缀（降格：仅 softOrangeBg 徽章/关键数字/回忆卡，不再上大面积底色） |
+| 弹层玻璃化口径 | 弹层统一 `radiusXl 28` + 半透明白 72%（withAlpha 184）+ BackdropFilter blur 24 + `cardBorder` 顶线（替代旧"禁忌：玻璃拟态"条款；指弹层口径，非全页玻璃滥用） |
+| 禁忌 | 企业后台感、促销感、无白名单的渐变滥用（渐变白名单=LovePage 页底 + 后续批次三处 hero 换 surfaceGradient；`gradientSunrise` 已退役 0 使用目标） |
 
-## 1. 色板（与 theme.dart 同步，2026-09-30）
+## 1. 色板（v4 增量——与 theme.dart 同步，2026-10-16）
 
 | token | 值 | 语义 |
 |---|---|---|
-| `primary` | `#1A1A1A` | 主行动：黑底白字按钮、选中态、App 内"墨色" |
-| `primaryLight` | `#4A4A4A` | 主色弱化 |
-| `primarySoft` | `#F4F4F5` | 墨色的浅底（chips 未选中、次级容器） |
-| `secondary` | `#7A9E7E` | 绿=完成/健康语义（保留的唯一彩色功能色） |
-| `red` | `#E95B4E` | 仅删除/警示（计数红点、删除按钮） |
-| `orange` | `#8E8E93` | 内容中性态冷灰（历史名保留；与蜜桃双轨，见第 0 节） |
-| `bgLight` | `#FAF6F0` | 页面底（奶油白，v3.41） |
-| `paper` / `cardLight` | `#FFFFFF` | 卡底（在奶油底上浮起） |
-| `paperWarm` | `#F1E8DA` | 暖次级底（v3.41） |
-| `textPrimary` / `textSecondary` / `textMuted` | `#2B2723` / `#6E655B` / `#7A7062` | 暖炭字阶（v3.41；muted 对奶油底 4.5:1） |
-| `accent` / `peach` | `#F2704F` | 蜜桃珊瑚=情感/点缀/选中态（图形与底色专用，勿做正文色） |
-| `peachText` | `#C9502E` | 蜜桃文本档（对白 4.5:1，财务收入/标签文字用） |
-| `gradientSunrise` | `#FFE3C8→#FFD9E3` | 蜜桃日出渐变（白名单三处：首页头部/纪念日卡顶条/月报头图；仅浅色态） |
-| `separator` | `#ECECEC` | 分隔线/描边 |
-| `planned` | `#9E9AD1` | 计划态蓝钟（唯一紫） |
-| `visited` | `#4CAF50` | 已打卡 |
+| `bgLight` | `#F2F4F6` | Scaffold 纯色回退底（渐变加权中间值，冷灰替代奶油 #FAF6F0） |
+| `paperWarm` | `#F6F7F9` | 冷浅灰次级底（暖米 #F1E8DA 退役；名字暂保留，后续改名 surfaceSubtle） |
+| `primarySoft` | `#F1F3F5` | 选中/hover 中性浅底（修 v2.0 文档误写 #F4F4F5；代码曾是 #F0EAE0） |
+| `textPrimary` / `textSecondary` / `textMuted` | `#1F2126` / `#5C6066` / `#686D75` | 中性近黑字阶（muted 两底均 ≥4.5:1，比旧暖值深） |
+| `separator` / `cardBorder` | `#ECEEF1` / `#E5E7EC` | 行间线 / 卡片 1px 细线（描边重一档） |
+| `surfaceGradient` | `#F7F8FA→#ECEEF2` | 浅色页面 135° 渐变（LovePage 用；深色不上渐变） |
+| `badgeBg` / `badgeText` | `#EEF0F3` / `#3A3D45` | 中性计数徽章（深色走 `lgBadgeBg/Text` getter） |
+| `softGreen/Orange/Blue/Purple/Yellow` `Bg/Text` 六族 | 见 theme | 语义浅底徽章（底饱和 ≤12%；深色 bg 统一 `primarySoftDark #2C2F34`，fg 走 `lgSoftXxxText` getter，禁直引浅色常量） |
+| `peachTextDark` | `#F2916E` | 深色态蜜桃文字档（卡上 6.62:1；走 `lgPeachText`） |
+| `cardShadow()` | 3% 黑 blur2 | 阴影≈0，立体感交给描边；悬浮卡用 `cardShadowElevated()`（5% blur8） |
 
-**深色模式**（微暖深灰体系，v3.41）：`bgDark #1C1917` · `cardDark #262220` · `textPrimaryDark #EFEAE4` · `textSecondaryDark #A89F95` · `textMutedDark #8D847A` · `separatorDark #33302B` · `primarySoftDark #2E2A26`。语义色（secondary 绿/red/planned/peach）两态通用。**深色态不上日出渐变**（三处 hero 用 primarySoftDark 单色）。**发布前真机过深浅两态**是红线。
+**其余色板**（primary/secondary/red/orange/planned/peach 系/圆角 16/20/28、深色 `bgDark #17181B`·`cardDark #232529`·字阶冷化全套）以 `lib/utils/lovegirl_theme.dart` 现值为准；v2.0 第 1-6 节中与本节冲突处一律以 theme 代码为准。
 
 ## 2. 字阶（沿用 v1.0 统计，未变）
 
 页面大标题 20/w800 · 卡片标题 15-16/w700-800 · 正文 13-14/w400-600 · 辅助 11.5-12.5 · 数字 hero（首页天数）38/w800。中文字体系统默认；手写场景（拍立得白框字/日期戳）用 Caveat 400/700。
 
-## 3. 圆角 4+1 档（theme.dart：radius 14 / radiusLg 18 / radiusXl 26）
+## 3. 圆角 4+1 档（theme.dart：radius 16 / radiusLg 20 / radiusXl 28，v4 起）
 
 | 档 | 值 | 用途 |
 |---|---|---|
@@ -75,5 +70,6 @@
 
 ## 7. 变更记录
 
+- **v3.0（2026-10-16）**：v4 token 批次——冷灰化全套（bg/字阶/深色系）、cardBorder 细线体系、badge 六族浅底徽章、surfaceGradient 页底渐变、圆角 16/20/28、阴影降档、弹层玻璃化口径（替换旧"禁忌：玻璃拟态"）、`gradientSunrise` 退役（白名单三处 hero 后续批次换 surfaceGradient）。仅改第 0/1/3 节与本文头，第 2/4/5/6 节待模块批次渐进修订
 - **v2.0（2026-09-30）**：全文重写对齐冷白工具风；补 SegmentCloth/gal/slidable 等新能力涉及的组件口径
 - v1.0→v3.37 修订（2026-09-28）：去暖色，见 git 历史

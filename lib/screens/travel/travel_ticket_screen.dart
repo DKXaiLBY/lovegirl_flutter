@@ -26,7 +26,8 @@ class _FullWidthDashedLine extends StatelessWidget {
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, 1),
-          painter: const _TicketDashedPainter(color: Color(0xFFE0D8D0)),
+          // v4.0：暖米虚线 #E0D8D0 退役，分隔线走 token（形态=虚线 painter 不动）
+          painter: _TicketDashedPainter(color: context.lgSeparator),
         );
       },
     );
@@ -354,9 +355,9 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
               style: SegmentedButton.styleFrom(
                 selectedBackgroundColor: LoveGirlTheme.primary,
                 selectedForegroundColor: Colors.white,
-                backgroundColor: Colors.white,
+                backgroundColor: context.lgCard,
                 foregroundColor: context.lgTextSecondary,
-                side: BorderSide(color: context.lgSeparator),
+                side: BorderSide(color: context.lgCardBorder),
               ),
             ),
           ),
@@ -429,12 +430,13 @@ class _TravelTicketScreenState extends State<TravelTicketScreen>
         _buildLayoutSwitch(),
         Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8F0),
+        // v4.0：暖米票面 #FFF8F0 退役 → 纯白票面（票根形态/打孔/锯齿不动，颜色随语义）
+        color: context.lgPaper,
         borderRadius: BorderRadius.circular(18),
         boxShadow: LoveGirlTheme.cardShadowElevated(),
       ),
       child: LoveTicketCard(
-        color: const Color(0xFFFFF8F0),
+        color: context.lgPaper,
         padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

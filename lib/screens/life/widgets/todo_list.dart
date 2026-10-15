@@ -1,7 +1,7 @@
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/app_icon.dart';
@@ -219,183 +219,187 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
+      // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => ClipPath(
-          clipper: TopOrganicClipper(radius: 24),
-          child: Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              left: 20,
-              right: 20,
-              top: 24,
-            ),
-            decoration: BoxDecoration(
-              color: context.lgCard,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(15),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+        builder: (ctx, setSheetState) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(LoveGirlTheme.radiusXl),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 24,
+              ),
+              decoration: BoxDecoration(
+                color: context.lgCard.withValues(alpha: 0.72),
+                border: Border(
+                  top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 拖拽指示条
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: context.lgTextMuted.withAlpha(60),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '添加待办',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: titleCtrl,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    labelText: '待办内容',
-                    hintText: '输入待办事项...',
-                    prefixIcon: Icon(
-                      Icons.task_alt_rounded,
-                      color: context.lgInk,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: dateCtrl,
-                  readOnly: true,
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2035),
-                      builder: (context, child) => Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: context.lgInk,
-                          ),
-                        ),
-                        child: child!,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 拖拽指示条
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: context.lgTextMuted.withValues(alpha: 0.24),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    );
-                    if (picked != null) {
-                      setSheetState(() {
-                        dateCtrl.text =
-                            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-                      });
-                    }
-                  },
-                  decoration: InputDecoration(
-                    labelText: '日期',
-                    prefixIcon: Icon(
-                      Icons.calendar_today_rounded,
-                      color: context.lgInk,
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: categories
-                        .map(
-                          (c) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(c),
-                              selected: selectedCategory == c,
-                              selectedColor:
-                                  context.lgInk.withAlpha(30),
-                              labelStyle: TextStyle(
-                                color: selectedCategory == c
-                                    ? context.lgInk
-                                    : context.lgTextSecondary,
-                                fontWeight: selectedCategory == c
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                              ),
-                              side: BorderSide(
-                                color: selectedCategory == c
-                                    ? context.lgInk.withAlpha(80)
-                                    : context.lgTextMuted.withAlpha(40),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              onSelected: (_) =>
-                                  setSheetState(() => selectedCategory = c),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                  const SizedBox(height: 20),
+                  Text(
+                    '添加待办',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: context.lgTextPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (titleCtrl.text.trim().isEmpty) return;
-                      try {
-                        // 将中文分类转换为英文
-                        final categoryEn =
-                            _categoryMap[selectedCategory] ?? 'daily';
-                        await _api.createTodo({
-                          'title': titleCtrl.text.trim(),
-                          'dueDate': dateCtrl.text,
-                          'category': categoryEn,
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: titleCtrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: '待办内容',
+                      hintText: '输入待办事项...',
+                      prefixIcon: Icon(
+                        Icons.task_alt_rounded,
+                        color: context.lgInk,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: dateCtrl,
+                    readOnly: true,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2035),
+                        builder: (context, child) => Theme(
+                          data: Theme.of(context).copyWith(
+                            // 深浅两态：色板跟随当前亮度
+                            colorScheme: context.lgIsDark
+                                ? ColorScheme.dark(primary: context.lgInk)
+                                : ColorScheme.light(primary: context.lgInk),
+                          ),
+                          child: child!,
+                        ),
+                      );
+                      if (picked != null) {
+                        setSheetState(() {
+                          dateCtrl.text =
+                              '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
                         });
-                        if (!ctx.mounted) return;
-                        Navigator.pop(ctx);
-                        await _loadTodos();
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(
-                                content: Text('添加失败: $e'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2)),
-                          );
-                        }
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.lgInk,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      '确定添加',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
+                    decoration: InputDecoration(
+                      labelText: '日期',
+                      prefixIcon: Icon(
+                        Icons.calendar_today_rounded,
+                        color: context.lgInk,
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 44,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: categories
+                          .map(
+                            (c) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(c),
+                                selected: selectedCategory == c,
+                                selectedColor: context.lgPrimarySoft,
+                                labelStyle: TextStyle(
+                                  color: selectedCategory == c
+                                      ? context.lgInk
+                                      : context.lgTextSecondary,
+                                  fontWeight: selectedCategory == c
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
+                                side: BorderSide(
+                                  color: selectedCategory == c
+                                      ? context.lgInk.withAlpha(80)
+                                      : context.lgCardBorder,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                onSelected: (_) =>
+                                    setSheetState(() => selectedCategory = c),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (titleCtrl.text.trim().isEmpty) return;
+                        try {
+                          // 将中文分类转换为英文
+                          final categoryEn =
+                              _categoryMap[selectedCategory] ?? 'daily';
+                          await _api.createTodo({
+                            'title': titleCtrl.text.trim(),
+                            'dueDate': dateCtrl.text,
+                            'category': categoryEn,
+                          });
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          await _loadTodos();
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                  content: Text('添加失败: $e'),
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 2)),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: context.lgInk,
+                        foregroundColor:
+                            context.lgIsDark ? context.lgBg : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        '确定添加',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -454,19 +458,22 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   }
 
   Color _getCategoryColor(String category) {
+    // v4.0 分类色板收敛（v4-ui-token-plan §4）：Stripe 高饱靛蓝系退役，
+    // 换 mood 低饱和版色板同源色相；沿用浅色常量（分类色属内容语义色，
+    // 深色态不作黑灰反转，与心情 10 色同策略）
     switch (category) {
       case '学习':
-        return const Color(0xFF9C27B0);
+        return const Color(0xFF63609E);
       case '工作':
-        return const Color(0xFFE67E22);
+        return const Color(0xFFB58860);
       case '运动':
-        return const Color(0xFF27AE60);
+        return const Color(0xFF4DB6A2);
       case '购物':
-        return const Color(0xFF7B8CFF);
+        return const Color(0xFF3A689F);
       case '其他':
-        return const Color(0xFF95A5A6);
+        return const Color(0xFF9E9EAD);
       default:
-        return const Color(0xFF635BFF);
+        return const Color(0xFF8FAE8B);
     }
   }
 
@@ -594,31 +601,19 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       key: Key('todo_$id'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) => _confirmDelete(id, title),
-      background: ClipPath(
-        clipper: OrganicClipper(borderRadius: 16),
-        child: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 24),
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [context.lgInk, LoveGirlTheme.pinkLight],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: context.lgInk.withAlpha(40),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.delete_rounded,
-            color: Colors.white,
-            size: 24,
-          ),
+      // v4.0：删除手势底改功能性红（红=删除语义保留），不再墨色渐变
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: LoveGirlTheme.red,
+          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        ),
+        child: const Icon(
+          Icons.delete_rounded,
+          color: Colors.white,
+          size: 24,
         ),
       ),
       child: Opacity(
@@ -628,17 +623,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           margin: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              // 左边彩色有机竖条
-              ClipPath(
-                clipper: OrganicClipper(borderRadius: 3),
-                child: Container(
-                  width: 6,
-                  height: 44,
-                  color: categoryColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 手绘复选框
+              // 手绘复选框（勾选色随分类低饱和色相）
               GestureDetector(
                 onTap: () => _toggleTodo(id),
                 child: HandDrawnCheckbox(
@@ -687,15 +672,15 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                   ],
                 ),
               ),
-              // 分类标签
+              // v4.0 分类=粉彩浅底徽章（icon+文字，softXxx 同浅底范式）
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: categoryColor.withAlpha(20),
-                  borderRadius: BorderRadius.circular(14),
+                  color: categoryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -713,6 +698,11 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                   ],
                 ),
               ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: context.lgTextMuted,
+              ),
             ],
           ),
         ),
@@ -721,38 +711,24 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   }
 
   Widget _buildFab() {
-    return ClipPath(
-      clipper: OrganicClipper(borderRadius: 18),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [context.lgInk, LoveGirlTheme.primaryLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: context.lgInk.withAlpha(60),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: context.lgInk.withAlpha(30),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: _showAddDialog,
-            borderRadius: BorderRadius.circular(18),
-            child: const Center(
-              child: Icon(Icons.add, color: Colors.white, size: 28),
-            ),
+    // v4.0 主行动黑底白字：去有机裁剪/渐变/双层重阴影，回归圆角黑块
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: context.lgInk,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: LoveGirlTheme.cardShadowElevated(),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showAddDialog,
+          borderRadius: BorderRadius.circular(18),
+          child: Icon(
+            Icons.add,
+            color: context.lgIsDark ? context.lgBg : Colors.white,
+            size: 28,
           ),
         ),
       ),

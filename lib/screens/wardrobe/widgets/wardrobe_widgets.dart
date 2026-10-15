@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -7,6 +9,65 @@ import '../../../utils/lovegirl_theme.dart';
 import '../../../widgets/lovegirl_ui.dart';
 
 /// 衣柜模块共享小组件（M1）
+
+/// v4.0 页面浅灰渐变底（LovePage 同口径）：浅色 135° surfaceGradient，
+/// 深色维持纯色 bgDark（v3.41 深色红线）；Scaffold 纯色保留兜底。
+Widget wnPageBackground(BuildContext context, {required Widget child}) {
+  return Container(
+    decoration: BoxDecoration(
+      color: context.lgBg,
+      gradient: context.lgIsDark
+          ? null
+          : const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: LoveGirlTheme.surfaceGradient,
+            ),
+    ),
+    child: child,
+  );
+}
+
+/// v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24 / 1px 细线）：
+/// 底部弹层外壳统一走此壳（深色=cardDark 72% 同成立）。
+class WnGlassSheet extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry margin;
+  final EdgeInsetsGeometry padding;
+  final BoxConstraints? constraints;
+
+  const WnGlassSheet({
+    super.key,
+    required this.child,
+    this.margin = const EdgeInsets.all(12),
+    this.padding = const EdgeInsets.all(16),
+    this.constraints,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(LoveGirlTheme.radiusXl);
+    return Padding(
+      padding: margin,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            constraints: constraints,
+            padding: padding,
+            decoration: BoxDecoration(
+              color: context.lgPaper.withValues(alpha: 0.72),
+              borderRadius: radius,
+              border: Border.all(color: context.lgCardBorder),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// 空态插画占位（豆包正式插画 illus_empty_wardrobe / illus_empty_outfit 到位后替换）
 const kWardrobeEmptyIllus = 'ui_couple';
@@ -73,7 +134,7 @@ class WnThumb extends StatelessWidget {
   }
 }
 
-/// 标签胶囊（选中=黑底白字，未选=白底描边）
+/// 标签胶囊（选中=黑底白字，未选=badgeBg 浅灰底细线）
 class WnChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -88,10 +149,12 @@ class WnChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? context.lgInk : Colors.transparent,
+          // v4.0：未选态从透明改中性徽章浅灰（lgBadgeBg，深色=primarySoftDark），
+          // 配 1px 细线描边（参考图③黑胶囊选中同款）
+          color: selected ? context.lgInk : context.lgBadgeBg,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? context.lgInk : context.lgSeparator,
+            color: selected ? context.lgInk : context.lgCardBorder,
           ),
         ),
         child: Text(
@@ -156,7 +219,7 @@ class WnItemCard extends StatelessWidget {
       onLongPress: onLongPress,
       child: LovePaper(
         padding: EdgeInsets.zero,
-        radius: 14,
+        radius: LoveGirlTheme.radius,
         border: selected ? Border.all(color: context.lgInk, width: 2) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -166,7 +229,8 @@ class WnItemCard extends StatelessWidget {
                 AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                    borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(LoveGirlTheme.radius)),
                     child: WnThumb(item.thumbnailUrl ?? item.imageUrl),
                   ),
                 ),
@@ -265,10 +329,10 @@ class WnOutfitCover extends StatelessWidget {
               left: i * (size / 3.2),
               top: i * 3.0,
               child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: context.lgPaper, width: 1.5),
+      ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: WnThumb(alive[i].thumbnailUrl, size: size * 0.62),
@@ -287,7 +351,11 @@ Future<bool> wnConfirmDialog(BuildContext context, String title, String body,
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: Theme.of(ctx).dialogBackgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      // v4.0 弹层大圆角 + 1px 细线（参考图⑦口径）
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
+        side: BorderSide(color: ctx.lgCardBorder),
+      ),
       title: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
       content: Text(body, style: const TextStyle(fontSize: 14)),
       actions: [
@@ -295,7 +363,8 @@ Future<bool> wnConfirmDialog(BuildContext context, String title, String body,
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
           child: Text(confirmText,
-              style: const TextStyle(color: Color(0xFFE95B4E), fontWeight: FontWeight.w700)),
+              style: const TextStyle(
+                  color: LoveGirlTheme.red, fontWeight: FontWeight.w700)),
         ),
       ],
     ),

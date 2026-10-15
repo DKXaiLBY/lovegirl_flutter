@@ -18,9 +18,18 @@ class LovePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // v4.0：浅色 135° 浅灰渐变底（参考图①光感），深色维持纯色 bgDark 不上渐变
+    //（v3.41 深色红线）；Scaffold 纯色 bgLight/bgDark 保留兜底。
     final body = Container(
       decoration: BoxDecoration(
         color: context.lgBg,
+        gradient: context.lgIsDark
+            ? null
+            : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: LoveGirlTheme.surfaceGradient,
+              ),
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -44,7 +53,9 @@ class LovePaper extends StatelessWidget {
     this.margin = EdgeInsets.zero,
     this.color,
     this.radius = LoveGirlTheme.radiusLg,
-    this.elevated = true,
+    // v4.0 默认 false：立体感交给 1px 细线描边（参考图②），阴影≈0；
+    // 需要阴影的悬浮卡显式传 elevated: true
+    this.elevated = false,
     this.border,
   });
 
@@ -56,7 +67,9 @@ class LovePaper extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? context.lgPaper,
         borderRadius: BorderRadius.circular(radius),
-        border: border ?? Border.all(color: context.lgSeparator),
+        // v4.0 细线描边：cardBorder（浅） / cardBorderDark（深），
+        // 比 lgSeparator 重一档
+        border: border ?? Border.all(color: context.lgCardBorder),
         boxShadow: elevated ? LoveGirlTheme.cardShadow() : null,
       ),
       child: child,
@@ -82,15 +95,20 @@ class LoveStickerIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tint = color;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: background ?? (color ?? context.lgInk).withAlpha(20),
+        color: background ?? (tint ?? context.lgInk).withAlpha(20),
         borderRadius: BorderRadius.circular(size * 0.34),
-        border: Border.all(color: (color ?? context.lgInk).withAlpha(35)),
+        // v4.0 描边对齐 cardBorder 体系：中性默认（未传色）走细线 token；
+        // 传色变体保留语义着色描边（色与图标同源，非中性发丝线）
+        border: Border.all(
+          color: tint != null ? tint.withAlpha(35) : context.lgCardBorder,
+        ),
       ),
-      child: Icon(icon, color: color ?? context.lgInk, size: iconSize),
+      child: Icon(icon, color: tint ?? context.lgInk, size: iconSize),
     );
   }
 }
@@ -112,7 +130,7 @@ class LoveTicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _TicketBorderPainter(separator: context.lgSeparator),
+      painter: _TicketBorderPainter(separator: context.lgCardBorder),
       child: LovePaper(
         padding: padding,
         margin: margin,
@@ -257,9 +275,11 @@ class LoveSectionTitle extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 17,
+            // v4.0：分组小标题弱化（15/w700 + 0.2 字距 + muted 色，参考图⑩）
+            fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: context.lgTextPrimary,
+            letterSpacing: 0.2,
+            color: context.lgTextMuted,
           ),
         ),
         const Spacer(),
@@ -295,19 +315,29 @@ class LovePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final semanticColor = color;
     return Container(
       constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: background ?? (color ?? context.lgInk).withAlpha(18),
+        // v4.0 默认底=lgBadgeBg（浅 badgeBg/深 primarySoftDark，深色安全）；
+        // 语义色由调用方传 softXxxText 类 getter，底沿用 fg 18α 浅纱（不回退深色安全性质）
+        color: background ??
+            (semanticColor != null
+                ? semanticColor.withAlpha(18)
+                : context.lgBadgeBg),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: (color ?? context.lgInk).withAlpha(45)),
+        border: Border.all(
+          color: semanticColor != null
+              ? semanticColor.withAlpha(45)
+              : context.lgBadgeBg,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: color ?? context.lgInk),
+            Icon(icon, size: 14, color: semanticColor ?? context.lgInk),
             const SizedBox(width: 4),
           ],
           Flexible(
@@ -318,7 +348,7 @@ class LovePill extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: color ?? context.lgInk,
+                color: semanticColor ?? context.lgInk,
               ),
             ),
           ),
@@ -357,7 +387,7 @@ class LoveIconButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color:
-                isActive ? LoveGirlTheme.primaryLight : context.lgSeparator,
+                isActive ? LoveGirlTheme.primaryLight : context.lgCardBorder,
           ),
           boxShadow: LoveGirlTheme.cardShadow(),
         ),
@@ -381,6 +411,10 @@ class LoveMenuRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? color;
 
+  /// v4.0 行尾计数徽章（LoveBadge 中性灰底）；与 value 互斥场景由调用方取舍，
+  /// 两者同传时 value 在前、count 收尾
+  final int? count;
+
   const LoveMenuRow({
     super.key,
     required this.icon,
@@ -388,6 +422,7 @@ class LoveMenuRow extends StatelessWidget {
     this.value,
     this.onTap,
     this.color,
+    this.count,
   });
 
   @override
@@ -396,10 +431,11 @@ class LoveMenuRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        // v4.0 行高疏朗（12→14，参考图④）
+        padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: color ?? context.lgInk),
+            Icon(icon, size: 20, color: color ?? context.lgInk),
             SizedBox(width: 13),
             Flexible(
               flex: 0,
@@ -431,6 +467,10 @@ class LoveMenuRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
             ],
+            if (count != null) ...[
+              const SizedBox(width: 8),
+              LoveBadge(count: count!),
+            ],
             Icon(
               Icons.chevron_right_rounded,
               size: 20,
@@ -439,6 +479,196 @@ class LoveMenuRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// v4.0 徽章语义色档（参考图⑥：中性浅灰为主，语义色浅底点缀）。
+/// 颜色一律走 LoveGirlSemanticColors getter（深色 bg 统一 primarySoftDark），
+/// 禁止直引浅色常量。
+enum LoveBadgeStyle { neutral, green, orange, blue, purple, yellow }
+
+/// v4.0 小圆角计数徽章（LoveMenuRow 行尾计数/列表角标）：
+/// 默认中性=lgBadgeBg/lgBadgeText；语义传 style；红点告警传 danger: true（red 底白字）。
+class LoveBadge extends StatelessWidget {
+  final int? count;
+  final String? text;
+  final LoveBadgeStyle style;
+  final bool danger;
+
+  const LoveBadge({
+    super.key,
+    this.count,
+    this.text,
+    this.style = LoveBadgeStyle.neutral,
+    this.danger = false,
+  })  : assert(
+          count != null || text != null,
+          'LoveBadge 需要 count 或 text 之一',
+        );
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bg;
+    final Color fg;
+    if (danger) {
+      bg = LoveGirlTheme.red;
+      fg = Colors.white;
+    } else {
+      switch (style) {
+        case LoveBadgeStyle.neutral:
+          bg = context.lgBadgeBg;
+          fg = context.lgBadgeText;
+        case LoveBadgeStyle.green:
+          bg = context.lgSoftGreenBg;
+          fg = context.lgSoftGreenText;
+        case LoveBadgeStyle.orange:
+          bg = context.lgSoftOrangeBg;
+          fg = context.lgSoftOrangeText;
+        case LoveBadgeStyle.blue:
+          bg = context.lgSoftBlueBg;
+          fg = context.lgSoftBlueText;
+        case LoveBadgeStyle.purple:
+          bg = context.lgSoftPurpleBg;
+          fg = context.lgSoftPurpleText;
+        case LoveBadgeStyle.yellow:
+          bg = context.lgSoftYellowBg;
+          fg = context.lgSoftYellowText;
+      }
+    }
+    final label = text ?? (count! > 99 ? '99+' : '${count!}');
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.4,
+          color: fg,
+        ),
+      ),
+    );
+  }
+}
+
+/// v4.0 竖向连接线子列表（参考图⑤ Threads/Income 展开态）：
+/// 左侧 1px 竖线（lgSeparator）+ 16px 缩进，行内容用 [LoveThreadRow]。
+class LoveThreadList extends StatelessWidget {
+  final List<Widget> children;
+  final Color? lineColor;
+  final double indent;
+
+  const LoveThreadList({
+    super.key,
+    required this.children,
+    this.lineColor,
+    this.indent = 16,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (children.isEmpty) return const SizedBox.shrink();
+    final line = lineColor ?? context.lgSeparator;
+    return Padding(
+      padding: EdgeInsets.only(left: indent),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < children.length; i++)
+            _LoveThreadRail(
+              lineColor: line,
+              isLast: i == children.length - 1,
+              child: children[i],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 单条竖线导轨：非末行贯通整行高，末行止于半高（停在内容中线）。
+/// IntrinsicHeight 取内容真实高度，保证滚动视图内竖线不塌陷。
+class _LoveThreadRail extends StatelessWidget {
+  final Color lineColor;
+  final bool isLast;
+  final Widget child;
+
+  const _LoveThreadRail({
+    required this.lineColor,
+    required this.isLast,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 1,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: FractionallySizedBox(
+                widthFactor: 1,
+                heightFactor: isLast ? 0.5 : 1,
+                child: ColoredBox(color: lineColor),
+              ),
+            ),
+          ),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+/// 竖线子行：普通态=素行文本；selected=白胶囊+细线描边（参考图⑤选中态）。
+class LoveThreadRow extends StatelessWidget {
+  final Widget child;
+  final bool selected;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry padding;
+
+  const LoveThreadRow({
+    super.key,
+    required this.child,
+    this.selected = false,
+    this.onTap,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(12);
+    final Widget content;
+    if (selected) {
+      content = Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: context.lgPaper,
+          borderRadius: radius,
+          border: Border.all(color: context.lgCardBorder),
+        ),
+        child: child,
+      );
+    } else {
+      content = Padding(padding: padding, child: child);
+    }
+    return Padding(
+      // 行间呼吸感计入行高（竖线经 _LoveThreadRail 贯通，视觉连续）
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: onTap == null
+          ? content
+          : InkWell(borderRadius: radius, onTap: onTap, child: content),
     );
   }
 }

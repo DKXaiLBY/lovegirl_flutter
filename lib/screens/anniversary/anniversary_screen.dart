@@ -63,7 +63,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     'first': _AnniversaryTypeMeta(
       label: '\u7b2c\u4e00\u6b21',
       icon: Icons.star_rounded,
-      color: Color(0xFF9E78D8),
+      color: LoveGirlTheme.planned,
       token: 'star',
     ),
     'custom': _AnniversaryTypeMeta(
@@ -593,12 +593,13 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
         next == null ? '' : _repeatLabel(next['repeatType']);
 
     return LoveTicketCard(
-      color: Colors.white,
+      color: context.lgPaper,
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 蜜桃日出顶部条（渐变白名单；深色态 primarySoftDark 单色）
+          // v4.0 顶部条换 surfaceGradient（浅灰光感；深色态 primarySoftDark 单色），
+          // 日出渐变退役（v4-ui-token-plan §2.4 白名单清零）
           Container(
             height: 10,
             decoration: BoxDecoration(
@@ -608,9 +609,8 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color(0xFFFFE3C8),
-                        Color(0xFFFFD9E3),
-                        Colors.white,
+                        LoveGirlTheme.surfaceGradientStart,
+                        LoveGirlTheme.surfaceGradientEnd,
                       ],
                     ),
               color: context.lgIsDark ? LoveGirlTheme.primarySoftDark : null,
@@ -765,7 +765,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
       onTap: () => _showAddEditSheet(item: item),
       onLongPress: () => _deleteAnniversary(item),
       child: LoveTicketCard(
-        color: Colors.white,
+        color: context.lgPaper,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -918,12 +918,13 @@ class _ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // v4.0：固定粉底换 lgPaperWarm（浅=冷浅灰/深=cardDark，消除深色亮粉块）
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBF1F0),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.lgInk.withAlpha(40)),
+        color: context.lgPaperWarm,
+        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+        border: Border.all(color: context.lgCardBorder),
       ),
       child: Row(
         children: [

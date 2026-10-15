@@ -420,13 +420,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.light_mode_rounded, const Color(0xFFFFB300),
+          _buildSwitchRow(Icons.light_mode_rounded, LoveGirlTheme.softYellowText,
               '亮色模式', !isDark, (v) {
             if (v) themeProvider.setDarkMode(false);
           }),
           const Divider(height: 24, indent: 40),
           _buildSwitchRow(
-              Icons.dark_mode_rounded, const Color(0xFF7C4DFF), '暗色模式', isDark,
+              Icons.dark_mode_rounded, LoveGirlTheme.planned, '暗色模式', isDark,
               (v) {
             if (v) themeProvider.setDarkMode(true);
           }),
@@ -967,7 +967,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         decoration: BoxDecoration(
             color: context.lgCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(26))),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -975,7 +975,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: Colors.black12,
+                    color: context.lgSeparator,
                     borderRadius: BorderRadius.circular(2))),
             SizedBox(height: 24),
             Text('更换头像',
@@ -1111,7 +1111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title:
             const Text('确认重置', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('将清除所有本地数据，包括缓存和登录状态。此操作不可撤销。'),
@@ -1134,12 +1134,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLogoutConfirm(AuthProvider auth) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? LoveGirlTheme.cardDark : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        // v4.0 底色交给主题（深浅两态自动），不写死
+        backgroundColor: Theme.of(ctx).dialogBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title:
             const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('退出后需要重新登录哦~'),
