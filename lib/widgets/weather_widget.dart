@@ -690,7 +690,8 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       onTap: _showWeatherActions,
       borderRadius: BorderRadius.circular(18),
       child: SizedBox(
-        width: 118,
+        // v4.1：118→136，修复"体感 2..."截断（图标+两行文字的最小可读宽）
+        width: 136,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         child: Row(

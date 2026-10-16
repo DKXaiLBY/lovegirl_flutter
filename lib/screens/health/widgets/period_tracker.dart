@@ -313,7 +313,21 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         border: Border.all(color: context.lgCardBorder),
       ),
       child: Row(children: [
-        Container(width: 3, height: 36, decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), gradient: LinearGradient(colors: [context.lgInk, context.lgInk.withValues(alpha: 0.45)]))),
+        // v4.1：进行中的记录左缘用淡紫点缀（参考 ref 粉彩分段语义，private 工具风保留但补一处呼吸色）
+        Container(
+            width: 3,
+            height: 36,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                gradient: LinearGradient(colors: [
+                  r.endDate == null
+                      ? LoveGirlTheme.planned
+                      : context.lgInk,
+                  (r.endDate == null
+                          ? LoveGirlTheme.planned
+                          : context.lgInk)
+                      .withValues(alpha: 0.45)
+                ]))),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('${df.format(r.startDate)} - ${r.endDate != null ? df.format(r.endDate!) : '进行中'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),

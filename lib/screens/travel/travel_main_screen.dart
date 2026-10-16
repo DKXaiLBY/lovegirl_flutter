@@ -786,22 +786,35 @@ class _TravelMainScreenState extends State<TravelMainScreen>
           final active = provider.activeStatus == f['key'];
           return Padding(
             padding: const EdgeInsets.only(right: 6),
-            child: FilterChip(
-              label: Text(f['label']!),
-              selected: active,
-              onSelected: (_) => provider.setStatus(f['key']!),
-              // v4.0 选中态：中性浅底 token（深色 primarySoftDark 自动跟随）
-              selectedColor: context.lgPrimarySoft,
-              checkmarkColor: context.lgInk,
-              labelStyle: TextStyle(
-                fontSize: 12,
-                color: active
-                    ? context.lgInk
-                    : context.lgTextSecondary,
-                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+            // v4.1 选中态统一：黑胶囊（与生活/心情分段控件同语言）
+            child: GestureDetector(
+              onTap: () => provider.setStatus(f['key']!),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? context.lgInk : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: active
+                        ? context.lgInk
+                        : context.lgCardBorder,
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  f['label']!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: active
+                        ? context.lgPaper
+                        : context.lgTextSecondary,
+                    fontWeight:
+                        active ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              visualDensity: VisualDensity.compact,
             ),
           );
         },

@@ -918,8 +918,9 @@ class _MemoryStubSheet extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
           decoration: BoxDecoration(
+            // v4.1：72%→58%，磨砂透底感更接近参考图
             color: (context.lgIsDark ? context.lgCard : Colors.white)
-                .withValues(alpha: 0.72),
+                .withValues(alpha: 0.58),
             border: Border(top: BorderSide(color: context.lgCardBorder)),
           ),
           child: Stack(

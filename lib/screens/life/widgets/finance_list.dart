@@ -232,7 +232,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                 top: 24,
               ),
               decoration: BoxDecoration(
-                color: context.lgCard.withValues(alpha: 0.72),
+                // v4.1：72%→58%，磨砂透底感更接近参考图（底层渐变可被 blur 出来）
+                color: context.lgCard.withValues(alpha: 0.58),
                 border: Border(
                   top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),

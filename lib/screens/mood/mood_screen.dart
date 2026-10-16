@@ -237,10 +237,11 @@ class _MoodScreenState extends State<MoodScreen> {
                         shape: BoxShape.circle,
                         color: sel
                             ? _moodColors[i].withValues(alpha: 0.14)
-                            : context.lgBg,
+                            : Colors.transparent,
+                        // v4.1 选中态统一：选中=黑描边加重+粉彩浅底，未选=细线（消除第三种彩色描边语言）
                         border: Border.all(
                             color: sel
-                                ? _moodColors[i]
+                                ? context.lgInk
                                 : context.lgCardBorder,
                             width: sel ? 2 : 1),
                       ),
@@ -332,7 +333,8 @@ class _MoodScreenState extends State<MoodScreen> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               decoration: BoxDecoration(
-                color: context.lgPaper.withValues(alpha: 0.72),
+                // v4.1：72%→58%，磨砂透底感更接近参考图
+                color: context.lgPaper.withValues(alpha: 0.58),
                 border: Border(
                     top: BorderSide(color: context.lgCardBorder, width: 1)),
               ),

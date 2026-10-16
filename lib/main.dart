@@ -184,13 +184,17 @@ class _AppShellState extends State<AppShell> {
   Widget _buildBottomNav(AuthProvider auth) {
     void onTap(int index) {
       if (index == 2 && !auth.isGirl) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('健康模块仅女友可用'),
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 1),
-          ),
-        );
+        // v4.1：禁用 tab 反馈增强——轻震动+2.5s 提示，避免连点被当成点击失灵
+        HapticFeedback.selectionClick();
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('健康模块仅女友可用'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(milliseconds: 2500),
+            ),
+          );
         return;
       }
       setState(() => _currentIndex = index);

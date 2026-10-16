@@ -681,7 +681,8 @@ class _KitchenGlassSheet extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            color: context.lgPaper.withValues(alpha: 0.72),
+            // v4.1：72%→58%，磨砂透底感更接近参考图
+            color: context.lgPaper.withValues(alpha: 0.58),
             borderRadius: radius,
             border: Border(top: BorderSide(color: context.lgCardBorder)),
           ),

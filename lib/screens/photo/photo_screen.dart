@@ -288,8 +288,8 @@ class _PhotoScreenState extends State<PhotoScreen> {
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(ctx).size.height * 0.88),
             decoration: BoxDecoration(
-              // v4.0 弹层统一口径：毛玻璃白 72% + radiusXl 28（参考图⑦）
-              color: context.lgPaper.withValues(alpha: 0.72),
+              // v4.0 弹层统一口径：毛玻璃白 58% + radiusXl 28（参考图⑦；v4.1 降透明度增强磨砂透底）
+              color: context.lgPaper.withValues(alpha: 0.58),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(28)),
               border: Border(
