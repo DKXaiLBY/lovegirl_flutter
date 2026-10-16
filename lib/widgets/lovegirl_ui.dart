@@ -53,23 +53,42 @@ class LovePaper extends StatelessWidget {
     this.margin = EdgeInsets.zero,
     this.color,
     this.radius = LoveGirlTheme.radiusLg,
-    // v4.0 默认 false：立体感交给 1px 细线描边（参考图②），阴影≈0；
-    // 需要阴影的悬浮卡显式传 elevated: true
-    this.elevated = false,
+    // v4.2 默认 true：参考图的"软实体卡"——白→浅灰纵向微渐变+大范围柔影，
+    // 卡片像浮起的实体；描边退居辅助（默认去线，需要线框时显式传 border）
+    this.elevated = true,
     this.border,
   });
 
   @override
   Widget build(BuildContext context) {
+    final base = color ?? context.lgPaper;
+    final isDark = context.lgIsDark;
+    // 软实体感：顶部白→底部极浅灰的纵向微渐变（深色态用微亮渐变替代）
+    final softGradient = isDark
+        ? LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              base,
+              Color.alphaBlend(Colors.white.withValues(alpha: 0.03), base)
+            ],
+          )
+        : LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              base,
+              Color.alphaBlend(Colors.black.withValues(alpha: 0.018), base)
+            ],
+          );
     return Container(
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? context.lgPaper,
+        gradient: softGradient,
         borderRadius: BorderRadius.circular(radius),
-        // v4.0 细线描边：cardBorder（浅） / cardBorderDark（深），
-        // 比 lgSeparator 重一档
-        border: border ?? Border.all(color: context.lgCardBorder),
+        // v4.2 描边默认去掉（参考图卡片无线框），实体感全靠渐变+柔影
+        border: border,
         boxShadow: elevated ? LoveGirlTheme.cardShadow() : null,
       ),
       child: child,
@@ -275,11 +294,11 @@ class LoveSectionTitle extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            // v4.0：分组小标题弱化（15/w700 + 0.2 字距 + muted 色，参考图⑩）
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-            color: context.lgTextMuted,
+            // v4.2：标题升级为大而粗（17/w800 主字色，对齐参考图 Opportunities/Menu 级别）
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.1,
+            color: context.lgTextPrimary,
           ),
         ),
         const Spacer(),
@@ -431,8 +450,8 @@ class LoveMenuRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
-        // v4.0 行高疏朗（12→14，参考图④）
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        // v4.2 行高再疏朗（14→16，参考图列表行的呼吸感）
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
             Icon(icon, size: 20, color: color ?? context.lgInk),
@@ -469,12 +488,20 @@ class LoveMenuRow extends StatelessWidget {
             ],
             if (count != null) ...[
               const SizedBox(width: 8),
-              LoveBadge(count: count!),
+              // v4.2 计数改裸灰数字（参考图 Opportunities 列表：All 4 / New 5 的形态）
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: context.lgTextMuted,
+                ),
+              ),
             ],
             Icon(
               Icons.chevron_right_rounded,
               size: 20,
-              color: context.lgTextMuted,
+              color: context.lgTextMuted.withValues(alpha: 0.7),
             ),
           ],
         ),
@@ -651,12 +678,13 @@ class LoveThreadRow extends StatelessWidget {
     final radius = BorderRadius.circular(12);
     final Widget content;
     if (selected) {
+      // v4.2 选中态=浅灰胶囊+柔影（参考图 All/Embed Tool 行；黑胶囊只留给主按钮）
       content = Container(
         padding: padding,
         decoration: BoxDecoration(
-          color: context.lgPaper,
+          color: context.lgPrimarySoft,
           borderRadius: radius,
-          border: Border.all(color: context.lgCardBorder),
+          boxShadow: LoveGirlTheme.cardShadow(),
         ),
         child: child,
       );

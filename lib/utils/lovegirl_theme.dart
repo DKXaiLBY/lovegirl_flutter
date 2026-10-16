@@ -110,19 +110,30 @@ class LoveGirlTheme {
   ];
   static const List<Color> gradientForest = [secondary, Color(0xFFB8CBA7)];
 
+  // v4.2 软实体卡阴影（参考图灵魂：大 blur 柔影+远环境影，卡片"浮起来"而非线框）
   static List<BoxShadow> cardShadow() => [
         const BoxShadow(
-          color: Color(0x08000000),
-          blurRadius: 2,
-          offset: Offset(0, 1),
+          color: Color(0x141A1D26),
+          blurRadius: 18,
+          offset: Offset(0, 6),
+        ),
+        const BoxShadow(
+          color: Color(0x081A1D26),
+          blurRadius: 40,
+          offset: Offset(0, 16),
         ),
       ];
 
   static List<BoxShadow> cardShadowElevated() => [
         const BoxShadow(
-          color: Color(0x0D000000),
-          blurRadius: 8,
-          offset: Offset(0, 2),
+          color: Color(0x1E1A1D26),
+          blurRadius: 24,
+          offset: Offset(0, 10),
+        ),
+        const BoxShadow(
+          color: Color(0x0D1A1D26),
+          blurRadius: 56,
+          offset: Offset(0, 22),
         ),
       ];
 
