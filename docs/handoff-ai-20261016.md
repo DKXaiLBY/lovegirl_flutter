@@ -23,13 +23,44 @@
 - git 基线干净（master = origin/master）；工作区仅剩 docs/design/refs/ 根目录散落旧参考图未跟踪（无害）
 - 测试账号：admin（密码 2026-10-16 刚重置，向用户要）、testgirl/testboy（强密码向用户要）。服务器数据只在 love_girl 库
 
-## 环境速查（细节以 AGENTS.md 为准）
+## 环境速查（同一台机器，工具都在，但 PATH 里没有——全部用全路径）
 
-- 仓库：`D:\Projects\Personal\lovegirl`；Flutter SDK `D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK `D:\SoftwarePrograms\dev\android-sdk`
-- **git 必须用全路径** `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 git 是死路径）；中文 commit 用 UTF-8 文件 + `git commit -F`
-- 构建：`JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" flutter build apk --release`（约 1-2 分钟，APK ~52MB）
-- 服务器 SSH 免密 `root@47.121.119.191`；查库 `docker exec lovegirl-mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" love_girl -e "..."'`；复杂中文 SQL 用 UTF-8 文件 scp + docker cp 进容器执行（shell 直传中文会 GBK 乱码）
-- 真机 KOZ-AL00（荣耀，720×1600@2x，Android 10 无 GMS）经 adb 连接；EMUI 深色模式 adb 切不动，只能用户手动切
+**所有命令在 Git Bash 里执行**（cd 到仓库后）：
+
+```bash
+# ========= 全路径常量（每次会话先设好）=========
+FLUTTER="D:\SoftwarePrograms\dev\flutter-sdk\bin\flutter.bat"
+GIT="D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"
+ADB="D:\SoftwarePrograms\dev\android-sdk\platform-tools\adb.exe"
+
+# ========= 基线校验（不需要 JAVA_HOME）=========
+"$FLUTTER" analyze        # 应 0 问题
+"$FLUTTER" test           # 应 61/61 全绿
+
+# ========= 构建 APK（必须带 JAVA_HOME，Gradle 要 Java）=========
+cd "D:\Projects\Personal\lovegirl"
+JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "$FLUTTER" build apk --release
+# 产物：build\app\outputs\flutter-apk\app-release.apk（~52MB，1-2 分钟）
+
+# ========= git（PATH 里的 git 是死路径，必须全路径）=========
+"$GIT" status && "$GIT" log --oneline -5
+# 中文 commit 信息：UTF-8 文件 + git commit -F 文件（shell 直传中文会 GBK 乱码）
+
+# ========= adb 真机（KOZ-AL00 荣耀，720×1600@2x，Android 10 无 GMS）=========
+"$ADB" devices
+"$ADB" install -r build/app/outputs/flutter-apk/app-release.apk
+"$ADB" exec-out screencap -p > /tmp/shot.png   # 截图（先 Read 看是否黑屏，黑屏先 WAKEUP+keyevent 82）
+# 底部 tab y≈1522（首页 x=96/旅行 202/健康 353/生活 495/我的 617 中心 x）
+# 模拟器 AVD：lovegirl_api34（x86，高德地图/定位验不了，只能看 UI）
+
+# ========= 服务器（SSH 免密已配，用系统 OpenSSH 不用 Git 自带的）=========
+ssh root@47.121.119.191 '命令'
+# 查库（密码不落盘，容器内环境变量取）：
+ssh root@47.121.119.191 'docker exec lovegirl-mysql sh -c "mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" love_girl -e \"SELECT ...\""'
+# 复杂中文 SQL：UTF-8 文件 → scp 到 /tmp → docker cp 进容器 → mysql < 文件（直传中文必乱码）
+```
+
+**其他路径**：仓库 `D:\Projects\Personal\lovegirl`；`D:\lovegirl_build` 是 junction 别名（构建走它或真实路径均可）；Flutter 3.27.4（**Color 透明度用 `withValues(alpha:)`，`withOpacity` 已弃用**；`toARGB32()` 不存在）；EMUI 深色模式 adb 切不动（`cmd uimode` 无效），只能用户手动切。
 
 ## 发版规程（严格照做，全文见 AGENTS.md 与本地记忆 lovegirl-deploy-protocol）
 
