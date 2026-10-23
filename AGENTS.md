@@ -5,13 +5,13 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v3.39.0+176（2026-09-28 已发布：Step4 衣橱 MIROIR 化——主页搜索框+分类 chips+形象页双 Tab）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
+当前版本 v4.1.0+182（2026-10-23：地图回忆故事链、共享相册引用、交互反馈和数据修复；详见 CHANGELOG.md）。视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
 
 - 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
 - **git 可执行文件 PATH 已失效**：用全路径 `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 `D:\Git Setup\Git\cmd` 是死路径）；Git 自带 ssh/scp 不可用，用系统 `C:\Windows\System32\OpenSSH\`；中文 commit 信息用 UTF-8 文件 + `git commit -F`（PowerShell Set-Content 会带 BOM，可接受）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
-- 发布方式：`flutter build apk --release` → POST `/api/deploy/publish`（**对外上传动作**：未经用户明确指示本次发布时，先向用户确认版本号与变更内容；深色模式自 v3.26 起全局生效，发布前真机过一遍深浅两态）。**发布令牌（DEPLOY_TOKEN）严禁进入 Agent 上下文**——不读取、不展示、不写入推理/输出/日志/任何文件（含仓库文件）；完整规程（令牌三规/接口字段/app_versions 修正/上传上限/验证命令）已迁至本地记忆 `lovegirl-deploy-protocol`，发布前必读。历史提交里曾含明文令牌，仓库若公开需在服务器换 DEPLOY_TOKEN 轮换
+- 发布方式：flutter build apk --release → POST /api/deploy/publish。**2026-10-23 用户已长期授权：每次完成更新并通过必要验证后，直接发布新版本到服务器，供手机内更新，无需逐次确认发布意愿；用户当次明确暂停发布时除外。** 版本号和 changelog 按实际内容定稿，发布后核验旧版升级提示、新版检查及 APK 校验。**DEPLOY_TOKEN 严禁进入 Agent 上下文、输出、日志或任何文件**，只在服务器容器内参与请求。完整安全规程见 docs/implementation/release-protocol.md（旧本地记忆文件在当前环境缺失，已按线上接口核验补齐）。真机条件不足时明确记录实际测试边界，不能把隔离模拟器测试写成真实双账号联调。
 
 ## 必读文档（按优先级）
 
