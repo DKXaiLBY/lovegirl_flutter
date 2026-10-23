@@ -17,9 +17,9 @@
 3. 使用项目指定 Java/Flutter SDK，以 lib/main.dart 构建 release APK。
 4. 提交、推送代码并保留版本 tag；更新默认分支时先核对远端变化，禁止强推覆盖。
 5. APK 备份至 /opt/love-girl/apk-backups/v<版本>.apk，再准备发布用副本。
-6. 由服务器进程 POST http://127.0.0.1:3001/api/deploy/publish。上传字段 apk；版本字段 version_name / version_code；变更字段 changelog；大小字段 file_size；默认不强制更新。线上 multer 上限 100MB。
+6. 宿主机接口为 http://127.0.0.1:3001/api/deploy/publish；实际 Docker 映射是宿主机 3001 → 容器 3000。发布进程在容器内执行时使用容器实际监听端口（当前 PORT 未设置，默认 3000），不能使用宿主机端口。上传字段 apk；版本字段 version_name / version_code；变更字段 changelog；大小字段 file_size；默认不强制更新。线上 multer 上限 100MB。
 7. 令牌仅在容器内参与请求。容器没有 curl 时，使用 Node 原生 http + 文件流构造 multipart，避免打印请求头或令牌。
-8. 发布后核对并显式修正 app_versions.version_name、changelog、file_size 和 md5。中文 SQL 由 UTF-8 文件/标准输入传入容器执行，换行用 CHAR(10) 拼接。
+8. 发布后核对并显式修正 app_versions.version_name、changelog、file_size 和 md5。可使用容器内 mysql2 参数化更新，中文发布元数据通过 UTF-8/Base64 传入，换行用 SQL CHAR(10) 拼接；也可用 UTF-8 SQL 文件/标准输入执行。不要从 Windows shell 直传未编码的中文 SQL。
 9. 验证旧版检查 hasUpdate=true，新版本检查 hasUpdate=false；版本、变更文案与下载大小正确；下载 APK 的散列与构建产物一致。
 
 ## 回滚
