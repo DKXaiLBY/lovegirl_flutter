@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
@@ -20,6 +21,12 @@ class _HealthScreenState extends State<HealthScreen> {
     // 避免拿对方身份请求经期接口报"加载失败"
     if (!auth.isOriginalGirl) {
       return Scaffold(
+        appBar: AppBar(
+          title: const Text('经期记录'),
+          systemOverlayStyle: context.lgIsDark
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+        ),
         backgroundColor: context.lgBg,
         body: Container(
           // v4.0：与主页面同款浅灰渐变底（深色维持纯色不上渐变）
@@ -41,8 +48,7 @@ class _HealthScreenState extends State<HealthScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_rounded,
-                        size: 52, color: context.lgInk),
+                    Icon(Icons.lock_rounded, size: 52, color: context.lgInk),
                     SizedBox(height: 14),
                     Text(
                       '健康页只给她看',
@@ -55,8 +61,8 @@ class _HealthScreenState extends State<HealthScreen> {
                     SizedBox(height: 6),
                     Text(
                       '这里会保护她的私密记录',
-                      style: TextStyle(
-                          fontSize: 13, color: context.lgTextMuted),
+                      style:
+                          TextStyle(fontSize: 13, color: context.lgTextMuted),
                     ),
                   ],
                 ),
@@ -68,57 +74,16 @@ class _HealthScreenState extends State<HealthScreen> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('经期记录'),
+        systemOverlayStyle: context.lgIsDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+      ),
       backgroundColor: context.lgBg,
-      body: LovePage(
+      body: const LovePage(
         padding: EdgeInsets.zero,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: LovePaper(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    LoveStickerIcon(
-                      icon: Icons.health_and_safety_rounded,
-                      color: context.lgInk,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '健康',
-                            style: TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.w900,
-                              color: context.lgTextPrimary,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            '柔和一点，也清楚一点',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: context.lgTextSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    LovePill(
-                      text: '私密',
-                      icon: Icons.lock_rounded,
-                      color: context.lgInk,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const Expanded(child: PeriodTracker()),
-          ],
-        ),
+        child: PeriodTracker(),
       ),
     );
   }

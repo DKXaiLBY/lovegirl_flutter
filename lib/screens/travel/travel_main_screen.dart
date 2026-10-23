@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/travel_spot_more_menu.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/travel_provider.dart';
@@ -98,7 +99,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
         spot: spot,
         onAddRoute: () => _previewRouteFromSpot(ctx, spot),
         onGenerateTicket: () => _openTravelTicketFromSpot(ctx, spot),
-        onRecordExpense: () => _showExpenseHint(ctx, spot),
         onEdit: () async {
           Navigator.pop(ctx);
           final result = await Navigator.of(context).push(
@@ -209,16 +209,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
     );
   }
 
-  void _showExpenseHint(BuildContext sheetContext, TravelSpot spot) {
-    Navigator.pop(sheetContext);
-    _showExpenseHintForSpot(spot);
-  }
-
-  void _showExpenseHintForSpot(TravelSpot spot) {
-    final spotName = _travelDisplayText(spot.name, '这个地点');
-    _showFloatingMessage('“$spotName”的花费会和记账联动；当前先在地点编辑里记录预算。');
-  }
-
   void _showFloatingMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -243,13 +233,12 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   Widget build(BuildContext context) {
     return Consumer<TravelProvider>(
       builder: (context, provider, _) {
-          return Scaffold(
+        return Scaffold(
           backgroundColor: context.lgBg,
           body: Stack(
             children: [
               if (_viewIndex == 0)
-                TravelAmapModeScreen(
-                    embedded: true, onExit: () => _setView(1)),
+                TravelAmapModeScreen(embedded: true, onExit: () => _setView(1)),
               if (_viewIndex != 0)
                 IndexedStack(
                   index: _viewIndex - 1,
@@ -300,8 +289,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
   }
 
   /// 左滑"删除"：确认后调用，失败 toast 不清行（教训 12 在 Slidable 下的落实）
-  Future<void> _confirmDeleteSpot(
-      BuildContext context, TravelSpot spot) async {
+  Future<void> _confirmDeleteSpot(BuildContext context, TravelSpot spot) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -371,7 +359,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                     label: '足迹与回忆',
                     onPressed: () async {
                       await Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ChinaMemoryMapScreen(spots: provider.spots),
+                        builder: (_) =>
+                            ChinaMemoryMapScreen(spots: provider.spots),
                       ));
                     },
                   ),
@@ -473,8 +462,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
 
   /// 票根回忆：已打卡地点回顾 + 生成正式旅行票根
   Widget _buildTicketPage(TravelProvider provider) {
-    final visited =
-        provider.spots.where((s) => s.status == 'visited').toList();
+    final visited = provider.spots.where((s) => s.status == 'visited').toList();
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 120),
@@ -495,8 +483,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                   ),
-                  icon: const Icon(Icons.confirmation_number_rounded,
-                      size: 16),
+                  icon: const Icon(Icons.confirmation_number_rounded, size: 16),
                   label: const Text('生成正式票根',
                       style: TextStyle(
                           fontSize: 12.5, fontWeight: FontWeight.w800)),
@@ -571,8 +558,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                                   .where((x) => x.isNotEmpty)
                                   .join(' · '),
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: context.lgTextMuted),
+                                  fontSize: 12, color: context.lgTextMuted),
                             ),
                           ]),
                     ),
@@ -663,8 +649,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                 '\u641c\u7d22\u5730\u70b9\u3001\u57ce\u5e02\u3001\u5907\u6ce8...',
             hintStyle: TextStyle(
                 color: context.lgTextMuted.withAlpha(150), fontSize: 14),
-            prefixIcon: Icon(Icons.search_rounded,
-                color: context.lgInk, size: 20),
+            prefixIcon:
+                Icon(Icons.search_rounded, color: context.lgInk, size: 20),
             suffixIcon: _searchCtrl.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear_rounded, size: 18),
@@ -716,16 +702,12 @@ class _TravelMainScreenState extends State<TravelMainScreen>
             children: [
               Icon(sortIcons[e.key],
                   size: 18,
-                  color: isActive
-                      ? context.lgInk
-                      : context.lgTextSecondary),
+                  color: isActive ? context.lgInk : context.lgTextSecondary),
               const SizedBox(width: 10),
               Text(e.value,
                   style: TextStyle(
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                    color: isActive
-                        ? context.lgInk
-                        : context.lgTextPrimary,
+                    color: isActive ? context.lgInk : context.lgTextPrimary,
                   )),
               if (isActive) ...[
                 const Spacer(),
@@ -758,8 +740,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.search_rounded,
-                      size: 14, color: context.lgInk),
+                  Icon(Icons.search_rounded, size: 14, color: context.lgInk),
                   const SizedBox(width: 4),
                   Text('\u201c${provider.searchQuery}\u201d',
                       style: TextStyle(
@@ -768,8 +749,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                           fontWeight: FontWeight.w500)),
                   const SizedBox(width: 4),
                   Text('${provider.filteredSpots.length} \u4e2a\u7ed3\u679c',
-                      style: TextStyle(
-                          fontSize: 12, color: context.lgTextMuted)),
+                      style:
+                          TextStyle(fontSize: 12, color: context.lgTextMuted)),
                 ],
               ),
             ),
@@ -780,10 +761,6 @@ class _TravelMainScreenState extends State<TravelMainScreen>
       ),
     );
   }
-
-
-
-
 
   Widget _buildFilter(TravelProvider provider) {
     final filters = [
@@ -815,9 +792,7 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   color: active ? context.lgInk : Colors.transparent,
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: active
-                        ? context.lgInk
-                        : context.lgCardBorder,
+                    color: active ? context.lgInk : context.lgCardBorder,
                     width: 1,
                   ),
                 ),
@@ -825,11 +800,8 @@ class _TravelMainScreenState extends State<TravelMainScreen>
                   f['label']!,
                   style: TextStyle(
                     fontSize: 12,
-                    color: active
-                        ? context.lgPaper
-                        : context.lgTextSecondary,
-                    fontWeight:
-                        active ? FontWeight.w600 : FontWeight.normal,
+                    color: active ? context.lgPaper : context.lgTextSecondary,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -1131,7 +1103,6 @@ class _SpotCardState extends State<_SpotCard>
     );
   }
 
-
   String _statusLabel(String status) {
     switch (status) {
       case 'visited':
@@ -1389,19 +1360,17 @@ class _TicketActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool outlined;
-  final bool danger;
 
   const _TicketActionButton({
     required this.icon,
     required this.label,
     required this.onPressed,
     this.outlined = false,
-    this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? LoveGirlTheme.red : context.lgInk;
+    final color = context.lgInk;
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1411,12 +1380,12 @@ class _TicketActionButton extends StatelessWidget {
       ],
     );
 
-    if (outlined || danger) {
+    if (outlined) {
       return OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
-          side: BorderSide(color: color.withAlpha(danger ? 120 : 180)),
+          side: BorderSide(color: color.withAlpha(180)),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1442,7 +1411,6 @@ class _SpotDetailSheet extends StatelessWidget {
   final TravelSpot spot;
   final VoidCallback onAddRoute;
   final VoidCallback onGenerateTicket;
-  final VoidCallback onRecordExpense;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -1450,7 +1418,6 @@ class _SpotDetailSheet extends StatelessWidget {
     required this.spot,
     required this.onAddRoute,
     required this.onGenerateTicket,
-    required this.onRecordExpense,
     required this.onEdit,
     required this.onDelete,
   });
@@ -1491,8 +1458,7 @@ class _SpotDetailSheet extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: style.bg,
                       borderRadius: BorderRadius.circular(999),
@@ -1623,34 +1589,15 @@ class _SpotDetailSheet extends StatelessWidget {
                     },
                   ),
                   _TicketActionButton(
-                    icon: Icons.alt_route_rounded,
-                    label: '加入路线',
-                    onPressed: onAddRoute,
-                    outlined: true,
-                  ),
-                  _TicketActionButton(
-                    icon: Icons.confirmation_number_outlined,
-                    label: '生成票根',
-                    onPressed: onGenerateTicket,
-                  ),
-                  _TicketActionButton(
-                    icon: Icons.edit_note_rounded,
-                    label: '记一笔花费',
-                    onPressed: onRecordExpense,
-                    outlined: true,
-                  ),
-                  _TicketActionButton(
-                    icon: Icons.edit,
-                    label: '编辑',
+                    icon: Icons.edit_location_alt_outlined,
+                    label: '编辑地点',
                     onPressed: onEdit,
                     outlined: true,
                   ),
-                  _TicketActionButton(
-                    icon: Icons.delete_outline,
-                    label: '删除',
-                    onPressed: onDelete,
-                    danger: true,
-                    outlined: true,
+                  TravelSpotMoreMenu(
+                    onAddRoute: onAddRoute,
+                    onGenerateTicket: onGenerateTicket,
+                    onDelete: onDelete,
                   ),
                 ],
               ),
@@ -1673,24 +1620,26 @@ class _SpotDetailSheet extends StatelessWidget {
     addClean(Icons.wb_sunny_outlined, '天气', spot.weather);
 
     if (spot.visitedDate != null) {
-      items.add(
-          _infoRow(context, Icons.calendar_today, '\u65e5\u671f', spot.visitedDate!));
+      items.add(_infoRow(
+          context, Icons.calendar_today, '\u65e5\u671f', spot.visitedDate!));
     }
     if (spot.plannedDate != null) {
-      items.add(
-          _infoRow(context, Icons.event, '\u8ba1\u5212\u65e5\u671f', spot.plannedDate!));
+      items.add(_infoRow(
+          context, Icons.event, '\u8ba1\u5212\u65e5\u671f', spot.plannedDate!));
     }
 
     addClean(Icons.emoji_emotions, '心情', spot.mood);
 
     if (spot.editedByBoth) {
-      items.add(_infoRow(context, Icons.favorite_rounded, '共同编辑', '我们都编辑过这个地点'));
+      items
+          .add(_infoRow(context, Icons.favorite_rounded, '共同编辑', '我们都编辑过这个地点'));
     }
 
     addClean(Icons.person_outline_rounded, '标记人', spot.creatorNickname);
 
     if (spot.rating != null && spot.rating! > 0) {
-      items.add(_infoRow(context, Icons.star, '\u8bc4\u5206', '${spot.rating}/5'));
+      items.add(
+          _infoRow(context, Icons.star, '\u8bc4\u5206', '${spot.rating}/5'));
     }
 
     addClean(Icons.edit_note, '游记', spot.diary);
@@ -1731,20 +1680,18 @@ class _SpotDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _infoRow(BuildContext context, IconData icon, String label,
-      String value) {
+  Widget _infoRow(
+      BuildContext context, IconData icon, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 16, color: context.lgTextMuted),
         SizedBox(width: 8),
         Text('$label: ',
-            style: TextStyle(
-                fontSize: 13, color: context.lgTextSecondary)),
+            style: TextStyle(fontSize: 13, color: context.lgTextSecondary)),
         Expanded(
           child: Text(value,
-              style: TextStyle(
-                  fontSize: 13, color: context.lgTextPrimary)),
+              style: TextStyle(fontSize: 13, color: context.lgTextPrimary)),
         ),
       ],
     );
@@ -1791,9 +1738,7 @@ class _MorphIconButton extends StatelessWidget {
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: active
-                ? context.lgInk.withAlpha(28)
-                : Colors.transparent,
+            color: active ? context.lgInk.withAlpha(28) : Colors.transparent,
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -1809,9 +1754,7 @@ class _MorphIconButton extends StatelessWidget {
                 icon,
                 key: ValueKey(icon),
                 size: 21,
-                color: active
-                    ? context.lgInk
-                    : context.lgTextPrimary,
+                color: active ? context.lgInk : context.lgTextPrimary,
               ),
             ),
           ),
@@ -1820,7 +1763,6 @@ class _MorphIconButton extends StatelessWidget {
     );
   }
 }
-
 
 /// 旅行页底部悬浮 tab：地图 / 清单 / 票根
 class _TravelViewTabs extends StatelessWidget {
@@ -1862,9 +1804,7 @@ class _TravelViewTabs extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                   decoration: BoxDecoration(
-                    color: index == i
-                        ? Colors.white
-                        : Colors.transparent,
+                    color: index == i ? Colors.white : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(

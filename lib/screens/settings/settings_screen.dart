@@ -34,13 +34,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _photoVisible = true;
   bool _moodVisible = true;
   bool _travelVisible = true;
-  bool _chatVisible = true;
 
   // 推送开关
   bool _pushEnabled = true;
-  bool _pushPeriod = true;
-  bool _pushAnniversary = true;
-  bool _pushTodo = true;
 
   // 数据管理
   String _cacheSize = '计算中...';
@@ -76,7 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _photoVisible = data['photo_visible'] != false;
             _moodVisible = data['mood_visible'] != false;
             _travelVisible = data['travel_visible'] != false;
-            _chatVisible = data['chat_visible'] != false;
           });
         }
       }
@@ -91,10 +86,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
         setState(() {
-          _pushEnabled = prefs.getBool('push_enabled') ?? true;
-          _pushPeriod = prefs.getBool('push_period') ?? true;
-          _pushAnniversary = prefs.getBool('push_anniversary') ?? true;
-          _pushTodo = prefs.getBool('push_todo') ?? true;
+          _pushEnabled = prefs.getBool('push_notification_enabled') ??
+              prefs.getBool('push_enabled') ??
+              true;
         });
       }
       LogService().info('Settings', '推送设置已加载');
@@ -299,8 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: context.lgInk.withAlpha(50),
-                              width: 2)),
+                              color: context.lgInk.withAlpha(50), width: 2)),
                       child: ClipOval(
                         child: _avatarUrl(auth) != null
                             ? Image.network(_avatarUrl(auth)!,
@@ -336,8 +329,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: context.lgInk.withAlpha(60))),
                           focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(
-                                  color: context.lgInk)),
+                              borderSide: BorderSide(color: context.lgInk)),
                         ),
                         style: const TextStyle(fontSize: 15),
                       )
@@ -352,8 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           SizedBox(height: 2),
                           Text(auth.isGirl ? '女友' : '男友',
                               style: TextStyle(
-                                  fontSize: 13,
-                                  color: context.lgTextMuted)),
+                                  fontSize: 13, color: context.lgTextMuted)),
                         ],
                       ),
               ),
@@ -365,9 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                      color: (_isEditing
-                              ? LoveGirlTheme.peach
-                              : context.lgInk)
+                      color: (_isEditing ? LoveGirlTheme.peach : context.lgInk)
                           .withAlpha(25),
                       borderRadius: BorderRadius.circular(14)),
                   child: Text(_isEditing ? '保存' : '编辑',
@@ -420,8 +409,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.light_mode_rounded, LoveGirlTheme.softYellowText,
-              '亮色模式', !isDark, (v) {
+          _buildSwitchRow(Icons.light_mode_rounded,
+              LoveGirlTheme.softYellowText, '亮色模式', !isDark, (v) {
             if (v) themeProvider.setDarkMode(false);
           }),
           const Divider(height: 24, indent: 40),
@@ -452,14 +441,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: context.lgPrimarySoft,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(Icons.route_rounded,
-                    size: 20, color: context.lgInk),
+                child:
+                    Icon(Icons.route_rounded, size: 20, color: context.lgInk),
               ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text('顺序箭头连线',
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600)),
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               ),
               SquishySwitch(
                 value: mapPrefs.showOrderArrows,
@@ -479,35 +468,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             child: Row(
               children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: context.lgSecondarySoft,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.auto_awesome_rounded,
-                        size: 20, color: LoveGirlTheme.secondary),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: context.lgSecondarySoft,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text('界面动效',
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w600)),
-                  ),
-                  Text(
-                    switch (mapPrefs.motionLevel) {
-                      'off' => '关闭',
-                      'rich' => '增强',
-                      _ => '标准',
-                    },
-                    style: TextStyle(
-                        color: context.lgInk,
-                        fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 18, color: context.lgTextMuted),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      size: 20, color: LoveGirlTheme.secondary),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('界面动效',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+                Text(
+                  switch (mapPrefs.motionLevel) {
+                    'off' => '关闭',
+                    'rich' => '增强',
+                    _ => '标准',
+                  },
+                  style: TextStyle(
+                      color: context.lgInk, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right_rounded,
+                    size: 18, color: context.lgTextMuted),
               ],
             ),
           ),
@@ -523,8 +511,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.photo_library_outlined, context.lgInk,
-              '相册可见', _photoVisible, (v) {
+          _buildSwitchRow(Icons.photo_library_outlined, context.lgInk, '相册可见',
+              _photoVisible, (v) {
             setState(() => _photoVisible = v);
             ApiService().updatePrivacy({'photo_visible': v}).catchError((e) {
               LogService().error('Settings', '保存相册隐私失败: $e');
@@ -566,20 +554,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
             LogService().userAction('隐私:行程可见=$v');
           }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(Icons.chat_bubble_outline, LoveGirlTheme.planned,
-              '聊天记录可见', _chatVisible, (v) {
-            setState(() => _chatVisible = v);
-            ApiService().updatePrivacy({'chat_visible': v}).catchError((e) {
-              LogService().error('Settings', '保存聊天隐私失败: $e');
-              if (mounted) {
-                setState(() => _chatVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
-              }
-            });
-            LogService().userAction('隐私:聊天可见=$v');
-          }),
         ],
       ),
     );
@@ -592,37 +566,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: _cardDeco(),
       child: Column(
         children: [
-          _buildSwitchRow(Icons.notifications_outlined, context.lgInk,
-              '推送总开关', _pushEnabled, (v) {
+          _buildSwitchRow(Icons.notifications_outlined, context.lgInk, '推送总开关',
+              _pushEnabled, (v) {
             setState(() => _pushEnabled = v);
             _savePushSetting('push_enabled', v);
             NotificationService().setPushEnabled(v);
             LogService().userAction('推送:总开关=$v');
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(Icons.water_drop_outlined, context.lgInk, '姨妈提醒',
-              _pushPeriod, (v) {
-            setState(() => _pushPeriod = v);
-            _savePushSetting('push_period', v);
-            NotificationService.setPeriodEnabled(v);
-            LogService().userAction('推送:姨妈提醒=$v');
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(Icons.favorite_outline, LoveGirlTheme.red, '纪念日提醒',
-              _pushAnniversary, (v) {
-            setState(() => _pushAnniversary = v);
-            _savePushSetting('push_anniversary', v);
-            NotificationService.setAnniversaryEnabled(v);
-            LogService().userAction('推送:纪念日=$v');
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(
-              Icons.checklist_outlined, LoveGirlTheme.accent, '待办提醒', _pushTodo,
-              (v) {
-            setState(() => _pushTodo = v);
-            _savePushSetting('push_todo', v);
-            NotificationService.setTodoEnabled(v);
-            LogService().userAction('推送:待办=$v');
           }),
         ],
       ),
@@ -644,19 +593,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('缓存已清除'), duration: Duration(seconds: 1)));
             }
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildTapRow(Icons.file_download_outlined, context.lgInk,
-              '导出数据', 'JSON格式', () {
-            LogService().userAction('数据:导出');
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('数据导出功能开发中'), duration: Duration(seconds: 1)));
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildTapRow(
-              Icons.delete_sweep_outlined, LoveGirlTheme.red, '重置所有数据', '谨慎操作',
-              () {
-            _showResetConfirm();
           }),
         ],
       ),
@@ -765,8 +701,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     : context.lgTextMuted),
           ),
           const Divider(height: 24, indent: 40),
-          _buildTapRow(Icons.bug_report_outlined, context.lgTextMuted,
-              '开发者日志', '查看API/错误记录', () {
+          _buildTapRow(Icons.bug_report_outlined, context.lgTextMuted, '开发者日志',
+              '查看API/错误记录', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => LogScreen()));
           }),
@@ -847,8 +783,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.logout,
-                size: 20, color: context.lgInk.withAlpha(200)),
+            Icon(Icons.logout, size: 20, color: context.lgInk.withAlpha(200)),
             SizedBox(width: 8),
             Text('退出登录',
                 style: TextStyle(
@@ -893,9 +828,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontWeight: FontWeight.w500,
                     color: context.lgTextPrimary))),
         Switch.adaptive(
-            value: value,
-            activeColor: context.lgInk,
-            onChanged: onChanged),
+            value: value, activeColor: context.lgInk, onChanged: onChanged),
       ],
     );
   }
@@ -916,14 +849,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SizedBox(width: 12),
           Expanded(
               child: Text(label,
-                  style: TextStyle(
-                      fontSize: 15, color: context.lgTextPrimary))),
+                  style:
+                      TextStyle(fontSize: 15, color: context.lgTextPrimary))),
           Text(trailing,
-              style: TextStyle(
-                  fontSize: 13, color: context.lgTextMuted)),
+              style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
           SizedBox(width: 4),
-          Icon(Icons.chevron_right,
-              size: 18, color: context.lgTextMuted),
+          Icon(Icons.chevron_right, size: 18, color: context.lgTextMuted),
         ],
       ),
     );
@@ -941,12 +872,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     .withAlpha(isHeartRow ? 25 : 20),
                 borderRadius: BorderRadius.circular(14)),
             child: Icon(icon,
-                color: isHeartRow ? context.lgInk : context.lgInk,
-                size: 20)),
+                color: isHeartRow ? context.lgInk : context.lgInk, size: 20)),
         SizedBox(width: 12),
         Text(label,
-            style: TextStyle(
-                fontSize: 15, color: context.lgTextSecondary)),
+            style: TextStyle(fontSize: 15, color: context.lgTextSecondary)),
         Spacer(),
         Text(value,
             style: TextStyle(
@@ -967,7 +896,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         decoration: BoxDecoration(
             color: context.lgCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl))),
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(LoveGirlTheme.radiusXl))),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -988,11 +918,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                       color: context.lgInk.withAlpha(20),
                       borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.photo_library_outlined,
-                      color: context.lgInk)),
+                  child:
+                      Icon(Icons.photo_library_outlined, color: context.lgInk)),
               title: const Text('从相册选择'),
-              trailing: Icon(Icons.chevron_right,
-                  color: context.lgTextMuted),
+              trailing: Icon(Icons.chevron_right, color: context.lgTextMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
@@ -1018,11 +947,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                       color: context.lgInk.withAlpha(20),
                       borderRadius: BorderRadius.circular(14)),
-                  child: Icon(Icons.camera_alt_outlined,
-                      color: context.lgInk)),
+                  child: Icon(Icons.camera_alt_outlined, color: context.lgInk)),
               title: const Text('拍照'),
-              trailing: Icon(Icons.chevron_right,
-                  color: context.lgTextMuted),
+              trailing: Icon(Icons.chevron_right, color: context.lgTextMuted),
               onTap: () async {
                 Navigator.pop(ctx);
                 try {
@@ -1107,39 +1034,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showResetConfirm() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
-        title:
-            const Text('确认重置', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('将清除所有本地数据，包括缓存和登录状态。此操作不可撤销。'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              LogService().userAction('数据:确认重置');
-              final auth = context.read<AuthProvider>();
-              auth.logout();
-            },
-            child: Text('确认重置',
-                style: TextStyle(color: LoveGirlTheme.red.withAlpha(220))),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showLogoutConfirm(AuthProvider auth) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         // v4.0 底色交给主题（深浅两态自动），不写死
         backgroundColor: Theme.of(ctx).dialogBackgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title:
             const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('退出后需要重新登录哦~'),

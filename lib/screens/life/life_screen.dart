@@ -1,69 +1,79 @@
 import 'package:flutter/material.dart';
-import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
-import 'widgets/todo_list.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/auth_provider.dart';
+import '../../utils/lovegirl_theme.dart';
+import '../../widgets/lovegirl_ui.dart';
+import '../health/health_screen.dart';
+import '../kitchen/kitchen_screen.dart';
+import '../wardrobe/wardrobe_module_screen.dart';
 import 'widgets/finance_list.dart';
 import 'widgets/schedule_list.dart';
-import '../mood/mood_screen.dart';
-import '../wardrobe/wardrobe_module_screen.dart';
+import 'widgets/todo_list.dart';
 
-class LifeScreen extends StatefulWidget {
-  final int initialTab;
-  const LifeScreen({super.key, this.initialTab = 0});
-
-  @override
-  State<LifeScreen> createState() => _LifeScreenState();
-}
-
-class _LifeScreenState extends State<LifeScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController =
-        TabController(length: 5, vsync: this, initialIndex: widget.initialTab);
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.removeListener(() {});
-    _tabController.dispose();
-    super.dispose();
-  }
+class LifeScreen extends StatelessWidget {
+  const LifeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final entries = <(IconData, String, String, Widget)>[
+      (
+        Icons.checklist_rounded,
+        '待办',
+        '一起安排要做的事',
+        const LifeToolScreen(title: '待办', child: TodoListWidget())
+      ),
+      (
+        Icons.account_balance_wallet_outlined,
+        '记账',
+        '日常收支与旅行花费',
+        const LifeToolScreen(title: '记账', child: FinanceListWidget())
+      ),
+      (
+        Icons.calendar_month_outlined,
+        '课程',
+        '查看和管理课程表',
+        const LifeToolScreen(title: '课程', child: ScheduleListWidget())
+      ),
+      (
+        Icons.checkroom_outlined,
+        '衣橱',
+        '衣服、搭配与穿搭记录',
+        const LifeToolScreen(title: '衣橱', child: WardrobeModuleScreen())
+      ),
+      (Icons.restaurant_outlined, '情侣厨房', '点菜、做饭与开饭记录', const KitchenScreen()),
+      if (context.watch<AuthProvider>().isOriginalGirl)
+        (
+          Icons.health_and_safety_outlined,
+          '经期记录',
+          '仅自己可见',
+          const HealthScreen()
+        ),
+    ];
     return Scaffold(
       backgroundColor: context.lgBg,
       body: LovePage(
-        padding: EdgeInsets.zero,
-        child: Column(
+        child: ListView(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: _buildHeader(),
-            ),
-            const SizedBox(height: 14),
-            Padding(
+            const LoveSectionTitle(title: '生活'),
+            const SizedBox(height: 16),
+            LovePaper(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildTabBar(),
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                physics: const BouncingScrollPhysics(),
-                children: const [
-                  TodoListWidget(),
-                  FinanceListWidget(),
-                  ScheduleListWidget(),
-                  MoodScreen(),
-                  WardrobeModuleScreen(),
+              child: Column(
+                children: [
+                  for (var i = 0; i < entries.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    LoveMenuRow(
+                      icon: entries[i].$1,
+                      title: entries[i].$2,
+                      value: entries[i].$3,
+                      color: context.lgInk,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => entries[i].$4),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -72,159 +82,25 @@ class _LifeScreenState extends State<LifeScreen>
       ),
     );
   }
+}
 
-  Widget _buildHeader() {
-    // v4.0：头部卡脱票根形态（票根隐喻只保留票根类内容页），LovePaper 大圆角
-    // + 1px cardBorder 细线；色走 lgPaper 默认（深色态 cardDark），不写死白色
-    return LovePaper(
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          const LoveStickerIcon(
-            icon: Icons.dashboard_customize_rounded,
-            color: LoveGirlTheme.secondary,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '生活',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-                SizedBox(height: 3),
-                Text(
-                  '两个人的小生活面板',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: context.lgTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          LovePill(
-            text: _currentTabLabel,
-            icon: _currentTabIcon,
-            color: context.lgInk,
-          ),
-        ],
+class LifeToolScreen extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const LifeToolScreen({super.key, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: context.lgBg,
+      appBar: AppBar(
+        title: Text(title),
+        systemOverlayStyle: context.lgIsDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
       ),
+      body: SafeArea(top: false, child: child),
     );
-  }
-
-  Widget _buildTabBar() {
-    return LovePaper(
-      padding: const EdgeInsets.all(4),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          // v4.0 参考图③：选中态黑胶囊（lgInk 浅=黑/深=米白）
-          borderRadius: BorderRadius.circular(14),
-          color: context.lgInk,
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        // lgInk 深色态为近白，选中字须随之反转（黑底白字↔白底深字）
-        labelColor: context.lgIsDark ? LoveGirlTheme.bgDark : Colors.white,
-        unselectedLabelColor: context.lgTextSecondary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-        unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-        dividerColor: Colors.transparent,
-        splashFactory: NoSplash.splashFactory,
-        tabs: const [
-          Tab(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.checklist_rounded, size: 15),
-                SizedBox(height: 2),
-                Text('待办'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.account_balance_wallet_rounded, size: 15),
-                SizedBox(height: 2),
-                Text('记账'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.calendar_month_rounded, size: 15),
-                SizedBox(height: 2),
-                Text('课程'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.mood_rounded, size: 15),
-                SizedBox(height: 2),
-                Text('心情'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.checkroom_rounded, size: 15),
-                SizedBox(height: 2),
-                Text('衣橱'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String get _currentTabLabel {
-    switch (_tabController.index) {
-      case 1:
-        return '账本';
-      case 2:
-        return '课程';
-      case 3:
-        return '心情';
-      case 4:
-        return '衣橱';
-      default:
-        return '清单';
-    }
-  }
-
-  IconData get _currentTabIcon {
-    switch (_tabController.index) {
-      case 1:
-        return Icons.payments_rounded;
-      case 2:
-        return Icons.school_rounded;
-      case 3:
-        return Icons.mood_rounded;
-      case 4:
-        return Icons.checkroom_rounded;
-      default:
-        return Icons.favorite_border_rounded;
-    }
   }
 }

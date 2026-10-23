@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,22 +16,22 @@ import '../../utils/motion.dart';
 import '../../widgets/shimmer.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
-import '../beans/beans_screen.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../photo/photo_screen.dart';
 import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
-import '../timeline/timeline_screen.dart';
+import '../anniversary/anniversary_screen.dart';
+import '../life/life_screen.dart';
+import '../life/widgets/todo_list.dart';
+import '../../utils/app_section.dart';
 
 class HomeScreen extends StatefulWidget {
-  final void Function(int tabIndex)? onNavigateToTab;
-  final void Function(int tabIndex, int subTab)? onNavigateToSubTab;
+  final ValueChanged<AppSection>? onNavigateToTab;
 
   const HomeScreen({
     super.key,
     this.onNavigateToTab,
-    this.onNavigateToSubTab,
   });
 
   @override
@@ -77,14 +76,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             if (isPhoto) {
               _push(const PhotoScreen());
             } else {
-              widget.onNavigateToTab?.call(1);
+              widget.onNavigateToTab?.call(AppSection.travel);
             }
           },
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-              border: Border(left: BorderSide(color: LoveGirlTheme.peach, width: 3)),
+              border: Border(
+                  left: BorderSide(color: LoveGirlTheme.peach, width: 3)),
             ),
             child: Row(
               children: [
@@ -154,8 +154,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final rawList = d is List ? d : (d is Map ? d['list'] as List? : null);
       if (rawList != null) {
         spots = rawList
-            .map((e) =>
-                TravelSpot.fromJson(Map<String, dynamic>.from(e)))
+            .map((e) => TravelSpot.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       }
     } catch (_) {}
@@ -219,90 +218,85 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: context.lgBg,
       body: LovePage(
-            padding: EdgeInsets.zero,
-            child: RefreshIndicator(
-              onRefresh: home.refresh,
-              child: (home.isLoading && home.today == null)
-                  ? const HomeSkeleton()
-                  : ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-                children: [
-                  StaggerIn(
-                    index: 0,
-                    child: _HomeHeader(
-                      loveDays: math.max(auth.loveDays, home.loveDays),
-                      beanBalance: home.beanBalance,
-                      onNavigateToTab: widget.onNavigateToTab,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (_memoryToday != null) ...[
-                    _buildMemoryTodayCard(),
-                    const SizedBox(height: 14),
-                  ],
-                  if (_partnerBound) ...[
+        padding: EdgeInsets.zero,
+        child: RefreshIndicator(
+          onRefresh: home.refresh,
+          child: (home.isLoading && home.today == null)
+              ? const HomeSkeleton()
+              : ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                  children: [
                     StaggerIn(
                       index: 0,
-                      child: _PartnerRecentCard(
-                        items: _partnerRecent,
-                        onTapCooking: () => _push(const CookingLogScreen()),
+                      child: _HomeHeader(
+                        loveDays: math.max(auth.loveDays, home.loveDays),
                         onNavigateToTab: widget.onNavigateToTab,
                       ),
                     ),
                     const SizedBox(height: 14),
-                  ],
-                  if (home.error != null &&
-                      (home.today == null || home.memory == null)) ...[
-                    _ErrorBanner(message: home.error!, onRetry: home.refresh),
-                    const SizedBox(height: 16),
-                  ],
-                  StaggerIn(
-                    index: 1,
-                    child: _TodayCareSection(
-                      today: home.today,
-                      onFeedingTap: () => _push(const KitchenScreen()),
-                      onTodoTap: () => widget.onNavigateToSubTab?.call(3, 0),
-                      onTodoToggle: (id, complete) => context
-                          .read<HomeProvider>()
-                          .toggleTodo(id, complete: complete),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  StaggerIn(
-                    index: 2,
-                    child: _DailyQuestionTicket(onTap: () => _push(const DailyQuestionScreen())),
-                  ),
-                  const SizedBox(height: 18),
-                  if (_memoryToday == null)
+                    if (_memoryToday != null) ...[
+                      _buildMemoryTodayCard(),
+                      const SizedBox(height: 14),
+                    ],
+                    if (_partnerBound && _partnerRecent.isNotEmpty) ...[
+                      StaggerIn(
+                        index: 0,
+                        child: _PartnerRecentCard(
+                          items: _partnerRecent,
+                          onTapCooking: () => _push(const CookingLogScreen()),
+                          onNavigateToTab: widget.onNavigateToTab,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    if (home.error != null) ...[
+                      _ErrorBanner(message: home.error!, onRetry: home.refresh),
+                      const SizedBox(height: 16),
+                    ],
                     StaggerIn(
-                      index: 3,
-                      child: _MemoryTicket(
-                        memory: home.memory,
-                        onTap: () => _push(TimelineScreen()),
-                        onGenerate: () => _showMemoryStubSheet(home.memory),
+                      index: 1,
+                      child: _TodayCareSection(
+                        today: home.today,
+                        onFeedingTap: () => _push(const KitchenScreen()),
+                        onTodoTap: () => _push(const LifeToolScreen(
+                            title: '待办', child: TodoListWidget())),
+                        onTodoToggle: (id, complete) => context
+                            .read<HomeProvider>()
+                            .toggleTodo(id, complete: complete),
                       ),
                     ),
-                  const SizedBox(height: 18),
-                  StaggerIn(
-                    index: 4,
-                    child: _TravelTicket(
-                      preview: _typedMap(home.today?['travelPreview']),
-                      onTap: () => widget.onNavigateToTab?.call(1),
+                    if (home.today?['anniversary'] is Map) ...[
+                      const SizedBox(height: 14),
+                      LoveMenuRow(
+                        icon: Icons.event_outlined,
+                        title: home.today!['anniversary']['title'].toString(),
+                        value: home.today!['anniversary']['days'] == 0
+                            ? '就是今天'
+                            : '还有 ${home.today!['anniversary']['days']} 天',
+                        color: context.lgInk,
+                        onTap: () => _push(const AnniversaryScreen()),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    StaggerIn(
+                      index: 2,
+                      child: _DailyQuestionTicket(
+                          onTap: () => _push(const DailyQuestionScreen())),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  StaggerIn(
-                    index: 5,
-                    child: _LifeSummaryTicket(
-                      today: home.today,
-                      onFinanceTap: () => widget.onNavigateToSubTab?.call(3, 1),
-                      onCourseTap: () => widget.onNavigateToSubTab?.call(3, 2),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                    const SizedBox(height: 18),
+                    if (_memoryToday == null && home.memory?.isNotEmpty == true)
+                      StaggerIn(
+                        index: 3,
+                        child: _MemoryTicket(
+                          memory: home.memory,
+                          onTap: () =>
+                              widget.onNavigateToTab?.call(AppSection.memories),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -310,25 +304,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _push(Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
-
-  void _showMemoryStubSheet(Map<String, dynamic>? memory) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _MemoryStubSheet(memory: memory),
-    );
-  }
 }
 
 class _HomeHeader extends StatelessWidget {
   final int loveDays;
-  final int beanBalance;
-  final void Function(int tabIndex)? onNavigateToTab;
+  final ValueChanged<AppSection>? onNavigateToTab;
 
   const _HomeHeader({
     required this.loveDays,
-    required this.beanBalance,
     this.onNavigateToTab,
   });
 
@@ -352,120 +335,118 @@ class _HomeHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
         ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'LoveGirl',
-                          style: TextStyle(
-                            fontFamily: 'serif',
-                            fontSize: 30,
-                            height: 1,
-                            fontWeight: FontWeight.w700,
-                            color: context.lgTextPrimary,
-                          ),
-                        ),
-                        SizedBox(width: 6),
-                        Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Icon(
-                            Icons.favorite_rounded,
-                            size: 15,
-                            color: context.lgEmotion,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    // 数字层级：恋爱天数是整屏视觉锚点（清爽化 v2 数字 hero）
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '我们在一起的第 ',
+                            'LoveGirl',
                             style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: context.lgTextSecondary,
-                            ),
-                          ),
-                          RollingNumber(
-                            value: loveDays,
-                            style: TextStyle(
-                              fontSize: 38,
+                              fontFamily: 'serif',
+                              fontSize: 30,
                               height: 1,
-                              fontWeight: FontWeight.w900,
-                              color: context.lgEmotion,
+                              fontWeight: FontWeight.w700,
+                              color: context.lgTextPrimary,
                             ),
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            '天',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: context.lgTextSecondary,
-                            ),
-                          ),
+                          SizedBox(width: 6),
                           Padding(
-                            padding: EdgeInsets.only(left: 5),
+                            padding: EdgeInsets.only(top: 4),
                             child: Icon(
                               Icons.favorite_rounded,
-                              size: 13,
+                              size: 15,
                               color: context.lgEmotion,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 8),
+                      // 数字层级：恋爱天数是整屏视觉锚点（清爽化 v2 数字 hero）
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '我们在一起的第 ',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: context.lgTextSecondary,
+                              ),
+                            ),
+                            RollingNumber(
+                              value: loveDays,
+                              style: TextStyle(
+                                fontSize: 38,
+                                height: 1,
+                                fontWeight: FontWeight.w900,
+                                color: context.lgEmotion,
+                              ),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              '天',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: context.lgTextSecondary,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 5),
+                              child: Icon(
+                                Icons.favorite_rounded,
+                                size: 13,
+                                color: context.lgEmotion,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(width: 12),
-              _BellBadge(onNavigateToTab: onNavigateToTab),
-            ],
-          ),
-          SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: WeatherWidget(compact: true),
+                SizedBox(width: 12),
+                _BellBadge(onNavigateToTab: onNavigateToTab),
+              ],
+            ),
+            SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: WeatherWidget(compact: true),
+                  ),
                 ),
-              ),
-              _BeanBadge(balance: beanBalance),
-            ],
-          ),
-        ],
-      ),        // Column 收尾
-        ),      // Container（日出 hero）收尾
+              ],
+            ),
+          ],
+        ), // Column 收尾
+      ), // Container（日出 hero）收尾
     );
   }
 }
 
 class _BellBadge extends StatelessWidget {
-  final void Function(int tabIndex)? onNavigateToTab;
+  final ValueChanged<AppSection>? onNavigateToTab;
 
   const _BellBadge({this.onNavigateToTab});
 
   @override
   Widget build(BuildContext context) {
-    final unread = context.select(
-        (NotificationProvider p) => p.unreadCount);
+    final unread = context.select((NotificationProvider p) => p.unreadCount);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
@@ -523,140 +504,6 @@ class _BellBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BeanBadge extends StatelessWidget {
-  final int balance;
-
-  const _BeanBadge({required this.balance});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const BeansScreen()),
-      ),
-      child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 30,
-          height: 30,
-          // v4.0 奶油硬编码退役：豆子容器换黄族浅底徽章（getter 深色安全）+
-          // 中性细线描边；豆子图标本体=内容语义保留
-          decoration: BoxDecoration(
-            color: context.lgSoftYellowBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: context.lgCardBorder),
-          ),
-          child: const Center(child: _LoveBeanIcon(size: 22)),
-        ),
-        SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RollingNumber(
-              value: balance,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: context.lgTextPrimary,
-              ),
-            ),
-            Text(
-              '\u7231\u5fc3\u8c46',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: context.lgTextMuted,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 2),
-        Icon(
-          Icons.chevron_right_rounded,
-          size: 14,
-          color: context.lgTextMuted,
-        ),
-      ],
-      ),
-    );
-  }
-}
-
-class _LoveBeanIcon extends StatelessWidget {
-  final double size;
-
-  const _LoveBeanIcon({required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(painter: _LoveBeanPainter()),
-    );
-  }
-}
-
-class _LoveBeanPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final beanRect = Rect.fromCenter(
-      center: center,
-      width: size.width * 0.72,
-      height: size.height * 0.92,
-    );
-
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(-0.52);
-    canvas.translate(-center.dx, -center.dy);
-
-    final shadow = Paint()
-      ..color = const Color(0xFFB96B2C).withAlpha(42)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-    canvas.drawOval(beanRect.shift(const Offset(0, 1.5)), shadow);
-
-    final beanPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFFFD08E), Color(0xFFC7802E)],
-      ).createShader(beanRect);
-    canvas.drawOval(beanRect, beanPaint);
-
-    final edgePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
-      ..color = const Color(0xFFA96324).withAlpha(150);
-    canvas.drawOval(beanRect.deflate(0.7), edgePaint);
-
-    final highlight = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round
-      ..color = Colors.white.withAlpha(150);
-    final highlightPath = Path()
-      ..moveTo(size.width * 0.42, size.height * 0.25)
-      ..cubicTo(
-        size.width * 0.30,
-        size.height * 0.42,
-        size.width * 0.33,
-        size.height * 0.58,
-        size.width * 0.47,
-        size.height * 0.74,
-      );
-    canvas.drawPath(highlightPath, highlight);
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ErrorBanner extends StatelessWidget {
@@ -739,8 +586,9 @@ class _TodayCareSection extends StatelessWidget {
     final todoItems = (todo['items'] is List)
         ? (todo['items'] as List).map(_typedMap).toList()
         : const <Map<String, dynamic>>[];
-    final totalTodos = _positiveInt(todo['total'], fallback: 2);
-    final activeTodos = _asInt(todo['active'], fallback: 1);
+    final totalTodos = _asInt(todo['total']).clamp(0, 1 << 30);
+    final activeTodos = _asInt(todo['active']).clamp(0, totalTodos);
+    final completedTodos = totalTodos - activeTodos;
 
     // v3.23 清单化重设计：两个横向条目（厨房/待办），高度减半信息密度更高
     final badge = feed['statusLabel']?.toString() ?? '还没点单';
@@ -756,18 +604,19 @@ class _TodayCareSection extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                   color: context.lgTextPrimary)),
         ),
-        _CareEntry(
-          emoji: '🍳',
-          title: '情侣厨房',
-          badge: badge,
-          badgeTone:
-              badge == '还没点单' ? _CareBadgeTone.warn : _CareBadgeTone.ok,
-          subtitle: feed['title']?.toString(),
-          onTap: onFeedingTap,
-        ),
+        if (feed['hasActiveOrder'] == true)
+          _CareEntry(
+            emoji: '🍳',
+            title: '情侣厨房',
+            badge: badge,
+            badgeTone:
+                badge == '还没点单' ? _CareBadgeTone.warn : _CareBadgeTone.ok,
+            subtitle: feed['title']?.toString(),
+            onTap: onFeedingTap,
+          ),
         const SizedBox(height: 10),
         _TodoCareTile(
-          badge: '$activeTodos/$totalTodos 完成',
+          badge: totalTodos == 0 ? '暂无待办' : '$completedTodos/$totalTodos 完成',
           allDone: activeTodos == 0,
           rows: todoItems
               .map((item) => {
@@ -858,16 +707,14 @@ class _CareEntry extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted)),
+                              fontSize: 12, color: context.lgTextMuted)),
                     ],
                   ],
                 ),
               ),
               SizedBox(width: 8),
               Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: badgeBg,
                   borderRadius: BorderRadius.circular(999),
@@ -888,179 +735,12 @@ class _CareEntry extends StatelessWidget {
     );
   }
 }
-class _MemoryStubSheet extends StatelessWidget {
-  final Map<String, dynamic>? memory;
-
-  const _MemoryStubSheet({required this.memory});
-
-  @override
-  Widget build(BuildContext context) {
-    final title = _localizedMemoryTitle(
-      _asString(memory?['title'], fallback: '我们的一件小事'),
-    );
-    final subtitle = _asString(
-      memory?['subtitle'],
-      fallback: '把一起走过的地方、说过的话，慢慢收进这张票根里。',
-    );
-    final eventDate = _asString(memory?['eventDate'], fallback: '');
-    final location = _asString(memory?['location'], fallback: '');
-    final imageUrl = _memoryImageUrl(memory);
-
-    // v4.0 弹层玻璃化统一口径：radiusXl 28 + 白 72%（withAlpha 184）+ blur 24
-    // + cardBorder 细线（DESIGN_SYSTEM 弹层口径；深色跟随 cardDark 72%）
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(LoveGirlTheme.radiusXl),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-          decoration: BoxDecoration(
-            // v4.1：72%→58%，磨砂透底感更接近参考图
-            color: (context.lgIsDark ? context.lgCard : Colors.white)
-                .withValues(alpha: 0.58),
-            border: Border(top: BorderSide(color: context.lgCardBorder)),
-          ),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  LovePill(
-                    text: '回忆票根 · MEMORY STUB',
-                    icon: Icons.confirmation_number_outlined,
-                    color: context.lgInk,
-                  ),
-                  SizedBox(height: 14),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 20,
-                      height: 1.3,
-                      fontWeight: FontWeight.w900,
-                      color: context.lgTextPrimary,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13, color: context.lgTextSecondary),
-                  ),
-                  SizedBox(height: 12),
-                  if (imageUrl.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 180),
-                        child: Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    )
-                  else
-                    Container(
-                      height: 110,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            context.lgPrimarySoft,
-                            context.lgBadgeBg,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text('♥',
-                            style: TextStyle(
-                                fontSize: 34, color: context.lgInk)),
-                      ),
-                    ),
-                  SizedBox(height: 12),
-                  LoveTicketDivider(),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      if (location.isNotEmpty)
-                        Expanded(
-                          child: Text(
-                            location,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12, color: context.lgTextMuted),
-                          ),
-                        ),
-                      Text(
-                        eventDate,
-                        style: TextStyle(
-                            fontSize: 12, color: context.lgTextMuted),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const LoveBarcode(width: 90, height: 34),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: LovePrimaryButton(
-                      text: '去时光轴记录更多',
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => TimelineScreen()));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              Positioned(
-                right: 0,
-                top: 8,
-                child: Transform.rotate(
-                  angle: -0.3,
-                  child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      border:
-                          Border.all(color: context.lgInk, width: 2),
-                      borderRadius: BorderRadius.circular(8),
-                      color: context.lgPrimarySoft.withAlpha(200),
-                    ),
-                    child: Text('珍藏 ♥',
-                        style: TextStyle(
-                            color: context.lgInk,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// TA 的近况：让"对方"在首页出现
 class _PartnerRecentCard extends StatelessWidget {
   final List<Map<String, dynamic>> items;
   final VoidCallback onTapCooking;
-  final void Function(int)? onNavigateToTab;
+  final ValueChanged<AppSection>? onNavigateToTab;
 
   const _PartnerRecentCard({
     required this.items,
@@ -1075,11 +755,12 @@ class _PartnerRecentCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         // 点击优先跳最近动态对应页；无动态进手账
-        final first = visible.isNotEmpty ? visible.first['type']?.toString() : null;
+        final first =
+            visible.isNotEmpty ? visible.first['type']?.toString() : null;
         if (first == 'cooking') {
           onTapCooking();
         } else if (first == 'travel') {
-          onNavigateToTab?.call(1);
+          onNavigateToTab?.call(AppSection.travel);
         }
       },
       child: Container(
@@ -1219,9 +900,8 @@ class _DailyQuestionTicket extends StatelessWidget {
               ),
               child: Icon(Icons.quiz_rounded,
                   size: 20,
-                  color: context.lgIsDark
-                      ? LoveGirlTheme.bgDark
-                      : Colors.white),
+                  color:
+                      context.lgIsDark ? LoveGirlTheme.bgDark : Colors.white),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1301,12 +981,10 @@ class _DailyQuestionTicket extends StatelessWidget {
 class _MemoryTicket extends StatelessWidget {
   final Map<String, dynamic>? memory;
   final VoidCallback onTap;
-  final VoidCallback? onGenerate;
 
   const _MemoryTicket({
     required this.memory,
     required this.onTap,
-    this.onGenerate,
   });
 
   @override
@@ -1357,26 +1035,23 @@ class _MemoryTicket extends StatelessWidget {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12, color: context.lgTextMuted),
+                  style: TextStyle(fontSize: 12, color: context.lgTextMuted),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 6),
           OutlinedButton(
-            onPressed: onGenerate ?? onTap,
+            onPressed: onTap,
             style: OutlinedButton.styleFrom(
               foregroundColor: context.lgInk,
               side: BorderSide(color: context.lgInk),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999)),
             ),
-            child: const Text('生成票根',
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w800)),
+            child: const Text('查看回忆',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -1387,419 +1062,6 @@ class _MemoryTicket extends StatelessWidget {
         'assets/images/icons/placeholder_memory.png',
         fit: BoxFit.cover,
       );
-}
-
-class _TravelTicket extends StatelessWidget {
-  final Map<String, dynamic> preview;
-  final VoidCallback onTap;
-
-  const _TravelTicket({
-    required this.preview,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final title = _asString(preview['title'], fallback: '旅行计划');
-    final city = _asString(preview['city'], fallback: '厦门之旅');
-    final subtitle = _asString(
-      preview['subtitle'],
-      fallback: '一起去看海呀～',
-    );
-    final startDate = _asString(preview['startDate'], fallback: '');
-    final endDate = _asString(preview['endDate'], fallback: '');
-    final progress = _asString(preview['progress'], fallback: '');
-    final people = _asInt(preview['people'], fallback: 2);
-    final travelLabel = title == '旅行计划' ? '出发计划' : title;
-    final dateRange = [
-      if (startDate.isNotEmpty) startDate,
-      if (endDate.isNotEmpty && endDate != startDate) endDate,
-    ].join(' - ');
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned(
-          top: -8,
-          left: 30,
-          child: Opacity(
-            opacity: context.lgIsDark ? 0.5 : 1,
-            child: Transform.rotate(
-              angle: -0.42,
-              child: Image.asset('assets/images/deco/tape_sage_stripe.png',
-                  width: 82, height: 22, fit: BoxFit.fill),
-            ),
-          ),
-        ),
-        LoveTicketCard(
-      key: const ValueKey('home_travel_ticket'),
-      color: context.lgSecondarySoft,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: context.lgSecondarySoft,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Center(
-                child: Icon(Icons.travel_explore_rounded,
-                    size: 22, color: LoveGirlTheme.secondary),
-              ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(travelLabel,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.secondary)),
-                  SizedBox(height: 2),
-                  Text(city,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: context.lgTextPrimary)),
-                  SizedBox(height: 2),
-                  Text(
-                    [
-                      subtitle,
-                      if (dateRange.isNotEmpty) dateRange,
-                      '$people 人',
-                      if (progress.isNotEmpty) progress,
-                    ].where((t) => t.isNotEmpty).join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12, color: context.lgTextMuted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right_rounded,
-                size: 18, color: context.lgTextMuted),
-          ],
-        ),
-      ),
-    )],
-      );
-  }
-}
-
-class _LifeSummaryTicket extends StatelessWidget {
-  final Map<String, dynamic>? today;
-  final VoidCallback onFinanceTap;
-  final VoidCallback onCourseTap;
-
-  const _LifeSummaryTicket({
-    required this.today,
-    required this.onFinanceTap,
-    required this.onCourseTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final finance = _typedMap(today?['finance']);
-    final course = _typedMap(today?['course']);
-    final totalSpent = _asDouble(finance['totalSpent'], fallback: 1520);
-    final remaining = _asDouble(finance['remaining'], fallback: 480);
-    final title = _asString(
-      course['title'],
-      fallback: '\u8bbe\u8ba1\u5fc3\u7406\u5b66',
-    );
-    final time = _asString(course['time'], fallback: '14:00');
-    final location = _asString(
-      course['location'],
-      fallback: '\u6559\u4e8c\u697c 302',
-    );
-    final weekday = _asString(course['weekday'], fallback: '\u5468\u56db');
-    final totalCourses = _asInt(course['total'], fallback: 5);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stacked = constraints.maxWidth < 380;
-        final financePanel = _LifePanel(
-          icon: Icons.wallet_outlined,
-          title: '\u672c\u6708\u5c0f\u8d26\u672c',
-          accent: context.lgInk,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '\u603b\u652f\u51fa',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.lgTextMuted,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      _money(totalSpent),
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        color: context.lgInk,
-                      ),
-                    ),
-                    SizedBox(height: 14),
-                    Text(
-                      '\u5269\u4f59\u9884\u7b97',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.lgTextMuted,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      _money(remaining),
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: LoveGirlTheme.secondary,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextButton(
-                      onPressed: onFinanceTap,
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.lgTextPrimary,
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text(
-                        '\u53bb\u8bb0\u4e00\u7b14  \u203a',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 10),
-              SizedBox(
-                width: 96,
-                height: 110,
-                child: Center(
-                  child: _FinancePiePreview(),
-                ),
-              ),
-            ],
-          ),
-        );
-        final coursePanel = _LifePanel(
-          icon: Icons.menu_book_outlined,
-          title: '\u672c\u5468\u8bfe\u7a0b',
-          accent: LoveGirlTheme.secondary,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    '\u660e\u5929 $weekday',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: context.lgTextPrimary,
-                    ),
-                  ),
-                  Spacer(),
-                  Text(
-                    '\u5171 $totalCourses \u8282\u8bfe',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.lgTextMuted,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              Text(
-                time,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: context.lgTextPrimary,
-                ),
-              ),
-              SizedBox(height: 6),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: context.lgTextPrimary,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                location,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.lgTextSecondary,
-                ),
-              ),
-              SizedBox(height: 20),
-              TextButton(
-                onPressed: onCourseTap,
-                style: TextButton.styleFrom(
-                  foregroundColor: context.lgTextPrimary,
-                  padding: EdgeInsets.zero,
-                ),
-                child: const Text(
-                  '\u67e5\u770b\u8bfe\u8868  \u203a',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        );
-
-        return LoveTicketCard(
-          key: const ValueKey('home_life_summary'),
-          color: context.lgPaper,
-          padding: const EdgeInsets.all(16),
-          child: stacked
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    financePanel,
-                    SizedBox(height: 14),
-                    LoveTicketDivider(
-                      axis: Axis.horizontal,
-                      length: 260,
-                    ),
-                    SizedBox(height: 14),
-                    coursePanel,
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: financePanel),
-                    SizedBox(width: 14),
-                    LoveTicketDivider(length: 182),
-                    SizedBox(width: 14),
-                    Expanded(child: coursePanel),
-                  ],
-                ),
-        );
-      },
-    );
-  }
-}
-
-class _LifePanel extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color accent;
-  final Widget child;
-
-  const _LifePanel({
-    required this.icon,
-    required this.title,
-    required this.accent,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: accent),
-            SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: context.lgTextPrimary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        child,
-      ],
-    );
-  }
-}
-
-class _FinancePiePreview extends StatelessWidget {
-  const _FinancePiePreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _FinancePiePainter(),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _FinancePiePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2 - 6);
-    final radius = size.width * 0.42;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    final shadowPaint = Paint()
-      ..color = Colors.black.withAlpha(10)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    canvas.drawCircle(center.translate(0, 6), radius, shadowPaint);
-
-    final slices = [
-      // v4.0 冷灰三档（原暖米/灰绿硬编码退役）：墨 14% / 墨 8% / primarySoft
-      (_SliceData(0.40, LoveGirlTheme.primary.withAlpha(36))),
-      (_SliceData(0.34, LoveGirlTheme.primary.withAlpha(20))),
-      (_SliceData(0.26, LoveGirlTheme.primarySoft)),
-    ];
-
-    var start = -1.85;
-    for (final slice in slices) {
-      final sweep = 3.141592653589793 * 2 * slice.fraction;
-      final paint = Paint()..color = slice.color;
-      canvas.drawArc(rect, start, sweep, true, paint);
-      start += sweep;
-    }
-
-    final strokePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = Colors.white.withAlpha(180);
-    start = -1.85;
-    for (final slice in slices) {
-      final sweep = 3.141592653589793 * 2 * slice.fraction;
-      canvas.drawArc(rect, start, sweep, true, strokePaint);
-      start += sweep;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SliceData {
-  final double fraction;
-  final Color color;
-
-  const _SliceData(this.fraction, this.color);
 }
 
 Map<String, dynamic> _typedMap(dynamic value) {
@@ -1854,24 +1116,6 @@ int _asInt(dynamic value, {int fallback = 0}) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
-int _positiveInt(dynamic value, {int fallback = 1}) {
-  final parsed = _asInt(value, fallback: fallback);
-  return parsed <= 0 ? fallback : parsed;
-}
-
-double _asDouble(dynamic value, {double fallback = 0}) {
-  if (value is double) return value;
-  if (value is num) return value.toDouble();
-  return double.tryParse(value?.toString() ?? '') ?? fallback;
-}
-
-String _money(double value) {
-  final whole = value == value.roundToDouble();
-  return whole
-      ? '\u00a5${value.toStringAsFixed(0)}'
-      : '\u00a5${value.toStringAsFixed(2)}';
-}
-
 DateTime? _parseDate(String value) {
   if (value.trim().isEmpty) return null;
   return DateTime.tryParse(value);
@@ -1912,12 +1156,6 @@ class _TodoCareTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayRows = rows.isNotEmpty
-        ? rows
-        : const [
-            {'id': 0, 'title': '提醒她多喝水', 'dueDate': ''},
-            {'id': 0, 'title': '睡前讲故事', 'dueDate': '22:00'},
-          ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
@@ -1958,9 +1196,7 @@ class _TodoCareTile extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   // v4.0 状态徽章：完成=绿族浅底，未完=中性浅灰（getter 深色安全）
                   decoration: BoxDecoration(
-                    color: allDone
-                        ? context.lgSoftGreenBg
-                        : context.lgBadgeBg,
+                    color: allDone ? context.lgSoftGreenBg : context.lgBadgeBg,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(badge,
@@ -1977,7 +1213,7 @@ class _TodoCareTile extends StatelessWidget {
               ],
             ),
           ),
-          for (final row in displayRows)
+          for (final row in rows)
             _HomeTodoRow(
               id: (row['id'] as num?)?.toInt() ?? 0,
               title: (row['title'] ?? '').toString(),
@@ -2072,8 +1308,7 @@ class _HomeTodoRowState extends State<_HomeTodoRow>
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 13,
-                color:
-                    _done ? context.lgTextMuted : context.lgTextPrimary,
+                color: _done ? context.lgTextMuted : context.lgTextPrimary,
                 decoration:
                     _done ? TextDecoration.lineThrough : TextDecoration.none,
               ),
@@ -2081,8 +1316,7 @@ class _HomeTodoRowState extends State<_HomeTodoRow>
           ),
           if (widget.dueDate.isNotEmpty)
             Text(widget.dueDate,
-                style: TextStyle(
-                    fontSize: 12, color: context.lgTextMuted)),
+                style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
         ],
       ),
     );
@@ -2107,12 +1341,8 @@ class _CheckDrawPainter extends CustomPainter {
       ..color = color;
 
     final ringProgress = (progress / 0.6).clamp(0.0, 1.0);
-    canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2,
-        2 * math.pi * ringProgress,
-        false,
-        ringPaint);
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, 2 * math.pi * ringProgress, false, ringPaint);
 
     if (progress > 0.6) {
       final checkProgress = ((progress - 0.6) / 0.4).clamp(0.0, 1.0);
@@ -2147,58 +1377,56 @@ class _CheckDrawPainter extends CustomPainter {
 }
 
 /// W5 弹药库 7.3/10.2：确定性挑选「N 年前的今天」（年最远优先→照片优先→id 升序；
-  /// photo_date 空用 created_at 兜底；候选年 ≥ 当年跳过）
+/// photo_date 空用 created_at 兜底；候选年 ≥ 当年跳过）
 Map<String, dynamic>? pickMemoryToday(
-    List<Map<String, dynamic>> photos,
-    List<TravelSpot> spots,
-    DateTime now) {
+    List<Map<String, dynamic>> photos, List<TravelSpot> spots, DateTime now) {
   DateTime? parseDate(dynamic v) {
-      if (v == null) return null;
-      final s = v.toString();
-      if (s.length < 10) return null;
-      return DateTime.tryParse(s.replaceFirst(' ', 'T')) ??
-          DateTime.tryParse(s.substring(0, 10));
-    }
+    if (v == null) return null;
+    final s = v.toString();
+    if (s.length < 10) return null;
+    return DateTime.tryParse(s.replaceFirst(' ', 'T')) ??
+        DateTime.tryParse(s.substring(0, 10));
+  }
 
   final candidates = <Map<String, dynamic>>[];
   for (final p in photos) {
-      final d = parseDate(p['photo_date'] ?? p['created_at']);
-      if (d == null || !d.isBefore(now)) continue;
-      if (d.month != now.month || d.day != now.day) continue;
-      candidates.add({
-        'type': 'photo',
-        'date': d,
-        'id': (p['id'] as num?)?.toInt() ?? 0,
-        'title': p['description']?.toString() ?? '',
-      });
-    }
+    final d = parseDate(p['photo_date'] ?? p['created_at']);
+    if (d == null || !d.isBefore(now)) continue;
+    if (d.month != now.month || d.day != now.day) continue;
+    candidates.add({
+      'type': 'photo',
+      'date': d,
+      'id': (p['id'] as num?)?.toInt() ?? 0,
+      'title': p['description']?.toString() ?? '',
+    });
+  }
   for (final s in spots) {
-      final d = parseDate(s.visitedDate);
-      if (d == null || !d.isBefore(now)) continue;
-      if (d.month != now.month || d.day != now.day) continue;
-      candidates.add({
-        'type': 'travel',
-        'date': d,
-        'id': s.id,
-        'title': s.name,
-      });
-    }
+    final d = parseDate(s.visitedDate);
+    if (d == null || !d.isBefore(now)) continue;
+    if (d.month != now.month || d.day != now.day) continue;
+    candidates.add({
+      'type': 'travel',
+      'date': d,
+      'id': s.id,
+      'title': s.name,
+    });
+  }
   if (candidates.isEmpty) return null;
   candidates.sort((a, b) {
-      final ya = (a['date'] as DateTime).year;
-      final yb = (b['date'] as DateTime).year;
-      if (ya != yb) return ya.compareTo(yb);
-      final pa = a['type'] == 'photo' ? 0 : 1;
-      final pb = b['type'] == 'photo' ? 0 : 1;
-      if (pa != pb) return pa.compareTo(pb);
-      return (a['id'] as int).compareTo(b['id'] as int);
-    });
+    final ya = (a['date'] as DateTime).year;
+    final yb = (b['date'] as DateTime).year;
+    if (ya != yb) return ya.compareTo(yb);
+    final pa = a['type'] == 'photo' ? 0 : 1;
+    final pb = b['type'] == 'photo' ? 0 : 1;
+    if (pa != pb) return pa.compareTo(pb);
+    return (a['id'] as int).compareTo(b['id'] as int);
+  });
   final c = candidates.first;
   final years = now.year - (c['date'] as DateTime).year;
   return {
-      'type': c['type'],
-      'years': years,
-      'id': c['id'],
-      'title': c['title'],
-    };
-  }
+    'type': c['type'],
+    'years': years,
+    'id': c['id'],
+    'title': c['title'],
+  };
+}

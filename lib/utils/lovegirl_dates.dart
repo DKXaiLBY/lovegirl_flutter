@@ -47,3 +47,41 @@ DateTime? _parseDate(dynamic value) {
   if (raw.isEmpty) return null;
   return DateTime.tryParse(raw);
 }
+
+Map<String, dynamic>? upcomingAnniversary(
+  Iterable<Map<String, dynamic>> items, {
+  DateTime? now,
+}) {
+  final current = now ?? DateTime.now();
+  final today = DateTime.utc(current.year, current.month, current.day);
+  Map<String, dynamic>? result;
+  for (final item in items) {
+    if (item['is_lunar'] == true || item['is_lunar'] == 1) continue;
+    final base = _parseDate(item['eventDate'] ?? item['event_date']);
+    if (base == null) continue;
+    final first = DateTime.utc(base.year, base.month, base.day);
+    final repeat = item['repeat_type'] ?? item['repeatType'] ?? 'yearly';
+    DateTime next = first;
+    if (!first.isAfter(today) && repeat != 'once') {
+      final month = repeat == 'monthly' ? today.month : base.month;
+      next = _anniversaryDate(today.year, month, base.day);
+      if (next.isBefore(today)) {
+        next = repeat == 'monthly'
+            ? _anniversaryDate(today.year, today.month + 1, base.day)
+            : _anniversaryDate(today.year + 1, base.month, base.day);
+      }
+    }
+    final days = next.difference(today).inDays;
+    if (days < 0 || days > 7) continue;
+    if (result == null || days < (result['days'] as int)) {
+      result = {'title': item['title'] ?? '纪念日', 'days': days};
+    }
+  }
+  return result;
+}
+
+DateTime _anniversaryDate(int year, int month, int day) {
+  final first = DateTime.utc(year, month);
+  final maxDay = DateTime.utc(first.year, first.month + 1, 0).day;
+  return DateTime.utc(first.year, first.month, day.clamp(1, maxDay));
+}

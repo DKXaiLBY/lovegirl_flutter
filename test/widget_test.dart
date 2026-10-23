@@ -87,7 +87,8 @@ void main() {
     expect(find.text('立即注册'), findsOneWidget);
   });
 
-  testWidgets('home screen keeps the confirmed ticket layout', (tester) async {
+  testWidgets('today keeps care and memories without fixed tool dashboards',
+      (tester) async {
     final homeProvider = _FakeHomeProvider();
     final authProvider = _FakeAuthProvider();
 
@@ -96,8 +97,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
@@ -109,14 +112,9 @@ void main() {
     expect(find.byKey(const ValueKey('home_header')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_today_care')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_memory_ticket')), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('home_travel_ticket')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-    expect(find.byKey(const ValueKey('home_travel_ticket')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_life_summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home_travel_ticket')), findsNothing);
+    expect(find.byKey(const ValueKey('home_life_summary')), findsNothing);
+    expect(find.text('2/3 完成'), findsOneWidget);
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump(const Duration(seconds: 11));
@@ -135,8 +133,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<HomeProvider>.value(value: homeProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: HomeScreen()),
@@ -155,15 +155,10 @@ void main() {
     expect(find.text('今天要照顾的事'), findsOneWidget);
     expect(find.text('情侣厨房'), findsOneWidget);
     expect(find.text('待办清单'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('home_travel_ticket')),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-    expect(find.byKey(const ValueKey('home_travel_ticket')), findsOneWidget);
-    expect(find.text('出发计划'), findsOneWidget);
-    expect(find.text('LOVEGIRL\nTRIP'), findsNothing);
+    expect(find.byKey(const ValueKey('home_travel_ticket')), findsNothing);
+    expect(find.text('设计心理学'), findsNothing);
+    expect(find.text('剩余预算'), findsNothing);
+    expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump(const Duration(seconds: 11));
@@ -179,8 +174,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
@@ -189,8 +186,7 @@ void main() {
 
     await tester.pump();
     // v3.31 地图已是旅行页默认主视图（全屏高德），旧的"高德"入口按钮移除：
-    expect(
-        find.byKey(const ValueKey('travel_enter_amap_mode')), findsNothing);
+    expect(find.byKey(const ValueKey('travel_enter_amap_mode')), findsNothing);
     // 底部悬浮 tab 存在且默认选中"地图"
     expect(find.text('地图'), findsWidgets);
     expect(find.text('清单'), findsOneWidget);
@@ -207,8 +203,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelAmapModeScreen()),
@@ -232,8 +230,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
@@ -244,8 +244,10 @@ void main() {
 
     // v3.23 地图上的状态筛选条已移除（筛选收敛到列表区，避免与地图浮层重复）
     expect(find.byKey(const ValueKey('travel_map_filter_wish')), findsNothing);
-    expect(find.byKey(const ValueKey('travel_map_filter_planned')), findsNothing);
-    expect(find.byKey(const ValueKey('travel_map_filter_visited')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('travel_map_filter_planned')), findsNothing);
+    expect(
+        find.byKey(const ValueKey('travel_map_filter_visited')), findsNothing);
     expect(find.byKey(const ValueKey('travel_map_filter_both')), findsNothing);
   });
 
@@ -275,8 +277,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
           ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<MapPrefsProvider>(
+              create: (_) => MapPrefsProvider()),
+          ChangeNotifierProvider<NotificationProvider>(
+              create: (_) => NotificationProvider()),
           ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
         ],
         child: const MaterialApp(home: TravelMainScreen()),
@@ -297,8 +301,20 @@ void main() {
       'cook_id': 33,
       'total_price': 59,
       'items': [
-        {'dish_id': 3, 'name': '红烧肉', 'emoji': '🍖', 'price': 35, 'quantity': 1},
-        {'dish_id': 4, 'name': '番茄炒蛋', 'emoji': '🍅', 'price': 12, 'quantity': 2},
+        {
+          'dish_id': 3,
+          'name': '红烧肉',
+          'emoji': '🍖',
+          'price': 35,
+          'quantity': 1
+        },
+        {
+          'dish_id': 4,
+          'name': '番茄炒蛋',
+          'emoji': '🍅',
+          'price': 12,
+          'quantity': 2
+        },
       ],
       'photo_url': '/uploads/kitchen/a.jpg',
       'beans_awarded': 1,
@@ -332,7 +348,8 @@ void main() {
     expect(find.text('还没有收到订单'), findsOneWidget);
   });
 
-  testWidgets('profile screen keeps the archive-style sections',
+  testWidgets(
+      'us keeps relationship rewards and settings without duplicate archives',
       (tester) async {
     final authProvider = _FakeAuthProvider();
 
@@ -347,17 +364,21 @@ void main() {
 
     await tester.pump();
 
-    expect(find.text('关系资料夹'), findsWidgets);
-    expect(find.text('关系档案'), findsOneWidget);
+    expect(find.text('我们'), findsOneWidget);
+    expect(find.textContaining('520', findRichText: true), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('回忆与管理'),
+      find.text('设置'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
-    expect(find.text('回忆与管理'), findsOneWidget);
-    expect(find.text('相册与回忆照片'), findsOneWidget);
-    expect(find.text('旅行票根'), findsOneWidget);
+    expect(find.text('设置'), findsOneWidget);
+    expect(find.text('相册与回忆照片'), findsNothing);
+    expect(find.text('旅行票根'), findsNothing);
+    expect(find.text('月度小报'), findsNothing);
+    expect(find.text('查看运行日志'), findsNothing);
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump(const Duration(seconds: 11));
   });
 }
 
@@ -405,6 +426,7 @@ class _FakeHomeProvider extends HomeProvider {
         'title': '芝芝桃桃',
         'shop': '喜茶',
         'statusLabel': '待接单',
+        'hasActiveOrder': true,
         'price': 25,
         'operator': '大白',
       },

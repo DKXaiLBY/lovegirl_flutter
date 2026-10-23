@@ -15,15 +15,16 @@ import 'providers/theme_provider.dart';
 import 'providers/travel_provider.dart';
 import 'providers/wardrobe_provider.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/health/health_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/life/life_screen.dart';
+import 'screens/memories/memories_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/travel/travel_main_screen.dart';
 import 'screens/version/update_dialog.dart';
 import 'services/log_service.dart';
 import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
+import 'utils/app_section.dart';
 import 'widgets/illus_image.dart';
 
 void main() {
@@ -64,14 +65,14 @@ class LoveGirlApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: themeProvider.isDark
-                ? Brightness.light
-                : Brightness.dark,
+            statusBarIconBrightness:
+                themeProvider.isDark ? Brightness.light : Brightness.dark,
           ));
           return MaterialApp(
             title: 'LoveGirl',
-          scrollBehavior: const MaterialScrollBehavior()
-              .copyWith(physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast)),
+            scrollBehavior: const MaterialScrollBehavior().copyWith(
+                physics: const BouncingScrollPhysics(
+                    decelerationRate: ScrollDecelerationRate.fast)),
             debugShowCheckedModeBanner: false,
             locale: const Locale('zh'),
             supportedLocales: const [Locale('zh'), Locale('en')],
@@ -103,8 +104,7 @@ class _AppShellState extends State<AppShell> {
     'LOVEGIRL_E2E_AUTO_LOGIN',
     defaultValue: false,
   );
-  int _currentIndex = 0;
-  int _lifeSubTab = 0;
+  AppSection _section = AppSection.today;
   Timer? _versionCheckTimer;
   bool _versionCheckQueued = false;
 
@@ -119,18 +119,8 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  void _navigateToTab(int index) {
-    setState(() {
-      _currentIndex = index;
-      _lifeSubTab = 0;
-    });
-  }
-
-  void _navigateToLifeSubTab(int subTab) {
-    setState(() {
-      _currentIndex = 3;
-      _lifeSubTab = subTab;
-    });
+  void _navigateToTab(AppSection section) {
+    setState(() => _section = section);
   }
 
   @override
@@ -148,64 +138,33 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       body: _buildCurrentPage(),
-      bottomNavigationBar: _buildBottomNav(auth),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
   Widget _buildCurrentPage() {
-    switch (_currentIndex) {
-      case 0:
-        return HomeScreen(
-          onNavigateToTab: _navigateToTab,
-          onNavigateToSubTab: (tab, subTab) {
-            if (tab == 3) {
-              _navigateToLifeSubTab(subTab);
-            } else {
-              _navigateToTab(tab);
-            }
-          },
-        );
-      case 1:
+    switch (_section) {
+      case AppSection.today:
+        return HomeScreen(onNavigateToTab: _navigateToTab);
+      case AppSection.memories:
+        return const MemoriesScreen();
+      case AppSection.travel:
         return const TravelMainScreen();
-      case 2:
-        return HealthScreen();
-      case 3:
-        return LifeScreen(
-          key: ValueKey('life_$_lifeSubTab'),
-          initialTab: _lifeSubTab,
-        );
-      case 4:
-        return ProfileScreen(onNavigateToTab: _navigateToTab);
-      default:
-        return const SizedBox.shrink();
+      case AppSection.life:
+        return const LifeScreen();
+      case AppSection.us:
+        return const ProfileScreen();
     }
   }
 
-  Widget _buildBottomNav(AuthProvider auth) {
-    void onTap(int index) {
-      if (index == 2 && !auth.isGirl) {
-        // v4.1：禁用 tab 反馈增强——轻震动+2.5s 提示，避免连点被当成点击失灵
-        HapticFeedback.selectionClick();
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('健康模块仅女友可用'),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(milliseconds: 2500),
-            ),
-          );
-        return;
-      }
-      setState(() => _currentIndex = index);
-    }
-
+  Widget _buildBottomNav() {
     const items = [
-      _LoveNavItem('首页', Icons.home_outlined, Icons.home_rounded),
+      _LoveNavItem('今天', Icons.home_outlined, Icons.home_rounded),
+      _LoveNavItem(
+          '回忆', Icons.photo_library_outlined, Icons.photo_library_rounded),
       _LoveNavItem('旅行', Icons.map_outlined, Icons.map_rounded),
-      _LoveNavItem('健康', Icons.favorite_border_rounded, Icons.favorite_rounded),
       _LoveNavItem('生活', Icons.grid_view_rounded, Icons.grid_view_rounded),
-      _LoveNavItem('我的', Icons.person_outline_rounded, Icons.person_rounded),
+      _LoveNavItem('我们', Icons.people_outline_rounded, Icons.people_rounded),
     ];
 
     return SafeArea(
@@ -214,34 +173,34 @@ class _AppShellState extends State<AppShell> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
-        height: 74,
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
-        decoration: BoxDecoration(
-          color: context.lgPaper.withAlpha(216),
-          border: const Border(
-              top: BorderSide(color: Color(0x33FFFFFF), width: 1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(12),
-              blurRadius: 22,
-              offset: const Offset(0, -8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            for (var i = 0; i < items.length; i++)
-              Expanded(
-                child: _LoveBottomNavButton(
-                  item: items[i],
-                  selected: _currentIndex == i,
-                  onTap: () => onTap(i),
+            height: 74,
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
+            decoration: BoxDecoration(
+              color: context.lgPaper.withAlpha(216),
+              border: const Border(
+                  top: BorderSide(color: Color(0x33FFFFFF), width: 1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(12),
+                  blurRadius: 22,
+                  offset: const Offset(0, -8),
                 ),
-              ),
-          ],
+              ],
+            ),
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: _LoveBottomNavButton(
+                      item: items[i],
+                      selected: _section.index == i,
+                      onTap: () => _navigateToTab(AppSection.values[i]),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
-      ),
-      ),
       ),
     );
   }
@@ -291,7 +250,7 @@ class _LoveBottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? LoveGirlTheme.primary : context.lgTextMuted;
+    final color = selected ? context.lgInk : context.lgTextMuted;
     return Semantics(
       button: true,
       selected: selected,
@@ -309,13 +268,13 @@ class _LoveBottomNavButton extends StatelessWidget {
                 width: selected ? 34 : 30,
                 height: selected ? 30 : 28,
                 decoration: BoxDecoration(
-                  color: selected ? LoveGirlTheme.primary : Colors.transparent,
+                  color: selected ? context.lgInk : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   selected ? item.activeIcon : item.icon,
                   size: selected ? 20 : 23,
-                  color: selected ? Colors.white : color,
+                  color: selected ? context.lgPaper : color,
                 ),
               ),
               const SizedBox(height: 3),

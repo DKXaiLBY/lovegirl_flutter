@@ -6,7 +6,9 @@ import '../services/api_service.dart';
 import '../utils/lovegirl_dates.dart';
 
 class HomeProvider extends ChangeNotifier {
-  final ApiService _api = ApiService();
+  final ApiService _api;
+
+  HomeProvider({ApiService? api}) : _api = api ?? ApiService();
 
   bool isLoading = false;
   String? error;
@@ -154,10 +156,14 @@ class HomeProvider extends ChangeNotifier {
     return {
       ...raw,
       'loveDays': preciseLoveDays,
+      'anniversary': upcomingAnniversary(anniversaries),
       'feed': _buildFeedPreview(feedingOrders),
       'todo': {
-        'total': _asInt(todoSummary['total']),
-        'active': _asInt(todoSummary['active']),
+        'total': todos.length,
+        'active': todos
+            .where(
+                (item) => item['completed'] != true && item['completed'] != 1)
+            .length,
         'dueToday': _asInt(todoSummary['dueToday']),
         'items': _buildTodoItems(todos),
       },
@@ -212,6 +218,8 @@ class HomeProvider extends ChangeNotifier {
     return {
       'title': title,
       'shop': '情侣厨房',
+      'hasActiveOrder': status.isNotEmpty &&
+          !const ['done', 'cancelled'].contains(status.toLowerCase()),
       'statusLabel': _feedingStatusLabel(status),
       'price': _asDouble(active['total_price'], fallback: 0),
       'operator': '♥',
@@ -222,8 +230,7 @@ class HomeProvider extends ChangeNotifier {
 
   /// 首页待办圆圈直接切换完成状态（乐观更新 + 失败回滚）
   Future<void> toggleTodo(int id, {required bool complete}) async {
-    final raw =
-        _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
+    final raw = _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
     var touched = false;
     for (final t in raw) {
       if ((t['id'] as num?)?.toInt() == id) {
@@ -237,8 +244,9 @@ class HomeProvider extends ChangeNotifier {
     if (todayMap != null) {
       final todoNode = _mapFrom(todayMap['todo']);
       if (todoNode.isNotEmpty) {
-        final active =
-            _rawTodos.where((t) => t['completed'] != true && t['completed'] != 1).length;
+        final active = _rawTodos
+            .where((t) => t['completed'] != true && t['completed'] != 1)
+            .length;
         todoNode['active'] = active;
         todayMap['todo'] = {...todoNode, 'items': _buildTodoItems(_rawTodos)};
       }
@@ -273,12 +281,7 @@ class HomeProvider extends ChangeNotifier {
         .where((item) => _asString(item['title']).isNotEmpty)
         .toList(growable: false);
 
-    if (items.isNotEmpty) return items;
-
-    return const [
-      {'title': '\u63d0\u9192\u5979\u591a\u559d\u6c34', 'dueDate': ''},
-      {'title': '\u7761\u524d\u8bb2\u6545\u4e8b', 'dueDate': '22:00'},
-    ];
+    return items;
   }
 
   Map<String, dynamic> _buildTravelPreview({
@@ -286,7 +289,8 @@ class HomeProvider extends ChangeNotifier {
     required List<Map<String, dynamic>> travelRoutes,
     required List<Map<String, dynamic>> travelSpots,
   }) {
-    final trip = travelTrips.isNotEmpty ? travelTrips.first : <String, dynamic>{};
+    final trip =
+        travelTrips.isNotEmpty ? travelTrips.first : <String, dynamic>{};
     final route =
         travelRoutes.isNotEmpty ? travelRoutes.first : <String, dynamic>{};
     final validSpots = travelSpots
@@ -433,7 +437,9 @@ class HomeProvider extends ChangeNotifier {
     if (start.length >= 10 && end.length >= 10) {
       final startDate = DateTime.tryParse(start);
       final endDate = DateTime.tryParse(end);
-      if (startDate != null && endDate != null && !endDate.isBefore(startDate)) {
+      if (startDate != null &&
+          endDate != null &&
+          !endDate.isBefore(startDate)) {
         final days = endDate.difference(startDate).inDays + 1;
         final nights = days > 0 ? days - 1 : 0;
         return '$days \u5929 $nights \u665a';

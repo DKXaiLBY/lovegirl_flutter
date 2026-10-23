@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/notification_provider.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/app_section.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../cooking/cooking_log_screen.dart';
@@ -13,8 +14,8 @@ import '../letter/slow_letter_screen.dart';
 
 /// 通知中心：分组列表 + 全部已读 + 点击深链接
 class NotificationCenterScreen extends StatefulWidget {
-  /// 用于深链接跳回主 tab（旅行=1）。由宿主（HomeScreen）传入。
-  final void Function(int tab)? onNavigateToTab;
+  /// 用于深链接跳回主入口，由 HomeScreen 传入。
+  final ValueChanged<AppSection>? onNavigateToTab;
 
   const NotificationCenterScreen({super.key, this.onNavigateToTab});
 
@@ -72,8 +73,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     );
   }
 
-  Widget _buildAppBar(
-      BuildContext context, NotificationProvider provider) {
+  Widget _buildAppBar(BuildContext context, NotificationProvider provider) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 8, 8, 4),
       child: Row(
@@ -135,8 +135,8 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     );
   }
 
-  Widget _buildGroupCard(
-      BuildContext context, NotificationProvider provider, List<NotificationItem> group) {
+  Widget _buildGroupCard(BuildContext context, NotificationProvider provider,
+      List<NotificationItem> group) {
     return LovePaper(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Column(
@@ -170,7 +170,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
       case 'travel_checkin':
         // 先回到根，再切到旅行 tab
         Navigator.of(context).popUntil((route) => route.isFirst);
-        widget.onNavigateToTab?.call(1);
+        widget.onNavigateToTab?.call(AppSection.travel);
         break;
       case 'daily_question':
         Navigator.of(context).push(

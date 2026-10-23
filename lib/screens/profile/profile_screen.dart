@@ -4,29 +4,18 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
-import '../../utils/constants.dart';
 import '../../utils/lovegirl_dates.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
-import '../letter/slow_letter_screen.dart';
-import '../photo/photo_screen.dart';
 import '../profile/achievements_screen.dart';
-import '../cooking/cooking_log_screen.dart';
-import '../report/annual_report_screen.dart';
-import '../report/monthly_report_screen.dart';
-import '../settings/log_screen.dart';
 import '../settings/settings_screen.dart';
 import '../beans/beans_screen.dart';
-import '../timeline/timeline_screen.dart';
 import '../voucher/wish_voucher_screen.dart';
-import '../version/update_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final void Function(int tabIndex)? onNavigateToTab;
-
-  const ProfileScreen({super.key, this.onNavigateToTab});
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -44,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _loveDays = context.read<AuthProvider>().loveDays;
     _loadData();
   }
 
@@ -137,15 +127,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 user: user,
                 partnerName: _partnerName,
                 loveDays: _loveDays,
-                beanBalance: _beanBalance,
                 loading: _loading,
               ),
               const SizedBox(height: 18),
-              _buildDataZone(context, _loveDays, _partnerName),
+              _buildDataZone(context, _partnerName),
               const SizedBox(height: 14),
-              _buildFunctionZone(context, auth.isAdmin),
-              const SizedBox(height: 14),
-              _buildFooter(context),
+              _buildFunctionZone(context),
             ],
           ),
         ),
@@ -165,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '\u5173\u7cfb\u8d44\u6599\u5939',
+                    '我们',
                     style: TextStyle(
                       fontSize: 25,
                       fontWeight: FontWeight.w900,
@@ -185,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               SizedBox(height: 4),
               Text(
-                '\u628a\u4f60\u4eec\u7684\u5173\u7cfb\u3001\u56de\u5fc6\u548c\u65e5\u5e38\u90fd\u6536\u5728\u8fd9\u91cc\u3002',
+                '伴侣关系与账号设置',
                 style: TextStyle(
                   fontSize: 12,
                   color: context.lgTextSecondary,
@@ -199,246 +186,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDataZone(
-    BuildContext context,
-    int loveDays,
-    String? partnerName,
-  ) {
-    return LoveTicketCard(
-      color: context.lgPaper,
+  Widget _buildDataZone(BuildContext context, String? partnerName) {
+    return LovePaper(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(
-            icon: Icons.menu_book_rounded,
-            title: '\u5173\u7cfb\u6863\u6848',
-            color: context.lgInk,
-          ),
-          const SizedBox(height: 8),
           LoveMenuRow(
             icon: Icons.event_note_rounded,
-            title: '\u7eaa\u5ff5\u65e5\u4e0e\u5012\u6570',
-            value: '纪念日、倒数日和小约定放在同一个资料夹',
+            title: '纪念日',
+            value: '重要日子与倒数',
             color: context.lgInk,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AnniversaryScreen()),
-            ),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AnniversaryScreen())),
           ),
-          const Divider(),
+          const Divider(height: 1),
           LoveMenuRow(
             icon: Icons.link_rounded,
-            title: '\u4f34\u4fa3\u7ed1\u5b9a',
-            value: partnerName == null
-                ? '\u8fd8\u6ca1\u6709\u7ed1\u5b9a\u4f34\u4fa3'
-                : '\u5df2\u7ed1\u5b9a \u00b7 $partnerName',
+            title: '伴侣绑定',
+            value: partnerName == null ? '还没有绑定伴侣' : '已绑定 · $partnerName',
             color: context.lgInk,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CoupleBindingScreen()),
-            ),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.timeline_rounded,
-            title: '\u65f6\u5149\u8f74',
-            value:
-                '\u628a\u7b2c $loveDays \u5929\u4ee5\u6765\u7684\u5c0f\u4e8b\u90fd\u6536\u8fdb\u53bb',
-            color: LoveGirlTheme.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => TimelineScreen()),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniStatPill(
-                  icon: Icons.favorite_rounded,
-                  label: '\u604b\u7231\u5929\u6570',
-                  value: '$loveDays',
-                  color: context.lgInk,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BeansScreen()),
-                  ),
-                  child: _MiniStatPill(
-                    icon: Icons.savings_rounded,
-                    label: '\u7231\u5fc3\u8c46',
-                    value: '$_beanBalance',
-                    color: context.lgInk,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AchievementsScreen()),
-                  ),
-                  child: _MiniStatPill(
-                    icon: Icons.emoji_events_outlined,
-                    label: '\u6210\u5c31',
-                    value: '$_achievementCount',
-                    color: context.lgInk,
-                  ),
-                ),
-              ),
-            ],
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CoupleBindingScreen())),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFunctionZone(BuildContext context, bool isAdmin) {
-    return LoveTicketCard(
-      color: context.lgPaper,
+  Widget _buildFunctionZone(BuildContext context) {
+    return LovePaper(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardTitle(
-            icon: Icons.collections_bookmark_rounded,
-            title: '\u56de\u5fc6\u4e0e\u7ba1\u7406',
+          LoveMenuRow(
+            icon: Icons.savings_outlined,
+            title: '爱心豆',
+            value: '余额 $_beanBalance · 签到与流水',
             color: context.lgInk,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const BeansScreen())),
           ),
-          const SizedBox(height: 8),
-          LoveMenuRow(
-            icon: Icons.photo_library_outlined,
-            title: '\u76f8\u518c\u4e0e\u56de\u5fc6\u7167\u7247',
-            value:
-                '\u628a\u597d\u770b\u7684\u7167\u7247\u7edf\u4e00\u6536\u8d77\u6765',
-            color: context.lgInk,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PhotoScreen()),
-            ),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.restaurant_rounded,
-            title: '美食手账',
-            value: '两个人的餐桌相册，记下每道菜',
-            color: LoveGirlTheme.brandEmotion,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CookingLogScreen()),
-            ),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.confirmation_number_outlined,
-            title: '\u65c5\u884c\u7968\u6839',
-            value:
-                '\u67e5\u770b\u5730\u56fe\u3001\u8def\u7ebf\u548c\u6253\u5361\u56de\u5fc6',
-            color: LoveGirlTheme.secondary,
-            onTap: () => widget.onNavigateToTab?.call(1),
-          ),
-          const Divider(),
+          const Divider(height: 1),
           LoveMenuRow(
             icon: Icons.redeem_outlined,
             title: '愿望兑换券',
-            value: '发行愿望，或用豆子兑换 TA 的承诺',
-            color: LoveGirlTheme.orange,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const WishVoucherScreen()),
-            ),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.mark_email_unread_outlined,
-            title: '慢信',
-            value: '把心意封存起来，寄给未来的你们',
+            value: '兑换两个人的小约定',
             color: context.lgInk,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SlowLetterScreen()),
-            ),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const WishVoucherScreen())),
           ),
-          const Divider(),
+          const Divider(height: 1),
           LoveMenuRow(
-            icon: Icons.calendar_month_rounded,
-            title: '月度小报',
-            value: '每个月，你们的小日子都值得留档',
-            color: LoveGirlTheme.secondary,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MonthlyReportScreen()),
-            ),
+            icon: Icons.emoji_events_outlined,
+            title: '成就',
+            value: '$_achievementCount 项',
+            color: context.lgInk,
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AchievementsScreen())),
           ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.auto_awesome_rounded,
-            title: '年度报告',
-            value: '这一年，你们一起做过的事',
-            color: LoveGirlTheme.brandEmotion,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AnnualReportScreen()),
-            ),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.volunteer_activism_outlined,
-            title: '\u7231\u5fc3\u8c46',
-            value: '\u7b7e\u5230\u4e0e\u6d41\u6c34',
-            color: LoveGirlTheme.orange,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const BeansScreen()),
-            ),
-          ),
-          const Divider(),
+          const Divider(height: 1),
           LoveMenuRow(
             icon: Icons.settings_outlined,
-            title: '\u8bbe\u7f6e',
-            value: '\u504f\u597d\u3001\u6743\u9650\u4e0e\u8d26\u53f7',
-            color: LoveGirlTheme.secondary,
+            title: '设置',
+            value: '资料、隐私、更新与诊断',
+            color: context.lgInk,
             onTap: () => _openSettings(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
-    return LovePaper(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CardTitle(
-            icon: Icons.info_outline_rounded,
-            title: '\u7248\u672c\u4e0e\u8bca\u65ad',
-            color: context.lgInk,
-          ),
-          const SizedBox(height: 8),
-          LoveMenuRow(
-            icon: Icons.sync_rounded,
-            title: '\u68c0\u67e5\u66f4\u65b0',
-            value: 'v${AppConstants.versionName} (${AppConstants.versionCode})',
-            color: context.lgInk,
-            onTap: () => manualCheckVersion(context),
-          ),
-          const Divider(),
-          LoveMenuRow(
-            icon: Icons.article_outlined,
-            title: '\u67e5\u770b\u8fd0\u884c\u65e5\u5fd7',
-            value: '\u8c03\u8bd5\u4e0e\u8bca\u65ad',
-            color: context.lgTextMuted,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => LogScreen()),
-            ),
           ),
         ],
       ),
@@ -457,14 +267,12 @@ class _ProfileHero extends StatelessWidget {
   final Map<String, dynamic>? user;
   final String? partnerName;
   final int loveDays;
-  final int beanBalance;
   final bool loading;
 
   const _ProfileHero({
     required this.user,
     required this.partnerName,
     required this.loveDays,
-    required this.beanBalance,
     required this.loading,
   });
 
@@ -486,24 +294,6 @@ class _ProfileHero extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        LovePill(
-                          text: '\u5173\u7cfb\u8d44\u6599\u5939',
-                          icon: Icons.folder_copy_outlined,
-                          color: LoveGirlTheme.secondary,
-                          background: context.lgSecondarySoft,
-                        ),
-                        Spacer(),
-                        LovePill(
-                          text: '$beanBalance \u7231\u5fc3\u8c46',
-                          icon: Icons.savings_rounded,
-                          color: context.lgSoftYellowText,
-                          background: context.lgSoftYellowBg,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -604,7 +394,8 @@ class _ProfileHero extends StatelessWidget {
                       // v4.0：半透明白条换 paperWarm+细线（深色可读）
                       decoration: BoxDecoration(
                         color: context.lgPaperWarm,
-                        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
+                        borderRadius:
+                            BorderRadius.circular(LoveGirlTheme.radiusLg),
                         border: Border.all(
                           color: context.lgCardBorder,
                         ),
@@ -645,13 +436,6 @@ class _ProfileHero extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 12),
-          LovePill(
-            text: '$loveDays \u5929\u7684\u6545\u4e8b',
-            icon: Icons.auto_stories_rounded,
-            color: LoveGirlTheme.secondary,
-            background: context.lgSecondarySoft,
           ),
         ],
       ),
@@ -697,87 +481,6 @@ class _AvatarBubble extends StatelessWidget {
               )
             : null,
       ),
-    );
-  }
-}
-
-class _MiniStatPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _MiniStatPill({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withAlpha(14),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withAlpha(40)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 18),
-          SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-              color: context.lgTextPrimary,
-            ),
-          ),
-          SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: context.lgTextMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CardTitle extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color color;
-
-  const _CardTitle({
-    required this.icon,
-    required this.title,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 22, color: color),
-        SizedBox(width: 10),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: context.lgTextPrimary,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:amap_flutter_base/amap_flutter_base.dart' show LatLng;
 import 'package:flutter/material.dart';
+import '../../widgets/travel_spot_more_menu.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -20,7 +21,10 @@ import 'travel_memory_screen.dart';
 class TravelAmapModeScreen extends StatefulWidget {
   /// embedded=true：作为旅行页主视图内嵌（隐藏返回钮、返回动作交给外部 tab 切换）
   const TravelAmapModeScreen({
-    super.key, this.embedded = false, this.onExit, this.initialSpot,
+    super.key,
+    this.embedded = false,
+    this.onExit,
+    this.initialSpot,
   });
 
   final bool embedded;
@@ -51,7 +55,8 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
   Future<void> _loadIntroDismissed() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => _introDismissed = prefs.getBool('amap_intro_dismissed') ?? false);
+    setState(
+        () => _introDismissed = prefs.getBool('amap_intro_dismissed') ?? false);
   }
 
   Future<void> _dismissIntro() async {
@@ -77,7 +82,8 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
     });
     await provider.previewRoute(validSpots, 'walking');
     if (!mounted) return;
-    if (provider.activeRoute != null && provider.activeRoute!.path.length >= 2) {
+    if (provider.activeRoute != null &&
+        provider.activeRoute!.path.length >= 2) {
       _mapKey.currentState?.fitBounds();
       _showFloatingMessage('已按当前地点顺序生成路线预览。');
     } else {
@@ -186,7 +192,6 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
         spot: spot,
         onAddRoute: () => _previewRouteFromSpot(spot),
         onGenerateTicket: () => _openTravelTicket(spot),
-        onRecordExpense: () => _showExpenseHint(spot),
         onEdit: () async {
           Navigator.of(context).pop();
           final result = await Navigator.of(context).push(
@@ -258,11 +263,6 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
         ),
       ),
     );
-  }
-
-  void _showExpenseHint(TravelSpot spot) {
-    Navigator.of(context).pop();
-    _showFloatingMessage('“${spot.name}”的花费会和记账联动；当前先在地点编辑里记录预算。');
   }
 
   void _showFloatingMessage(String message) {
@@ -483,7 +483,8 @@ class _EmptyMapScaffold extends StatelessWidget {
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: onAddSpot,
-                      icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                      icon:
+                          const Icon(Icons.add_location_alt_rounded, size: 18),
                       label: const Text('新增地点',
                           style: TextStyle(
                               fontSize: 14, fontWeight: FontWeight.w800)),
@@ -708,14 +709,12 @@ class _SpotSheet extends StatelessWidget {
   final TravelSpot spot;
   final VoidCallback onAddRoute;
   final VoidCallback onGenerateTicket;
-  final VoidCallback onRecordExpense;
   final VoidCallback onEdit;
 
   const _SpotSheet({
     required this.spot,
     required this.onAddRoute,
     required this.onGenerateTicket,
-    required this.onRecordExpense,
     required this.onEdit,
   });
 
@@ -850,27 +849,14 @@ class _SpotSheet extends StatelessWidget {
                       },
                     ),
                     _SheetButton(
-                      icon: Icons.alt_route_rounded,
-                      label: '加入路线',
-                      onPressed: onAddRoute,
-                      outlined: true,
-                    ),
-                    _SheetButton(
-                      icon: Icons.confirmation_number_outlined,
-                      label: '生成票根',
-                      onPressed: onGenerateTicket,
-                    ),
-                    _SheetButton(
-                      icon: Icons.edit_note_rounded,
-                      label: '记一笔花费',
-                      onPressed: onRecordExpense,
-                      outlined: true,
-                    ),
-                    _SheetButton(
                       icon: Icons.edit_location_alt_outlined,
                       label: '编辑地点',
                       onPressed: onEdit,
                       outlined: true,
+                    ),
+                    TravelSpotMoreMenu(
+                      onAddRoute: onAddRoute,
+                      onGenerateTicket: onGenerateTicket,
                     ),
                   ],
                 ),
@@ -1169,7 +1155,7 @@ class _UnsupportedMapPlaceholder extends StatelessWidget {
             child: Opacity(
               opacity: 0.16,
               child: CustomPaint(
-                painter: _FallbackMapPainter(routeColor: context.lgInk)),
+                  painter: _FallbackMapPainter(routeColor: context.lgInk)),
             ),
           ),
           Center(
