@@ -109,7 +109,8 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       _rating = s.rating ?? 0;
       _visitedDate = s.visitedDate;
       _plannedDate = s.plannedDate;
-      _weather = s.mood ?? ''; // 复用mood字段存储天气+心情
+      _weather = s.weather ?? '';
+      _mood = s.mood ?? '';
       _budgetCtrl.text = s.budget != null ? s.budget!.toStringAsFixed(0) : '';
       _itineraryCtrl.text = s.itinerary ?? '';
       _reasonCtrl.text = s.reason ?? '';
@@ -259,6 +260,19 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
       'transportation': _transportationCtrl.text.trim(),
       'nearby': _nearbyCtrl.text.trim(),
       'tips': _tipsCtrl.text.trim(),
+      'weather': _weather,
+      'mood': _mood,
+      'diary': _diaryCtrl.text.trim(),
+      'rating': _rating,
+      'visitedDate': _visitedDate,
+      'plannedDate': _plannedDate,
+      'itinerary': _itineraryCtrl.text.trim(),
+      'reason': _reasonCtrl.text.trim(),
+      'tags': widget.spot?.tags ?? [],
+      'desire': widget.spot?.desire,
+      'openingHours': widget.spot?.businessHours,
+      'ownerNote': widget.spot?.noteMine,
+      'partnerNote': widget.spot?.noteHer,
     };
 
     if (_status == 'visited') {
@@ -297,9 +311,9 @@ class _TravelFormScreenState extends State<TravelFormScreen> {
         await provider.createSpot(data);
       }
 
-      // 同步写入记账模块：预算 > 0 时自动创建旅行花费记录
+      // 首次新增已打卡地点时同步记账，编辑已有记录不重复扣记。
       final budgetValue = budgetText.isNotEmpty ? double.tryParse(budgetText) : null;
-      if (budgetValue != null && budgetValue > 0) {
+      if (!_isEditing && _status == 'visited' && budgetValue != null && budgetValue > 0) {
         try {
           await ApiService().addFinanceRecord({
             'type': 'expense',

@@ -98,7 +98,8 @@ class RollingNumber extends StatelessWidget {
 /// 按压缩放反馈（动效关闭时不缩放）
 class PressableScale extends StatefulWidget {
   final Widget child;
-  const PressableScale({super.key, required this.child});
+  final bool enabled;
+  const PressableScale({super.key, required this.child, this.enabled = true});
 
   @override
   State<PressableScale> createState() => _PressableScaleState();
@@ -110,7 +111,9 @@ class _PressableScaleState extends State<PressableScale> {
   @override
   Widget build(BuildContext context) {
     final level = context.watch<MapPrefsProvider>().motionLevel;
-    final enabled = level != 'off';
+    final enabled = widget.enabled &&
+        level != 'off' &&
+        !MediaQuery.disableAnimationsOf(context);
     return Listener(
       onPointerDown: (_) {
         if (enabled) setState(() => _down = true);
@@ -122,7 +125,7 @@ class _PressableScaleState extends State<PressableScale> {
         if (_down) setState(() => _down = false);
       },
       child: AnimatedScale(
-        scale: _down ? 0.965 : 1.0,
+        scale: _down && enabled ? 0.985 : 1.0,
         duration: const Duration(milliseconds: 90),
         curve: Curves.easeOut,
         child: widget.child,

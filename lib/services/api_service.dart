@@ -280,6 +280,10 @@ class ApiService {
   Future uploadTravelPhoto(int spotId, String filePath) =>
       upload('/api/travel/spots/$spotId/photos', filePath, fieldName: 'photo');
   Future getTravelPhotos(int spotId) => get('/api/travel/spots/$spotId/photos');
+  Future linkTravelPhoto(int spotId, int photoId) =>
+      post('/api/travel/spots/$spotId/photos/link', data: {'photoId': photoId});
+  Future getTravelAlbumPhotos(int spotId) =>
+      get('/api/travel/spots/$spotId/photos/album');
   Future deleteTravelPhoto(int spotId, int photoId) =>
       delete('/api/travel/spots/$spotId/photos/$photoId');
 

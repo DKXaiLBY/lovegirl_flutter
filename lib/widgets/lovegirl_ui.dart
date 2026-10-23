@@ -254,7 +254,10 @@ class LovePrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = FilledButton.styleFrom(
       backgroundColor: color ?? context.lgInk,
-      foregroundColor: Colors.white,
+      foregroundColor: ThemeData.estimateBrightnessForColor(color ?? context.lgInk) ==
+              Brightness.dark
+          ? Colors.white
+          : LoveGirlTheme.bgDark,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
@@ -271,7 +274,7 @@ class LovePrimaryButton extends StatelessWidget {
         style: style,
       );
     }
-    return PressableScale(child: button);
+    return PressableScale(enabled: onPressed != null, child: button);
   }
 }
 

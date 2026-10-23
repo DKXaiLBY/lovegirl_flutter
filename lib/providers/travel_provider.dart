@@ -616,6 +616,7 @@ class TravelProvider extends ChangeNotifier {
     } catch (_) {
       _error = '地点保存失败，请检查网络后重试';
       notifyListeners();
+      rethrow;
     }
   }
 
@@ -628,6 +629,7 @@ class TravelProvider extends ChangeNotifier {
     } catch (_) {
       _error = '地点保存失败，请检查网络后重试';
       notifyListeners();
+      rethrow;
     }
   }
 

@@ -12,6 +12,9 @@ import 'package:lovegirl_flutter/widgets/city_picker.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/widgets/illus_image.dart';
+import 'travel_memory_screen.dart';
+import 'china_memory_map_screen.dart';
+import '../../widgets/memory_controls.dart';
 
 String _travelDisplayText(String? value, String fallback) {
   final text = (value ?? '').trim();
@@ -359,6 +362,21 @@ class _TravelMainScreenState extends State<TravelMainScreen>
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHeader(provider)),
+            if (provider.spots.any((spot) => spot.status == 'visited'))
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  child: MemoryAction(
+                    icon: Icons.public_outlined,
+                    label: '足迹与回忆',
+                    onPressed: () async {
+                      await Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ChinaMemoryMapScreen(spots: provider.spots),
+                      ));
+                    },
+                  ),
+                ),
+              ),
             if (_showSearch) SliverToBoxAdapter(child: _buildSearchBar()),
             SliverToBoxAdapter(child: _buildFilterAndSort(provider)),
             if (provider.loading && provider.spots.isEmpty)
@@ -1594,6 +1612,16 @@ class _SpotDetailSheet extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
+                  _TicketActionButton(
+                    icon: Icons.auto_stories_outlined,
+                    label: '照片与故事',
+                    onPressed: () {
+                      final navigator = Navigator.of(context);
+                      navigator.pop();
+                      navigator.push(MaterialPageRoute(
+                          builder: (_) => TravelMemoryScreen(spot: spot)));
+                    },
+                  ),
                   _TicketActionButton(
                     icon: Icons.alt_route_rounded,
                     label: '加入路线',

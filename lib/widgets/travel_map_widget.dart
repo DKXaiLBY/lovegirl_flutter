@@ -33,6 +33,7 @@ class TravelMapWidget extends StatefulWidget {
   final TravelRoute? activeRoute;
   final int? currentUserId;
   final int? highlightedId;
+  final TravelSpot? initialSpot;
   final VoidCallback? onMapReady;
   final void Function(TravelSpot spot)? onMarkerTap;
   final void Function(LatLng position)? onLongPress;
@@ -51,6 +52,7 @@ class TravelMapWidget extends StatefulWidget {
     this.activeRoute,
     this.currentUserId,
     this.highlightedId,
+    this.initialSpot,
     this.onMapReady,
     this.onMarkerTap,
     this.onLongPress,
@@ -470,7 +472,14 @@ class TravelMapWidgetState extends State<TravelMapWidget> {
               _mapReady = true;
             }
             widget.onMapReady?.call();
-            _entryLocate();
+            final initialSpot = widget.initialSpot;
+            if (initialSpot != null &&
+                _isValidCoordinate(initialSpot.lat, initialSpot.lng)) {
+              _hasFitBounds = true;
+              animateToSpot(initialSpot);
+            } else {
+              _entryLocate();
+            }
           },
           onLongPress: widget.onLongPress,
           onLocationChanged: (location) {

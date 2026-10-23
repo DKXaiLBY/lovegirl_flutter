@@ -15,13 +15,17 @@ import 'package:lovegirl_flutter/screens/travel/travel_ticket_screen.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
+import 'travel_memory_screen.dart';
 
 class TravelAmapModeScreen extends StatefulWidget {
   /// embedded=true：作为旅行页主视图内嵌（隐藏返回钮、返回动作交给外部 tab 切换）
-  const TravelAmapModeScreen({super.key, this.embedded = false, this.onExit});
+  const TravelAmapModeScreen({
+    super.key, this.embedded = false, this.onExit, this.initialSpot,
+  });
 
   final bool embedded;
   final VoidCallback? onExit;
+  final TravelSpot? initialSpot;
 
   @override
   State<TravelAmapModeScreen> createState() => _TravelAmapModeScreenState();
@@ -393,7 +397,8 @@ class _TravelAmapModeScreenState extends State<TravelAmapModeScreen> {
       spots: validMapSpots,
       allSpots: provider.spots,
       currentUserId: context.read<AuthProvider>().userId,
-      highlightedId: provider.highlightedId,
+      highlightedId: provider.highlightedId ?? widget.initialSpot?.id,
+      initialSpot: widget.initialSpot,
       routes: provider.routes,
       activeRoute: provider.activeRoute,
       onMapReady: _handleMapReady,
@@ -834,6 +839,16 @@ class _SpotSheet extends StatelessWidget {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
+                    _SheetButton(
+                      icon: Icons.auto_stories_outlined,
+                      label: '照片与故事',
+                      onPressed: () {
+                        final navigator = Navigator.of(context);
+                        navigator.pop();
+                        navigator.push(MaterialPageRoute(
+                            builder: (_) => TravelMemoryScreen(spot: spot)));
+                      },
+                    ),
                     _SheetButton(
                       icon: Icons.alt_route_rounded,
                       label: '加入路线',
