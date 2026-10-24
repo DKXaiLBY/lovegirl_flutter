@@ -72,7 +72,7 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 
 ## 待办 / 未竟
 
-- **v4.3.0+184（2026-10-24 候选，SSH发布待恢复）**：旅行模块独立重建，真实街道地图／收放地点面板／搜索选点／故事与省份足迹共用数据；删旧旅行界面及控制器。新地点默认想去，日期按状态保留，失败保存保留表单，失败删除保留记录。高德Android插件补camera#move完成回执，修复定位按钮持续等待。analyze0、Flutter104项；荣耀实测真实搜索、新建／编辑／删除受控QA记录、GPS定位、相机恢复、长按选点及深浅两态，已恢复亮色；QA id48已删且原有id37/38散列未变。隔离100/500地点profile原生地图创建次数均1，不代表完整原生FPS或双账号同步。当前工作区为D:\Projects\codex\lovegirl，路径变更后先flutter pub get刷新原生插件清单，避免旧Personal副本参与构建。详情见docs/implementation/travel-workspace-rebuild.md。线上仍4.2.0+183，不得宣称4.3已发布。
+- **v4.3.0+184（2026-10-24 候选，SSH发布待恢复）**：旅行模块独立重建，真实街道地图／收放地点面板／搜索选点／故事与省份足迹共用数据；删旧旅行界面及控制器。新地点默认想去，日期按状态保留，失败保存保留表单，失败删除保留记录。高德Android插件补camera#move完成回执，修复定位按钮持续等待。analyze0、Flutter104项；荣耀实测真实搜索、新建／编辑／删除受控QA记录、GPS定位、相机恢复、长按选点及深浅两态，已恢复亮色；QA id48已删且原有id37/38散列未变。隔离100/500地点profile原生地图创建次数均1，不代表完整原生FPS或双账号同步。当前工作区为D:\Projects\codex\lovegirl，路径变更后先flutter pub get刷新原生插件清单，避免旧Personal副本参与构建。详情见docs/implementation/travel-workspace-rebuild.md。源码1049eee已推master，tag v4.3.0；APK54117875字节，产物与待发布信息见方案文档末。线上仍4.2.0+183，不得宣称4.3已发布。
 
 - **v4.2.0+183（2026-10-23 已发布）：App 结构精简**——底部使用 AppSection 命名目标：今天／回忆／旅行／生活／我们；回忆集中相册、时光轴、心情、美食手账、每日一问、慢信和报告；生活变工具列表，经期入口和页面均按 isOriginalGirl 保护；我们收敛六条菜单；首页移除固定工具概览与数据层、界面层两份示例待办，计数和行都来自真实待办列表；旅行次要操作收进更多，移除假记账快捷入口；设置移除导出占位、假重置、未接通提醒及隐藏聊天开关。全局视觉换装暂停。analyze 0、Flutter 92/92，正式包安装到用户提供的荣耀畅玩20（KOZ-AL00 / Android10 / 720×1600）并验证主入口、工具返回、报告选择、设置清理与深浅两态，恢复原亮色。当前账号无旅行地点，未宣称有数据地图与双账号完整联调。源码提交 7f348a2，tag v4.2.0；详细范围和边界见 docs/implementation/app-structure-simplification.md。
 

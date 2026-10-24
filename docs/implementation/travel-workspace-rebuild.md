@@ -73,3 +73,7 @@
 ### 发布状态
 
 候选版本4.3.0+184，正式release构建不包含自动登录参数，已装到备用机。服务器仍为4.2.0+183；App版本接口正常，但SSH在认证前立即关闭连接，未上传或激活新版本。待连接恢复后先核对数据库最大版本码，再执行容器内令牌发布与APK校验。
+
+最终源码：`1049eee`，已推送默认分支master与codex/travel-street-workspace；源码回滚tag `v4.3.0`（此tag不表示服务器已发布）。正式APK为54,117,875字节，SHA256 `8a53cdd165dbbd39aa5f57ea2f7bded971cb512d23a9cbd2d0c910396009f54f`。备用机dumpsys核验versionName4.3.0/versionCode184，最终深色编辑操作与足迹轮廓截图已复核，恢复亮色。最终检查analyze0、Flutter104/104。
+
+发布产物与容器内令牌发布脚本暂存于本机会话产物目录 `C:/Users/DKX/.codex/visualizations/2026/10/23/01a166a9-b923-7840-9220-d6673f22e046/lovegirl-review/implementation/`，文件 `LoveGirl-v4.3.0-build184.apk`、`release-4.3.0.json`、`publish_4_3_0.py`。脚本在连接恢复后仍会检查最新版本码、备份和SHA，不能绕过发布规程。服务器发布尚未完成。
