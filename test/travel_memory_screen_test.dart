@@ -5,9 +5,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dio/dio.dart';
 
-import 'package:lovegirl_flutter/providers/travel_provider.dart';
+import 'package:lovegirl_flutter/models/travel.dart';
 import 'package:lovegirl_flutter/screens/travel/travel_memory_screen.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
@@ -115,17 +114,24 @@ void main() {
     }, createHttpClient: (_) => client);
   });
 
-  for (final creating in [true, false]) {
-    test('保存失败向表单传播，不能当成成功：creating=$creating', () async {
-      client.fail = true;
+  for (final status in ['wish', 'planned']) {
+    testWidgets('故事日期按地点状态显示：$status', (tester) async {
+      client.fail = false;
       await HttpOverrides.runZoned(() async {
-        final provider = TravelProvider();
-        final request = creating
-            ? provider.createSpot({'name': '保留输入'})
-            : provider.updateSpot(7, {'name': '保留输入'});
-        await expectLater(request, throwsA(isA<DioException>()));
-        expect(provider.hasError, isTrue);
-        provider.dispose();
+        await tester.pumpWidget(MaterialApp(
+            home: TravelMemoryScreen(
+                spot: TravelSpot(
+                    id: 7,
+                    name: '地点',
+                    city: '杭州',
+                    status: status,
+                    visitedDate: '2025-01-01',
+                    plannedDate: '2026-12-01'))));
+        await tester.pumpAndSettle();
+        expect(find.text('杭州 · ${status == 'wish' ? '想去' : '计划 2026-12-01'}'),
+            findsOneWidget);
+        expect(find.textContaining('2025-01-01'), findsNothing);
+        expect(find.text('生成票根'), findsNothing);
       }, createHttpClient: (_) => client);
     });
   }

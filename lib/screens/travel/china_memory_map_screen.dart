@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../providers/travel_provider.dart';
+import '../../models/travel.dart';
 import '../../utils/constants.dart';
 import '../../utils/china_geo.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -16,8 +16,11 @@ import 'travel_memory_screen.dart';
 /// 点击已点亮省份弹出该省城市记忆清单。九段线按规范保留（虚线）。
 class ChinaMemoryMapScreen extends StatefulWidget {
   final List<TravelSpot> spots;
+  final ValueChanged<TravelSpot>? onShowOnMap;
+  final ValueChanged<TravelSpot>? onChanged;
 
-  const ChinaMemoryMapScreen({super.key, required this.spots});
+  const ChinaMemoryMapScreen(
+      {super.key, required this.spots, this.onShowOnMap, this.onChanged});
 
   @override
   State<ChinaMemoryMapScreen> createState() => _ChinaMemoryMapScreenState();
@@ -247,8 +250,10 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
                                 Navigator.of(ctx).push(MaterialPageRoute(
                               builder: (_) => TravelMemoryScreen(
                                 spot: spot,
+                                onShowOnMap: widget.onShowOnMap,
                                 onChanged: (updated) {
                                   _edits[updated.id] = updated;
+                                  widget.onChanged?.call(updated);
                                   _load().then((_) {
                                     if (ctx.mounted) updateSheet(() {});
                                   });
@@ -278,8 +283,8 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
         dark ? LoveGirlTheme.textSecondaryDark : LoveGirlTheme.textSecondary;
     final card = dark ? LoveGirlTheme.cardDark : Colors.white;
 
-    final unlitFill = dark ? const Color(0xFF2E2A26) : const Color(0xFFF0EAE0);
-    final stroke = dark ? const Color(0xFF3E3833) : const Color(0xFFE2D8C9);
+    final unlitFill = context.lgPaper;
+    final stroke = context.lgTextMuted;
 
     return Scaffold(
       backgroundColor: bg,
@@ -323,7 +328,7 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
                     label: '已点亮省份',
                     dark: dark,
                     card: card,
-                    accent: LoveGirlTheme.peach,
+                    accent: context.lgInk,
                   ),
                   const SizedBox(width: 12),
                   _StatCard(
@@ -342,9 +347,7 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
               child: Row(
                 children: [
                   _LegendDot(
-                      color: LoveGirlTheme.peach,
-                      label: '已点亮',
-                      textColor: textSub),
+                      color: context.lgInk, label: '已点亮', textColor: textSub),
                   const SizedBox(width: 16),
                   _LegendDot(
                       color: unlitFill,
@@ -410,7 +413,8 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Center(
-                child: Text('点击已点亮的省份，查看城市记忆',
+                child: Text(
+                    _visited.isEmpty ? '记下已去的地点，点亮两个人的足迹' : '点击已点亮的省份，查看城市记忆',
                     style: TextStyle(fontSize: 12, color: textSub)),
               ),
             ),
@@ -574,7 +578,9 @@ class _ChinaMapPainter extends CustomPainter {
       final path = _buildPath(s);
 
       if (lit) {
-        fillPaint.color = LoveGirlTheme.peach.withValues(alpha: 0.92 * ease);
+        fillPaint.color =
+            (dark ? LoveGirlTheme.textPrimaryDark : LoveGirlTheme.primary)
+                .withValues(alpha: 0.92 * ease);
       } else {
         fillPaint.color =
             unlitFill.withValues(alpha: unlitFill.a * (0.5 + 0.5 * ease));
@@ -582,7 +588,7 @@ class _ChinaMapPainter extends CustomPainter {
       canvas.drawPath(path, fillPaint);
 
       strokePaint.color = lit
-          ? Colors.white.withValues(alpha: 0.85 * ease)
+          ? unlitFill.withValues(alpha: 0.85 * ease)
           : stroke.withValues(alpha: stroke.a * ease);
       canvas.drawPath(path, strokePaint);
 
@@ -643,12 +649,8 @@ class _ChinaMapPainter extends CustomPainter {
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w700,
-          color: Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
-          shadows: [
-            Shadow(
-                color: const Color(0xFF7A3010).withValues(alpha: 0.35 * alpha),
-                blurRadius: 3),
-          ],
+          color: (dark ? LoveGirlTheme.primary : Colors.white)
+              .withValues(alpha: alpha.clamp(0.0, 1.0)),
         ),
       ),
       textDirection: TextDirection.ltr,

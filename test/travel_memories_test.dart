@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
-import 'package:lovegirl_flutter/providers/travel_provider.dart';
-import 'package:lovegirl_flutter/screens/travel/travel_form_screen.dart';
+import 'package:lovegirl_flutter/models/travel.dart';
+import 'package:lovegirl_flutter/features/travel/travel_workspace.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/utils/travel_memories.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
@@ -123,46 +122,41 @@ void main() {
     await gesture.up();
   });
 
-  testWidgets('编辑地点只改名称时仍提交原心情、天气与备注', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final provider = _SavingTravelProvider();
-    await tester.pumpWidget(MultiProvider(
-      providers: [
-        ChangeNotifierProvider<TravelProvider>.value(value: provider),
-        ChangeNotifierProvider(create: (_) => MapPrefsProvider()),
-      ],
-      child: MaterialApp(
-          home: TravelFormScreen(
-              spot: TravelSpot(
+  test('新编辑器提交数据保留隐藏的旧记录字段', () {
+    final original = TravelSpot(
         id: 7,
-        name: '原名称',
+        name: '旧名称',
         city: '杭州',
         status: 'wish',
         mood: '开心',
         weather: '晴天',
-        note: '保留备注',
+        note: '备注',
         tags: ['散步'],
-        visitedDate: '2026-10-18',
-        diary: '这一天的故事',
-      ))),
-    ));
-    await tester.enterText(find.byType(TextField).first, '新名称');
-    await tester.tap(find.text('保存'));
-    await tester.pump();
-    expect(provider.saved?['name'], '新名称');
-    expect(provider.saved?['mood'], '开心');
-    expect(provider.saved?['weather'], '晴天');
-    expect(provider.saved?['diary'], '这一天的故事');
-    expect(provider.saved?['tags'], ['散步']);
-    expect(provider.saved?['note'], '保留备注');
-    await tester.pumpAndSettle();
+        budget: 100,
+        noteMine: '我的备注',
+        noteHer: '伴侣备注',
+        businessHours: '全天',
+        itinerary: '原计划');
+    final payload = placeWriteData(
+        original: original,
+        name: '新名称',
+        city: '杭州',
+        address: '',
+        lat: 30,
+        lng: 120,
+        status: 'wish',
+        diary: '故事',
+        mood: original.mood,
+        weather: original.weather);
+    expect(payload['name'], '新名称');
+    expect(payload['note'], '备注');
+    expect(payload['mood'], '开心');
+    expect(payload['weather'], '晴天');
+    expect(payload['tags'], ['散步']);
+    expect(payload['budget'], 100);
+    expect(payload['ownerNote'], '我的备注');
+    expect(payload['partnerNote'], '伴侣备注');
+    expect(payload['openingHours'], '全天');
+    expect(payload['itinerary'], '原计划');
   });
-}
-
-class _SavingTravelProvider extends TravelProvider {
-  Map? saved;
-  @override
-  Future<void> updateSpot(int id, Map data) async {
-    saved = data;
-  }
 }

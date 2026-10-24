@@ -3,11 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:lovegirl_flutter/main.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/providers/home_provider.dart';
-import 'package:lovegirl_flutter/providers/travel_provider.dart';
 import 'package:lovegirl_flutter/screens/auth/login_screen.dart';
 import 'package:lovegirl_flutter/providers/kitchen_provider.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
@@ -16,8 +14,6 @@ import 'package:lovegirl_flutter/providers/daily_provider.dart';
 import 'package:lovegirl_flutter/screens/kitchen/kitchen_screen.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
-import 'package:lovegirl_flutter/screens/travel/travel_amap_mode_screen.dart';
-import 'package:lovegirl_flutter/screens/travel/travel_main_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -162,135 +158,6 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump(const Duration(seconds: 11));
-  });
-
-  testWidgets('travel map button opens add form first when there are no spots',
-      (tester) async {
-    final travelProvider = _FakeTravelProvider();
-    final authProvider = _FakeAuthProvider();
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-          ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(
-              create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(
-              create: (_) => NotificationProvider()),
-          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
-        ],
-        child: const MaterialApp(home: TravelMainScreen()),
-      ),
-    );
-
-    await tester.pump();
-    // v3.31 地图已是旅行页默认主视图（全屏高德），旧的"高德"入口按钮移除：
-    expect(find.byKey(const ValueKey('travel_enter_amap_mode')), findsNothing);
-    // 底部悬浮 tab 存在且默认选中"地图"
-    expect(find.text('地图'), findsWidgets);
-    expect(find.text('清单'), findsOneWidget);
-    expect(find.text('票根'), findsOneWidget);
-  });
-
-  testWidgets('travel amap mode shows ticket fallback when there are no spots',
-      (tester) async {
-    final travelProvider = _FakeTravelProvider();
-    final authProvider = _FakeAuthProvider();
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-          ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(
-              create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(
-              create: (_) => NotificationProvider()),
-          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
-        ],
-        child: const MaterialApp(home: TravelAmapModeScreen()),
-      ),
-    );
-
-    await tester.pump();
-
-    expect(find.text('先放一个想去的地方进来'), findsOneWidget);
-    expect(find.text('回到预览'), findsWidgets);
-    expect(find.text('新增地点'), findsWidgets);
-  });
-
-  testWidgets('travel map filter bar keeps all ticket labels visible',
-      (tester) async {
-    final travelProvider = _FakeTravelProviderWithSpots();
-    final authProvider = _FakeAuthProvider();
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-          ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(
-              create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(
-              create: (_) => NotificationProvider()),
-          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
-        ],
-        child: const MaterialApp(home: TravelMainScreen()),
-      ),
-    );
-
-    await tester.pump();
-
-    // v3.23 地图上的状态筛选条已移除（筛选收敛到列表区，避免与地图浮层重复）
-    expect(find.byKey(const ValueKey('travel_map_filter_wish')), findsNothing);
-    expect(
-        find.byKey(const ValueKey('travel_map_filter_planned')), findsNothing);
-    expect(
-        find.byKey(const ValueKey('travel_map_filter_visited')), findsNothing);
-    expect(find.byKey(const ValueKey('travel_map_filter_both')), findsNothing);
-  });
-
-  test('amap location style passes rotate tracking mode to native map', () {
-    final options = MyLocationStyleOptions(
-      true,
-      trackingMode: MyLocationTrackingMode.locationRotate,
-      circleFillColor: const Color(0x331677FF),
-      circleStrokeColor: const Color(0xFF1677FF),
-      circleStrokeWidth: 1,
-    );
-
-    expect(options.toMap()['enabled'], isTrue);
-    expect(
-      options.toMap()['trackingMode'],
-      MyLocationTrackingMode.locationRotate.index,
-    );
-  });
-
-  testWidgets('travel route ticket uses clean Chinese timeline labels',
-      (tester) async {
-    final travelProvider = _FakeTravelProviderWithSpots();
-    final authProvider = _FakeAuthProvider();
-
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-          ChangeNotifierProvider<TravelProvider>.value(value: travelProvider),
-          ChangeNotifierProvider<MapPrefsProvider>(
-              create: (_) => MapPrefsProvider()),
-          ChangeNotifierProvider<NotificationProvider>(
-              create: (_) => NotificationProvider()),
-          ChangeNotifierProvider<DailyProvider>(create: (_) => DailyProvider()),
-        ],
-        child: const MaterialApp(home: TravelMainScreen()),
-      ),
-    );
-
-    await tester.pump();
-
-    // v3.23 行程票已从旅行页移除；v3.31 路线预览并入全屏高德地图，防回归断言：
-    expect(find.byKey(const ValueKey('travel_itinerary_ticket')), findsNothing);
   });
 
   test('kitchen order parsing keeps item snapshots and totals', () {
@@ -480,73 +347,4 @@ class _FakeHomeProvider extends HomeProvider {
 
   @override
   Future<void> refresh() async {}
-}
-
-class _FakeTravelProvider extends TravelProvider {
-  @override
-  Future<void> refreshAll() async {}
-}
-
-class _FakeTravelProviderWithSpots extends TravelProvider {
-  final List<TravelSpot> _fakeSpots = [
-    TravelSpot(
-      id: 1,
-      name: '橘子洲头',
-      city: '长沙',
-      address: '岳麓区橘子洲头 2 号',
-      lat: 28.195,
-      lng: 112.962,
-      status: 'wish',
-      routeDay: 1,
-      routeOrder: 1,
-    ),
-    TravelSpot(
-      id: 2,
-      name: '湖南省博物馆',
-      city: '长沙',
-      address: '开福区东风路 50 号',
-      lat: 28.214,
-      lng: 112.989,
-      status: 'planned',
-      routeDay: 1,
-      routeOrder: 2,
-    ),
-  ];
-
-  @override
-  List<TravelSpot> get spots => _fakeSpots;
-
-  @override
-  List<TravelSpot> get filteredSpots => _fakeSpots;
-
-  @override
-  List<TravelSpot> get mapSpots => _fakeSpots;
-
-  @override
-  List<TravelRoute> get routes => const [];
-
-  @override
-  TravelRoute? get activeRoute => null;
-
-  @override
-  TravelStats get computedStats => TravelStats(
-        wish: 1,
-        planned: 1,
-        cities: 1,
-      );
-
-  @override
-  bool get loading => false;
-
-  @override
-  bool get routeLoading => false;
-
-  @override
-  String? get error => null;
-
-  @override
-  String? get routeError => null;
-
-  @override
-  Future<void> refreshAll() async {}
 }

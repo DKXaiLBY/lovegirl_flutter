@@ -1,4 +1,4 @@
-import '../providers/travel_provider.dart';
+import '../models/travel.dart';
 
 String memoryCityKey(String city) =>
     city.trim().replaceAll(RegExp(r'\s+'), '').replaceFirst(RegExp(r'市$'), '');

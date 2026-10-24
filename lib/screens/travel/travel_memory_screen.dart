@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../../providers/travel_provider.dart';
-import '../../services/api_service.dart';
+import '../../models/travel.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/memory_controls.dart';
 import '../../widgets/travel_photo_grid.dart';
-import 'travel_form_screen.dart';
+import '../../features/travel/place_editor.dart';
 import 'travel_ticket_screen.dart';
-import 'travel_amap_mode_screen.dart';
+import '../../features/travel/travel_screen.dart';
 
 /// 省份、城市和地点共享同一条故事入口，沿用地点与照片数据。
 class TravelMemoryScreen extends StatefulWidget {
   final TravelSpot spot;
   final ValueChanged<TravelSpot>? onChanged;
-  const TravelMemoryScreen({super.key, required this.spot, this.onChanged});
+  final ValueChanged<TravelSpot>? onShowOnMap;
+  const TravelMemoryScreen(
+      {super.key, required this.spot, this.onChanged, this.onShowOnMap});
 
   @override
   State<TravelMemoryScreen> createState() => _TravelMemoryScreenState();
@@ -21,31 +23,23 @@ class TravelMemoryScreen extends StatefulWidget {
 
 class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
   late TravelSpot _spot = widget.spot;
-  final _api = ApiService();
 
   Future<void> _edit() async {
-    final saved = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => TravelFormScreen(spot: _spot)));
-    if (saved != true || !mounted) return;
-    try {
-      final response = await _api.getTravelSpot(_spot.id);
-      final updated =
-          TravelSpot.fromJson(Map<String, dynamic>.from(response.data['data']));
-      if (!mounted) return;
-      setState(() => _spot = updated);
-      widget.onChanged?.call(updated);
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-                Text(extractServerMessage(error, fallback: '记录已保存，刷新后查看'))));
-      }
-    }
+    final saved = await Navigator.of(context).push<TravelSpot>(
+        MaterialPageRoute(builder: (_) => TravelPlaceEditor(spot: _spot)));
+    if (saved == null || !mounted) return;
+    setState(() => _spot = saved);
+    widget.onChanged?.call(saved);
   }
 
   @override
   Widget build(BuildContext context) {
-    final date = (_spot.visitedDate ?? '').split('T').first.split(' ').first;
+    final rawDate = _spot.status == 'planned'
+        ? _spot.plannedDate
+        : _spot.status == 'visited'
+            ? _spot.visitedDate
+            : null;
+    final date = (rawDate ?? '').split('T').first.split(' ').first;
     final paragraphs = <String>[
       if ((_spot.diary ?? '').trim().isNotEmpty) _spot.diary!.trim(),
       if ((_spot.note ?? '').trim().isNotEmpty &&
@@ -55,6 +49,9 @@ class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
     return Scaffold(
       backgroundColor: context.lgPaper,
       appBar: AppBar(
+        systemOverlayStyle: context.lgIsDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         backgroundColor: context.lgPaper,
         foregroundColor: context.lgInk,
         elevation: 0,
@@ -68,8 +65,15 @@ class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
                     _spot.lat.abs() <= 90 &&
                     _spot.lng.abs() <= 180 &&
                     (_spot.lat != 0 || _spot.lng != 0)
-                ? () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => TravelAmapModeScreen(initialSpot: _spot)))
+                ? () {
+                    if (widget.onShowOnMap != null) {
+                      widget.onShowOnMap!(_spot);
+                    } else {
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => TravelScreen(
+                              initialSpot: _spot, embedded: false)));
+                    }
+                  }
                 : null,
           ),
         ],
@@ -78,9 +82,14 @@ class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
         padding: const EdgeInsets.fromLTRB(22, 12, 22, 32),
         children: [
           Text(
-              [_spot.city, date.isEmpty ? '日期待补充' : date]
-                  .where((part) => part.isNotEmpty)
-                  .join(' · '),
+              [
+                _spot.city,
+                _spot.status == 'wish'
+                    ? '想去'
+                    : date.isEmpty
+                        ? '日期待补充'
+                        : '${_spot.status == 'planned' ? '计划 ' : ''}$date'
+              ].where((part) => part.isNotEmpty).join(' · '),
               style: TextStyle(color: context.lgTextSecondary, fontSize: 13)),
           const SizedBox(height: 12),
           Text(_spot.name,
@@ -141,21 +150,22 @@ class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
                     icon: Icons.edit_outlined,
                     label: '编辑故事',
                     onPressed: _edit)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: MemoryAction(
-              icon: Icons.confirmation_number_outlined,
-              label: '生成票根',
-              onPressed: () async {
-                await Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => TravelTicketScreen(
-                        visitedSpots: [_spot],
-                        stats: TravelStats(
-                            visited: 1,
-                            cities: _spot.city.trim().isEmpty ? 0 : 1,
-                            totalBudget: _spot.budget ?? 0))));
-              },
-            )),
+            if (_spot.status == 'visited') const SizedBox(width: 12),
+            if (_spot.status == 'visited')
+              Expanded(
+                  child: MemoryAction(
+                icon: Icons.confirmation_number_outlined,
+                label: '生成票根',
+                onPressed: () async {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => TravelTicketScreen(
+                          visitedSpots: [_spot],
+                          stats: TravelStats(
+                              visited: 1,
+                              cities: _spot.city.trim().isEmpty ? 0 : 1,
+                              totalBudget: _spot.budget ?? 0))));
+                },
+              )),
           ]),
         ),
       ),

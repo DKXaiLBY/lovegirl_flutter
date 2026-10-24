@@ -10,8 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../services/api_service.dart';
-import '../../providers/travel_provider.dart';
-import '../travel/travel_form_screen.dart';
+import '../../models/travel.dart';
+import '../../features/travel/place_editor.dart';
 import '../../services/log_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -112,7 +112,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           );
           if (ok == true && mounted) {
             await Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => TravelFormScreen(
+              builder: (_) => TravelPlaceEditor(gpsPrefill: true,
                 prefill: TravelSpot(
                   id: 0,
                   name: '',

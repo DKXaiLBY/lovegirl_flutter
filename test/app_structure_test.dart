@@ -12,7 +12,7 @@ import 'package:lovegirl_flutter/providers/home_provider.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/notification_provider.dart';
 import 'package:lovegirl_flutter/providers/theme_provider.dart';
-import 'package:lovegirl_flutter/providers/travel_provider.dart';
+import 'package:lovegirl_flutter/features/travel/travel_workspace.dart';
 import 'package:lovegirl_flutter/screens/health/health_screen.dart';
 import 'package:lovegirl_flutter/screens/health/widgets/period_tracker.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
@@ -22,12 +22,11 @@ import 'package:lovegirl_flutter/screens/memories/memories_screen.dart';
 import 'package:lovegirl_flutter/screens/notifications/notification_center_screen.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
 import 'package:lovegirl_flutter/screens/settings/settings_screen.dart';
-import 'package:lovegirl_flutter/screens/travel/travel_main_screen.dart';
+import 'package:lovegirl_flutter/features/travel/travel_screen.dart';
 import 'package:lovegirl_flutter/utils/app_section.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_dates.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/widgets/travel_spot_more_menu.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +55,7 @@ void main() {
         ChangeNotifierProvider<MapPrefsProvider>(
             create: (_) => MapPrefsProvider()),
         ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider<TravelProvider>(create: (_) => _Travel()),
+        ChangeNotifierProvider<TravelWorkspace>(create: (_) => _Travel()),
       ],
       child: MaterialApp(
           theme: dark ? LoveGirlTheme.darkTheme : LoveGirlTheme.lightTheme,
@@ -78,7 +77,7 @@ void main() {
     expect(find.byType(MemoriesScreen), findsOneWidget);
     await tester.tap(find.text('旅行'));
     await tester.pump();
-    expect(find.byType(TravelMainScreen), findsOneWidget);
+    expect(find.byType(TravelScreen), findsOneWidget);
     await tester.tap(find.text('生活'));
     await tester.pump();
     expect(find.byType(LifeScreen), findsOneWidget);
@@ -176,26 +175,6 @@ void main() {
     expect(find.text('待办提醒'), findsNothing);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 11));
-  });
-
-  testWidgets(
-      'travel secondary actions stay behind more and dispatch only the selected action',
-      (tester) async {
-    final calls = <String>[];
-    await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-            body: TravelSpotMoreMenu(
-      onAddRoute: () => calls.add('route'),
-      onGenerateTicket: () => calls.add('ticket'),
-      onDelete: () => calls.add('delete'),
-    ))));
-    expect(find.text('删除地点'), findsNothing);
-    await tester.tap(find.text('更多'));
-    await tester.pumpAndSettle();
-    expect(calls, isEmpty);
-    await tester.tap(find.text('生成票根'));
-    await tester.pumpAndSettle();
-    expect(calls, ['ticket']);
   });
 
   for (final dark in [false, true]) {
@@ -367,7 +346,7 @@ class _TravelNotifications extends _Notifications {
   Future<void> markRead(NotificationItem item) async {}
 }
 
-class _Travel extends TravelProvider {
+class _Travel extends TravelWorkspace {
   @override
-  Future<void> refreshAll() async {}
+  Future<void> load({bool refresh = false}) async {}
 }

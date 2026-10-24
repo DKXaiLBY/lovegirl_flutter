@@ -9,7 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/daily_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
-import '../../providers/travel_provider.dart';
+import '../../models/travel.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';

@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:open_filex/open_filex.dart';
 
-import '../../providers/travel_provider.dart';
+import '../../models/travel.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/constants.dart';
 import '../../widgets/lovegirl_ui.dart';

@@ -12,14 +12,14 @@ import 'providers/kitchen_provider.dart';
 import 'providers/map_prefs_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/theme_provider.dart';
-import 'providers/travel_provider.dart';
+import 'features/travel/travel_workspace.dart';
 import 'providers/wardrobe_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/life/life_screen.dart';
 import 'screens/memories/memories_screen.dart';
 import 'screens/profile/profile_screen.dart';
-import 'screens/travel/travel_main_screen.dart';
+import 'features/travel/travel_screen.dart';
 import 'screens/version/update_dialog.dart';
 import 'services/log_service.dart';
 import 'services/notification_service.dart';
@@ -55,7 +55,10 @@ class LoveGirlApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HomeProvider()),
         ChangeNotifierProvider(create: (_) => KitchenProvider()),
         ChangeNotifierProvider(create: (_) => MapPrefsProvider()..load()),
-        ChangeNotifierProvider(create: (_) => TravelProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, TravelWorkspace>(
+          create: (_) => TravelWorkspace(),
+          update: (_, auth, workspace) => workspace!..setAccount(auth.userId),
+        ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => DailyProvider()),
         ChangeNotifierProvider(create: (_) => WardrobeProvider()),
@@ -149,7 +152,7 @@ class _AppShellState extends State<AppShell> {
       case AppSection.memories:
         return const MemoriesScreen();
       case AppSection.travel:
-        return const TravelMainScreen();
+        return const TravelScreen();
       case AppSection.life:
         return const LifeScreen();
       case AppSection.us:

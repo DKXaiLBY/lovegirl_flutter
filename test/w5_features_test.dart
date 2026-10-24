@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lovegirl_flutter/providers/travel_provider.dart';
+import 'package:lovegirl_flutter/models/travel.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/screens/mood/mood_screen.dart';
-import 'package:lovegirl_flutter/widgets/travel_map_widget.dart';
 
 /// W5 阶段三纯函数回归（对抗审查清单第 7 项）：分组/渐变色/时间线/足迹/N年前
 Color _c(int v) => Color(v & 0xFFFFFFFF);
@@ -60,23 +59,6 @@ void main() {
         Color(0xFFB58860),
       ];
       expect(palette.toSet().length, palette.length);
-    });
-  });
-
-  group('footprintSpots（足迹线纯函数）', () {
-    test('只留 visited+有日期+坐标有效，按日期升序（id 决胜）', () {
-      final r = footprintSpots([
-        _spot(id: 3, visitedDate: '2026-05-01'),
-        _spot(id: 1, visitedDate: '2026-01-01'),
-        _spot(id: 2), // 无日期
-        _spot(id: 4, visitedDate: '2026-03-01', lat: 0, lng: 0), // 无效坐标
-        _spot(id: 5, status: 'wish', visitedDate: '2026-02-01'), // 未打卡
-      ]);
-      expect(r.map((e) => e.id).toList(), [1, 3]);
-    });
-    test('少于 2 个有效点时调用方应跳过', () {
-      expect(footprintSpots([_spot(id: 1, visitedDate: '2026-01-01')]).length, 1);
-      expect(footprintSpots([]), isEmpty);
     });
   });
 
