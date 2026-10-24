@@ -27,3 +27,9 @@
 - 保留前一版本 APK、发布前版本记录和源码 tag。
 - 回滚时恢复上一 APK 并切换 app_versions 激活记录，随后重新验证下载与版本检查。
 - 本次旅行照片服务端迁移向后兼容。回退客户端时保留安全移除引用的服务端逻辑；不要让旧删除逻辑把引用的相册原图删掉。
+
+## Windows代理／TUN下的SSH连接
+
+2026-10-24实测：本机Mihomo默认路由下，TCP22可连接但SSH banner为空，服务端App接口及容器正常。指定物理Wi-Fi源地址和接口后SSH认证与SFTP均正常，发布无需更改服务器配置。
+
+遇到同类问题，先读取Get-NetAdapter、Get-NetIPAddress及Get-NetRoute，比较默认socket与物理网卡socket的SSH banner。Python在Windows上可为单条连接设置 `IP_UNICAST_IF`（IPPROTO_IP选项31，接口索引按网络字节序打包），再bind当前网卡IPv4地址，连接服务器；将该socket交给Paramiko的sock参数。接口索引和本机IPv4每次从当前环境读取，不沿用历史固定值。保持known_hosts校验及原有密钥认证。此方法仅控制该连接的出口，不需要关闭全局代理或修改系统路由。

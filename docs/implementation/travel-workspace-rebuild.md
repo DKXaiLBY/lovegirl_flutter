@@ -72,8 +72,12 @@
 
 ### 发布状态
 
-候选版本4.3.0+184，正式release构建不包含自动登录参数，已装到备用机。服务器仍为4.2.0+183；App版本接口正常，但SSH在认证前立即关闭连接，未上传或激活新版本。待连接恢复后先核对数据库最大版本码，再执行容器内令牌发布与APK校验。
+2026-10-24已发布4.3.0+184。正式release构建不包含自动登录参数，已装到荣耀备用机；dumpsys核验versionName4.3.0/versionCode184，最终深色编辑操作与足迹轮廓截图复核后恢复亮色。最终检查analyze0、Flutter104/104。
 
-最终源码：`1049eee`，已推送默认分支master与codex/travel-street-workspace；源码回滚tag `v4.3.0`（此tag不表示服务器已发布）。正式APK为54,117,875字节，SHA256 `8a53cdd165dbbd39aa5f57ea2f7bded971cb512d23a9cbd2d0c910396009f54f`。备用机dumpsys核验versionName4.3.0/versionCode184，最终深色编辑操作与足迹轮廓截图已复核，恢复亮色。最终检查analyze0、Flutter104/104。
+源码：`1049eee`，已推送默认分支master与codex/travel-street-workspace；回滚tag `v4.3.0`。正式APK为54,117,875字节，SHA256 `8a53cdd165dbbd39aa5f57ea2f7bded971cb512d23a9cbd2d0c910396009f54f`，MD5 `25dd71d048888b7fee0e1b57ff269b16`。
 
-发布产物与容器内令牌发布脚本暂存于本机会话产物目录 `C:/Users/DKX/.codex/visualizations/2026/10/23/01a166a9-b923-7840-9220-d6673f22e046/lovegirl-review/implementation/`，文件 `LoveGirl-v4.3.0-build184.apk`、`release-4.3.0.json`、`publish_4_3_0.py`。脚本在连接恢复后仍会检查最新版本码、备份和SHA，不能绕过发布规程。服务器发布尚未完成。
+发布接口返回200；修正并回读核验app_versions中的version_name、changelog、file_size和md5，当前仅184激活。服务器内与公网分别验证：183检查hasUpdate=true，184检查hasUpdate=false，均为非强制更新，6行中文变更与发布规格一致。公网完整下载APK的大小、SHA256及MD5与本地正式包一致。v4.2.0备份的SHA也已核验，v4.3.0备份与发布前版本记录保留在服务器apk-backups。
+
+首次SSH失败与本机Mihomo/TUN默认网络路径有关：普通socket握手前EOF，绑定物理Wi-Fi源地址及网卡后收到真实SSH banner并通过已知主机密钥认证。此次仅指定发布连接的出口，没有修改系统代理、全局路由或服务器配置。
+
+发布产物与核验报告位于本机会话产物目录 `C:/Users/DKX/.codex/visualizations/2026/10/23/01a166a9-b923-7840-9220-d6673f22e046/lovegirl-review/implementation/`，文件 `LoveGirl-v4.3.0-build184.apk`、`release-4.3.0.json`、`release-4.3.0-verified.json`、`publish-4.3.0-result.txt`。发布令牌仅在服务器容器内参与请求，未传出。
