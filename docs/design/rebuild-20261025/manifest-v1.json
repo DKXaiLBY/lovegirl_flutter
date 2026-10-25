@@ -1,0 +1,30 @@
+[
+  {
+    "file": "01-polaroid-memory-v1.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1974625,
+    "sha256": "fa2c48fbb8990e882548e8e05499d33a228ad3b4765d864fcce75b6245d03253"
+  },
+  {
+    "file": "02-camera-paper-looks-v1.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 2068200,
+    "sha256": "89d4fbd856b5fb30f87eb6c19832c0ca3f803d6502f5a864952c5f2614f5ccd1"
+  },
+  {
+    "file": "03-ticket-workflow-v1.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1793286,
+    "sha256": "b6a24bbfe4ff02c6615901acff42f832399e1e5493ba08bb3903ee566ea5261c"
+  },
+  {
+    "file": "04-travel-workflow-v1.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1562954,
+    "sha256": "944a21b5b4e5eb3cdb54683805ff1e68b686288f80110f2bc2ad58c53406d31f"
+  }
+]
