@@ -12,6 +12,8 @@ import '../../models/travel.dart' show TravelSpot;
 import '../../utils/lovegirl_theme.dart';
 import 'map_platform.dart';
 import 'travel_workspace.dart';
+import 'journey.dart';
+import 'journey_controller.dart';
 
 /// Stable native surface: no list, search, navigation or location-on-entry logic.
 class TravelMapCanvas extends StatefulWidget {
@@ -22,6 +24,10 @@ class TravelMapCanvas extends StatefulWidget {
   final ValueChanged<TravelSpot> onSelect;
   final ValueChanged<PlaceChoice> onPick;
   final VoidCallback? onReady;
+  final List<JourneyStop>? journeyStops;
+  final List<JourneyLeg> journeyLegs;
+  final String? selectedStopKey;
+  final ValueChanged<JourneyStop>? onStopSelect;
   const TravelMapCanvas(
       {super.key,
       required this.places,
@@ -30,7 +36,11 @@ class TravelMapCanvas extends StatefulWidget {
       required this.onCameraSettled,
       required this.onSelect,
       required this.onPick,
-      this.onReady});
+      this.onReady,
+      this.journeyStops,
+      this.journeyLegs = const [],
+      this.selectedStopKey,
+      this.onStopSelect});
 
   @override
   State<TravelMapCanvas> createState() => TravelMapCanvasState();
@@ -115,12 +125,19 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     }
   }
 
-  Future<void> _prepareIcon(int count) async {
-    if (_clusterIcons.containsKey(count) || !_pendingIcons.add(count)) return;
+  Future<void> _prepareIcon(int count,
+      {bool numbered = false, bool selected = false}) async {
+    final key = count + (numbered ? 10000 : 0) + (selected ? 20000 : 0);
+    if (_clusterIcons.containsKey(key) || !_pendingIcons.add(key)) return;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     canvas.drawCircle(
-        const Offset(36, 36), 33, Paint()..color = const Color(0xFF1F2126));
+        const Offset(36, 36),
+        33,
+        Paint()
+          ..color = numbered && !selected
+              ? const Color(0xff3398ae)
+              : const Color(0xFF1F2126));
     canvas.drawCircle(
         const Offset(36, 36),
         33,
@@ -144,13 +161,20 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     image.dispose();
     picture.dispose();
     if (bytes == null || !mounted) return;
-    _clusterIcons[count] =
-        BitmapDescriptor.fromBytes(bytes.buffer.asUint8List());
-    _pendingIcons.remove(count);
+    _clusterIcons[key] = BitmapDescriptor.fromBytes(bytes.buffer.asUint8List());
+    _pendingIcons.remove(key);
     setState(() {});
   }
 
   Set<Marker> _markers() {
+    final stops = widget.journeyStops;
+    if (stops != null) {
+      return {
+        for (var i = 0; i < stops.length; i++)
+          if (stops[i].place != null && hasMapPosition(stops[i].place!))
+            _stopMarker(stops[i], i + 1)
+      };
+    }
     return clusterPlaces(widget.places, _camera.zoom).map((cluster) {
       final grouped = cluster.places.length > 1;
       if (grouped) unawaited(_prepareIcon(cluster.places.length));
@@ -180,6 +204,35 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
           : 'place_${cluster.places.first.id}');
     }).toSet();
   }
+
+  Marker _stopMarker(JourneyStop stop, int number) {
+    final selected = stop.key == widget.selectedStopKey;
+    unawaited(_prepareIcon(number, numbered: true, selected: selected));
+    return Marker(
+        position: LatLng(stop.place!.lat, stop.place!.lng),
+        icon: _clusterIcons[number + 10000 + (selected ? 20000 : 0)] ??
+            BitmapDescriptor.defaultMarker,
+        infoWindowEnable: false,
+        onTap: (_) => widget.onStopSelect?.call(stop))
+      ..setIdForCopy('journey_${stop.key}');
+  }
+
+  Set<Polyline> _lines() => {
+        for (final leg in widget.journeyLegs)
+          if (leg.points.length > 1)
+            Polyline(
+                points: leg.points.map((p) => LatLng(p.lat, p.lng)).toList(),
+                color: leg.toKey == widget.selectedStopKey
+                    ? const Color(0xff20242b)
+                    : const Color(0xff3398ae),
+                width: 5,
+                capType: CapType.round,
+                joinType: JoinType.round,
+                dashLineType: leg.mode == 'walking'
+                    ? DashLineType.circle
+                    : DashLineType.none)
+              ..setIdForCopy('route_${leg.toKey}')
+      };
 
   @override
   void dispose() {
@@ -225,6 +278,7 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
                 () => EagerGestureRecognizer())
           },
           markers: _markers(),
+          polylines: _lines(),
           myLocationStyleOptions: _locationVisible
               ? MyLocationStyleOptions(true,
                   trackingMode: MyLocationTrackingMode.show)

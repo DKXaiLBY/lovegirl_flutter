@@ -322,6 +322,45 @@ class ApiService {
 
   // ========== 相册 ==========
   Future getPhotos() => get('/api/photo');
+
+  Future getCreations() => get('/api/creations');
+  Future getCreation(int id) => get('/api/creations/$id');
+  Future deleteCreation(int id, int revision) =>
+      delete('/api/creations/$id?revision=$revision');
+  Future saveCreation(
+      {required String clientId,
+      required Map<String, dynamic> document,
+      required List<int> preview,
+      required List<String> sourcePaths,
+      int? id,
+      int? revision,
+      int? tripId}) async {
+    final form = FormData.fromMap({
+      'clientId': clientId,
+      'document': jsonEncode(document),
+      'tripId': tripId?.toString() ?? '',
+      if (revision != null) 'revision': revision.toString(),
+      'preview': MultipartFile.fromBytes(preview, filename: 'preview.png'),
+    });
+    for (var index = 0; index < sourcePaths.length; index++) {
+      form.files.add(MapEntry(
+          'source$index', await MultipartFile.fromFile(sourcePaths[index])));
+    }
+    final options = Options(
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(seconds: 60));
+    return id == null
+        ? _dio.post('/api/creations', data: form, options: options)
+        : _dio.put('/api/creations/$id', data: form, options: options);
+  }
+
+  Future getJourneys() => get('/api/journeys');
+  Future getJourney(int id) => get('/api/journeys/$id');
+  Future saveJourney(Map<String, dynamic> data, {int? id}) => id == null
+      ? post('/api/journeys', data: data)
+      : put('/api/journeys/$id', data: data);
+  Future deleteJourney(int id, int revision) =>
+      delete('/api/journeys/$id?revision=$revision');
   Future deletePhoto(int id) => delete('/api/photo/$id');
   Future updatePhotoDescription(int id, String description) =>
       put('/api/photo/$id/description', data: {'description': description});

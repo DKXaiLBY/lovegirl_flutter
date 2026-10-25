@@ -95,6 +95,8 @@ app.use('/api/todo', require('./routes/todo'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/course', require('./routes/course'));
 app.use('/api/photo', require('./routes/photo'));
+app.use('/api/creations', require('./routes/creative_works'));
+app.use('/api/journeys', require('./routes/travel_journeys'));
 app.use('/api/mood', require('./routes/mood'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/timeline', require('./routes/timeline'));

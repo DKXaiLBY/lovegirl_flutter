@@ -43,8 +43,8 @@ function amapGet(path, params = {}) {
       response.on('end', () => {
         try {
           const parsed = JSON.parse(raw);
-          if (parsed.status && parsed.status !== '1') {
-            const err = new Error(parsed.info || '楂樺痉鏈嶅姟杩斿洖澶辫触');
+          if ((parsed.status && parsed.status !== '1') || (parsed.errcode != null && Number(parsed.errcode) !== 0)) {
+            const err = new Error(parsed.info || parsed.errmsg || '地图服务暂时不可用');
             err.status = 502;
             err.amapCode = parsed.infocode;
             reject(err);
@@ -276,8 +276,14 @@ function parseAmapPath(polyline) {
 }
 
 function normalizeDirection(mode, data) {
-  if (mode === 'walking') {
-    const path = data.route?.paths?.[0];
+  const missing = () => {
+    const error = new Error('没有找到可用路线，请换一种交通方式');
+    error.status = 422;
+    throw error;
+  };
+  if (mode === 'walking' || mode === 'bicycling') {
+    const path = (mode === 'bicycling' ? data.data : data.route)?.paths?.[0];
+    if (!path) missing();
     return {
       mode,
       distance: Number(path?.distance || 0),
@@ -295,6 +301,7 @@ function normalizeDirection(mode, data) {
 
   if (mode === 'transit') {
     const transit = data.route?.transits?.[0];
+    if (!transit) missing();
     return {
       mode,
       distance: Number(transit?.distance || data.route?.distance || 0),
@@ -317,6 +324,7 @@ function normalizeDirection(mode, data) {
   }
 
   const path = data.route?.paths?.[0];
+  if (!path) missing();
   return {
     mode: 'driving',
     distance: Number(path?.distance || 0),
@@ -430,17 +438,27 @@ router.get('/amap/weather', authRequired, async (req, res) => {
 
 router.get('/amap/direction', authRequired, async (req, res) => {
   try {
-    const mode = ['walking', 'driving', 'transit'].includes(req.query.mode) ? req.query.mode : 'driving';
+    const mode = ['walking', 'bicycling', 'driving', 'transit'].includes(req.query.mode) ? req.query.mode : 'driving';
     const origin = (req.query.origin || '').toString();
     const destination = (req.query.destination || '').toString();
-    if (!origin || !destination) {
-      return res.status(400).json({ code: 400, message: 'origin and destination are required' });
+    const coordinate = value => {
+      const parts = value.split(',');
+      const values = parts.map(Number);
+      return parts.length === 2 && parts.every(item => item.trim() !== '') &&
+        values.every(Number.isFinite) && Math.abs(values[0]) <= 180 && Math.abs(values[1]) <= 90;
+    };
+    if (!coordinate(origin) || !coordinate(destination)) {
+      return res.status(400).json({ code: 400, message: '请选择有效的起点和终点' });
+    }
+    if (mode === 'transit' && !req.query.city) {
+      return res.status(400).json({ code: 400, message: '公共交通需要选择起点城市' });
     }
 
-    // 步行规划对超长距离（跨省）会返回 OVER_DIRECTION_RANGE(20803)，
-    // 距离超过 90km 时自动降级为驾车规划（现实中也不该步行上百公里）
+    // Keep the selected mode truthful; never label a driving fallback as walking.
     let path = mode === 'walking'
       ? '/v3/direction/walking'
+      : mode === 'bicycling'
+        ? '/v4/direction/bicycling'
       : mode === 'transit'
         ? '/v3/direction/transit/integrated'
         : '/v3/direction/driving';
@@ -455,7 +473,9 @@ router.get('/amap/direction', authRequired, async (req, res) => {
         const a = Math.sin(dLatRad / 2) ** 2 +
           Math.cos(rad(oLat)) * Math.cos(rad(dLat)) * Math.sin(dLngRad / 2) ** 2;
         const straight = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        if (straight > 90000) path = '/v3/direction/driving';
+        if (straight > 90000) {
+          return res.status(422).json({ code: 422, message: '距离较远，请改用驾车或公共交通' });
+        }
       }
     }
     const data = await amapGet(path, {
@@ -470,7 +490,7 @@ router.get('/amap/direction', authRequired, async (req, res) => {
     res.json({ code: 200, data: normalizeDirection(mode, data) });
   } catch (err) {
     console.error('[Travel][AMap] direction failed:', err.message);
-    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '楂樺痉璺緞瑙勫垝璇锋眰澶辫触' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.message || '路线暂时加载失败，请重试' });
   }
 });
 
@@ -617,6 +637,22 @@ async function replaceTripSpots(conn, tripId, spotIds, visibleIds) {
   }
 }
 
+// V2 plans must be changed through the revision-aware journey endpoints.
+async function protectVersionedTrip(conn, tripId, visibleIds) {
+  const ids = [...visibleIds, ...Array(8 - visibleIds.length).fill(null)];
+  const [owned] = await conn.query(
+    'SELECT id FROM travel_trips WHERE id = ? AND user_id IN (?, ?, ?, ?, ?, ?, ?, ?) FOR UPDATE',
+    [tripId, ...ids]
+  );
+  if (!owned.length) return;
+  const [states] = await conn.query('SELECT revision FROM travel_itinerary_state WHERE trip_id = ?', [tripId]);
+  if (states.length) {
+    const error = new Error('请使用新版行程编辑；当前操作未保存');
+    error.status = 409;
+    throw error;
+  }
+}
+
 router.get('/trips', authRequired, async (req, res) => {
   try {
     const visibleIds = await getVisibleUserIds(req.user.id);
@@ -706,6 +742,7 @@ router.put('/trips/:id', authRequired, async (req, res) => {
     if (!title) return res.status(400).json({ code: 400, message: 'trip title is required' });
     const visibleIds = await getVisibleUserIds(req.user.id);
     await conn.beginTransaction();
+    await protectVersionedTrip(conn, tripId, visibleIds);
     const [result] = await conn.query(
       `UPDATE travel_trips
        SET title = ?, city = ?, description = ?, status = ?, mode = ?, distance = ?, duration = ?,
@@ -755,6 +792,7 @@ router.put('/trips/:id/spots', authRequired, async (req, res) => {
     );
     if (rows.length === 0) return res.status(404).json({ code: 404, message: 'trip not found' });
     await conn.beginTransaction();
+    await protectVersionedTrip(conn, tripId, visibleIds);
     await replaceTripSpots(conn, tripId, req.body.spotIds || req.body.spot_ids, visibleIds);
     await conn.commit();
     res.json({ code: 200, message: 'trip spots updated' });
@@ -772,6 +810,7 @@ router.delete('/trips/:id', authRequired, async (req, res) => {
   try {
     const visibleIds = await getVisibleUserIds(req.user.id);
     await conn.beginTransaction();
+    await protectVersionedTrip(conn, Number(req.params.id), visibleIds);
     const [result] = await conn.query(
       `DELETE FROM travel_trips WHERE id = ? AND user_id IN (${visibleIds.map(() => '?').join(',')})`,
       [Number(req.params.id), ...visibleIds]
@@ -786,7 +825,7 @@ router.delete('/trips/:id', authRequired, async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error('[Travel] delete trip failed:', err);
-    res.status(500).json({ code: 500, message: 'server error' });
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : 'server error' });
   } finally {
     conn.release();
   }

@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lovegirl_flutter/providers/auth_provider.dart';
 
 import 'package:lovegirl_flutter/models/travel.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
@@ -78,10 +80,14 @@ class PlacesApi implements ApiService {
   Future<Response<dynamic>> searchAmapPoi(String query, {String? city}) =>
       (searches[query] ??= Completer<Response<dynamic>>()).future;
   @override
+  Future<Response<dynamic>> getJourneys() async => response([]);
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   test('concurrent loads share one request and loaded data is reused',
       () async {
     final api = PlacesApi()..readGate = Completer();
@@ -249,8 +255,11 @@ void main() {
       final api = PlacesApi()..rows = [];
       final workspace = TravelWorkspace(api: api);
       await workspace.load();
-      await tester.pumpWidget(ChangeNotifierProvider.value(
-          value: workspace,
+      await tester.pumpWidget(MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: workspace),
+            ChangeNotifierProvider(create: (_) => AuthProvider())
+          ],
           child: MaterialApp(
               theme: dark ? LoveGirlTheme.darkTheme : LoveGirlTheme.lightTheme,
               home: const TravelScreen())));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../features/creations/creation_gallery.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../daily/daily_question_screen.dart';
 import '../letter/slow_letter_screen.dart';
@@ -18,6 +19,7 @@ class MemoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = <(IconData, String, String, Widget)>[
       (Icons.photo_library_outlined, '相册', '照片与拍立得', const PhotoScreen()),
+      (Icons.confirmation_number_outlined, '票根', '制作与收藏旅行纪念', const CreationGallery(kind: 'ticket')),
       (Icons.history_rounded, '时光轴', '一起经历的事', TimelineScreen()),
       (Icons.mood_rounded, '心情', '记录与回看每天的感受', const MoodScreen()),
       (Icons.restaurant_rounded, '美食手账', '两个人的餐桌照片', const CookingLogScreen()),
