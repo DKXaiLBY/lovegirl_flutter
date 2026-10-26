@@ -204,6 +204,7 @@ class CreationDraft {
   final int ownerId;
   final CreationDocument document;
   final List<String> sourcePaths;
+  final bool sourcesChanged;
   final int? workId;
   final int? revision;
   final int? tripId;
@@ -214,6 +215,7 @@ class CreationDraft {
       required this.ownerId,
       required this.document,
       required this.sourcePaths,
+      this.sourcesChanged = false,
       this.workId,
       this.revision,
       this.tripId,
@@ -222,6 +224,7 @@ class CreationDraft {
   CreationDraft copyWith(
           {CreationDocument? document,
           List<String>? sourcePaths,
+          bool? sourcesChanged,
           int? workId,
           int? revision,
           int? tripId,
@@ -232,6 +235,7 @@ class CreationDraft {
         ownerId: ownerId,
         document: document ?? this.document,
         sourcePaths: sourcePaths ?? this.sourcePaths,
+        sourcesChanged: sourcesChanged ?? this.sourcesChanged,
         workId: workId ?? this.workId,
         revision: revision ?? this.revision,
         tripId: clearTrip ? null : tripId ?? this.tripId,
@@ -243,6 +247,7 @@ class CreationDraft {
         'ownerId': ownerId,
         'document': document.toJson(),
         'sourcePaths': sourcePaths,
+        'sourcesChanged': sourcesChanged,
         'workId': workId,
         'revision': revision,
         'tripId': tripId,
@@ -257,6 +262,7 @@ class CreationDraft {
         sourcePaths: (data['sourcePaths'] as List)
             .map((value) => value.toString())
             .toList(),
+        sourcesChanged: data['sourcesChanged'] == true,
         workId: data['workId'] == null ? null : creationInt(data['workId']),
         revision:
             data['revision'] == null ? null : creationInt(data['revision']),

@@ -88,6 +88,22 @@ class PlacesApi implements ApiService {
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('opening search refreshes saved places added by the partner',
+      (tester) async {
+    final api = PlacesApi();
+    final workspace = TravelWorkspace(api: api);
+    await workspace.load();
+    api.rows = [place(1), place(2)];
+    await tester
+        .pumpWidget(MaterialApp(home: TravelPlaceSearch(workspace: workspace)));
+    await tester.pumpAndSettle();
+    expect(find.text('地点 2'), findsOneWidget);
+    expect(api.reads, 2);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    workspace.dispose();
+  });
   test('concurrent loads share one request and loaded data is reused',
       () async {
     final api = PlacesApi()..readGate = Completer();

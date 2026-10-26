@@ -89,6 +89,14 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
       PlaceSearchController(api: widget.workspace.api);
   final _text = TextEditingController();
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(widget.workspace.load(refresh: true));
+    });
+  }
+
+  @override
   void dispose() {
     _search.dispose();
     _text.dispose();
@@ -116,7 +124,7 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
                     hintText: '搜索名称、城市或地址', prefixIcon: Icon(Icons.search)))),
         Expanded(
             child: AnimatedBuilder(
-                animation: _search,
+                animation: Listenable.merge([_search, widget.workspace]),
                 builder: (context, _) {
                   final query = _text.text.trim().toLowerCase();
                   final saved = query.isEmpty

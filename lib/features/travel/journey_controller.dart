@@ -26,9 +26,10 @@ class JourneyLeg {
   const JourneyLeg(
       this.toKey, this.mode, this.distance, this.duration, this.points,
       {this.error});
-  String get summary =>
+  String get estimate =>
       error ??
-      '${journeyModes[mode]} · ${distance >= 1000 ? '${(distance / 1000).toStringAsFixed(1)} km' : '${distance.round()} m'} · ${(duration / 60).ceil()} 分钟';
+      '${distance >= 1000 ? '${(distance / 1000).toStringAsFixed(1)} km' : '${distance.round()} m'} · ${(duration / 60).ceil()} 分钟';
+  String get summary => error ?? '${journeyModes[mode]} · $estimate';
 }
 
 /// Owns an editable snapshot. Failed/conflicting writes never replace that snapshot.
@@ -43,6 +44,7 @@ class JourneyController extends ChangeNotifier {
   int? day = 0;
   bool overview = false;
   String? selectedKey;
+  int viewRevision = 0;
   bool dirty = false;
   bool busy = false;
   bool routing = false;
@@ -62,6 +64,7 @@ class JourneyController extends ChangeNotifier {
 
   Future<void> load() async {
     try {
+      await _writes.catchError((Object _) {});
       final prefs = await SharedPreferences.getInstance();
       final drafts = <Journey>[];
       for (final key in prefs.getKeys().where((k) => k.startsWith(_prefix))) {
@@ -86,6 +89,7 @@ class JourneyController extends ChangeNotifier {
   }
 
   void select(Journey? journey, {bool draft = false}) {
+    viewRevision++;
     _generation++;
     current = journey;
     day = 0;
@@ -121,7 +125,23 @@ class JourneyController extends ChangeNotifier {
       final data = {
         ...value.toJson(),
         'id': value.id,
-        'ownerId': value.ownerId
+        'ownerId': value.ownerId,
+        'stops': value.stops
+            .map((s) => {
+                  ...s.toJson(),
+                  if (s.place != null)
+                    'place': {
+                      'id': s.place!.id,
+                      'name': s.place!.name,
+                      'city': s.place!.city,
+                      'address': s.place!.address,
+                      'lat': s.place!.lat,
+                      'lng': s.place!.lng,
+                      'status': s.place!.status,
+                      'photos': s.place!.photos.take(1).toList(),
+                    }
+                })
+            .toList(),
       };
       if (!await prefs.setString(_key(value), jsonEncode(data))) {
         throw StateError('草稿未能保存');
@@ -154,6 +174,7 @@ class JourneyController extends ChangeNotifier {
             ]
           : current!.dayStops(day);
   void setDay(int? value, {bool all = false}) {
+    viewRevision++;
     day = value;
     overview = all;
     selectedKey = null;
@@ -329,6 +350,36 @@ class JourneyController extends ChangeNotifier {
     if (!_disposed && generation == _generation) {
       routing = false;
       _notify();
+    }
+  }
+
+  JourneyStop? previousStop(JourneyStop stop) {
+    if (stop.day == null || current == null) return null;
+    final stops = current!.dayStops(stop.day);
+    final index = stops.indexWhere((s) => s.key == stop.key);
+    return index > 0 ? stops[index - 1] : null;
+  }
+
+  Future<JourneyLeg> alternative(JourneyStop stop, String mode) async {
+    final j = current;
+    final a = previousStop(stop)?.place;
+    final b = stop.place;
+    if (j == null ||
+        a == null ||
+        b == null ||
+        !hasMapPosition(a) ||
+        !hasMapPosition(b)) {
+      return JourneyLeg(stop.key, mode, 0, 0, const [], error: '缺少可用的起点或终点');
+    }
+    final key = '${a.lng},${a.lat}:${b.lng},${b.lat}:$mode:${j.city}:${a.city}';
+    try {
+      final route = _cache[key] ??
+          await _route(key, a, b, mode, j.city.isNotEmpty ? j.city : a.city);
+      return JourneyLeg(
+          stop.key, mode, route.distance, route.duration, route.points);
+    } catch (e) {
+      return JourneyLeg(stop.key, mode, 0, 0, const [],
+          error: extractServerMessage(e, fallback: '此方式暂不可用'));
     }
   }
 

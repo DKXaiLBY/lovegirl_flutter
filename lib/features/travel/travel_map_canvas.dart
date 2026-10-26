@@ -136,7 +136,7 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
         33,
         Paint()
           ..color = numbered && !selected
-              ? const Color(0xff3398ae)
+              ? const Color(0xff24798e)
               : const Color(0xFF1F2126));
     canvas.drawCircle(
         const Offset(36, 36),
@@ -223,7 +223,9 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
             Polyline(
                 points: leg.points.map((p) => LatLng(p.lat, p.lng)).toList(),
                 color: leg.toKey == widget.selectedStopKey
-                    ? const Color(0xff20242b)
+                    ? (context.lgIsDark
+                        ? const Color(0xfff2f4f6)
+                        : const Color(0xff20242b))
                     : const Color(0xff3398ae),
                 width: 5,
                 capType: CapType.round,

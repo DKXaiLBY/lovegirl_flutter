@@ -41,6 +41,36 @@ void main() {
   });
   tearDownAll(() => fixture.dispose());
 
+  test('painting preserves the caller canvas transform and clipping stack', () {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)
+      ..translate(23, 41)
+      ..save();
+    final transform = canvas.getTransform().toList();
+    final count = canvas.getSaveCount();
+    for (final d in [
+      ...paperTemplates.map((p) => CreationDocument(
+          templateId: p.id, title: 'Title', note: 'Story', date: '2026-10-25')),
+      ...ticketTemplates.map((t) => CreationDocument(
+          kind: 'ticket',
+          templateId: t.id,
+          title: 'Title',
+          note: 'Story',
+          date: '2026-10-25')),
+    ]) {
+      for (final back in [false, true]) {
+        CreationPainter(d, [fixture, fixture], back: back)
+            .paint(canvas, Size(330, 330 / d.aspectRatio));
+        expect(canvas.getSaveCount(), count,
+            reason: '${d.templateId} back=$back');
+        expect(canvas.getTransform().toList(), transform,
+            reason: '${d.templateId} back=$back');
+      }
+    }
+    canvas.restore();
+    recorder.endRecording().dispose();
+  });
+
   test('20 papers, 8 layouts and 12 looks produce distinct actual artwork',
       () async {
     final root = Platform.environment['LOVEGIRL_RENDER_OUTPUT'];
@@ -106,5 +136,58 @@ void main() {
         isNot(sha256.convert(await renderCreation(
             ticket.copyWith(background: Colors.blue, gradient: true), [fixture],
             width: 440))));
+  });
+  test('dark paper and film ticket backs keep their story text light',
+      () async {
+    for (final document in const [
+      CreationDocument(templateId: 'carbon', note: 'Our story'),
+      CreationDocument(
+          kind: 'ticket', templateId: 'filmstrip', note: 'Our story')
+    ]) {
+      final bytes = await renderCreation(document, [], back: true, width: 440);
+      final codec = await ui.instantiateImageCodec(bytes);
+      final image = (await codec.getNextFrame()).image;
+      final pixels =
+          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      var light = 0;
+      for (var y = 30; y < 100; y++) {
+        for (var x = 25; x < 300; x++) {
+          final offset = (y * image.width + x) * 4;
+          if (pixels.getUint8(offset) > 150 &&
+              pixels.getUint8(offset + 1) > 150) {
+            light++;
+          }
+        }
+      }
+      expect(light, greaterThan(100), reason: document.templateId);
+      image.dispose();
+      codec.dispose();
+    }
+  });
+  test('ticket perforations cut into the paper without drawing outer discs',
+      () async {
+    const d = CreationDocument(kind: 'ticket', templateId: 'couple');
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..translate(32, 32);
+    final height = 880 / d.aspectRatio;
+    CreationPainter(d, [fixture, fixture]).paint(canvas, Size(880, height));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(944, (height + 64).ceil());
+    final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    final index = (((32 + height - 80).round() * image.width) + 24) * 4;
+    expect(bytes.getUint8(index + 3), lessThan(128));
+    image.dispose();
+    picture.dispose();
+  });
+  test(
+      'all instant paper photo windows stay square inside their physical margins',
+      () {
+    for (final paper in paperTemplates) {
+      final window =
+          CreationPainter.photoWindows(CreationDocument(templateId: paper.id))
+              .single;
+      expect(window.width, window.height, reason: paper.id);
+      expect(window.bottom, lessThan(865), reason: paper.id);
+    }
   });
 }

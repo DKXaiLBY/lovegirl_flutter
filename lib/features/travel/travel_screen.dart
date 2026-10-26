@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -9,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../screens/travel/china_memory_map_screen.dart';
 import '../../screens/travel/travel_memory_screen.dart';
 import '../../utils/constants.dart';
+import '../../widgets/rebuild_controls.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'place_editor.dart';
 import 'place_picker.dart';
@@ -39,8 +41,9 @@ class _TravelScreenState extends State<TravelScreen> {
   bool _locating = false;
   bool _deleting = false;
   bool _recording = false;
+  bool _adding = false;
   bool _mapReady = false;
-  String _lastJourneyView = '';
+  int _lastJourneyView = -1;
   List<TravelSpot>? _seenPlaces;
 
   @override
@@ -87,8 +90,7 @@ class _TravelScreenState extends State<TravelScreen> {
   void _journeyChanged() {
     if (mounted) setState(() {});
     final j = _journeys.current;
-    final view =
-        '${j?.id ?? j?.clientId}:${_journeys.day}:${_journeys.overview}';
+    final view = _journeys.viewRevision;
     if (view == _lastJourneyView) return;
     _lastJourneyView = view;
     if (j == null) return;
@@ -112,7 +114,7 @@ class _TravelScreenState extends State<TravelScreen> {
       final minLng = points.map((p) => p.lng).reduce(math.min);
       final maxLng = points.map((p) => p.lng).reduce(math.max);
       final span = math.max(maxLng - minLng, maxLat - minLat).clamp(.005, 180);
-      _map.currentState?.focus((minLat + maxLat) / 2, (minLng + maxLng) / 2,
+      _map.currentState?.focus(minLat, (minLng + maxLng) / 2,
           zoom: (math.log(360 / span) / math.ln2 - 1).clamp(3, 15));
     });
   }
@@ -123,32 +125,48 @@ class _TravelScreenState extends State<TravelScreen> {
     if (_workspace.loaded) _journeys.syncPlaces(_workspace.places);
   }
 
-  void _selectStop(JourneyStop stop) {
+  Future<void> _selectStop(JourneyStop stop) async {
     _journeys.selectedKey = stop.key;
     if (mounted) setState(() {});
-    final index = _journeys.visible.indexWhere((s) => s.key == stop.key);
-    if (index >= 0 && _cards.hasClients) {
-      _cards.animateTo(
-          (index * 260.0).clamp(0, _cards.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic);
-    }
     final place = stop.place;
     if (place != null && hasMapPosition(place)) {
       _map.currentState?.focus(place.lat, place.lng);
     }
+    if (_sheet.isAttached && _extent.value > .52) {
+      await _sheet.animateTo(.42,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _journeys.selectedKey != stop.key || !_cards.hasClients) {
+        return;
+      }
+      final index = _journeys.visible.indexWhere((s) => s.key == stop.key);
+      if (index >= 0) {
+        _cards.animateTo(
+            (index * 260.0).clamp(0, _cards.position.maxScrollExtent),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic);
+      }
+    });
   }
 
   Future<void> _addJourneyPlace() async {
-    final result = await Navigator.of(context).push<PlaceChoice>(
-        MaterialPageRoute(
-            builder: (_) => TravelPlaceSearch(workspace: _workspace)));
-    if (result == null || !mounted) return;
-    if (result.saved != null) {
-      _journeys.add(result.saved!);
-      _selectStop(_journeys.current!.stops.last);
-    } else {
-      await _record(result);
+    if (_adding || _journeys.busy) return;
+    _adding = true;
+    try {
+      final result = await Navigator.of(context).push<PlaceChoice>(
+          MaterialPageRoute(
+              builder: (_) => TravelPlaceSearch(workspace: _workspace)));
+      if (result == null || !mounted) return;
+      if (result.saved != null) {
+        _journeys.add(result.saved!);
+        _selectStop(_journeys.current!.stops.last);
+      } else {
+        await _record(result);
+      }
+    } finally {
+      _adding = false;
     }
   }
 
@@ -164,7 +182,7 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _record([PlaceChoice? point]) async {
-    if (_recording) return;
+    if (_recording || _journeys.busy) return;
     _recording = true;
     try {
       final choice = point ??
@@ -178,8 +196,12 @@ class _TravelScreenState extends State<TravelScreen> {
                   TravelPlaceEditor(choice: choice, api: _workspace.api)));
       if (saved == null || !mounted) return;
       _workspace.upsert(saved);
-      if (_journeys.current != null) _journeys.add(saved);
-      _select(saved, focus: true);
+      if (_journeys.current != null) {
+        _journeys.add(saved);
+        _selectStop(_journeys.current!.stops.last);
+      } else {
+        _select(saved, focus: true);
+      }
       _message('地点已保存，照片可以在故事页添加');
       unawaited(_workspace.load(refresh: true));
     } finally {
@@ -200,6 +222,8 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _search() async {
+    if (_journeys.busy) return;
+    if (_journeys.current != null) return _addJourneyPlace();
     final result = await Navigator.of(context).push<PlaceChoice>(
         MaterialPageRoute(
             builder: (_) => TravelPlaceSearch(workspace: _workspace)));
@@ -316,44 +340,45 @@ class _TravelScreenState extends State<TravelScreen> {
         (initial != null && hasMapPosition(initial)
             ? TravelCamera(initial.lat, initial.lng, 15)
             : const TravelCamera(35.86, 104.20, 4));
-    return Scaffold(
-      body: LayoutBuilder(
-          builder: (context, constraints) => Stack(children: [
-                Positioned.fill(
-                    child: AnimatedBuilder(
-                        animation: _workspace,
-                        builder: (context, _) => TravelMapCanvas(
-                            key: _map,
-                            initialCamera: initialCamera,
-                            places: _workspace.visiblePlaces,
-                            journeyStops: _journeys.current == null
-                                ? null
-                                : _journeys.visible,
-                            journeyLegs: _journeys.legs,
-                            selectedStopKey: _journeys.selectedKey,
-                            onStopSelect: _selectStop,
-                            selectedId: _workspace.selectedId,
-                            onCameraSettled: (value) =>
-                                _workspace.camera = value,
-                            onSelect: _select,
-                            onPick: _previewNew,
-                            onReady: () {
-                              if (mounted) setState(() => _mapReady = true);
-                              widget.onMapReady?.call();
-                            }))),
-                Positioned(
-                    top: 0,
-                    left: 12,
-                    right: 12,
-                    child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Material(
-                                color: context.lgPaper,
-                                elevation: 3,
-                                borderRadius: BorderRadius.circular(22),
-                                child: Row(children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: context.lgIsDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          body: LayoutBuilder(
+              builder: (context, constraints) => Stack(children: [
+                    Positioned.fill(
+                        child: AnimatedBuilder(
+                            animation: _workspace,
+                            builder: (context, _) => TravelMapCanvas(
+                                key: _map,
+                                initialCamera: initialCamera,
+                                places: _workspace.visiblePlaces,
+                                journeyStops: _journeys.current == null
+                                    ? null
+                                    : _journeys.visible,
+                                journeyLegs: _journeys.legs,
+                                selectedStopKey: _journeys.selectedKey,
+                                onStopSelect: _selectStop,
+                                selectedId: _workspace.selectedId,
+                                onCameraSettled: (value) =>
+                                    _workspace.camera = value,
+                                onSelect: _select,
+                                onPick: _previewNew,
+                                onReady: () {
+                                  if (mounted) setState(() => _mapReady = true);
+                                  widget.onMapReady?.call();
+                                }))),
+                    Positioned(
+                        top: 0,
+                        left: 12,
+                        right: 12,
+                        child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: RebuildGlass(
+                                    child: Row(children: [
                                   if (!widget.embedded)
                                     IconButton(
                                         tooltip: '返回',
@@ -374,7 +399,11 @@ class _TravelScreenState extends State<TravelScreen> {
                                                     color: context.lgInk),
                                                 const SizedBox(width: 10),
                                                 Flexible(
-                                                    child: Text('搜索地点或城市',
+                                                    child: Text(
+                                                        _journeys.current ==
+                                                                null
+                                                            ? '搜索地点或城市'
+                                                            : '找地点，加入行程',
                                                         style: TextStyle(
                                                             color: context
                                                                 .lgTextSecondary))),
@@ -391,288 +420,303 @@ class _TravelScreenState extends State<TravelScreen> {
                                       onPressed: _overview,
                                       icon: const Icon(Icons.public_outlined)),
                                 ]))))),
-                ValueListenableBuilder<double>(
-                    valueListenable: _extent,
-                    builder: (context, extent, _) => Positioned(
-                        right: 16,
-                        bottom: constraints.maxHeight * extent + 14,
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              FloatingActionButton.small(
-                                  heroTag: 'travel_location',
-                                  tooltip: '定位到我',
-                                  backgroundColor: context.lgPaper,
-                                  foregroundColor: context.lgInk,
-                                  onPressed:
-                                      _locating || !_mapReady ? null : _locate,
-                                  child: _locating
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2))
-                                      : const Icon(Icons.my_location_outlined)),
-                              const SizedBox(height: 10),
-                              FloatingActionButton.extended(
-                                  heroTag: 'travel_record',
-                                  backgroundColor: context.lgInk,
-                                  foregroundColor: context.lgPaper,
-                                  onPressed: _journeys.current == null
-                                      ? _record
-                                      : _addJourneyPlace,
-                                  icon: const Icon(
-                                      Icons.add_location_alt_outlined),
-                                  label: Text(_journeys.current == null
-                                      ? '记地点'
-                                      : '加一站')),
-                            ]))),
-                NotificationListener<DraggableScrollableNotification>(
-                  onNotification: (notification) {
-                    _extent.value = notification.extent;
-                    return true;
-                  },
-                  child: DraggableScrollableSheet(
-                      controller: _sheet,
-                      initialChildSize: .30,
-                      minChildSize: .16,
-                      maxChildSize: .78,
-                      snap: true,
-                      snapSizes: const [.16, .30, .42, .78],
-                      builder: (context, scrollController) => Material(
-                          color: context.lgPaper,
-                          elevation: 8,
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(26)),
-                          clipBehavior: Clip.antiAlias,
-                          child: _journeys.current != null
-                              ? ValueListenableBuilder<double>(
-                                  valueListenable: _extent,
-                                  builder: (context, extent, _) => JourneyPanel(
-                                      controller: _journeys,
-                                      scrollController: scrollController,
-                                      cardsController: _cards,
-                                      expanded: extent > .52,
-                                      onSelect: _selectStop,
-                                      onAdd: _addJourneyPlace,
-                                      onStory: _story))
-                              : AnimatedBuilder(
-                                  animation: _workspace,
-                                  builder: (context, _) {
-                                    final places = _workspace.visiblePlaces;
-                                    final selected = _workspace.selected;
-                                    return CustomScrollView(
-                                        controller: scrollController,
-                                        slivers: [
-                                          SliverToBoxAdapter(
-                                              child: Column(children: [
-                                            const SizedBox(height: 10),
-                                            Container(
-                                                width: 36,
-                                                height: 4,
-                                                decoration: BoxDecoration(
-                                                    color: context.lgSeparator,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4))),
-                                            Padding(
-                                                padding:
-                                                    const EdgeInsets.fromLTRB(
+                    ValueListenableBuilder<double>(
+                        valueListenable: _extent,
+                        builder: (context, extent, _) => extent > .60
+                            ? const SizedBox.shrink()
+                            : Positioned(
+                                right: 16,
+                                bottom: constraints.maxHeight * extent + 14,
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      FloatingActionButton.small(
+                                          heroTag: 'travel_location',
+                                          tooltip: '定位到我',
+                                          backgroundColor: context.lgPaper,
+                                          foregroundColor: context.lgInk,
+                                          onPressed: _locating || !_mapReady
+                                              ? null
+                                              : _locate,
+                                          child: _locating
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2))
+                                              : const Icon(
+                                                  Icons.my_location_outlined)),
+                                      const SizedBox(height: 10),
+                                      FloatingActionButton.extended(
+                                          heroTag: 'travel_record',
+                                          backgroundColor: context.lgInk,
+                                          foregroundColor: context.lgPaper,
+                                          onPressed: _journeys.current == null
+                                              ? _record
+                                              : _addJourneyPlace,
+                                          icon: const Icon(
+                                              Icons.add_location_alt_outlined),
+                                          label: Text(_journeys.current == null
+                                              ? '记地点'
+                                              : '加一站')),
+                                    ]))),
+                    NotificationListener<DraggableScrollableNotification>(
+                      onNotification: (notification) {
+                        _extent.value = notification.extent;
+                        return true;
+                      },
+                      child: DraggableScrollableSheet(
+                          controller: _sheet,
+                          initialChildSize: .30,
+                          minChildSize: .16,
+                          maxChildSize: .78,
+                          snap: true,
+                          snapSizes: const [.16, .30, .42, .78],
+                          builder: (context, scrollController) => Material(
+                              color: context.lgPaper,
+                              elevation: 8,
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(26)),
+                              clipBehavior: Clip.antiAlias,
+                              child: _journeys.current != null
+                                  ? ValueListenableBuilder<double>(
+                                      valueListenable: _extent,
+                                      builder: (context, extent, _) =>
+                                          JourneyPanel(
+                                              controller: _journeys,
+                                              scrollController:
+                                                  scrollController,
+                                              cardsController: _cards,
+                                              expanded: extent > .52,
+                                              onSelect: _selectStop,
+                                              onAdd: _addJourneyPlace,
+                                              onStory: _story))
+                                  : AnimatedBuilder(
+                                      animation: _workspace,
+                                      builder: (context, _) {
+                                        final places = _workspace.visiblePlaces;
+                                        final selected = _workspace.selected;
+                                        return CustomScrollView(
+                                            controller: scrollController,
+                                            slivers: [
+                                              SliverToBoxAdapter(
+                                                  child: Column(children: [
+                                                const SizedBox(height: 10),
+                                                Container(
+                                                    width: 36,
+                                                    height: 4,
+                                                    decoration: BoxDecoration(
+                                                        color:
+                                                            context.lgSeparator,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(4))),
+                                                Padding(
+                                                    padding: const EdgeInsets
+                                                        .fromLTRB(
                                                         20, 12, 10, 4),
-                                                child: Row(children: [
-                                                  Expanded(
-                                                      child: Text(
-                                                          selected == null
-                                                              ? '我的地点'
-                                                              : selected.name,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: TextStyle(
-                                                              fontSize: 20,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: context
-                                                                  .lgTextPrimary))),
-                                                  if (selected != null)
-                                                    IconButton(
-                                                        tooltip: '返回地点列表',
-                                                        onPressed: () =>
-                                                            _workspace
-                                                                .select(null),
-                                                        icon: const Icon(
-                                                            Icons.close))
-                                                  else
-                                                    IconButton(
-                                                        tooltip: '刷新地点',
-                                                        onPressed: _workspace
-                                                                .loading
-                                                            ? null
-                                                            : () =>
+                                                    child: Row(children: [
+                                                      Expanded(
+                                                          child: Text(
+                                                              selected == null
+                                                                  ? '我的地点'
+                                                                  : selected
+                                                                      .name,
+                                                              maxLines: 1,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: TextStyle(
+                                                                  fontSize: 20,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  color: context
+                                                                      .lgTextPrimary))),
+                                                      if (selected != null)
+                                                        IconButton(
+                                                            tooltip: '返回地点列表',
+                                                            onPressed: () =>
+                                                                _workspace
+                                                                    .select(
+                                                                        null),
+                                                            icon: const Icon(
+                                                                Icons.close))
+                                                      else
+                                                        IconButton(
+                                                            tooltip: '刷新地点',
+                                                            onPressed: _workspace
+                                                                    .loading
+                                                                ? null
+                                                                : () => _workspace
+                                                                    .load(
+                                                                        refresh:
+                                                                            true),
+                                                            icon: const Icon(
+                                                                Icons.refresh)),
+                                                    ])),
+                                                if (_workspace.loading)
+                                                  const LinearProgressIndicator(
+                                                      minHeight: 2),
+                                                if (_workspace.error != null)
+                                                  Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16),
+                                                      child: Row(children: [
+                                                        Expanded(
+                                                            child: Text(
+                                                                _workspace
+                                                                    .error!,
+                                                                style: const TextStyle(
+                                                                    color: LoveGirlTheme
+                                                                        .red))),
+                                                        TextButton(
+                                                            onPressed: () =>
                                                                 _workspace.load(
                                                                     refresh:
                                                                         true),
-                                                        icon: const Icon(
-                                                            Icons.refresh)),
-                                                ])),
-                                            if (_workspace.loading)
-                                              const LinearProgressIndicator(
-                                                  minHeight: 2),
-                                            if (_workspace.error != null)
-                                              Padding(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 16),
-                                                  child: Row(children: [
-                                                    Expanded(
-                                                        child: Text(
-                                                            _workspace.error!,
-                                                            style: const TextStyle(
-                                                                color:
-                                                                    LoveGirlTheme
-                                                                        .red))),
-                                                    TextButton(
-                                                        onPressed: () =>
-                                                            _workspace.load(
-                                                                refresh: true),
-                                                        child:
-                                                            const Text('重试')),
-                                                  ])),
-                                            if (selected == null)
-                                              SingleChildScrollView(
-                                                  scrollDirection:
-                                                      Axis.horizontal,
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 16),
-                                                  child: Row(children: [
-                                                    for (final filter in [
-                                                      ('', '全部'),
-                                                      ('wish', '想去'),
-                                                      ('planned', '计划中'),
-                                                      ('visited', '已去')
-                                                    ])
-                                                      Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                  right: 8),
-                                                          child: ChoiceChip(
-                                                              showCheckmark:
-                                                                  false,
-                                                              selectedColor:
-                                                                  context.lgInk,
-                                                              backgroundColor:
-                                                                  context
-                                                                      .lgPaper,
-                                                              labelStyle: TextStyle(
-                                                                  color: _workspace.status ==
-                                                                          filter
-                                                                              .$1
-                                                                      ? context
-                                                                          .lgPaper
-                                                                      : context
-                                                                          .lgInk),
-                                                              shape:
-                                                                  const StadiumBorder(),
-                                                              side: BorderSide(
-                                                                  color: context
-                                                                      .lgSeparator),
-                                                              label:
-                                                                  Text(filter.$2),
-                                                              selected: _workspace.status == filter.$1,
-                                                              onSelected: (_) => _workspace.setStatus(filter.$1))),
-                                                  ])),
-                                          ])),
-                                          if (selected != null)
-                                            SliverToBoxAdapter(
-                                                child: Padding(
-                                                    padding: const EdgeInsets
-                                                        .fromLTRB(
-                                                        20, 8, 20, 32),
-                                                    child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .stretch,
-                                                        children: [
-                                                          _PlaceRow(
-                                                              place: selected,
-                                                              onTap: () =>
-                                                                  _story(
-                                                                      selected)),
-                                                          const SizedBox(
-                                                              height: 12),
-                                                          FilledButton(
-                                                              style: FilledButton.styleFrom(
-                                                                  backgroundColor:
+                                                            child: const Text(
+                                                                '重试')),
+                                                      ])),
+                                                if (selected == null)
+                                                  SingleChildScrollView(
+                                                      scrollDirection:
+                                                          Axis.horizontal,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16),
+                                                      child: Row(children: [
+                                                        for (final filter in [
+                                                          ('', '全部'),
+                                                          ('wish', '想去'),
+                                                          ('planned', '计划中'),
+                                                          ('visited', '已去')
+                                                        ])
+                                                          Padding(
+                                                              padding:
+                                                                  const EdgeInsets.only(
+                                                                      right: 8),
+                                                              child: ChoiceChip(
+                                                                  showCheckmark:
+                                                                      false,
+                                                                  selectedColor:
                                                                       context
                                                                           .lgInk,
-                                                                  foregroundColor:
+                                                                  backgroundColor:
                                                                       context
-                                                                          .lgPaper),
-                                                              onPressed: () =>
-                                                                  _story(
-                                                                      selected),
-                                                              child: const Text(
-                                                                  '照片与故事')),
-                                                          Row(children: [
-                                                            TextButton.icon(
-                                                                style: TextButton.styleFrom(
-                                                                    foregroundColor:
-                                                                        context
-                                                                            .lgInk),
-                                                                onPressed: () =>
-                                                                    _edit(
-                                                                        selected),
-                                                                icon: const Icon(
-                                                                    Icons
-                                                                        .edit_outlined),
-                                                                label:
-                                                                    const Text(
+                                                                          .lgPaper,
+                                                                  labelStyle: TextStyle(
+                                                                      color: _workspace.status == filter.$1
+                                                                          ? context
+                                                                              .lgPaper
+                                                                          : context
+                                                                              .lgInk),
+                                                                  shape:
+                                                                      const StadiumBorder(),
+                                                                  side: BorderSide(
+                                                                      color: context
+                                                                          .lgSeparator),
+                                                                  label: Text(
+                                                                      filter.$2),
+                                                                  selected: _workspace.status == filter.$1,
+                                                                  onSelected: (_) => _workspace.setStatus(filter.$1))),
+                                                      ])),
+                                              ])),
+                                              if (selected != null)
+                                                SliverToBoxAdapter(
+                                                    child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .fromLTRB(
+                                                                20, 8, 20, 32),
+                                                        child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .stretch,
+                                                            children: [
+                                                              _PlaceRow(
+                                                                  place:
+                                                                      selected,
+                                                                  onTap: () =>
+                                                                      _story(
+                                                                          selected)),
+                                                              const SizedBox(
+                                                                  height: 12),
+                                                              FilledButton(
+                                                                  style: FilledButton.styleFrom(
+                                                                      backgroundColor:
+                                                                          context
+                                                                              .lgInk,
+                                                                      foregroundColor:
+                                                                          context
+                                                                              .lgPaper),
+                                                                  onPressed: () =>
+                                                                      _story(
+                                                                          selected),
+                                                                  child: const Text(
+                                                                      '照片与故事')),
+                                                              Row(children: [
+                                                                TextButton.icon(
+                                                                    style: TextButton.styleFrom(
+                                                                        foregroundColor:
+                                                                            context
+                                                                                .lgInk),
+                                                                    onPressed: () =>
+                                                                        _edit(
+                                                                            selected),
+                                                                    icon: const Icon(
+                                                                        Icons
+                                                                            .edit_outlined),
+                                                                    label: const Text(
                                                                         '编辑地点')),
-                                                            const Spacer(),
-                                                            TextButton.icon(
-                                                                style: TextButton.styleFrom(
-                                                                    foregroundColor:
-                                                                        context
+                                                                const Spacer(),
+                                                                TextButton.icon(
+                                                                    style: TextButton.styleFrom(
+                                                                        foregroundColor: context
                                                                             .lgInk),
-                                                                onPressed: _deleting
-                                                                    ? null
-                                                                    : () => _delete(
-                                                                        selected),
-                                                                icon: const Icon(
-                                                                    Icons
-                                                                        .delete_outline),
-                                                                label: Text(
-                                                                    _deleting
+                                                                    onPressed: _deleting
+                                                                        ? null
+                                                                        : () => _delete(
+                                                                            selected),
+                                                                    icon: const Icon(
+                                                                        Icons
+                                                                            .delete_outline),
+                                                                    label: Text(_deleting
                                                                         ? '删除中…'
                                                                         : '删除')),
-                                                          ]),
-                                                        ])))
-                                          else if (places.isEmpty)
-                                            const SliverToBoxAdapter(
-                                                child: Padding(
-                                                    padding:
-                                                        EdgeInsets.fromLTRB(
-                                                            24, 20, 24, 40),
-                                                    child: Text(
-                                                        '还没有这些地点。搜索或长按地图，就可以记下想去的地方。')))
-                                          else
-                                            SliverList.builder(
-                                                itemCount: places.length,
-                                                itemBuilder: (context, index) =>
-                                                    _PlaceRow(
-                                                        place: places[index],
-                                                        onTap: () => _select(
-                                                            places[index],
-                                                            focus: true))),
-                                          const SliverToBoxAdapter(
-                                              child: SizedBox(height: 24)),
-                                        ]);
-                                  }))),
-                ),
-              ])),
-    );
+                                                              ]),
+                                                            ])))
+                                              else if (places.isEmpty)
+                                                const SliverToBoxAdapter(
+                                                    child: Padding(
+                                                        padding:
+                                                            EdgeInsets.fromLTRB(
+                                                                24, 20, 24, 40),
+                                                        child: Text(
+                                                            '还没有这些地点。搜索或长按地图，就可以记下想去的地方。')))
+                                              else
+                                                SliverList.builder(
+                                                    itemCount: places.length,
+                                                    itemBuilder: (context,
+                                                            index) =>
+                                                        _PlaceRow(
+                                                            place:
+                                                                places[index],
+                                                            onTap: () =>
+                                                                _select(
+                                                                    places[
+                                                                        index],
+                                                                    focus:
+                                                                        true))),
+                                              const SliverToBoxAdapter(
+                                                  child: SizedBox(height: 24)),
+                                            ]);
+                                      }))),
+                    ),
+                  ])),
+        ));
   }
 }
 

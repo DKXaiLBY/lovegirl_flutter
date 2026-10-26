@@ -1,3 +1,4 @@
+import '../../widgets/rebuild_controls.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -6,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../services/api_service.dart';
@@ -16,6 +18,7 @@ import 'creation_catalog.dart';
 import 'creation_document.dart';
 import 'creation_drafts.dart';
 import 'creation_files.dart';
+import 'creation_preview.dart';
 
 class CreationEditor extends StatefulWidget {
   final CreationDraft draft;
@@ -29,6 +32,8 @@ class _CreationEditorState extends State<CreationEditor> {
   late CreationDraft _draft = widget.draft;
   List<ui.Image> _images = [];
   final _api = ApiService();
+  late final ScrollController _templateScroll;
+  late final ScrollController _lookScroll;
   final _undo = <CreationDocument>[];
   final _redo = <CreationDocument>[];
   int _tab = 0;
@@ -39,6 +44,7 @@ class _CreationEditorState extends State<CreationEditor> {
   bool _loading = true;
   bool _saved = true;
   bool _saveFailed = false;
+  bool _conflicted = false;
   double _penWidth = .006;
   Color _penColor = const Color(0xff22252b);
   CreationInk? _active;
@@ -52,6 +58,17 @@ class _CreationEditorState extends State<CreationEditor> {
   @override
   void initState() {
     super.initState();
+    final templates = (_d.kind == 'ticket'
+            ? ticketTemplates.map((v) => v.id)
+            : paperTemplates.map((v) => v.id))
+        .toList();
+    _templateScroll = ScrollController(
+        initialScrollOffset:
+            math.max(0, templates.indexOf(_d.templateId)) * 102.0);
+    _lookScroll = ScrollController(
+        initialScrollOffset:
+            math.max(0, creationLooks.indexWhere((v) => v.id == _d.lookId)) *
+                96.0);
     unawaited(_load());
   }
 
@@ -83,6 +100,8 @@ class _CreationEditorState extends State<CreationEditor> {
     for (final image in _images) {
       image.dispose();
     }
+    _templateScroll.dispose();
+    _lookScroll.dispose();
     super.dispose();
   }
 
@@ -134,9 +153,67 @@ class _CreationEditorState extends State<CreationEditor> {
     _change(from.removeLast(), history: false);
   }
 
+  int get _inkPoints => (_back ? _d.backInk : _d.frontInk)
+      .fold(0, (sum, s) => sum + s.points.length);
+
+  void _startInk(Offset point) {
+    if (_eraser) {
+      _undo.add(_d);
+      _redo.clear();
+      _eraseAt(point);
+      return;
+    }
+    if (_inkPoints >= 20000 ||
+        (_back ? _d.backInk : _d.frontInk).length >= 800) {
+      _message('笔迹已达到上限，可以撤销或擦除后继续');
+      return;
+    }
+    setState(() => _active =
+        CreationInk(points: [point], width: _penWidth, color: _penColor));
+  }
+
+  void _eraseAt(Offset point) {
+    final strokes = (_back ? _d.backInk : _d.frontInk)
+        .where((s) => !s.points.any((p) => (p - point).distance < .035))
+        .toList();
+    setState(() => _draft = _draft.copyWith(
+        document: _back
+            ? _d.copyWith(backInk: strokes)
+            : _d.copyWith(frontInk: strokes)));
+  }
+
+  void _moveInk(Offset point) {
+    if (_eraser) {
+      _eraseAt(point);
+      return;
+    }
+    final active = _active;
+    if (active == null ||
+        active.points.length >= math.min(2000, 20000 - _inkPoints)) {
+      return;
+    }
+    if ((active.points.last - point).distance < .001) return;
+    setState(() => _active = CreationInk(
+        points: [...active.points, point],
+        width: active.width,
+        color: active.color));
+  }
+
+  void _finishInk() {
+    if (_active != null) {
+      final strokes = [...(_back ? _d.backInk : _d.frontInk), _active!];
+      _change(_back
+          ? _d.copyWith(backInk: strokes)
+          : _d.copyWith(frontInk: strokes));
+      setState(() => _active = null);
+    } else {
+      unawaited(_save());
+    }
+  }
+
   Future<void> _text() async {
-    final title = TextEditingController(text: _d.title);
-    final note = TextEditingController(text: _d.note);
+    var title = _d.title;
+    var note = _d.note;
     String? date = _d.date;
     final accepted = await showDialog<bool>(
         context: context,
@@ -145,12 +222,14 @@ class _CreationEditorState extends State<CreationEditor> {
                   title: const Text('记录这一刻'),
                   content: SingleChildScrollView(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    TextField(
-                        controller: title,
+                    TextFormField(
+                        initialValue: title,
+                        onChanged: (v) => title = v,
                         maxLength: 100,
                         decoration: const InputDecoration(labelText: '正面标题')),
-                    TextField(
-                        controller: note,
+                    TextFormField(
+                        initialValue: note,
+                        onChanged: (v) => note = v,
                         maxLength: 2000,
                         minLines: 3,
                         maxLines: 7,
@@ -158,6 +237,7 @@ class _CreationEditorState extends State<CreationEditor> {
                             labelText:
                                 _d.kind == 'ticket' ? '票根文字／背面故事' : '背面故事')),
                     TextButton.icon(
+                        style: rebuildTextStyle(context),
                         onPressed: () async {
                           final picked = await showDatePicker(
                               context: context,
@@ -173,24 +253,24 @@ class _CreationEditorState extends State<CreationEditor> {
                         icon: const Icon(Icons.calendar_today_outlined),
                         label: Text(date?.isNotEmpty == true ? date! : '选择日期')),
                     TextButton(
+                        style: rebuildTextStyle(context),
                         onPressed: () => setDialog(() => date = ''),
                         child: const Text('不显示日期')),
                   ])),
                   actions: [
                     TextButton(
+                        style: rebuildTextStyle(context),
                         onPressed: () => Navigator.pop(context, false),
                         child: const Text('取消')),
                     FilledButton(
+                        style: rebuildFilledStyle(context),
                         onPressed: () => Navigator.pop(context, true),
                         child: const Text('完成'))
                   ],
                 )));
     if (accepted == true && mounted) {
-      _change(_d.copyWith(
-          title: title.text.trim(), note: note.text.trim(), date: date));
+      _change(_d.copyWith(title: title.trim(), note: note.trim(), date: date));
     }
-    title.dispose();
-    note.dispose();
   }
 
   Future<void> _link() async {
@@ -230,7 +310,45 @@ class _CreationEditorState extends State<CreationEditor> {
     }
   }
 
+  Future<void> _openLatest() async {
+    if (_draft.workId == null || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.store.save(_draft);
+      final r = await _api.getCreation(_draft.workId!);
+      final work =
+          CreationWork.fromJson(Map<String, dynamic>.from(r.data['data']));
+      final next = await draftFromRemote(
+          widget.store, work.document, work.sourceUrls,
+          workId: work.id,
+          revision: work.revision,
+          tripId: work.tripId,
+          tripTitle: work.tripTitle);
+      if (mounted) Navigator.pop(context, next);
+    } catch (_) {
+      _message('新版作品读取失败，当前输入仍在草稿中');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _saveAsNew() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await widget.store.save(_draft);
+      final next = await widget.store.create(_d, _draft.sourcePaths,
+          tripId: _draft.tripId, tripTitle: _draft.tripTitle);
+      if (mounted) Navigator.pop(context, next);
+    } catch (_) {
+      _message('草稿未能另存，原草稿仍然保留');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _export() async {
+    if (_active != null) _finishInk();
     setState(() => _busy = true);
     try {
       final bytes = await renderCreation(_d, _images, back: _back);
@@ -249,9 +367,11 @@ class _CreationEditorState extends State<CreationEditor> {
                     content: const Text('系统相册未能写入，文件已保存在 App 内，可以打开图片后另存。'),
                     actions: [
                       TextButton(
+                          style: rebuildTextStyle(context),
                           onPressed: () => Navigator.pop(context, false),
                           child: const Text('稍后')),
                       FilledButton(
+                          style: rebuildFilledStyle(context),
                           onPressed: () => Navigator.pop(context, true),
                           child: const Text('打开图片'))
                     ]));
@@ -264,8 +384,42 @@ class _CreationEditorState extends State<CreationEditor> {
     }
   }
 
+  Future<void> _replacePhoto() async {
+    if (_busy || _loading || _loadError != null) return;
+    if (_active != null) _finishInk();
+    setState(() => _busy = true);
+    ui.Image? replacement;
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked == null || !mounted) return;
+      replacement = (await decodeCreationImages([picked.path])).single;
+      final index = _cropIndex.clamp(0, _images.length - 1);
+      final next = await widget.store.replaceSource(_draft, index, picked.path);
+      if (!mounted) return;
+      final previous = _images[index];
+      setState(() {
+        _draft = next;
+        _images = [..._images]..[index] = replacement!;
+        _undo.clear();
+        _redo.clear();
+        _saved = true;
+        _saveFailed = false;
+        _saveGeneration++;
+      });
+      replacement = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+      _message('照片已更换，文字和笔迹已保留');
+    } catch (_) {
+      _message('更换失败，原照片和草稿仍然保留');
+    } finally {
+      replacement?.dispose();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _publish() async {
     if (_busy || _loading || _loadError != null) return;
+    if (_active != null) _finishInk();
     if (_draft.sourcePaths.length < _d.minimumPhotos) {
       _message('这个版式需要至少 ${_d.minimumPhotos} 张照片，请返回选择照片后制作');
       return;
@@ -278,14 +432,17 @@ class _CreationEditorState extends State<CreationEditor> {
           clientId: _draft.id,
           document: _d.toJson(),
           preview: bytes,
-          sourcePaths: _draft.sourcePaths,
+          sourcePaths: _draft.workId == null || _draft.sourcesChanged
+              ? _draft.sourcePaths
+              : const [],
           id: _draft.workId,
           revision: _draft.revision,
           tripId: _draft.tripId);
       final work = CreationWork.fromJson(
           Map<String, dynamic>.from(response.data['data']));
       // Persist the acknowledgement before removing the draft; retry cannot duplicate it.
-      _draft = _draft.copyWith(workId: work.id, revision: work.revision);
+      _draft = _draft.copyWith(
+          workId: work.id, revision: work.revision, sourcesChanged: false);
       await widget.store.save(_draft);
       await widget.store.delete(_draft.id);
       if (mounted) {
@@ -303,16 +460,20 @@ class _CreationEditorState extends State<CreationEditor> {
           if (matches.isNotEmpty) {
             final work =
                 CreationWork.fromJson(Map<String, dynamic>.from(matches.first));
-            _draft = _draft.copyWith(workId: work.id, revision: work.revision);
+            _draft = _draft.copyWith(
+                workId: work.id, revision: 1, sourcesChanged: true);
             await widget.store.save(_draft);
             _message('上次收藏已完成，当前修改仍在草稿中；再次收藏即可更新');
             return;
           }
         } catch (_) {/* The original draft remains recoverable. */}
       }
+      if (error.response?.statusCode == 409 && mounted) {
+        setState(() => _conflicted = true);
+      }
       _message(error.response?.statusCode == 409
           ? '作品或关联行程已变化。当前输入已保留为草稿，请刷新作品后再编辑；也可以取消旅行关联后另存。'
-          : '收藏失败，草稿已保留，请检查网络后重试');
+          : extractServerMessage(error, fallback: '收藏失败，草稿已保留，请检查网络后重试'));
     } catch (_) {
       _message('收藏未完成，草稿仍然保留');
     } finally {
@@ -322,6 +483,7 @@ class _CreationEditorState extends State<CreationEditor> {
 
   Future<bool> _leave() async {
     if (_busy) return false;
+    if (_active != null) _finishInk();
     try {
       await widget.store.save(_draft);
       return true;
@@ -334,9 +496,11 @@ class _CreationEditorState extends State<CreationEditor> {
                       content: const Text('存储空间可能不足，离开会失去本次未保存修改。'),
                       actions: [
                         TextButton(
+                            style: rebuildTextStyle(context),
                             onPressed: () => Navigator.pop(context, false),
                             child: const Text('继续编辑')),
                         TextButton(
+                            style: rebuildTextStyle(context),
                             onPressed: () => Navigator.pop(context, true),
                             child: const Text('仍然离开'))
                       ])) ??
@@ -355,6 +519,9 @@ class _CreationEditorState extends State<CreationEditor> {
         child: Scaffold(
           backgroundColor: context.lgBg,
           appBar: AppBar(
+              systemOverlayStyle: context.lgIsDark
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark,
               title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -387,6 +554,7 @@ class _CreationEditorState extends State<CreationEditor> {
                 Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: FilledButton(
+                        style: rebuildFilledStyle(context),
                         onPressed: _busy || _loading || _loadError != null
                             ? null
                             : _publish,
@@ -427,173 +595,114 @@ class _CreationEditorState extends State<CreationEditor> {
                                     child: SizedBox.fromSize(
                                         size: size,
                                         child: GestureDetector(
+                                          onLongPress: _busy ||
+                                                  _drawing ||
+                                                  _loading ||
+                                                  _loadError != null
+                                              ? null
+                                              : () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (_) => CreationPreview(
+                                                          document: _d,
+                                                          initialBack: _back,
+                                                          front: CreationArtwork(
+                                                              document: _d,
+                                                              images:
+                                                                  _images)))),
                                           onTap: _busy
                                               ? null
                                               : () {
                                                   if (!_drawing) _text();
                                                 },
-                                          onScaleStart: _busy
+                                          onScaleStart: _busy || _drawing
                                               ? null
                                               : (details) {
-                                                  if (_drawing) {
-                                                    final point = normalized(
-                                                        details
-                                                            .localFocalPoint);
-                                                    if (_eraser) {
-                                                      final strokes = (_back
-                                                              ? _d.backInk
-                                                              : _d.frontInk)
-                                                          .where((s) => !s
-                                                              .points
-                                                              .any((p) =>
-                                                                  (p - point)
-                                                                      .distance <
-                                                                  .04))
-                                                          .toList();
-                                                      _change(_back
-                                                          ? _d.copyWith(
-                                                              backInk: strokes)
-                                                          : _d.copyWith(
-                                                              frontInk:
-                                                                  strokes));
-                                                    } else {
-                                                      setState(() => _active =
-                                                          CreationInk(
-                                                              points: [point],
-                                                              width: _penWidth,
-                                                              color:
-                                                                  _penColor));
-                                                    }
-                                                  } else if (!_back) {
-                                                    _undo.add(_d);
-                                                    _redo.clear();
-                                                    _cropStart = _d
-                                                        .transforms[_cropIndex];
-                                                    _cropFocal =
-                                                        details.localFocalPoint;
+                                                  if (_back) return;
+                                                  final point = Offset(
+                                                      details.localFocalPoint
+                                                              .dx /
+                                                          size.width *
+                                                          880,
+                                                      details.localFocalPoint
+                                                              .dy /
+                                                          size.height *
+                                                          (880 /
+                                                              _d.aspectRatio));
+                                                  final index = CreationPainter
+                                                          .photoWindows(_d)
+                                                      .indexWhere((window) =>
+                                                          window
+                                                              .contains(point));
+                                                  if (index >= 0 &&
+                                                      index <
+                                                          _d.transforms
+                                                              .length) {
+                                                    _cropIndex = index;
                                                   }
+                                                  _undo.add(_d);
+                                                  _redo.clear();
+                                                  _cropStart =
+                                                      _d.transforms[_cropIndex];
+                                                  _cropFocal =
+                                                      details.localFocalPoint;
                                                 },
-                                          onScaleUpdate: _busy
+                                          onScaleUpdate: _busy || _drawing
                                               ? null
                                               : (details) {
-                                                  if (_drawing &&
-                                                      !_eraser &&
-                                                      _active != null) {
-                                                    if (_active!
-                                                            .points.length >=
-                                                        math.min(
-                                                            2000,
-                                                            20000 -
-                                                                (_back
-                                                                        ? _d
-                                                                            .backInk
-                                                                        : _d
-                                                                            .frontInk)
-                                                                    .fold<int>(
-                                                                        0,
-                                                                        (sum, s) =>
-                                                                            sum +
-                                                                            s.points.length))) {
-                                                      return;
-                                                    }
-                                                    setState(() => _active =
-                                                            CreationInk(
-                                                                points: [
-                                                              ..._active!
-                                                                  .points,
-                                                              normalized(details
-                                                                  .localFocalPoint)
-                                                            ],
-                                                                width:
-                                                                    _penWidth,
-                                                                color:
-                                                                    _penColor));
-                                                  } else if (_drawing &&
-                                                      _eraser) {
-                                                    final point = normalized(
-                                                        details
-                                                            .localFocalPoint);
-                                                    final strokes = (_back
-                                                            ? _d.backInk
-                                                            : _d.frontInk)
-                                                        .where((stroke) => !stroke
-                                                            .points
-                                                            .any((p) =>
-                                                                (p - point)
-                                                                    .distance <
-                                                                .04))
-                                                        .toList();
-                                                    setState(() => _draft =
-                                                        _draft.copyWith(
-                                                            document: _back
-                                                                ? _d.copyWith(
-                                                                    backInk:
-                                                                        strokes)
-                                                                : _d.copyWith(
-                                                                    frontInk:
-                                                                        strokes)));
-                                                  } else if (!_drawing &&
-                                                      !_back) {
-                                                    final delta = details
-                                                            .localFocalPoint -
-                                                        _cropFocal;
-                                                    final crops =
-                                                        _d.transforms.toList();
-                                                    crops[_cropIndex] = CreationCrop(
-                                                        scale: (_cropStart
-                                                                    .scale *
-                                                                details.scale)
-                                                            .clamp(1, 5),
-                                                        x: (_cropStart.x +
-                                                                delta.dx /
-                                                                    size.width *
-                                                                    2)
-                                                            .clamp(-1, 1),
-                                                        y: (_cropStart.y +
-                                                                delta.dy /
-                                                                    size.height *
-                                                                    2)
-                                                            .clamp(-1, 1));
-                                                    setState(() => _draft =
-                                                        _draft.copyWith(
-                                                            document: _d
-                                                                .copyWith(
-                                                                    transforms:
-                                                                        crops)));
-                                                  }
+                                                  if (_back) return;
+                                                  final delta =
+                                                      details.localFocalPoint -
+                                                          _cropFocal;
+                                                  final crops =
+                                                      _d.transforms.toList();
+                                                  crops[_cropIndex] = CreationCrop(
+                                                      scale: (_cropStart.scale *
+                                                              details.scale)
+                                                          .clamp(1, 5),
+                                                      x: (_cropStart.x +
+                                                              delta.dx /
+                                                                  size.width *
+                                                                  2)
+                                                          .clamp(-1, 1),
+                                                      y: (_cropStart.y +
+                                                              delta.dy /
+                                                                  size.height *
+                                                                  2)
+                                                          .clamp(-1, 1));
+                                                  setState(() {
+                                                    _saved = false;
+                                                    _draft = _draft.copyWith(
+                                                        document: _d.copyWith(
+                                                            transforms: crops));
+                                                  });
                                                 },
-                                          onScaleEnd: _busy
+                                          onScaleEnd: _busy || _drawing
                                               ? null
-                                              : (_) {
-                                                  if (_active != null) {
-                                                    final strokes = [
-                                                      ...(_back
-                                                          ? _d.backInk
-                                                          : _d.frontInk),
-                                                      _active!
-                                                    ];
-                                                    if (strokes.length <= 800) {
-                                                      _change(_back
-                                                          ? _d.copyWith(
-                                                              backInk: strokes)
-                                                          : _d.copyWith(
-                                                              frontInk:
-                                                                  strokes));
-                                                    } else {
-                                                      _message(
-                                                          '笔迹已达到上限，可以撤销后继续');
-                                                    }
-                                                    setState(
-                                                        () => _active = null);
-                                                  } else {
-                                                    unawaited(_save());
-                                                  }
-                                                },
-                                          child: CreationArtwork(
-                                              document: _d,
-                                              images: _images,
-                                              back: _back,
-                                              activeInk: _active),
+                                              : (_) => unawaited(_save()),
+                                          child: Listener(
+                                              onPointerDown: _busy || !_drawing
+                                                  ? null
+                                                  : (event) => _startInk(
+                                                      normalized(
+                                                          event.localPosition)),
+                                              onPointerMove: _busy || !_drawing
+                                                  ? null
+                                                  : (event) => _moveInk(
+                                                      normalized(
+                                                          event.localPosition)),
+                                              onPointerUp: _busy || !_drawing
+                                                  ? null
+                                                  : (_) => _finishInk(),
+                                              onPointerCancel:
+                                                  _busy || !_drawing
+                                                      ? null
+                                                      : (_) => _finishInk(),
+                                              child: CreationArtwork(
+                                                  document: _d,
+                                                  images: _images,
+                                                  back: _back,
+                                                  activeInk: _active)),
                                         )));
                               }))),
             SizedBox(
@@ -611,6 +720,7 @@ class _CreationEditorState extends State<CreationEditor> {
                           _busy || _redo.isEmpty ? null : () => _history(true),
                       icon: const Icon(Icons.redo, size: 20)),
                   TextButton.icon(
+                      style: rebuildTextStyle(context),
                       onPressed: _busy
                           ? null
                           : () {
@@ -623,6 +733,7 @@ class _CreationEditorState extends State<CreationEditor> {
                       icon: const Icon(Icons.flip, size: 18),
                       label: Text(_back ? '查看正面' : '翻到背面')),
                   TextButton(
+                      style: rebuildTextStyle(context),
                       onPressed: _busy ? null : _text,
                       child: const Text('文字／日期')),
                 ])),
@@ -637,6 +748,7 @@ class _CreationEditorState extends State<CreationEditor> {
                   ])
                     Expanded(
                         child: TextButton(
+                            style: rebuildTextStyle(context),
                             onPressed: _busy
                                 ? null
                                 : () => setState(() {
@@ -667,50 +779,120 @@ class _CreationEditorState extends State<CreationEditor> {
               .map((t) => (t.id, t.label, t.minimumPhotos))
               .toList()
           : paperTemplates.map((p) => (p.id, p.label, 1)).toList();
-      return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: options
-                  .map((option) => ChoiceChip(
-                      label: Text(option.$2),
-                      selected: _d.templateId == option.$1,
-                      onSelected: (_) {
-                        if (_images.length < option.$3) {
-                          _message('这个版式需要 ${option.$3} 张照片，请新建时选择多张照片');
-                          return;
-                        }
-                        _change(_d.copyWith(templateId: option.$1));
-                      }))
-                  .toList()));
+      return Column(children: [
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Row(children: [
+              Expanded(
+                  child: Text(
+                      '${_d.kind == 'ticket' ? '票根版式' : '相纸收藏'} · ${options.length} 款 · 长按大图预览',
+                      style: const TextStyle(fontSize: 11))),
+              Text('左右滑动选择',
+                  style:
+                      TextStyle(fontSize: 10, color: context.lgTextSecondary)),
+            ])),
+        Expanded(
+            child: ListView.separated(
+                key: const PageStorageKey('creation_templates'),
+                controller: _templateScroll,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final option = options[i];
+                  final preview = _d.copyWith(templateId: option.$1);
+                  final selected = _d.templateId == option.$1;
+                  return SizedBox(
+                      width: 94,
+                      child: Material(
+                          color: context.lgCard,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              if (_images.length < option.$3) {
+                                _message('这个版式需要 ${option.$3} 张照片，请新建时选择多张照片');
+                                return;
+                              }
+                              HapticFeedback.selectionClick();
+                              _change(preview);
+                              if (_cropIndex >=
+                                  CreationPainter.photoWindows(preview)
+                                      .length) {
+                                setState(() => _cropIndex = 0);
+                              }
+                            },
+                            child: Container(
+                                padding: const EdgeInsets.all(9),
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                        color: selected
+                                            ? context.lgInk
+                                            : Colors.transparent,
+                                        width: 1.5)),
+                                child: Column(children: [
+                                  Expanded(
+                                      child: Center(
+                                          child: AspectRatio(
+                                              aspectRatio: preview.aspectRatio,
+                                              child: RepaintBoundary(
+                                                  child: CustomPaint(
+                                                      painter: CreationPainter(
+                                                          preview,
+                                                          _images)))))),
+                                  const SizedBox(height: 8),
+                                  Text(option.$2,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: selected
+                                              ? FontWeight.w800
+                                              : FontWeight.w400)),
+                                ])),
+                          )));
+                })),
+      ]);
     }
+
     if (_tab == 1) {
       return Column(children: [
         SizedBox(
             height: 66,
             child: ListView.separated(
+                key: const PageStorageKey('creation_looks'),
+                controller: _lookScroll,
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: creationLooks.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) => ChoiceChip(
-                    label: Text(creationLooks[i].label),
-                    selected: _d.lookId == creationLooks[i].id,
-                    onSelected: (_) =>
-                        _change(_d.copyWith(lookId: creationLooks[i].id))))),
+                itemBuilder: (_, i) => SizedBox(
+                    width: 88,
+                    child: Center(
+                        child: RebuildChoiceChip(
+                            label: Text(creationLooks[i].label),
+                            selected: _d.lookId == creationLooks[i].id,
+                            onSelected: (_) => _change(
+                                _d.copyWith(lookId: creationLooks[i].id))))))),
         Row(children: [
           const SizedBox(width: 20),
           const Text('强度'),
           Expanded(
               child: Slider(
+                  activeColor: context.lgInk,
                   value: _d.intensity,
                   onChangeStart: (_) {
                     _undo.add(_d);
                     _redo.clear();
                   },
-                  onChanged: (value) =>
-                      _change(_d.copyWith(intensity: value), history: false))),
+                  onChanged: (value) => setState(() {
+                        _saved = false;
+                        _draft = _draft.copyWith(
+                            document: _d.copyWith(intensity: value));
+                      }),
+                  onChangeEnd: (_) => unawaited(_save()))),
           SizedBox(width: 48, child: Text('${(_d.intensity * 100).round()}%'))
         ]),
       ]);
@@ -760,6 +942,7 @@ class _CreationEditorState extends State<CreationEditor> {
           const Text('笔宽'),
           Expanded(
               child: Slider(
+                  activeColor: context.lgInk,
                   value: _penWidth,
                   min: .002,
                   max: .025,
@@ -771,15 +954,45 @@ class _CreationEditorState extends State<CreationEditor> {
     return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(children: [
+          if (_draft.workId != null || _conflicted)
+            Row(children: [
+              if (_draft.workId != null)
+                Expanded(
+                    child: OutlinedButton(
+                        style: rebuildOutlinedStyle(context),
+                        onPressed: _openLatest,
+                        child: const Text('保留草稿，查看新版'))),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                  style: rebuildOutlinedStyle(context),
+                  onPressed: _saveAsNew,
+                  child: const Text('另存一份')),
+            ]),
           Row(children: [
             Expanded(
                 child: OutlinedButton.icon(
+                    style: rebuildOutlinedStyle(context),
+                    onPressed: _replacePhoto,
+                    icon: const Icon(Icons.add_photo_alternate_outlined,
+                        size: 18),
+                    label: Text(_images.length > 1
+                        ? '更换照片 ${_cropIndex + 1}'
+                        : '更换照片'))),
+          ]),
+          Row(children: [
+            Expanded(
+                child: OutlinedButton.icon(
+                    style: rebuildOutlinedStyle(context),
                     onPressed: _link,
                     icon: const Icon(Icons.link, size: 18),
-                    label: Text(_draft.tripTitle ?? '关联旅行',
-                        maxLines: 1, overflow: TextOverflow.ellipsis))),
+                    label: Text(
+                        _draft.tripTitle ??
+                            (_draft.tripId != null ? '已关联旅行' : '关联旅行'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis))),
             const SizedBox(width: 8),
             OutlinedButton(
+                style: rebuildOutlinedStyle(context),
                 onPressed: () => _change(_d.copyWith(
                     transforms: List.generate(
                         _images.length, (_) => const CreationCrop()))),
@@ -792,7 +1005,7 @@ class _CreationEditorState extends State<CreationEditor> {
                       math.min(_images.length,
                           CreationPainter.photoWindows(_d).length);
                   i++)
-                ChoiceChip(
+                RebuildChoiceChip(
                     label: Text('裁切照片 ${i + 1}'),
                     selected: _cropIndex == i,
                     onSelected: (_) => setState(() => _cropIndex = i))
@@ -813,6 +1026,7 @@ class _CreationEditorState extends State<CreationEditor> {
                   icon: Icon(Icons.circle, color: c)),
           ]),
           SwitchListTile(
+              activeColor: context.lgInk,
               contentPadding: EdgeInsets.zero,
               title: const Text('柔和渐变背景', style: TextStyle(fontSize: 13)),
               value: _d.gradient,

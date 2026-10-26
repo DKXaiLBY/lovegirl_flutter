@@ -188,7 +188,7 @@ router.put('/:id/polaroid', authRequired, async (req, res) => {
     const inkRaw = String(req.body.inkStrokes ?? '').trim();
     // ink_strokes 限 32KB（涂鸦笔迹 JSON），格式校验后原样存储
     let inkStrokes = null;
-    if (inkRaw.isNotEmpty) {
+    if (inkRaw.length > 0) {
       if (inkRaw.length > 32 * 1024) {
         return res.status(400).json({ code: 400, message: '涂鸦太复杂了，精简一点' });
       }

@@ -74,6 +74,53 @@ void main() {
     expect((await own.list()).single.document.title, document.title);
   });
 
+  test(
+      'replacement survives restart and changes only the selected source and crop',
+      () async {
+    final a = await File('${root.path}/a.jpg').writeAsBytes([1]);
+    final b = await File('${root.path}/b.jpg').writeAsBytes([2]);
+    final replacement =
+        await File('${root.path}/replacement.jpg').writeAsBytes([3]);
+    final store = CreationDrafts(33, root: root);
+    final original = await store.create(
+        document.copyWith(
+            transforms: const [CreationCrop(scale: 2), CreationCrop(scale: 3)]),
+        [a.path, b.path],
+        workId: 7,
+        revision: 2);
+    final next = await store.replaceSource(original, 1, replacement.path);
+    await replacement.delete();
+    final reopened = (await CreationDrafts(33, root: root).list()).single;
+    expect(reopened.sourcesChanged, true);
+    expect(reopened.workId, 7);
+    expect(reopened.revision, 2);
+    expect(reopened.sourcePaths.first, original.sourcePaths.first);
+    expect(await File(reopened.sourcePaths.last).readAsBytes(), [3]);
+    expect(reopened.document.transforms.first.scale, 2);
+    expect(reopened.document.transforms.last.scale, 1);
+    expect(reopened.document.title, original.document.title);
+    expect(reopened.document.frontInk.single.points,
+        original.document.frontInk.single.points);
+    expect(next.sourcePaths, reopened.sourcePaths);
+    final json = reopened.toJson()..remove('sourcesChanged');
+    expect(CreationDraft.fromJson(json).sourcesChanged, false);
+  });
+
+  test('failed replacement and foreign account leave the saved draft intact',
+      () async {
+    final source = await File('${root.path}/a.jpg').writeAsBytes([1]);
+    final store = CreationDrafts(33, root: root);
+    final original = await store.create(document, [source.path]);
+    await expectLater(
+        store.replaceSource(original, 0, '${root.path}/missing.jpg'),
+        throwsA(isA<FileSystemException>()));
+    await expectLater(
+        CreationDrafts(32, root: root).replaceSource(original, 0, source.path),
+        throwsStateError);
+    expect((await store.list()).single.toJson(), original.toJson());
+    expect(await File(original.sourcePaths.single).readAsBytes(), [1]);
+  });
+
   test('invalid ids never address files outside an account directory',
       () async {
     final store = CreationDrafts(33, root: root);

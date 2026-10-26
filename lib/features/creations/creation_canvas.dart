@@ -19,9 +19,21 @@ class CreationPainter extends CustomPainter {
     const w = 880.0;
     final h = w / d.aspectRatio;
     if (d.kind != 'ticket') {
-      final inset = d.paper.material == PaperMaterial.film ? 85.0 : 48.0;
-      final top = d.paper.material == PaperMaterial.archive ? 100.0 : 48.0;
-      return [Rect.fromLTWH(inset, top, w - inset * 2, 770 - top)];
+      final material = d.paper.material;
+      final inset = switch (material) {
+        PaperMaterial.film => 85.0,
+        PaperMaterial.archive => 74.0,
+        PaperMaterial.carbon => 70.0,
+        PaperMaterial.peelBlack => 50.0,
+        _ => 48.0,
+      };
+      final top = switch (material) {
+        PaperMaterial.archive => 100.0,
+        PaperMaterial.carbon => 70.0,
+        PaperMaterial.peelBlack => 52.0,
+        _ => 48.0,
+      };
+      return [Rect.fromLTWH(inset, top, w - inset * 2, w - inset * 2)];
     }
     return switch (d.templateId) {
       'landscape' => [Rect.fromLTWH(30, 30, 410, h - 60)],
@@ -118,26 +130,40 @@ class CreationPainter extends CustomPainter {
   Path _outline(Rect r) {
     final d = document;
     if (d.kind == 'ticket') {
-      final path = Path()..fillType = PathFillType.evenOdd;
-      path.addRRect(RRect.fromRectAndRadius(r, const Radius.circular(12)));
+      final path = Path()
+        ..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(12)));
+      final holes = Path();
       final horizontal = d.aspectRatio > 1.7;
       if (horizontal) {
-        path.addOval(
+        holes.addOval(
             Rect.fromCircle(center: Offset(r.width * .77, 0), radius: 20));
-        path.addOval(Rect.fromCircle(
+        holes.addOval(Rect.fromCircle(
             center: Offset(r.width * .77, r.height), radius: 20));
       } else {
-        path.addOval(
+        holes.addOval(
             Rect.fromCircle(center: Offset(0, r.height - 80), radius: 22));
-        path.addOval(Rect.fromCircle(
+        holes.addOval(Rect.fromCircle(
             center: Offset(r.width, r.height - 80), radius: 22));
       }
-      return path;
+      return Path.combine(PathOperation.difference, path, holes);
     }
     final m = d.paper.material;
-    if (m == PaperMaterial.wave ||
-        m == PaperMaterial.peelWhite ||
-        m == PaperMaterial.peelBlack) {
+    if (m == PaperMaterial.wave) {
+      final p = Path()..moveTo(8, 8);
+      for (var x = 8.0; x < r.width - 8; x += 32) {
+        p.quadraticBezierTo(x + 8, 0, x + 16, 8);
+        p.quadraticBezierTo(x + 24, 16, math.min(x + 32, r.width - 8), 8);
+      }
+      p.lineTo(r.width - 8, r.height - 8);
+      for (var x = r.width - 8; x > 8; x -= 32) {
+        p.quadraticBezierTo(x - 8, r.height, x - 16, r.height - 8);
+        p.quadraticBezierTo(
+            x - 24, r.height - 16, math.max(x - 32, 8), r.height - 8);
+      }
+      p.close();
+      return p;
+    }
+    if (m == PaperMaterial.peelWhite || m == PaperMaterial.peelBlack) {
       final p = Path()..moveTo(0, 0);
       for (var x = 0.0; x < r.width; x += 16) {
         p.lineTo(x, (x ~/ 16).isEven ? 0 : 5);
@@ -228,7 +254,13 @@ class CreationPainter extends CustomPainter {
 
   void _photo(Canvas c, Rect window, int index) {
     c.save();
-    c.clipRect(window);
+    final rounded = RRect.fromRectAndRadius(
+        window,
+        Radius.circular(document.kind == 'polaroid' &&
+                document.paper.material == PaperMaterial.frost
+            ? 18
+            : 0));
+    c.clipRRect(rounded);
     if (index >= images.length) {
       c.drawRect(window, Paint()..color = const Color(0xffdce1e7));
       _text(c, '选择照片', window.deflate(20), 28, const Color(0xff657080),
@@ -296,8 +328,8 @@ class CreationPainter extends CustomPainter {
       }
     }
     c.restore();
-    c.drawRect(
-        window,
+    c.drawRRect(
+        rounded,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
@@ -308,6 +340,60 @@ class CreationPainter extends CustomPainter {
     final m = document.paper.material;
     final color = document.paper.ink;
     final h = r.height;
+    if (m == PaperMaterial.carbon) {
+      final photo = photoWindows(document).first;
+      for (final corner in [
+        photo.topLeft,
+        photo.topRight,
+        photo.bottomLeft,
+        photo.bottomRight
+      ]) {
+        final dx = corner.dx == photo.left ? 1.0 : -1.0;
+        final dy = corner.dy == photo.top ? 1.0 : -1.0;
+        final mount = Path()
+          ..moveTo(corner.dx, corner.dy)
+          ..lineTo(corner.dx + dx * 52, corner.dy)
+          ..lineTo(corner.dx, corner.dy + dy * 52)
+          ..close();
+        c.drawPath(mount, Paint()..color = const Color(0xff17191c));
+        c.drawLine(
+            corner + Offset(dx * 52, 0),
+            corner + Offset(0, dy * 52),
+            Paint()
+              ..color = const Color(0x559ca0a8)
+              ..strokeWidth = 1.5);
+      }
+      for (final y in [1034.0, 1042.0]) {
+        c.drawLine(Offset(60, y), Offset(820, y),
+            Paint()..color = const Color(0x30868b95));
+      }
+    }
+    if (m == PaperMaterial.pearl) {
+      final seal = Rect.fromCircle(center: const Offset(791, 980), radius: 20);
+      c.drawOval(
+          seal,
+          Paint()
+            ..shader =
+                const RadialGradient(colors: [Colors.white, Color(0xffcecbdc)])
+                    .createShader(seal));
+      c.drawOval(
+          seal.deflate(3),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..color = const Color(0x99ffffff));
+    }
+    if (m == PaperMaterial.peelBlack) {
+      c.drawRect(const Rect.fromLTWH(50, 1030, 780, 22),
+          Paint()..color = const Color(0xffd3d5d6));
+      for (var x = 665.0; x < 815; x += 8) {
+        c.drawLine(
+            Offset(x, 1033),
+            Offset(x, 1049),
+            Paint()
+              ..color = const Color(0xff636970)
+              ..strokeWidth = 2);
+      }
+    }
     if (m == PaperMaterial.blueSplit) {
       c.drawRect(
           Rect.fromLTWH(0, 0, 25, h), Paint()..color = const Color(0xff738fae));
@@ -340,7 +426,7 @@ class CreationPainter extends CustomPainter {
             ..color = const Color(0xffb899a5)
             ..strokeWidth = 2);
     }
-    if (m == PaperMaterial.film || m == PaperMaterial.peelBlack) {
+    if (m == PaperMaterial.film) {
       for (var y = 75.0; y < 760; y += 58) {
         for (final x in [18.0, 832.0]) {
           c.drawRRect(
@@ -349,7 +435,7 @@ class CreationPainter extends CustomPainter {
               Paint()..color = const Color(0xffdadbd9));
         }
       }
-      _text(c, '35 MM  /  TWO OF US', Rect.fromLTWH(80, 780, 700, 35), 16,
+      _text(c, 'FILM FRAME  /  TWO OF US', Rect.fromLTWH(80, 780, 700, 35), 16,
           const Color(0xffb8babc));
     }
     if (m == PaperMaterial.letter) {
@@ -358,11 +444,11 @@ class CreationPainter extends CustomPainter {
             Paint()..color = const Color(0x209197a5));
       }
       c.drawRect(
-          Rect.fromLTWH(50, 790, 80, 27),
+          Rect.fromLTWH(50, 987, 80, 27),
           Paint()
             ..style = PaintingStyle.stroke
             ..color = const Color(0xff9c646c));
-      _text(c, 'DATE', const Rect.fromLTWH(60, 792, 65, 25), 15,
+      _text(c, 'DATE', const Rect.fromLTWH(60, 989, 65, 25), 15,
           const Color(0xff9c646c));
     }
     if (m == PaperMaterial.tape) {
@@ -398,11 +484,15 @@ class CreationPainter extends CustomPainter {
     _text(
         c,
         document.title,
-        Rect.fromLTWH(55, 825, m == PaperMaterial.postmark ? 590 : 770, 95),
+        Rect.fromLTWH(55, 865, m == PaperMaterial.postmark ? 590 : 770, 85),
         43,
         color,
         handwritten: true);
-    _text(c, document.date ?? '', Rect.fromLTWH(58, h - 88, 650, 40), 22,
+    _text(
+        c,
+        document.date ?? '',
+        Rect.fromLTWH(m == PaperMaterial.letter ? 150 : 58, h - 88, 650, 40),
+        22,
         color.withAlpha(160));
   }
 
@@ -472,7 +562,9 @@ class CreationPainter extends CustomPainter {
 
   void _back(Canvas c, Rect r) {
     final ink = document.kind == 'ticket'
-        ? const Color(0xff25282e)
+        ? (document.templateId == 'filmstrip'
+            ? Colors.white
+            : const Color(0xff25282e))
         : document.paper.ink;
     for (var y = 190.0; y < r.height - 60; y += 62) {
       c.drawLine(
@@ -516,6 +608,8 @@ class CreationPainter extends CustomPainter {
       ellipsis: '…',
       maxLines: math.max(1, (rect.height / (fontSize * 1.3)).floor()),
     )..layout(maxWidth: rect.width);
+    c.save();
+    c.clipRect(rect);
     painter.paint(
         c,
         Offset(rect.left,
@@ -526,18 +620,21 @@ class CreationPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CreationPainter oldDelegate) =>
-      (includeInk
-          ? oldDelegate.document != document
-          : oldDelegate.document.templateId != document.templateId ||
-              oldDelegate.document.lookId != document.lookId ||
-              oldDelegate.document.intensity != document.intensity ||
-              oldDelegate.document.title != document.title ||
-              oldDelegate.document.note != document.note ||
-              oldDelegate.document.date != document.date ||
-              oldDelegate.document.background != document.background ||
-              oldDelegate.document.accent != document.accent ||
-              oldDelegate.document.gradient != document.gradient ||
-              oldDelegate.document.transforms != document.transforms) ||
+      oldDelegate.document.kind != document.kind ||
+      oldDelegate.document.templateId != document.templateId ||
+      oldDelegate.document.lookId != document.lookId ||
+      oldDelegate.document.intensity != document.intensity ||
+      oldDelegate.document.title != document.title ||
+      oldDelegate.document.note != document.note ||
+      oldDelegate.document.date != document.date ||
+      oldDelegate.document.background != document.background ||
+      oldDelegate.document.accent != document.accent ||
+      oldDelegate.document.gradient != document.gradient ||
+      oldDelegate.document.transforms != document.transforms ||
+      oldDelegate.includeInk != includeInk ||
+      (includeInk &&
+          (oldDelegate.document.frontInk != document.frontInk ||
+              oldDelegate.document.backInk != document.backInk)) ||
       oldDelegate.images != images ||
       oldDelegate.back != back ||
       oldDelegate.activeInk != activeInk;

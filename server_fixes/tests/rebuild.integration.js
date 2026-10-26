@@ -39,6 +39,7 @@ async function main() {
   app.use('/api/creations', require(path.join(root, 'routes/creative_works')));
   app.use('/api/journeys', require(path.join(root, 'routes/travel_journeys')));
   app.use('/api/travel', require(path.join(root, 'routes/travel')));
+  app.use('/api/photo', require(path.join(root, 'routes/photo')));
   app.use('/uploads', express.static(path.join(root, 'uploads')));
   server = await new Promise(resolve => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)); });
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -58,6 +59,12 @@ async function main() {
   };
   check('unauthenticated requests are denied', () => {});
   assert.equal((await request(null, '/api/journeys')).status, 401);
+  const [photo] = await pool.query('INSERT INTO photos (user_id, url) VALUES (?, ?)', [ids[0], '/uploads/controlled-legacy-qa.jpg']);
+  const legacyInk = [{ w: 2.2, c: 0xff202126, p: ['100,200', '800,900'] }];
+  assert.equal((await request(0, `/api/photo/${photo.insertId}/polaroid`, 'PUT', { theme: 'classic', inkStrokes: JSON.stringify(legacyInk) })).status, 200);
+  const [savedInk] = await pool.query('SELECT ink_strokes FROM photos WHERE id=?', [photo.insertId]);
+  check('legacy album ink survives saving instead of silently becoming null', () => assert.deepEqual(JSON.parse(savedInk[0].ink_strokes), legacyInk));
+  assert.equal((await request(0, `/api/photo/${photo.insertId}/polaroid`, 'PUT', { theme: 'classic', inkStrokes: '{invalid' })).status, 400);
   const created = await request(0, '/api/journeys', 'POST', plan);
   check('create a versioned plan with an unplanned stop', () => { assert.equal(created.status, 200); assert.equal(created.body.data.revision, 1); assert.equal(created.body.data.clientId, plan.clientId); assert.equal(created.body.data.stops.length, 3); assert.equal(created.body.data.stops[1].day, null); });
   const tripId = created.body.data.id;
@@ -126,6 +133,7 @@ async function main() {
 async function cleanup() {
   if (server) await new Promise(resolve => server.close(resolve));
   if (ids.length === 3) {
+    await pool.query('DELETE FROM photos WHERE user_id IN (?, ?, ?)', ids);
     await pool.query('DELETE FROM creative_works WHERE user_id IN (?, ?, ?)', ids);
     await pool.query('DELETE FROM travel_itinerary_state WHERE trip_id IN (SELECT id FROM travel_trips WHERE user_id IN (?, ?, ?))', ids);
     await pool.query('DELETE FROM travel_trip_spots WHERE trip_id IN (SELECT id FROM travel_trips WHERE user_id IN (?, ?, ?))', ids);

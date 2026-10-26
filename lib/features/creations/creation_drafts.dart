@@ -64,6 +64,35 @@ class CreationDrafts {
     return operation;
   }
 
+  Future<CreationDraft> replaceSource(
+      CreationDraft draft, int index, String path) async {
+    if (draft.ownerId != ownerId) throw StateError('不能修改其他账号的草稿');
+    if (index < 0 || index >= draft.sourcePaths.length) {
+      throw RangeError.index(index, draft.sourcePaths);
+    }
+    final folder = await directory(draft.id);
+    final target = File('${folder.path}/source_${const Uuid().v4()}.jpg');
+    try {
+      await File(path).copy(target.path);
+      final paths = [...draft.sourcePaths]..[index] = target.path;
+      final transforms = List.generate(
+          paths.length,
+          (i) => i == index || i >= draft.document.transforms.length
+              ? const CreationCrop()
+              : draft.document.transforms[i]);
+      final next = draft.copyWith(
+          sourcePaths: paths,
+          sourcesChanged: true,
+          document: draft.document.copyWith(transforms: transforms));
+      await save(next);
+      // Superseded source copies live only until this private draft is removed.
+      return next;
+    } catch (_) {
+      if (await target.exists()) await target.delete();
+      rethrow;
+    }
+  }
+
   Future<void> _write(CreationDraft draft) async {
     if (draft.ownerId != ownerId) throw StateError('不能保存其他账号的草稿');
     final folder = await directory(draft.id);

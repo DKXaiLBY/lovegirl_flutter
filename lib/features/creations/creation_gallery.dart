@@ -1,3 +1,4 @@
+import '../../widgets/rebuild_controls.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
@@ -18,11 +19,19 @@ import 'creation_document.dart';
 import 'creation_drafts.dart';
 import 'creation_editor.dart';
 import 'creation_files.dart';
+import 'creation_preview.dart';
 
 class CreationGallery extends StatefulWidget {
   final String kind;
   final int? tripId;
-  const CreationGallery({super.key, this.kind = 'polaroid', this.tripId});
+  final String? tripTitle;
+  final String? tripDate;
+  const CreationGallery(
+      {super.key,
+      this.kind = 'polaroid',
+      this.tripId,
+      this.tripTitle,
+      this.tripDate});
   @override
   State<CreationGallery> createState() => _CreationGalleryState();
 }
@@ -37,6 +46,8 @@ class _CreationGalleryState extends State<CreationGallery> {
   int _section = 0;
   bool _loading = true;
   bool _busy = false;
+  int? _exportingId;
+  final _backWorks = <int>{};
   String? _error;
   String? _month;
   int get _owner => context.read<AuthProvider>().userId ?? 0;
@@ -114,10 +125,20 @@ class _CreationGalleryState extends State<CreationGallery> {
 
   Future<void> _edit(CreationDraft draft) async {
     if (!mounted) return;
-    await Navigator.push(
+    final result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => CreationEditor(draft: draft, store: _store)));
+    if (result is CreationDraft && mounted) {
+      await _edit(result);
+      return;
+    }
+    if (result == true && mounted) {
+      setState(() {
+        _section = 0;
+        _month = null;
+      });
+    }
     if (mounted) await _load();
   }
 
@@ -195,21 +216,23 @@ class _CreationGalleryState extends State<CreationGallery> {
       final minPhotos = _ticket
           ? ticketTemplates.firstWhere((t) => t.id == template).minimumPhotos
           : 1;
-      final source = await showModalBottomSheet<String>(
-          context: context,
-          showDragHandle: true,
-          builder: (context) => SafeArea(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                if (minPhotos == 1)
-                  ListTile(
-                      leading: const Icon(Icons.camera_alt_outlined),
-                      title: const Text('拍下这一刻'),
-                      onTap: () => Navigator.pop(context, 'camera')),
-                ListTile(
-                    leading: const Icon(Icons.photo_library_outlined),
-                    title: Text(minPhotos == 1 ? '从相册选择照片' : '选择两张照片'),
-                    onTap: () => Navigator.pop(context, 'import')),
-              ])));
+      final source = minPhotos > 1
+          ? 'import'
+          : await showModalBottomSheet<String>(
+              context: context,
+              showDragHandle: true,
+              builder: (context) => SafeArea(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    if (minPhotos == 1)
+                      ListTile(
+                          leading: const Icon(Icons.camera_alt_outlined),
+                          title: const Text('拍下这一刻'),
+                          onTap: () => Navigator.pop(context, 'camera')),
+                    ListTile(
+                        leading: const Icon(Icons.photo_library_outlined),
+                        title: Text(minPhotos == 1 ? '从相册选择照片' : '选择两张照片'),
+                        onTap: () => Navigator.pop(context, 'import')),
+                  ])));
       if (source == null || !mounted) return;
       List<String> paths;
       String look = 'instant_clear';
@@ -220,8 +243,8 @@ class _CreationGalleryState extends State<CreationGallery> {
         paths = [result.path];
         look = result.lookId;
       } else if (minPhotos > 1) {
-        final picks = await ImagePicker()
-            .pickMultiImage(maxWidth: 2400, maxHeight: 2400, imageQuality: 95);
+        final picks = await ImagePicker().pickMultiImage(
+            maxWidth: 2400, maxHeight: 2400, imageQuality: 95, limit: 2);
         if (picks.isEmpty) return;
         if (picks.length != 2) {
           _message('这个版式需要恰好两张照片，请重新选择');
@@ -242,10 +265,13 @@ class _CreationGalleryState extends State<CreationGallery> {
               kind: widget.kind,
               templateId: template,
               lookId: look,
-              date: DateTime.now().toIso8601String().substring(0, 10),
+              title: widget.tripTitle ?? '',
+              date: (_ticket ? widget.tripDate : null) ??
+                  DateTime.now().toIso8601String().substring(0, 10),
               transforms: paths.map((_) => const CreationCrop()).toList()),
           paths,
-          tripId: widget.tripId);
+          tripId: widget.tripId,
+          tripTitle: widget.tripTitle);
       await _edit(draft);
     } catch (_) {
       _message('照片未能打开，请重试；已有草稿仍然保留');
@@ -310,9 +336,11 @@ class _CreationGalleryState extends State<CreationGallery> {
                 content: const Text('两个人的收藏中都会移除，原相册照片不会删除。'),
                 actions: [
                   TextButton(
+                      style: rebuildTextStyle(context),
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text('保留')),
                   TextButton(
+                      style: rebuildTextStyle(context),
                       onPressed: () => Navigator.pop(context, true),
                       child: const Text('删除'))
                 ]));
@@ -326,15 +354,31 @@ class _CreationGalleryState extends State<CreationGallery> {
   }
 
   Future<void> _export(CreationWork work) async {
+    if (_exportingId != null) return;
+    setState(() => _exportingId = work.id);
     try {
-      final r = await Dio().get<List<int>>(creationUrl(work.previewUrl),
-          options: Options(responseType: ResponseType.bytes));
-      await Gal.putImageBytes(Uint8List.fromList(r.data!),
-          name: 'LoveGirl_${work.id}');
+      final back = _backWorks.contains(work.id);
+      final bytes = back
+          ? await renderCreation(work.document, const [], back: true)
+          : Uint8List.fromList((await Dio().get<List<int>>(
+                  creationUrl(work.previewUrl),
+                  options: Options(responseType: ResponseType.bytes)))
+              .data!);
+      await Gal.putImageBytes(bytes,
+          name: 'LoveGirl_${work.id}_${back ? 'back' : 'front'}');
       _message('已保存到相册');
     } catch (_) {
       _message('未能写入系统相册，请检查相册权限后重试');
+    } finally {
+      if (mounted) setState(() => _exportingId = null);
     }
+  }
+
+  void _flip(int id) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (!_backWorks.add(id)) _backWorks.remove(id);
+    });
   }
 
   @override
@@ -357,18 +401,25 @@ class _CreationGalleryState extends State<CreationGallery> {
         .toList();
     return Scaffold(
       backgroundColor: context.lgBg,
-      appBar: AppBar(title: Text(_ticket ? '旅行票根' : '两个人的影像'), actions: [
-        IconButton(
-            tooltip: '刷新',
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh)),
-        if (!_ticket)
-          IconButton(
-              tooltip: '原相册与翻页书',
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const LegacyPhotoScreen())),
-              icon: const Icon(Icons.photo_album_outlined))
-      ]),
+      appBar: AppBar(
+          systemOverlayStyle: context.lgIsDark
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+          title: Text(_ticket ? '旅行票根' : '两个人的影像'),
+          actions: [
+            IconButton(
+                tooltip: '刷新',
+                onPressed: _loading ? null : _load,
+                icon: const Icon(Icons.refresh)),
+            if (!_ticket)
+              IconButton(
+                  tooltip: '原相册与翻页书',
+                  onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const LegacyPhotoScreen())),
+                  icon: const Icon(Icons.photo_album_outlined))
+          ]),
       body: SafeArea(
           child: Column(children: [
         Padding(
@@ -378,7 +429,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text(_ticket ? '把旅途，留下来。' : '让回忆，握在手里。',
+                    Text(_ticket ? '把旅途，留下来。' : '把回忆握在手里',
                         style: const TextStyle(
                             fontSize: 24, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
@@ -387,6 +438,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                             fontSize: 12, color: context.lgTextSecondary))
                   ])),
               FilledButton.icon(
+                  style: rebuildFilledStyle(context),
                   onPressed: _busy ? null : _new,
                   icon: const Icon(Icons.add),
                   label: const Text('制作'))
@@ -401,7 +453,7 @@ class _CreationGalleryState extends State<CreationGallery> {
               ])
                 Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
+                    child: RebuildChoiceChip(
                         label: Text(s.$2),
                         selected: _section == s.$1,
                         onSelected: (_) => setState(() => _section = s.$1))),
@@ -425,7 +477,10 @@ class _CreationGalleryState extends State<CreationGallery> {
               child: Row(children: [
                 Expanded(
                     child: Text(_error!, style: const TextStyle(fontSize: 12))),
-                TextButton(onPressed: _load, child: const Text('重试'))
+                TextButton(
+                    style: rebuildTextStyle(context),
+                    onPressed: _load,
+                    child: const Text('重试'))
               ])),
         Expanded(
           child: _section == 0
@@ -447,7 +502,24 @@ class _CreationGalleryState extends State<CreationGallery> {
                                       child: AspectRatio(
                                           aspectRatio:
                                               work.document.aspectRatio,
-                                          child: CreationFlip(work: work)))),
+                                          child: CreationFlip(
+                                              onInspect: () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (_) => CreationPreview(
+                                                          document:
+                                                              work.document,
+                                                          initialBack:
+                                                              _backWorks
+                                                                  .contains(
+                                                                      work.id),
+                                                          front: CachedNetworkImage(
+                                                              imageUrl: creationUrl(
+                                                                  work.previewUrl),
+                                                              fit: BoxFit.contain)))),
+                                              work: work,
+                                              back: _backWorks.contains(work.id),
+                                              onFlip: () => _flip(work.id))))),
                               const SizedBox(height: 16),
                               Text(
                                   work.document.title.isEmpty
@@ -460,6 +532,8 @@ class _CreationGalleryState extends State<CreationGallery> {
                                       fontWeight: FontWeight.w700)),
                               if (work.tripTitle != null)
                                 Text(work.tripTitle!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         color: context.lgTextSecondary,
                                         fontSize: 12)),
@@ -468,27 +542,78 @@ class _CreationGalleryState extends State<CreationGallery> {
                                   children: [
                                     if (work.ownerId == _owner)
                                       TextButton.icon(
+                                          style: rebuildTextStyle(context),
                                           onPressed: _busy
                                               ? null
                                               : () => _editWork(work),
                                           icon: const Icon(Icons.edit_outlined,
                                               size: 18),
                                           label: const Text('继续制作')),
+                                    if (work.document.note.isNotEmpty)
+                                      TextButton.icon(
+                                          style: rebuildTextStyle(context),
+                                          onPressed: () => showModalBottomSheet<void>(
+                                              context: context,
+                                              isScrollControlled: true,
+                                              showDragHandle: true,
+                                              builder: (context) => SafeArea(
+                                                  child: SizedBox(
+                                                      height: MediaQuery.sizeOf(context)
+                                                              .height *
+                                                          .65,
+                                                      child: SingleChildScrollView(
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                  24),
+                                                          child: SelectableText(work.document.note,
+                                                              style: const TextStyle(
+                                                                  fontSize: 16,
+                                                                  height: 1.7)))))),
+                                          icon: const Icon(Icons.notes, size: 18),
+                                          label: const Text('故事')),
                                     IconButton(
                                         tooltip: '保存图片',
-                                        onPressed: () => _export(work),
-                                        icon: const Icon(
-                                            Icons.file_download_outlined)),
+                                        onPressed: _exportingId != null
+                                            ? null
+                                            : () => _export(work),
+                                        icon: _exportingId == work.id
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2))
+                                            : const Icon(
+                                                Icons.file_download_outlined)),
                                     if (work.ownerId == _owner)
                                       IconButton(
                                           tooltip: '删除作品',
                                           onPressed: () => _deleteWork(work),
-                                          icon: const Icon(Icons.more_horiz)),
+                                          icon:
+                                              const Icon(Icons.delete_outline)),
                                   ]),
-                              Text('${i + 1} / ${works.length}  ·  左右翻页，轻触翻面',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: context.lgTextSecondary)),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('${i + 1} / ${works.length}',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: context.lgTextSecondary)),
+                                    TextButton.icon(
+                                        style: rebuildTextStyle(context),
+                                        onPressed: () => _flip(work.id),
+                                        icon: const Icon(Icons.flip, size: 16),
+                                        label: Text(
+                                            _backWorks.contains(work.id)
+                                                ? '翻到正面'
+                                                : '翻到背面',
+                                            style:
+                                                const TextStyle(fontSize: 11))),
+                                    Text('长按放大',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: context.lgTextSecondary)),
+                                  ]),
                             ]));
                       })
               : _section == 1
@@ -521,6 +646,9 @@ class _CreationGalleryState extends State<CreationGallery> {
                                                           '已收藏的作品和原相册不会受影响。'),
                                                       actions: [
                                                         TextButton(
+                                                            style:
+                                                                rebuildTextStyle(
+                                                                    context),
                                                             onPressed: () =>
                                                                 Navigator.pop(
                                                                     context,
@@ -528,6 +656,9 @@ class _CreationGalleryState extends State<CreationGallery> {
                                                             child: const Text(
                                                                 '保留')),
                                                         TextButton(
+                                                            style:
+                                                                rebuildTextStyle(
+                                                                    context),
                                                             onPressed: () =>
                                                                 Navigator.pop(
                                                                     context,
@@ -602,30 +733,32 @@ class _CreationGalleryState extends State<CreationGallery> {
                 style: TextStyle(color: context.lgTextSecondary)),
             const SizedBox(height: 20),
             FilledButton(
-                onPressed: _busy ? null : _new, child: const Text('开始制作'))
+                style: rebuildFilledStyle(context),
+                onPressed: _busy ? null : _new,
+                child: const Text('开始制作'))
           ])));
 }
 
-class CreationFlip extends StatefulWidget {
+class CreationFlip extends StatelessWidget {
   final CreationWork work;
-  const CreationFlip({super.key, required this.work});
-  @override
-  State<CreationFlip> createState() => _CreationFlipState();
-}
-
-class _CreationFlipState extends State<CreationFlip> {
-  bool _back = false;
+  final bool back;
+  final VoidCallback onFlip;
+  final VoidCallback? onInspect;
+  const CreationFlip(
+      {super.key,
+      required this.work,
+      required this.back,
+      required this.onFlip,
+      this.onInspect});
   @override
   Widget build(BuildContext context) => Semantics(
       button: true,
-      label: _back ? '照片背面，轻触查看正面' : '照片正面，轻触查看背面',
+      label: back ? '照片背面，轻触查看正面' : '照片正面，轻触查看背面',
       child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          setState(() => _back = !_back);
-        },
+        onTap: onFlip,
+        onLongPress: onInspect,
         child: TweenAnimationBuilder<double>(
-            tween: Tween(end: _back ? math.pi : 0),
+            tween: Tween(end: back ? math.pi : 0),
             duration: MediaQuery.disableAnimationsOf(context)
                 ? Duration.zero
                 : const Duration(milliseconds: 420),
@@ -639,8 +772,8 @@ class _CreationFlipState extends State<CreationFlip> {
                     ..rotateY(back ? angle - math.pi : angle),
                   child: back
                       ? CustomPaint(
-                          painter: CreationPainter(
-                              widget.work.document, const [], back: true))
+                          painter: CreationPainter(work.document, const [],
+                              back: true))
                       : DecoratedBox(
                           decoration: const BoxDecoration(boxShadow: [
                             BoxShadow(
@@ -649,7 +782,7 @@ class _CreationFlipState extends State<CreationFlip> {
                                 offset: Offset(0, 10))
                           ]),
                           child: CachedNetworkImage(
-                              imageUrl: creationUrl(widget.work.previewUrl),
+                              imageUrl: creationUrl(work.previewUrl),
                               fit: BoxFit.contain,
                               memCacheWidth: 1200,
                               placeholder: (_, __) => const Center(

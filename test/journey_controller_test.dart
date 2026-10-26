@@ -160,4 +160,69 @@ void main() {
     expect(c.legs.single.points, isEmpty);
     c.dispose();
   });
+
+  test('mode comparison shares cached routes and preserves the selected mode',
+      () async {
+    final api = JourneyApi();
+    final c = JourneyController(1, api: api)..select(plan());
+    final stop = c.current!.stops.last;
+    final alternatives = [
+      for (final mode in journeyModes.keys) c.alternative(stop, mode)
+    ];
+    expect(api.routeReads, 4);
+    for (final request in api.requests.entries) {
+      if (request.key.endsWith(':transit')) {
+        request.value.completeError(StateError('no bus route'));
+      } else {
+        request.value.complete(r({
+          'distance': 1234,
+          'duration': 660,
+          'path': [
+            {'lat': 30, 'lng': 120},
+            {'lat': 30.01, 'lng': 120.01}
+          ]
+        }));
+      }
+    }
+    final results = await Future.wait(alternatives);
+    expect(results.first.estimate, '1.2 km · 11 分钟');
+    expect(results.last.error, isNotNull);
+    expect(results.last.estimate, isNot(contains('0 m')));
+    expect(c.current!.stops.last.mode, stop.mode);
+    expect(c.dirty, false);
+    expect((await c.alternative(stop, 'walking')).distance, 1234);
+    expect(api.routeReads, 4);
+    expect((await c.alternative(c.current!.stops.first, 'walking')).error,
+        isNotNull);
+    c.dispose();
+  });
+  test(
+      'local itinerary recovery retains place names and coordinates while offline',
+      () async {
+    final api = JourneyApi();
+    final c = JourneyController(1, api: api)
+      ..select(Journey(id: 9, title: 'Trip', stops: [
+        JourneyStop(
+            key: 'a',
+            spotId: 1,
+            day: 0,
+            place: TravelSpot(
+                id: 1, name: 'Saved place', city: 'City', lat: 30, lng: 120))
+      ]));
+    c.update(c.current!.copyWith(title: 'My pending edit'));
+    await c.load();
+    final reopened = JourneyController(1, api: api);
+    await reopened.load();
+    final place = reopened.localDrafts.single.stops.single.place!;
+    expect(place.name, 'Saved place');
+    expect(place.lat, 30);
+    expect(place.lng, 120);
+    expect(
+        (reopened.localDrafts.single.toJson()['stops'] as List)
+            .single
+            .containsKey('place'),
+        false);
+    c.dispose();
+    reopened.dispose();
+  });
 }

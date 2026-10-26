@@ -1,17 +1,35 @@
+import '../../widgets/rebuild_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/travel.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../creations/creation_gallery.dart';
 import 'journey.dart';
 import 'journey_controller.dart';
 
+// Official URI API: https://lbs.amap.com/api/uri-api/guide/travel/route
+Uri journeyNavigationUri(TravelSpot from, TravelSpot to, String mode) =>
+    Uri.https('uri.amap.com', '/navigation', {
+      'from': '${from.lng},${from.lat},${from.name.replaceAll(',', '，')}',
+      'to': '${to.lng},${to.lat},${to.name.replaceAll(',', '，')}',
+      'mode': const {
+            'walking': 'walk',
+            'bicycling': 'ride',
+            'transit': 'bus',
+            'driving': 'car'
+          }[mode] ??
+          'car',
+      'src': 'LoveGirl',
+      'callnative': '1',
+    });
+
 Future<void> journeyDetails(BuildContext context, JourneyController controller,
     {bool edit = false}) async {
   final old = edit ? controller.current : null;
-  final title = TextEditingController(text: old?.title ?? '我们的旅行');
-  final city = TextEditingController(text: old?.city ?? '');
-  final days = TextEditingController(text: '${old?.days ?? 3}');
+  var title = old?.title ?? '我们的旅行';
+  var city = old?.city ?? '';
+  var days = '${old?.days ?? 3}';
   DateTimeRange? range = old?.startDate == null
       ? null
       : DateTimeRange(
@@ -25,21 +43,26 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
                 title: Text(edit ? '行程信息' : '新的旅行'),
                 content: SingleChildScrollView(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  TextField(
-                      controller: title,
+                  TextFormField(
+                      initialValue: title,
+                      onChanged: (v) => title = v,
                       maxLength: 100,
                       decoration: const InputDecoration(labelText: '旅行名称')),
-                  TextField(
-                      controller: city,
+                  TextFormField(
+                      initialValue: city,
+                      onChanged: (v) => city = v,
                       maxLength: 50,
                       decoration:
                           const InputDecoration(labelText: '主要城市（公交路线使用）')),
-                  TextField(
-                      controller: days,
+                  TextFormField(
+                      initialValue: days,
+                      onChanged: (v) => days = v,
+                      key: ValueKey(range?.start.toIso8601String()),
                       keyboardType: TextInputType.number,
                       readOnly: range != null,
                       decoration: const InputDecoration(labelText: '天数（1—90）')),
                   TextButton.icon(
+                      style: rebuildTextStyle(context),
                       onPressed: () async {
                         final picked = await showDateRangePicker(
                             context: context,
@@ -53,7 +76,7 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
                         }
                         update(() {
                           range = picked;
-                          days.text = '${picked.duration.inDays + 1}';
+                          days = '${picked.duration.inDays + 1}';
                           error = null;
                         });
                       },
@@ -63,6 +86,7 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
                           : '${range!.start.toString().substring(0, 10)} — ${range!.end.toString().substring(0, 10)}')),
                   if (range != null)
                     TextButton(
+                        style: rebuildTextStyle(context),
                         onPressed: () => update(() => range = null),
                         child: const Text('暂不定日期')),
                   if (error != null)
@@ -70,12 +94,14 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
                 ])),
                 actions: [
                   TextButton(
+                      style: rebuildTextStyle(context),
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text('取消')),
                   FilledButton(
+                      style: rebuildFilledStyle(context),
                       onPressed: () {
-                        final count = int.tryParse(days.text);
-                        if (title.text.trim().isEmpty ||
+                        final count = int.tryParse(days);
+                        if (title.trim().isEmpty ||
                             count == null ||
                             count < 1 ||
                             count > 90) {
@@ -88,13 +114,13 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
                 ],
               )));
   if (result == true) {
-    final count = int.parse(days.text);
+    final count = int.parse(days);
     final start = range?.start.toIso8601String().substring(0, 10);
     final end = range?.end.toIso8601String().substring(0, 10);
     if (old != null) {
       controller.update(old.copyWith(
-          title: title.text.trim(),
-          city: city.text.trim(),
+          title: title.trim(),
+          city: city.trim(),
           days: count,
           startDate: start,
           endDate: end,
@@ -109,16 +135,13 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
       }
     } else {
       controller.create(
-          title: title.text.trim(),
-          city: city.text.trim(),
+          title: title.trim(),
+          city: city.trim(),
           days: count,
           startDate: start,
           endDate: end);
     }
   }
-  title.dispose();
-  city.dispose();
-  days.dispose();
 }
 
 Future<void> showJourneyLibrary(
@@ -145,6 +168,7 @@ Future<void> showJourneyLibrary(
                                           fontSize: 23,
                                           fontWeight: FontWeight.w700))),
                               FilledButton.icon(
+                                  style: rebuildFilledStyle(context),
                                   onPressed: controller.busy
                                       ? null
                                       : () async {
@@ -174,7 +198,9 @@ Future<void> showJourneyLibrary(
                                           fontWeight: FontWeight.w700))),
                             ...controller.localDrafts.map((j) => ListTile(
                                 leading: const Icon(Icons.edit_note),
-                                title: Text(j.title),
+                                title: Text(j.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
                                 subtitle: Text(
                                     '${j.days}天 · ${j.stops.length}个地点 · 未提交修改'),
                                 onTap: () {
@@ -194,12 +220,16 @@ Future<void> showJourneyLibrary(
                                                       const Text('已共享的行程不受影响。'),
                                                   actions: [
                                                     TextButton(
+                                                        style: rebuildTextStyle(
+                                                            context),
                                                         onPressed: () =>
                                                             Navigator.pop(
                                                                 context, false),
                                                         child:
                                                             const Text('保留')),
                                                     TextButton(
+                                                        style: rebuildTextStyle(
+                                                            context),
                                                         onPressed: () =>
                                                             Navigator.pop(
                                                                 context, true),
@@ -221,7 +251,9 @@ Future<void> showJourneyLibrary(
                                   child: Text('创建一份行程，把想去的地方安排到每天。')),
                             ...controller.library.map((j) => ListTile(
                                 leading: const Icon(Icons.route_outlined),
-                                title: Text(j.title),
+                                title: Text(j.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
                                 subtitle: Text(
                                     '${j.days}天 · ${j.stops.length}个地点${j.startDate == null ? '' : ' · ${j.startDate}'}'),
                                 trailing: const Icon(Icons.chevron_right),
@@ -252,7 +284,7 @@ class JourneyPanel extends StatelessWidget {
 
   Future<void> _stopMenu(BuildContext context, JourneyStop stop) async {
     final j = controller.current!;
-    final note = TextEditingController(text: stop.note);
+    var note = stop.note;
     final action = await showModalBottomSheet<String>(
         context: context,
         showDragHandle: true,
@@ -269,24 +301,34 @@ class JourneyPanel extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       title: Text(stop.place?.name ?? '地点已不可用'),
                       subtitle: const Text('以下修改只影响当前行程中的这一站')),
-                  TextField(
-                      controller: note,
+                  TextFormField(
+                      initialValue: note,
+                      onChanged: (v) => note = v,
                       minLines: 1,
                       maxLines: 4,
                       maxLength: 1000,
                       decoration: const InputDecoration(labelText: '这一站的备注')),
                   FilledButton(
+                      style: rebuildFilledStyle(context),
                       onPressed: () => Navigator.pop(context, 'note'),
                       child: const Text('保存备注')),
-                  Wrap(spacing: 8, children: [
-                    ActionChip(
-                        label: const Text('移到待计划'),
-                        onPressed: () => Navigator.pop(context, 'pending')),
-                    for (var i = 0; i < j.days; i++)
-                      ActionChip(
-                          label: Text('第 ${i + 1} 天'),
-                          onPressed: () => Navigator.pop(context, 'day_$i'))
-                  ]),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                      value: stop.day ?? -1,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: '移动到哪一天'),
+                      items: [
+                        const DropdownMenuItem(value: -1, child: Text('待计划')),
+                        for (var i = 0; i < j.days; i++)
+                          DropdownMenuItem(
+                              value: i, child: Text('第 ${i + 1} 天'))
+                      ],
+                      onChanged: (day) {
+                        if (day != null) {
+                          Navigator.pop(
+                              context, day == -1 ? 'pending' : 'day_$day');
+                        }
+                      }),
                   ListTile(
                       leading: const Icon(Icons.remove_circle_outline),
                       title: const Text('从行程移除'),
@@ -297,44 +339,103 @@ class JourneyPanel extends StatelessWidget {
                         title: const Text('照片与故事'),
                         onTap: () => Navigator.pop(context, 'story')),
                 ])))));
-    if (action == 'note') {
-      controller.update(j.copyWith(
-          stops: j.stops
-              .map((s) =>
-                  s.key == stop.key ? s.copyWith(note: note.text.trim()) : s)
-              .toList()));
+    if (action == null) return;
+    final edited = j.copyWith(
+        stops: j.stops
+            .map((s) => s.key == stop.key ? s.copyWith(note: note.trim()) : s)
+            .toList());
+    if (action == 'note') controller.update(edited);
+    if (action == 'pending') controller.update(edited.move({stop.key}, null));
+    if (action.startsWith('day_')) {
+      controller
+          .update(edited.move({stop.key}, int.parse(action.substring(4))));
     }
-    if (action == 'pending') controller.update(j.move({stop.key}, null));
-    if (action?.startsWith('day_') == true) {
-      controller.update(j.move({stop.key}, int.parse(action!.substring(4))));
+    if (action == 'remove') controller.update(edited.remove({stop.key}));
+    if (action == 'story' && stop.place != null) {
+      if (note.trim() != stop.note) controller.update(edited);
+      onStory(stop.place!);
     }
-    if (action == 'remove') controller.update(j.remove({stop.key}));
-    if (action == 'story' && stop.place != null) onStory(stop.place!);
-    note.dispose();
   }
 
   Future<void> _mode(BuildContext context, JourneyStop stop) async {
+    var selected = stop.mode;
+    final estimates = {
+      for (final key in journeyModes.keys)
+        key: controller.alternative(stop, key)
+    };
     final mode = await showModalBottomSheet<String>(
         context: context,
+        isScrollControlled: true,
         showDragHandle: true,
-        builder: (context) => SafeArea(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const ListTile(
-                  title: Text('到达这一站的交通方式'), subtitle: Text('时间与距离来自真实路线规划')),
-              for (final entry in journeyModes.entries)
-                ListTile(
-                    leading: Icon(_icon(entry.key)),
-                    title: Text(entry.value),
-                    trailing:
-                        stop.mode == entry.key ? const Icon(Icons.check) : null,
-                    onTap: () => Navigator.pop(context, entry.key)),
-            ])));
+        builder: (context) => StatefulBuilder(
+            builder: (context, setSheet) => SafeArea(
+                    child: SingleChildScrollView(
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                  const ListTile(
+                      title: Text('到达这一站的交通方式'),
+                      subtitle: Text('时间与距离来自真实路线规划')),
+                  for (final entry in journeyModes.entries)
+                    FutureBuilder<JourneyLeg>(
+                        future: estimates[entry.key],
+                        builder: (context, snapshot) => RadioListTile<String>(
+                              activeColor: context.lgInk,
+                              value: entry.key,
+                              groupValue: selected,
+                              secondary: Icon(_icon(entry.key)),
+                              title: Text(entry.value),
+                              subtitle: Text(snapshot.data?.estimate ?? '正在规划…',
+                                  style: const TextStyle(fontSize: 12)),
+                              onChanged: (value) =>
+                                  setSheet(() => selected = value!),
+                            )),
+                  Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            FilledButton(
+                                style: rebuildFilledStyle(context),
+                                onPressed: () =>
+                                    Navigator.pop(context, selected),
+                                child: Text('采用${journeyModes[selected]}')),
+                            TextButton.icon(
+                                style: rebuildTextStyle(context),
+                                icon: const Icon(Icons.open_in_new, size: 16),
+                                label: const Text('在高德地图中查看／导航'),
+                                onPressed: () async {
+                                  final a =
+                                      controller.previousStop(stop)?.place;
+                                  final b = stop.place;
+                                  if (a == null || b == null) return;
+                                  final uri =
+                                      journeyNavigationUri(a, b, selected);
+                                  try {
+                                    if (!await launchUrl(uri,
+                                        mode: LaunchMode.externalApplication)) {
+                                      throw StateError('无法打开地图');
+                                    }
+                                  } catch (_) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
+                                              content: Text('外部地图未能打开，请稍后重试')));
+                                    }
+                                  }
+                                })
+                          ])),
+                ])))));
     if (mode != null) {
       controller.update(controller.current!.copyWith(
           stops: controller.current!.stops
               .map((s) => s.key == stop.key ? s.copyWith(mode: mode) : s)
               .toList()));
     }
+  }
+
+  String _dateLabel(String start, int day) {
+    final date = DateTime.parse(start).add(Duration(days: day));
+    return '${date.month}.${date.day}';
   }
 
   IconData _icon(String mode) => switch (mode) {
@@ -374,6 +475,7 @@ class JourneyPanel extends StatelessWidget {
                                   fontSize: 20, fontWeight: FontWeight.w800)))),
                   if (controller.dirty)
                     FilledButton(
+                        style: rebuildFilledStyle(context),
                         onPressed: () async {
                           HapticFeedback.lightImpact();
                           final saved = await controller.save();
@@ -396,15 +498,18 @@ class JourneyPanel extends StatelessWidget {
                           await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                      CreationGallery(tripId: j.id)));
+                                  builder: (_) => CreationGallery(
+                                      tripId: j.id, tripTitle: j.title)));
                         }
                         if (action == 'tickets' && context.mounted) {
                           await Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (_) => CreationGallery(
-                                      kind: 'ticket', tripId: j.id)));
+                                      kind: 'ticket',
+                                      tripId: j.id,
+                                      tripTitle: j.title,
+                                      tripDate: j.startDate)));
                         }
                         if (action == 'delete' && context.mounted) {
                           final yes = await showDialog<bool>(
@@ -415,10 +520,12 @@ class JourneyPanel extends StatelessWidget {
                                           const Text('原地点、照片和作品会保留，作品将解除旅行关联。'),
                                       actions: [
                                         TextButton(
+                                            style: rebuildTextStyle(context),
                                             onPressed: () =>
                                                 Navigator.pop(context, false),
                                             child: const Text('保留')),
                                         TextButton(
+                                            style: rebuildTextStyle(context),
                                             onPressed: () =>
                                                 Navigator.pop(context, true),
                                             child: const Text('删除行程'))
@@ -466,6 +573,7 @@ class JourneyPanel extends StatelessWidget {
                                 fontSize: 12, color: Colors.red)),
                         if (controller.conflict)
                           TextButton(
+                              style: rebuildTextStyle(context),
                               onPressed: controller.reloadLatest,
                               child: const Text('保留当前草稿，查看最新版本'))
                       ])),
@@ -475,7 +583,7 @@ class JourneyPanel extends StatelessWidget {
                 child: Row(children: [
                   Padding(
                       padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
+                      child: RebuildChoiceChip(
                           label: const Text('总览'),
                           selected: controller.overview,
                           onSelected: (_) =>
@@ -483,12 +591,14 @@ class JourneyPanel extends StatelessWidget {
                   for (var d = 0; d < j.days; d++)
                     Padding(
                         padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                            label: Text('第 ${d + 1} 天'),
+                        child: RebuildChoiceChip(
+                            label: Text(j.startDate == null
+                                ? '第 ${d + 1} 天'
+                                : _dateLabel(j.startDate!, d)),
                             selected:
                                 !controller.overview && controller.day == d,
                             onSelected: (_) => controller.setDay(d))),
-                  ChoiceChip(
+                  RebuildChoiceChip(
                       label: Text('待计划 ${j.dayStops(null).length}'),
                       selected: !controller.overview && controller.day == null,
                       onSelected: (_) => controller.setDay(null)),
@@ -506,24 +616,41 @@ class JourneyPanel extends StatelessWidget {
                           style: TextStyle(color: context.lgTextSecondary)),
                       const SizedBox(height: 12),
                       FilledButton.icon(
+                          style: rebuildFilledStyle(context),
                           onPressed: onAdd,
                           icon: const Icon(Icons.add_location_alt_outlined),
                           label: const Text('添加地点'))
                     ]))),
           if (stops.isNotEmpty && !expanded)
             SliverToBoxAdapter(
-                child: SizedBox(
-                    height: 160,
-                    child: ListView.separated(
-                        controller: cardsController,
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-                        itemCount: stops.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (context, i) => SizedBox(
-                            width: 250,
-                            child:
-                                _card(context, stops[i], i, compact: true))))),
+              child: SizedBox(
+                  height: 170.0 *
+                      MediaQuery.textScalerOf(context).scale(1).clamp(1, 1.8),
+                  child: NotificationListener<ScrollEndNotification>(
+                      onNotification: (notification) {
+                        if (notification.metrics.axis == Axis.horizontal &&
+                            stops.isNotEmpty) {
+                          final index = (notification.metrics.pixels / 260)
+                              .round()
+                              .clamp(0, stops.length - 1);
+                          if (controller.selectedKey != stops[index].key) {
+                            onSelect(stops[index]);
+                          }
+                        }
+                        return false;
+                      },
+                      child: ListView.separated(
+                          controller: cardsController,
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+                          itemCount: stops.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 10),
+                          itemBuilder: (context, i) => SizedBox(
+                              width: 250,
+                              child: _card(context, stops[i], i,
+                                  compact: true))))),
+            ),
           if (expanded)
             SliverReorderableList(
                 itemCount: stops.length,
@@ -545,6 +672,7 @@ class JourneyPanel extends StatelessWidget {
                     child: Row(children: [
                       Expanded(
                           child: OutlinedButton.icon(
+                              style: rebuildOutlinedStyle(context),
                               onPressed: onAdd,
                               icon: const Icon(Icons.add),
                               label: const Text('添加地点'))),
@@ -560,6 +688,10 @@ class JourneyPanel extends StatelessWidget {
   Widget _card(BuildContext context, JourneyStop stop, int index,
       {bool compact = false}) {
     final selected = controller.selectedKey == stop.key;
+    final hasPrevious = index > 0 &&
+        stop.day != null &&
+        controller.visible[index - 1].day == stop.day;
+    final city = stop.place?.city ?? '';
     final leg = controller.legs.where((l) => l.toKey == stop.key);
     return Material(
         color: selected ? context.lgPrimarySoft : context.lgCard,
@@ -577,8 +709,9 @@ class JourneyPanel extends StatelessWidget {
                             radius: 13,
                             backgroundColor: selected
                                 ? context.lgInk
-                                : const Color(0xff3398ae),
-                            foregroundColor: Colors.white,
+                                : const Color(0xff24798e),
+                            foregroundColor:
+                                selected ? context.lgPaper : Colors.white,
                             child: Text('${index + 1}',
                                 style: const TextStyle(
                                     fontSize: 12,
@@ -602,6 +735,22 @@ class JourneyPanel extends StatelessWidget {
                             onPressed: () => _stopMenu(context, stop),
                             icon: const Icon(Icons.more_horiz, size: 20)),
                       ]),
+                      if (city.isNotEmpty)
+                        Padding(
+                            padding: const EdgeInsets.only(left: 34, bottom: 4),
+                            child: Text(city,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: context.lgTextSecondary))),
+                      if (!hasPrevious && !controller.overview)
+                        Padding(
+                            padding: const EdgeInsets.only(left: 34, top: 6),
+                            child: Text(stop.day == null ? '待安排日期' : '当天第一站',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: context.lgTextSecondary))),
                       if (controller.overview)
                         Text(stop.day == null ? '待计划' : '第 ${stop.day! + 1} 天',
                             style: TextStyle(
@@ -615,8 +764,9 @@ class JourneyPanel extends StatelessWidget {
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: context.lgTextSecondary))),
-                      if (index > 0 && stop.day != null)
+                      if (hasPrevious)
                         TextButton.icon(
+                            style: rebuildTextStyle(context),
                             onPressed: () => _mode(context, stop),
                             icon: Icon(_icon(stop.mode), size: 16),
                             label: Text(
