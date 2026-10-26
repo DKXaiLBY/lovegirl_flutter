@@ -5,9 +5,9 @@
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v4.3.0+184（2026-10-24 已发布：旅行模块重建为街道地图优先，整合地点面板、搜索选点、照片故事与省份足迹；详见 CHANGELOG.md）。**全局视觉换装仍暂停；旅行模块已按用户要求单独重建，不能把本版描述成已完成参考图的全局 UI 换装。** 视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；票根形态保留（打孔/锯齿/虚线）底色纯白；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
+当前版本 v4.4.0+185（2026-10-26 已发布：拍立得、模板型票根与逐日旅行行程重建；详见 CHANGELOG.md）。**全局视觉换装仍暂停；本次仅重建拍立得、票根和旅行，不能描述成已完成参考图的全局 UI 换装。** 全局视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；新作品的相纸／票面配色按独立材质和模板处理，外围导航保持中性；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
 
-- 仓库地址：**`D:\Projects\Personal\lovegirl`**（2026-09-25 路径英文化已完成，`docs/rename_to_english.md` 转为历史记录；中文路径导致的 impellerc 构建失败已随之消除）。git remote = github.com/DKXaiLBY/lovegirl_flutter，master
+- 当前仓库地址：**`D:\Projects\codex\lovegirl`**（此前Personal目录及2026-09-25英文化记录为历史路径；切换工作区后先flutter pub get刷新插件路径）。git remote = github.com/DKXaiLBY/lovegirl_flutter，默认分支master；本轮工作分支codex/photo-ticket-itinerary-rebuild已推送并快进远端master。
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
 - **git 可执行文件 PATH 已失效**：用全路径 `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 `D:\Git Setup\Git\cmd` 是死路径）；Git 自带 ssh/scp 不可用，用系统 `C:\Windows\System32\OpenSSH\`；中文 commit 信息用 UTF-8 文件 + `git commit -F`（PowerShell Set-Content 会带 BOM，可接受）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
@@ -71,6 +71,8 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 18. **mysql2 的 DECIMAL 列返回字符串**（如 price="100.00"）——fromJson 里 `as num` 会在单字段上炸掉整个列表解析→界面显示空态（v3.35.1 线上事故：上传成功但衣橱显示空）。数字字段一律 `_asInt/_asDouble`（tryParse 兜底），单测已回归。**诊断套路：用户报"看不到数据"先查 DB 有没有行 + GET 接口状态码/字节数，DB 有数据=App 解析问题**
 
 ## 待办 / 未竟
+
+- **v4.4.0+185（2026-10-26 已发布）**：拍立得实拍／导入、0／3／10秒定时、前后镜头，12套成像、20款相纸，全纸手绘／背面故事／明确翻面与大图；8款模板型票根支持独立换图裁切、配色背景、草稿、收藏和再编辑。作品双方可见、作者才可改删；草稿按当前设备账号隔离，普通编辑复用原来源、换图才更新来源。旅行新增逐日行程／排序／跨日／备注／同地点独立站次，真实四方式比较与外部高德入口；共享版本冲突保留输入，删除行程保留地点与作品并解除关联。旧相册与翻页书入口保留。主源码8b0ce95已推master，tag v4.4.0；服务器dc10541与48aaaa7，相关live文件散列与副本一致。Flutter143项、analyze0、Node15项、隔离MySQL12组；荣耀release完成实拍、导入、票根闭环、地图与深浅、断网失败／重启草稿及删除解绑。双会话为三个一次性正常登录的公网接口验证，不是两部手机UI联调；未测完整原生FPS。受控作品5／7软删、行程29／地点60—62删除、草稿与3张测试媒体清理；原photos6／travel_spots8及原空行程表散列完全不变。手机恢复亮色、网络原设置、相机允许。正式APK56875884字节，SHA256=e841189fc7694adafb4c423f945c932c964bf8c17e169c14d49bcdfa3306b0f1，公网完整下载一致，184升级true／185false，中文8行changelog与数据库元数据一致。回滚APK在/opt/love-girl/apk-backups/v4.3.0.apk，新包v4.4.0.apk；后端精确旧live备份在/opt/love-girl/backups/rebuild-source-20261025-144247。验收与边界见docs/implementation/lovegirl-rebuild-acceptance-20261026.md，详细过程见lovegirl-rebuild-execution-20261025.md。
 
 - **v4.3.0+184（2026-10-24 已发布）**：旅行模块独立重建，真实街道地图／收放地点面板／搜索选点／故事与省份足迹共用数据；删旧旅行界面及控制器。新地点默认想去，日期按状态保留，失败保存保留表单，失败删除保留记录。高德Android插件补camera#move完成回执，修复定位按钮持续等待。analyze0、Flutter104项；荣耀实测真实搜索、新建／编辑／删除受控QA记录、GPS定位、相机恢复、长按选点及深浅两态，已恢复亮色；QA id48已删且原有id37/38散列未变。隔离100/500地点profile原生地图创建次数均1，不代表完整原生FPS或双账号同步。当前工作区为D:\Projects\codex\lovegirl，路径变更后先flutter pub get刷新原生插件清单，避免旧Personal副本参与构建。源码1049eee已推master，tag v4.3.0；正式APK54117875字节，公网下载SHA256 8a53cdd165dbbd39aa5f57ea2f7bded971cb512d23a9cbd2d0c910396009f54f已核验，183升级提示true／184为false，中文changelog与数据库版本元数据一致。本机Mihomo/TUN默认连接会在SSH认证前关闭，发布用独立socket绑定当前物理Wi-Fi网卡恢复；没有更改服务器或全局网络配置。详情见docs/implementation/travel-workspace-rebuild.md，连接处理见发布规程。
 

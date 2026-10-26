@@ -135,3 +135,12 @@
 - 清理后的原photos6、travel_spots8、travel_trips0、travel_trip_spots0逐表SHA256与基线完全相同；remainingQASpots=0、remainingTestUsers=0、offlineWorkSaved=0。原相册6张可打开，旧翻页书入口保留。
 - 手机恢复亮色，Wi-Fi=1、mobile_data=1、stay_on_while_plugged_in=7，CAMERA granted=true。验收完成后停止操作手机。证据86—139及final-phone-state.json、final-data-verification-20261026.json在本机验收目录。
 - 服务器v4.3.0.apk回滚备份已核验旧散列；v4.4.0.apk已上传私有备份目录并核验新散列，再复制为容器发布输入。尚未调用发布接口，当前仍184。
+
+**2026-10-26 正式发布核验完成**
+
+- 主源码提交8b0ce95已推工作分支及远端master（核对祖先关系后快进，无强推），tag v4.4.0已推。Git本机schannel握手失败后，仅对该次Git命令使用openssl＋HTTP/1.1恢复连接，未改全局配置；凭据存储助手的旧路径警告没有阻止推送成功。
+- 发布接口返回200，app_versions185已激活，版本名4.4.0、中文8行changelog、file_size56875884及md5 e031ee63e62b15ea0d71c5b7dca039ff显式写入并核验一致；旧184记录与APK备份保留。
+- 公网/api/version/check：184返回hasUpdate=true／needUpdate=false；185返回hasUpdate=false／needUpdate=false，均为4.4.0及正确大小、中文更新文案。首次经本机环境代理得到502，服务器容器内与不使用环境代理的公网请求均200，没有据此重复发布。
+- 从公网完整下载56875884字节APK，SHA256=e841189fc7694adafb4c423f945c932c964bf8c17e169c14d49bcdfa3306b0f1，MD5=e031ee63e62b15ea0d71c5b7dca039ff，与本地验收包一致；Content-Type=application/vnd.android.package-archive。
+- 发布令牌仅由服务器容器内进程使用，没有输出、写文件或进入客户端。后端原live备份、原数据快照、旧184与新185的独立APK及版本元数据均保留。
+- 本轮已完成确认范围的实现、必要自动化／荣耀真机／独立公网双会话验证、精确QA清理、旧记录散列核对、源码推送/tag与发布校验。证据与边界以[验收核对](lovegirl-rebuild-acceptance-20261026.md)为准；没有宣称两部手机UI联调、完整原生FPS、200套相机或参考图逐像素一致。
