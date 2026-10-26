@@ -566,9 +566,13 @@ class _CreationEditorState extends State<CreationEditor> {
                 child: Container(
                     margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                     decoration: BoxDecoration(
-                        color: _d.background,
+                        color: _d.kind == 'ticket'
+                            ? (context.lgIsDark
+                                ? const Color(0xff303238)
+                                : const Color(0xffe7e9ed))
+                            : _d.background,
                         borderRadius: BorderRadius.circular(24),
-                        gradient: _d.gradient
+                        gradient: _d.kind != 'ticket' && _d.gradient
                             ? LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -1011,7 +1015,7 @@ class _CreationEditorState extends State<CreationEditor> {
                     onSelected: (_) => setState(() => _cropIndex = i))
             ]),
           Row(children: [
-            const Text('工作台'),
+            Text(_d.kind == 'ticket' ? '票面底色' : '工作台'),
             const SizedBox(width: 8),
             for (final c in const [
               Color(0xffeef0f3),
@@ -1020,15 +1024,15 @@ class _CreationEditorState extends State<CreationEditor> {
               Color(0xffdfe6df)
             ])
               IconButton(
-                  tooltip: '更换工作台颜色',
-                  onPressed: () => _change(_d.copyWith(
-                      background: c, accent: Color.lerp(c, Colors.black, .4))),
+                  tooltip: _d.kind == 'ticket' ? '更换票面底色' : '更换工作台颜色',
+                  onPressed: () => _change(_d.copyWith(background: c)),
                   icon: Icon(Icons.circle, color: c)),
           ]),
           SwitchListTile(
               activeColor: context.lgInk,
               contentPadding: EdgeInsets.zero,
-              title: const Text('柔和渐变背景', style: TextStyle(fontSize: 13)),
+              title: Text(_d.kind == 'ticket' ? '票面柔和渐变' : '柔和渐变背景',
+                  style: const TextStyle(fontSize: 13)),
               value: _d.gradient,
               onChanged: (v) => _change(_d.copyWith(gradient: v))),
           if (_d.kind == 'ticket')

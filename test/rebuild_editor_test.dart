@@ -50,6 +50,42 @@ class MemoryDrafts extends CreationDrafts {
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets(
+      'changing ticket paper background preserves the chosen accent and photo look',
+      (tester) async {
+    tester.view.physicalSize = const Size(720, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = MemoryDrafts();
+    const document = CreationDocument(
+        kind: 'ticket',
+        templateId: 'landscape',
+        lookId: 'ccd_cool',
+        accent: Color(0xff986d7e),
+        gradient: true);
+    final draft = CreationDraft(
+        id: 'independent-paper-color',
+        ownerId: 71,
+        updatedAt: DateTime.now(),
+        sourcePaths: const [],
+        document: document);
+    await tester.pumpWidget(
+        MaterialApp(home: CreationEditor(draft: draft, store: store)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('更多'));
+    await tester.pumpAndSettle();
+    final color = find.byTooltip('更换票面底色').at(1);
+    await tester.ensureVisible(color);
+    await tester.tap(color);
+    await tester.pumpAndSettle();
+    expect(store.saved!.document.background, const Color(0xffdce5ed));
+    expect(store.saved!.document.accent, document.accent);
+    expect(store.saved!.document.lookId, document.lookId);
+    expect(store.saved!.document.gradient, true);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
       'dark route comparison keeps selected controls readable and actions visible on Honor viewport',
       (tester) async {
     tester.view.physicalSize = const Size(720, 1600);
