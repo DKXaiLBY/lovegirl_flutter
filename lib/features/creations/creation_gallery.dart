@@ -165,6 +165,7 @@ class _CreationGalleryState extends State<CreationGallery> {
             isScrollControlled: true,
             showDragHandle: true,
             builder: (context) => SafeArea(
+                minimum: const EdgeInsets.only(bottom: 24),
                 child: SizedBox(
                     height: MediaQuery.sizeOf(context).height * .7,
                     child: Column(children: [
@@ -234,7 +235,8 @@ class _CreationGalleryState extends State<CreationGallery> {
               context: context,
               showDragHandle: true,
               builder: (context) => SafeArea(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  minimum: const EdgeInsets.only(bottom: 24),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
                     if (minPhotos == 1)
                       ListTile(
                           leading: const Icon(Icons.camera_alt_outlined),
@@ -454,197 +456,205 @@ class _CreationGalleryState extends State<CreationGallery> {
                         : selectedWork.sourceUrls.first)
                     : null)),
         SafeArea(
+            minimum: const EdgeInsets.only(bottom: 24),
             child: Column(children: [
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    for (final s in [
-                      (0, _loading ? '收藏' : '收藏 ${_works.length}'),
-                      (1, _loading ? '草稿' : '草稿 ${_drafts.length}'),
-                      if (!_ticket) (2, _loading ? '原照片' : '原照片 ${_old.length}')
-                    ])
-                      Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: RebuildChoiceChip(
-                              label: Text(s.$2),
-                              selected: _section == s.$1,
-                              onSelected: (_) => _showSection(s.$1))),
-                    const SizedBox(width: 2),
-                    if (_section == 0 && months.isNotEmpty)
-                      PopupMenuButton<String>(
-                          tooltip: '按月浏览',
-                          child: ConstrainedBox(
-                              constraints: const BoxConstraints(minHeight: 48),
-                              child: RebuildGlass(
-                                  radius: 24,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 12),
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                            _month == null
-                                                ? '月份'
-                                                : '${_month!.substring(5)}月',
-                                            style:
-                                                const TextStyle(fontSize: 12)),
-                                        const SizedBox(width: 4),
-                                        const Icon(Icons.expand_more, size: 16)
-                                      ]))),
-                          onSelected: (v) => setState(() {
-                                final month = v.isEmpty ? null : v;
-                                if (month != _month) _page = 0;
-                                _month = month;
-                              }),
-                          itemBuilder: (_) => [
-                                const PopupMenuItem(
-                                    value: '', child: Text('全部月份')),
-                                ...months.map((m) =>
-                                    PopupMenuItem(value: m, child: Text(m)))
-                              ]),
-                  ]))),
-          if (_loading || _busy)
-            LinearProgressIndicator(
-                minHeight: 2,
-                color: context.lgInk,
-                backgroundColor: context.lgSeparator),
-          if (_error != null)
-            Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(children: [
-                  Expanded(
-                      child:
-                          Text(_error!, style: const TextStyle(fontSize: 12))),
-                  TextButton(
-                      style: rebuildTextStyle(context),
-                      onPressed: _load,
-                      child: const Text('重试'))
-                ])),
-          Expanded(
-            child: _loading && _works.isEmpty && _drafts.isEmpty && _old.isEmpty
-                ? Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                            color: context.lgInk, strokeWidth: 2)),
-                    const SizedBox(height: 14),
-                    Text('正在取回你的回忆',
-                        style: TextStyle(
-                            fontSize: 13, color: context.lgTextSecondary))
-                  ]))
-                : _section == 0
-                    ? works.isEmpty
-                        ? _empty('还没有收藏的${_ticket ? '票根' : '拍立得'}',
-                            '拍摄或导入一张照片，制作第一份回忆')
-                        : PageView.builder(
-                            key: ValueKey(
-                                '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}'),
-                            controller: _pager,
-                            onPageChanged: (value) =>
-                                setState(() => _page = value),
-                            itemCount: works.length,
-                            itemBuilder: (_, index) => _workPage(works, index))
-                    : _section == 1
-                        ? _drafts.isEmpty
-                            ? _empty('还没有草稿', '编辑过程中会自动保存在这台设备')
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _drafts.length,
-                                itemBuilder: (_, i) {
-                                  final d = _drafts[i];
-                                  return Card(
-                                      child: ListTile(
-                                          leading:
-                                              const Icon(Icons.drafts_outlined),
-                                          title: Text(d.document.title.isEmpty
-                                              ? '未完成的回忆'
-                                              : d.document.title),
-                                          subtitle: Text(
-                                              '${d.document.kind == 'ticket' ? d.document.ticket.label : d.document.paper.label} · ${d.updatedAt.toLocal().toString().substring(0, 16)}'),
-                                          onTap: () => _edit(d),
-                                          trailing: IconButton(
-                                              tooltip: '删除私密草稿',
-                                              icon: const Icon(
-                                                  Icons.delete_outline),
-                                              onPressed: () async {
-                                                final yes = await showDialog<
-                                                        bool>(
-                                                    context: context,
-                                                    builder: (context) =>
-                                                        AlertDialog(
-                                                            title: const Text(
-                                                                '删除这份草稿？'),
-                                                            content: const Text(
-                                                                '已收藏的作品和原相册不会受影响。'),
-                                                            actions: [
-                                                              TextButton(
-                                                                  style: rebuildTextStyle(
-                                                                      context),
-                                                                  onPressed: () =>
-                                                                      Navigator.pop(
+              Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        for (final s in [
+                          (0, _loading ? '收藏' : '收藏 ${_works.length}'),
+                          (1, _loading ? '草稿' : '草稿 ${_drafts.length}'),
+                          if (!_ticket)
+                            (2, _loading ? '原照片' : '原照片 ${_old.length}')
+                        ])
+                          Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: RebuildChoiceChip(
+                                  label: Text(s.$2),
+                                  selected: _section == s.$1,
+                                  onSelected: (_) => _showSection(s.$1))),
+                        const SizedBox(width: 2),
+                        if (_section == 0 && months.isNotEmpty)
+                          PopupMenuButton<String>(
+                              tooltip: '按月浏览',
+                              child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(minHeight: 48),
+                                  child: RebuildGlass(
+                                      radius: 24,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 12),
+                                      child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                                _month == null
+                                                    ? '月份'
+                                                    : '${_month!.substring(5)}月',
+                                                style: const TextStyle(
+                                                    fontSize: 12)),
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.expand_more,
+                                                size: 16)
+                                          ]))),
+                              onSelected: (v) => setState(() {
+                                    final month = v.isEmpty ? null : v;
+                                    if (month != _month) _page = 0;
+                                    _month = month;
+                                  }),
+                              itemBuilder: (_) => [
+                                    const PopupMenuItem(
+                                        value: '', child: Text('全部月份')),
+                                    ...months.map((m) =>
+                                        PopupMenuItem(value: m, child: Text(m)))
+                                  ]),
+                      ]))),
+              if (_loading || _busy)
+                LinearProgressIndicator(
+                    minHeight: 2,
+                    color: context.lgInk,
+                    backgroundColor: context.lgSeparator),
+              if (_error != null)
+                Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(children: [
+                      Expanded(
+                          child: Text(_error!,
+                              style: const TextStyle(fontSize: 12))),
+                      TextButton(
+                          style: rebuildTextStyle(context),
+                          onPressed: _load,
+                          child: const Text('重试'))
+                    ])),
+              Expanded(
+                child: _loading &&
+                        _works.isEmpty &&
+                        _drafts.isEmpty &&
+                        _old.isEmpty
+                    ? Center(
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                        SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                                color: context.lgInk, strokeWidth: 2)),
+                        const SizedBox(height: 14),
+                        Text('正在取回你的回忆',
+                            style: TextStyle(
+                                fontSize: 13, color: context.lgTextSecondary))
+                      ]))
+                    : _section == 0
+                        ? works.isEmpty
+                            ? _empty('还没有收藏的${_ticket ? '票根' : '拍立得'}',
+                                '拍摄或导入一张照片，制作第一份回忆')
+                            : PageView.builder(
+                                key: ValueKey(
+                                    '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}'),
+                                controller: _pager,
+                                onPageChanged: (value) =>
+                                    setState(() => _page = value),
+                                itemCount: works.length,
+                                itemBuilder: (_, index) =>
+                                    _workPage(works, index))
+                        : _section == 1
+                            ? _drafts.isEmpty
+                                ? _empty('还没有草稿', '编辑过程中会自动保存在这台设备')
+                                : ListView.builder(
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: _drafts.length,
+                                    itemBuilder: (_, i) {
+                                      final d = _drafts[i];
+                                      return Card(
+                                          child: ListTile(
+                                              leading: const Icon(
+                                                  Icons.drafts_outlined),
+                                              title: Text(
+                                                  d.document.title.isEmpty
+                                                      ? '未完成的回忆'
+                                                      : d.document.title),
+                                              subtitle: Text(
+                                                  '${d.document.kind == 'ticket' ? d.document.ticket.label : d.document.paper.label} · ${d.updatedAt.toLocal().toString().substring(0, 16)}'),
+                                              onTap: () => _edit(d),
+                                              trailing: IconButton(
+                                                  tooltip: '删除私密草稿',
+                                                  icon: const Icon(
+                                                      Icons.delete_outline),
+                                                  onPressed: () async {
+                                                    final yes = await showDialog<
+                                                            bool>(
+                                                        context: context,
+                                                        builder: (context) =>
+                                                            AlertDialog(
+                                                                title: const Text(
+                                                                    '删除这份草稿？'),
+                                                                content: const Text(
+                                                                    '已收藏的作品和原相册不会受影响。'),
+                                                                actions: [
+                                                                  TextButton(
+                                                                      style: rebuildTextStyle(
+                                                                          context),
+                                                                      onPressed: () => Navigator.pop(
                                                                           context,
                                                                           false),
-                                                                  child:
-                                                                      const Text(
+                                                                      child: const Text(
                                                                           '保留')),
-                                                              TextButton(
-                                                                  style: rebuildTextStyle(
-                                                                      context),
-                                                                  onPressed: () =>
-                                                                      Navigator.pop(
+                                                                  TextButton(
+                                                                      style: rebuildTextStyle(
+                                                                          context),
+                                                                      onPressed: () => Navigator.pop(
                                                                           context,
                                                                           true),
-                                                                  child:
-                                                                      const Text(
+                                                                      child: const Text(
                                                                           '删除'))
-                                                            ]));
-                                                if (yes == true) {
-                                                  await _store.delete(d.id);
-                                                  await _load();
-                                                }
-                                              })));
-                                })
-                        : _old.isEmpty
-                            ? _empty('原相册还没有照片', '可以拍摄或导入照片，直接制作拍立得')
-                            : GridView.builder(
-                                padding: const EdgeInsets.all(20),
-                                itemCount: _old.length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        childAspectRatio: .65,
-                                        mainAxisSpacing: 18,
-                                        crossAxisSpacing: 20),
-                                itemBuilder: (_, i) =>
-                                    _sourcePhotoTile(_old[i])),
-          ),
-          if (!_ticket || _section != 0 || works.isEmpty)
-            Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
-                child: RebuildGlass(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(children: [
-                      RebuildGlassButton(
-                          label: _section == 1 ? '查看收藏' : '私密草稿',
-                          icon: _section == 1
-                              ? Icons.collections_outlined
-                              : Icons.drafts_outlined,
-                          onPressed: () => _showSection(_section == 1 ? 0 : 1)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: FilledButton.icon(
-                              style: rebuildFilledStyle(context),
-                              onPressed: _busy ? null : _new,
-                              icon: const Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  size: 20),
-                              label: Text(_ticket ? '制作票根' : '制作拍立得'))),
-                    ]))),
-        ])),
+                                                                ]));
+                                                    if (yes == true) {
+                                                      await _store.delete(d.id);
+                                                      await _load();
+                                                    }
+                                                  })));
+                                    })
+                            : _old.isEmpty
+                                ? _empty('原相册还没有照片', '可以拍摄或导入照片，直接制作拍立得')
+                                : GridView.builder(
+                                    padding: const EdgeInsets.all(20),
+                                    itemCount: _old.length,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 2,
+                                            childAspectRatio: .65,
+                                            mainAxisSpacing: 18,
+                                            crossAxisSpacing: 20),
+                                    itemBuilder: (_, i) =>
+                                        _sourcePhotoTile(_old[i])),
+              ),
+              if (!_ticket || _section != 0 || works.isEmpty)
+                Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                    child: RebuildGlass(
+                        padding: const EdgeInsets.all(8),
+                        child: Row(children: [
+                          RebuildGlassButton(
+                              label: _section == 1 ? '查看收藏' : '私密草稿',
+                              icon: _section == 1
+                                  ? Icons.collections_outlined
+                                  : Icons.drafts_outlined,
+                              onPressed: () =>
+                                  _showSection(_section == 1 ? 0 : 1)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: FilledButton.icon(
+                                  style: rebuildFilledStyle(context),
+                                  onPressed: _busy ? null : _new,
+                                  icon: const Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 20),
+                                  label: Text(_ticket ? '制作票根' : '制作拍立得'))),
+                        ]))),
+            ])),
       ]),
     );
   }
@@ -977,6 +987,7 @@ class _CreationGalleryState extends State<CreationGallery> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => SafeArea(
+          minimum: const EdgeInsets.only(bottom: 24),
           child: SizedBox(
               height: MediaQuery.sizeOf(context).height * .65,
               child: SingleChildScrollView(

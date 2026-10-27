@@ -156,6 +156,7 @@ Future<void> showJourneyLibrary(
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => SafeArea(
+          minimum: const EdgeInsets.only(bottom: 24),
           child: SizedBox(
               height: MediaQuery.sizeOf(context).height * .65,
               child: AnimatedBuilder(
@@ -292,6 +293,7 @@ class JourneyPanel extends StatelessWidget {
         showDragHandle: true,
         isScrollControlled: true,
         builder: (context) => SafeArea(
+            minimum: const EdgeInsets.only(bottom: 24),
             child: Padding(
                 padding: EdgeInsets.only(
                     left: 20,
@@ -371,9 +373,9 @@ class JourneyPanel extends StatelessWidget {
         showDragHandle: true,
         builder: (context) => StatefulBuilder(
             builder: (context, setSheet) => SafeArea(
-                    child: SingleChildScrollView(
-                        child:
-                            Column(mainAxisSize: MainAxisSize.min, children: [
+                minimum: const EdgeInsets.only(bottom: 24),
+                child: SingleChildScrollView(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
                   const ListTile(
                       title: Text('到达这一站的交通方式'),
                       subtitle: Text('时间与距离来自真实路线规划')),

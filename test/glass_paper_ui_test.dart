@@ -150,6 +150,8 @@ void main() {
     expect(frame.document.title, '原照片的备注');
     expect(frame.document.date, '2026-10-24');
     expect(find.text('用这张制作拍立得').hitTestable(), findsOneWidget);
+    expect(tester.getBottomLeft(find.byTooltip('私密草稿')).dy,
+        lessThanOrEqualTo(616));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     auth.dispose();
