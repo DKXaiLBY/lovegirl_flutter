@@ -79,6 +79,12 @@ class _CreationPreviewState extends State<CreationPreview> {
                                         : angle),
                                   child: CreationMaterial(
                                       document: widget.document,
+                                      glossy: angle < math.pi / 2,
+                                      lightShift:
+                                          MediaQuery.disableAnimationsOf(
+                                                  context)
+                                              ? 0
+                                              : math.sin(angle) * .7,
                                       child: angle > math.pi / 2
                                           ? CustomPaint(
                                               painter: CreationPainter(

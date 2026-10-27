@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'creation_canvas.dart';
+import 'creation_catalog.dart';
 import 'creation_document.dart';
 
 class CreationBackdrop extends StatelessWidget {
@@ -65,11 +66,66 @@ class CreationMaterial extends StatelessWidget {
   final CreationDocument document;
   final Widget child;
   final double lift;
+  final double lightShift;
+  final bool glossy;
   const CreationMaterial(
-      {super.key, required this.document, required this.child, this.lift = 1});
+      {super.key,
+      required this.document,
+      required this.child,
+      this.lift = 1,
+      this.lightShift = 0,
+      this.glossy = false});
   @override
-  Widget build(BuildContext context) =>
-      CustomPaint(painter: _PaperElevation(document, lift), child: child);
+  Widget build(BuildContext context) => CustomPaint(
+      painter: _PaperElevation(document, lift),
+      foregroundPainter: glossy ? _SurfaceLight(document, lightShift) : null,
+      child: child);
+}
+
+class _SurfaceLight extends CustomPainter {
+  final CreationDocument document;
+  final double shift;
+  const _SurfaceLight(this.document, this.shift);
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (shift.abs() < .001 ||
+        document.kind == 'ticket' ||
+        [
+          PaperMaterial.cotton,
+          PaperMaterial.linen,
+          PaperMaterial.frost,
+          PaperMaterial.fold
+        ].contains(document.paper.material)) return;
+    final light = shift.clamp(-1.0, 1.0);
+    canvas.save();
+    canvas.scale(size.width / 880, size.height / (880 / document.aspectRatio));
+    for (final window in CreationPainter.photoWindows(document)) {
+      canvas.drawRect(
+          window,
+          Paint()
+            ..shader = LinearGradient(
+                begin: Alignment(-1.5 + light, -1),
+                end: Alignment(1 + light, 1),
+                colors: [
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.white.withAlpha((light.abs() * 35).round()),
+                  Colors.transparent
+                ],
+                stops: const [
+                  0,
+                  .3,
+                  .52,
+                  .75
+                ]).createShader(window));
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_SurfaceLight oldDelegate) =>
+      oldDelegate.shift != shift ||
+      oldDelegate.document.templateId != document.templateId;
 }
 
 class _PaperElevation extends CustomPainter {

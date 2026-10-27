@@ -724,14 +724,26 @@ class _CreationGalleryState extends State<CreationGallery> {
                                                   fit: BoxFit.contain,
                                                   errorWidget: (_, __, ___) =>
                                                       const SizedBox()))))),
-                            Transform.rotate(
-                                angle: angle,
+                            Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, .0008)
+                                  ..rotateY(
+                                      MediaQuery.disableAnimationsOf(context)
+                                          ? 0
+                                          : delta * .1)
+                                  ..rotateZ(angle),
                                 child: Padding(
                                     padding: EdgeInsets.only(
                                         right: 14,
                                         bottom: 14 / work.document.aspectRatio),
                                     child: CreationFlip(
                                         work: work,
+                                        lightShift:
+                                            MediaQuery.disableAnimationsOf(
+                                                    context)
+                                                ? 0
+                                                : delta,
                                         back: back,
                                         onInspect: inspect,
                                         onFlip: () => _flip(work.id)))),
@@ -850,12 +862,14 @@ class CreationFlip extends StatelessWidget {
   final bool back;
   final VoidCallback onFlip;
   final VoidCallback? onInspect;
+  final double lightShift;
   const CreationFlip(
       {super.key,
       required this.work,
       required this.back,
       required this.onFlip,
-      this.onInspect});
+      this.onInspect,
+      this.lightShift = 0});
   @override
   Widget build(BuildContext context) => Semantics(
       button: true,
@@ -878,6 +892,11 @@ class CreationFlip extends StatelessWidget {
                     ..rotateY(back ? angle - math.pi : angle),
                   child: CreationMaterial(
                       document: work.document,
+                      glossy: !back,
+                      lightShift: MediaQuery.disableAnimationsOf(context)
+                          ? 0
+                          : lightShift + math.sin(angle) * .7,
+                      lift: 1 + math.sin(angle).abs() * .2,
                       child: back
                           ? CustomPaint(
                               painter: CreationPainter(work.document, const [],
