@@ -217,6 +217,8 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
                                         vertical: 12),
                                     child: Row(
                                         mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Icon(widget.icon,
                                               color: ink, size: 22),

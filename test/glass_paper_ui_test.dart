@@ -268,8 +268,14 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(tester.getSize(find.byTooltip('按月浏览')).height,
           greaterThanOrEqualTo(48));
-      expect(find.text(kind == 'ticket' ? '制作票根' : '制作拍立得').hitTestable(),
-          findsOneWidget);
+      if (kind == 'ticket') {
+        expect(find.byTooltip('制作票根').hitTestable(), findsOneWidget);
+        expect(find.text('导出图片').hitTestable(), findsOneWidget);
+        expect(find.text('继续编辑').hitTestable(), findsOneWidget);
+        expect(find.text('2026.10.24').hitTestable(), findsOneWidget);
+      } else {
+        expect(find.text('制作拍立得').hitTestable(), findsOneWidget);
+      }
       final flip = find.byTooltip('翻到背面').first;
       expect(flip.hitTestable(), findsOneWidget);
       await tester.tap(flip);
