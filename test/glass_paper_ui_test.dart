@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,13 @@ class _Auth extends AuthProvider {
   int get userId => 71;
 }
 
+class _PendingGalleryApi extends _GalleryApi {
+  final result = Completer<Response>();
+  _PendingGalleryApi() : super('polaroid');
+  @override
+  Future<Response> getCreations({int? tripId}) => result.future;
+}
+
 class _GalleryApi implements ApiService {
   final String kind;
   _GalleryApi(this.kind);
@@ -69,6 +77,28 @@ class _GalleryApi implements ApiService {
 }
 
 void main() {
+  testWidgets('a pending collection load never claims the memories are empty',
+      (tester) async {
+    final api = _PendingGalleryApi();
+    final auth = _Auth();
+    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
+        value: auth,
+        child: MaterialApp(
+            theme: LoveGirlTheme.lightTheme,
+            home: CreationGallery(api: api, drafts: _Drafts()))));
+    await tester.pump();
+    expect(find.text('正在取回你的回忆'), findsOneWidget);
+    expect(find.text('还没有收藏的拍立得'), findsNothing);
+    expect(find.text('收藏 0'), findsNothing);
+    api.result.complete(
+        Response(requestOptions: RequestOptions(), data: {'data': []}));
+    await tester.pumpAndSettle();
+    expect(find.text('还没有收藏的拍立得'), findsOneWidget);
+    expect(find.text('收藏 0'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    auth.dispose();
+  });
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() {
     SharedPreferences.setMockInitialValues({});
