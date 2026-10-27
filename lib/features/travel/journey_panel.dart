@@ -748,6 +748,8 @@ class JourneyPanel extends StatelessWidget {
             ? stop.place!.photos.first
             : null);
     final leg = controller.legs.where((l) => l.toKey == stop.key);
+    final detailIndent = (photo != null ? (compact ? 54.0 : 70.0) : 0.0) +
+        (compact ? 34.0 : 0.0);
     return AnimatedContainer(
         duration: MediaQuery.disableAnimationsOf(context)
             ? Duration.zero
@@ -807,10 +809,12 @@ class JourneyPanel extends StatelessWidget {
                             if (!compact && !controller.overview)
                               ReorderableDragStartListener(
                                   index: index,
-                                  child: const Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child:
-                                          Icon(Icons.drag_handle, size: 20))),
+                                  child: const SizedBox(
+                                      width: 48,
+                                      height: 48,
+                                      child: Center(
+                                          child: Icon(Icons.drag_handle,
+                                              size: 20)))),
                             IconButton(
                                 tooltip: '移动、备注或移除',
                                 constraints: const BoxConstraints(
@@ -820,8 +824,8 @@ class JourneyPanel extends StatelessWidget {
                           ]),
                           if (city.isNotEmpty)
                             Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 34, bottom: 4),
+                                padding: EdgeInsets.only(
+                                    left: detailIndent, bottom: 4),
                                 child: Text(city,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -831,13 +835,13 @@ class JourneyPanel extends StatelessWidget {
                           if (!hasPrevious && !controller.overview)
                             Padding(
                                 padding:
-                                    const EdgeInsets.only(left: 34, top: 6),
+                                    EdgeInsets.only(left: detailIndent, top: 6),
                                 child: Text(
                                     stop.day == null ? '待安排日期' : '当天第一站',
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: context.lgTextSecondary))),
-                          if (controller.overview)
+                          if (controller.overview && compact)
                             Text(
                                 stop.day == null
                                     ? '待计划'
@@ -847,8 +851,8 @@ class JourneyPanel extends StatelessWidget {
                                     color: context.lgTextSecondary)),
                           if (stop.note.isNotEmpty)
                             Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 34, right: 10),
+                                padding: EdgeInsets.only(
+                                    left: detailIndent, right: 10),
                                 child: Text(stop.note,
                                     maxLines: compact ? 1 : 3,
                                     overflow: TextOverflow.ellipsis,
@@ -878,6 +882,11 @@ class JourneyPanel extends StatelessWidget {
         index + 1 < stops.length &&
         stops[index + 1].day == stop.day;
     final selected = controller.selectedKey == stop.key;
+    bool hasPhoto(JourneyStop s) =>
+        s.place?.coverImage?.isNotEmpty == true ||
+        s.place?.photos.isNotEmpty == true;
+    final circleTop = hasPhoto(stop) ? 28.0 : 22.0;
+    final nextCircleTop = connects && hasPhoto(stops[index + 1]) ? 28.0 : 22.0;
     return Padding(
         key: ValueKey(stop.key),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -892,16 +901,20 @@ class JourneyPanel extends StatelessWidget {
           Stack(clipBehavior: Clip.none, children: [
             if (connects)
               Positioned(
-                  left: 12,
-                  top: 35,
-                  bottom: -27,
-                  child: Container(width: 1, color: context.lgSeparator)),
+                  left: 12.5,
+                  top: circleTop + 26,
+                  bottom: -nextCircleTop,
+                  child: Container(
+                      width: 1,
+                      color: context.lgIsDark
+                          ? const Color(0xff4b5865)
+                          : const Color(0xffc3d3dc))),
             Padding(
                 padding: const EdgeInsets.only(left: 34, bottom: 12),
                 child: _card(context, stop, index)),
             Positioned(
                 left: 0,
-                top: 15,
+                top: circleTop,
                 child: CircleAvatar(
                     radius: 13,
                     backgroundColor:

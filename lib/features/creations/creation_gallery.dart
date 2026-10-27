@@ -470,21 +470,24 @@ class _CreationGalleryState extends State<CreationGallery> {
                     if (_section == 0 && months.isNotEmpty)
                       PopupMenuButton<String>(
                           tooltip: '按月浏览',
-                          child: RebuildGlass(
-                              radius: 24,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                              child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                        _month == null
-                                            ? '月份'
-                                            : '${_month!.substring(5)}月',
-                                        style: const TextStyle(fontSize: 12)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.expand_more, size: 16)
-                                  ])),
+                          child: ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              child: RebuildGlass(
+                                  radius: 24,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                  child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                            _month == null
+                                                ? '月份'
+                                                : '${_month!.substring(5)}月',
+                                            style:
+                                                const TextStyle(fontSize: 12)),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.expand_more, size: 16)
+                                      ]))),
                           onSelected: (v) => setState(() {
                                 final month = v.isEmpty ? null : v;
                                 if (month != _month) _page = 0;

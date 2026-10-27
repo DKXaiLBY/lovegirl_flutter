@@ -266,6 +266,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(tester.takeException(), isNull);
+      expect(tester.getSize(find.byTooltip('按月浏览')).height,
+          greaterThanOrEqualTo(48));
       expect(find.text(kind == 'ticket' ? '制作票根' : '制作拍立得').hitTestable(),
           findsOneWidget);
       final flip = find.byTooltip('翻到背面').first;
@@ -341,6 +343,7 @@ void main() {
             place: TravelSpot(
                 id: 1,
                 name: '有照片的地点',
+                city: '海边',
                 coverImage: '',
                 photos: ['/uploads/qa-first.png']))
       ]));
@@ -358,6 +361,11 @@ void main() {
                 onAdd: () {},
                 onStory: (_) {}))));
     await tester.pump();
+    expect(tester.getTopLeft(find.text('有照片的地点')).dx,
+        tester.getTopLeft(find.text('海边')).dx);
+    final handle = tester.getSize(find.byType(ReorderableDragStartListener));
+    expect(handle.width, greaterThanOrEqualTo(48));
+    expect(handle.height, greaterThanOrEqualTo(48));
     expect(
         tester
             .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
@@ -368,5 +376,37 @@ void main() {
     controller.dispose();
     scroll.dispose();
     cards.dispose();
+  });
+  testWidgets('ticket library explains unavailable two-photo layouts',
+      (tester) async {
+    tester.view.physicalSize = const Size(720, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final store = _Drafts();
+    await tester.pumpWidget(MaterialApp(
+        theme: LoveGirlTheme.lightTheme,
+        home: CreationEditor(
+            store: store,
+            draft: CreationDraft(
+                id: 'qa-template-count',
+                ownerId: 71,
+                sourcePaths: const [],
+                updatedAt: DateTime(2026, 10, 27),
+                document: const CreationDocument(
+                    kind: 'ticket', templateId: 'landscape')))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('版式'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('全部版式 8'));
+    await tester.pumpAndSettle();
+    expect(find.text('需2张照片'), findsWidgets);
+    await tester.tap(find.descendant(
+        of: find.byType(BottomSheet), matching: find.text('胶片长票')));
+    await tester.pumpAndSettle();
+    expect(find.text('选择票根版式'), findsOneWidget);
+    expect(store.saved, isNull);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 }

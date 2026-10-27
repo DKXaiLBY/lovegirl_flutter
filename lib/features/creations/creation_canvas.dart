@@ -594,10 +594,11 @@ class CreationPainter extends CustomPainter {
         handwritten: true);
     _text(
         c,
-        document.date ?? '',
+        (document.date ?? '').replaceAll('-', '.'),
         Rect.fromLTWH(m == PaperMaterial.letter ? 150 : 58, h - 88, 650, 40),
-        22,
-        color.withAlpha(160));
+        26,
+        color.withAlpha(190),
+        handwritten: true);
   }
 
   void _ticketDetails(Canvas c, Rect r, List<Rect> windows) {

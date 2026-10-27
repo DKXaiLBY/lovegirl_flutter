@@ -95,7 +95,9 @@ class _SurfaceLight extends CustomPainter {
           PaperMaterial.linen,
           PaperMaterial.frost,
           PaperMaterial.fold
-        ].contains(document.paper.material)) return;
+        ].contains(document.paper.material)) {
+      return;
+    }
     final light = shift.clamp(-1.0, 1.0);
     canvas.save();
     canvas.scale(size.width / 880, size.height / (880 / document.aspectRatio));

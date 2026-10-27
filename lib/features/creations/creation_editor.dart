@@ -959,35 +959,34 @@ class _CreationEditorState extends State<CreationEditor> {
                           itemBuilder: (context, index) {
                             final option = options[index];
                             final selected = option.$1 == _d.templateId;
+                            final canUse = _images.length >= option.$3;
                             final preview = _d.copyWith(templateId: option.$1);
                             return Semantics(
                                 button: true,
+                                enabled: canUse,
                                 selected: selected,
                                 child: InkWell(
                                     borderRadius: BorderRadius.circular(18),
-                                    onTap: () {
-                                      if (_images.length < option.$3) {
-                                        _message(
-                                            '这个版式需要 ${option.$3} 张照片，请新建时选择多张照片');
-                                        return;
-                                      }
-                                      Navigator.pop(context, option.$1);
-                                    },
+                                    onTap: canUse
+                                        ? () =>
+                                            Navigator.pop(context, option.$1)
+                                        : null,
                                     child: Column(children: [
                                       Expanded(
-                                          child: Center(
-                                              child: AspectRatio(
-                                                  aspectRatio:
-                                                      preview.aspectRatio,
-                                                  child: CreationMaterial(
-                                                      document: preview,
-                                                      lift: .6,
-                                                      child: RepaintBoundary(
-                                                          child: CustomPaint(
-                                                              painter:
-                                                                  CreationPainter(
+                                          child: Opacity(
+                                              opacity: canUse ? 1 : .5,
+                                              child: Center(
+                                                  child: AspectRatio(
+                                                      aspectRatio:
+                                                          preview.aspectRatio,
+                                                      child: CreationMaterial(
+                                                          document: preview,
+                                                          lift: .6,
+                                                          child: RepaintBoundary(
+                                                              child: CustomPaint(
+                                                                  painter: CreationPainter(
                                                                       preview,
-                                                                      _images))))))),
+                                                                      _images)))))))),
                                       const SizedBox(height: 12),
                                       Text(option.$2,
                                           style: TextStyle(
@@ -996,7 +995,12 @@ class _CreationEditorState extends State<CreationEditor> {
                                                   ? FontWeight.w700
                                                   : FontWeight.w500)),
                                       const SizedBox(height: 4),
-                                      Text(selected ? '正在使用' : '点击使用',
+                                      Text(
+                                          selected
+                                              ? '正在使用'
+                                              : canUse
+                                                  ? '点击使用'
+                                                  : '需${option.$3}张照片',
                                           style: TextStyle(
                                               fontSize: 11,
                                               color: context.lgTextSecondary)),
@@ -1022,7 +1026,8 @@ class _CreationEditorState extends State<CreationEditor> {
               Expanded(
                   child: OutlinedButton.icon(
                       style: rebuildOutlinedStyle(context),
-                      onPressed: _replacePhoto,
+                      onPressed:
+                          _loading || _loadError != null ? null : _replacePhoto,
                       icon: const Icon(Icons.add_photo_alternate_outlined,
                           size: 18),
                       label: Text(_images.length > 1
@@ -1095,7 +1100,8 @@ class _CreationEditorState extends State<CreationEditor> {
                           fontSize: 12, fontWeight: FontWeight.w600))),
               TextButton.icon(
                   style: rebuildTextStyle(context),
-                  onPressed: _templateLibrary,
+                  onPressed:
+                      _loading || _loadError != null ? null : _templateLibrary,
                   icon: const Icon(Icons.grid_view_outlined, size: 16),
                   label: Text(
                       '全部${_d.kind == 'ticket' ? '版式' : '相纸'} ${options.length}',
@@ -1321,7 +1327,8 @@ class _CreationEditorState extends State<CreationEditor> {
             Expanded(
                 child: OutlinedButton.icon(
                     style: rebuildOutlinedStyle(context),
-                    onPressed: _replacePhoto,
+                    onPressed:
+                        _loading || _loadError != null ? null : _replacePhoto,
                     icon: const Icon(Icons.add_photo_alternate_outlined,
                         size: 18),
                     label: Text(_images.length > 1
