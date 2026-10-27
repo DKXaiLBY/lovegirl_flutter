@@ -430,36 +430,32 @@ class _TravelScreenState extends State<TravelScreen> {
                                 child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      FloatingActionButton.small(
-                                          heroTag: 'travel_location',
-                                          tooltip: '定位到我',
-                                          backgroundColor: context.lgPaper,
-                                          foregroundColor: context.lgInk,
+                                      RebuildGlassButton(
+                                          label: _locating ? '正在定位' : '定位到我',
+                                          icon: Icons.my_location_outlined,
                                           onPressed: _locating || !_mapReady
                                               ? null
-                                              : _locate,
-                                          child: _locating
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          strokeWidth: 2))
-                                              : const Icon(
-                                                  Icons.my_location_outlined)),
+                                              : _locate),
+                                      if (_locating)
+                                        const Padding(
+                                            padding: EdgeInsets.all(14),
+                                            child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2))),
                                       const SizedBox(height: 10),
-                                      FloatingActionButton.extended(
-                                          heroTag: 'travel_record',
-                                          backgroundColor: context.lgInk,
-                                          foregroundColor: context.lgPaper,
+                                      RebuildGlassButton(
+                                          selected: true,
+                                          showLabel: true,
                                           onPressed: _journeys.current == null
                                               ? _record
                                               : _addJourneyPlace,
-                                          icon: const Icon(
-                                              Icons.add_location_alt_outlined),
-                                          label: Text(_journeys.current == null
+                                          icon: Icons.add_location_alt_outlined,
+                                          label: _journeys.current == null
                                               ? '记地点'
-                                              : '加一站')),
+                                              : '加一站'),
                                     ]))),
                     NotificationListener<DraggableScrollableNotification>(
                       onNotification: (notification) {

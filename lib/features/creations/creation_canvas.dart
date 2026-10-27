@@ -60,7 +60,7 @@ class CreationPainter extends CustomPainter {
     canvas.save();
     canvas.scale(size.width / 880, size.height / h);
     final rect = Rect.fromLTWH(0, 0, 880, h);
-    final path = _outline(rect);
+    final path = outline(document, rect);
     canvas.drawShadow(path, Colors.black.withAlpha(70), 10, false);
     canvas.save();
     canvas.clipPath(path);
@@ -124,16 +124,38 @@ class CreationPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.8
           ..color = Colors.black.withAlpha(24));
+    // A sealed print has a fine lit lip, rather than a thick raised frame.
+    canvas.save();
+    canvas.clipPath(path);
+    canvas.drawPath(
+        path.shift(const Offset(0, 1.5)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = Colors.white.withAlpha(145));
+    canvas.drawPath(
+        path.shift(const Offset(-1, -2)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.black.withAlpha(26));
+    canvas.restore();
     canvas.restore();
   }
 
-  Path _outline(Rect r) {
-    final d = document;
+  static Path outline(CreationDocument d, Rect r) {
     if (d.kind == 'ticket') {
       final path = Path()
         ..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(12)));
       final holes = Path();
       final horizontal = d.aspectRatio > 1.7;
+      // Small cut edges belong to the paper, not to a rectangular UI card.
+      if (d.templateId != 'postcard' && d.templateId != 'filmstrip') {
+        for (var y = 20.0; y < r.height - 12; y += 13) {
+          holes.addOval(Rect.fromCircle(center: Offset(0, y), radius: 2));
+          holes.addOval(Rect.fromCircle(center: Offset(r.width, y), radius: 2));
+        }
+      }
       if (horizontal) {
         holes.addOval(
             Rect.fromCircle(center: Offset(r.width * .77, 0), radius: 20));
@@ -187,17 +209,62 @@ class CreationPainter extends CustomPainter {
 
   void _texture(Canvas c, Rect r) {
     final m = document.paper.material;
+    final ticket = document.kind == 'ticket';
+    final smooth = !ticket &&
+        ![
+          PaperMaterial.cotton,
+          PaperMaterial.linen,
+          PaperMaterial.fold,
+          PaperMaterial.peelWhite,
+          PaperMaterial.postmark
+        ].contains(m);
+    c.drawRect(
+        r,
+        Paint()
+          ..shader = LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: smooth
+                  ? const [
+                      Color(0x14ffffff),
+                      Color(0x00ffffff),
+                      Color(0x076b7480)
+                    ]
+                  : const [
+                      Color(0x08ffffff),
+                      Color(0x00ffffff),
+                      Color(0x086b7480)
+                    ],
+              stops: const [0, .72, 1]).createShader(r));
     final random = math.Random(1409);
     final ink = Paint();
     for (var i = 0; i < 1800; i++) {
-      ink.color = (i.isEven ? Colors.black : Colors.white)
-          .withAlpha(m == PaperMaterial.cotton ? 22 : 9);
+      ink.color = (i.isEven ? Colors.black : Colors.white).withAlpha(ticket
+          ? 13
+          : m == PaperMaterial.cotton
+              ? 22
+              : smooth
+                  ? 3
+                  : 9);
       c.drawCircle(
           Offset(random.nextDouble() * r.width, random.nextDouble() * r.height),
           m == PaperMaterial.cotton ? 1.7 : .8,
           ink);
     }
-    if (document.kind == 'ticket') return;
+    if (ticket) {
+      // Fine, short fibres remain restrained at phone scale.
+      for (var i = 0; i < 600; i++) {
+        final point = Offset(
+            random.nextDouble() * r.width, random.nextDouble() * r.height);
+        c.drawLine(
+            point,
+            point + Offset(1.5 + random.nextDouble() * 4, .8),
+            Paint()
+              ..color = const Color(0x0a454d56)
+              ..strokeWidth = .6);
+      }
+      return;
+    }
     if (m == PaperMaterial.linen) {
       for (var x = 0.0; x < 880; x += 6) {
         c.drawLine(Offset(x, 0), Offset(x, r.height),
@@ -327,13 +394,50 @@ class CreationPainter extends CustomPainter {
               ..strokeWidth = 1.7);
       }
     }
+    if (document.kind != 'ticket' &&
+        ![
+          PaperMaterial.cotton,
+          PaperMaterial.linen,
+          PaperMaterial.frost,
+          PaperMaterial.fold
+        ].contains(document.paper.material)) {
+      c.drawRect(
+          window,
+          Paint()
+            ..shader = const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0x00ffffff),
+                  Color(0x04ffffff),
+                  Color(0x24ffffff),
+                  Color(0x02ffffff),
+                  Color(0x00ffffff)
+                ],
+                stops: [
+                  0,
+                  .3,
+                  .52,
+                  .66,
+                  1
+                ]).createShader(window));
+    }
+    // The image sits nearly flush under the protective surface.
+    c.drawRect(
+        window,
+        Paint()
+          ..shader = const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x260c1723), Color(0x000c1723)],
+              stops: [0, .008]).createShader(window));
     c.restore();
     c.drawRRect(
         rounded,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..color = Colors.black.withAlpha(48));
+          ..strokeWidth = 1.2
+          ..color = Colors.black.withAlpha(36));
   }
 
   void _paperDetails(Canvas c, Rect r) {
@@ -671,8 +775,8 @@ class _InkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
-    final path = CreationPainter(document, const [])
-        ._outline(Rect.fromLTWH(0, 0, 880, 880 / document.aspectRatio));
+    final path = CreationPainter.outline(
+        document, Rect.fromLTWH(0, 0, 880, 880 / document.aspectRatio));
     canvas.clipPath(path.transform((Matrix4.identity()
           ..scale(size.width / 880, size.height / (880 / document.aspectRatio)))
         .storage));

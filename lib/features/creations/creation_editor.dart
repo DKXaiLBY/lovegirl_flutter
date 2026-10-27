@@ -18,6 +18,7 @@ import 'creation_catalog.dart';
 import 'creation_document.dart';
 import 'creation_drafts.dart';
 import 'creation_files.dart';
+import 'creation_material.dart';
 import 'creation_preview.dart';
 
 class CreationEditor extends StatefulWidget {
@@ -28,6 +29,35 @@ class CreationEditor extends StatefulWidget {
   State<CreationEditor> createState() => _CreationEditorState();
 }
 
+class _LookThumbnail extends CustomPainter {
+  final ui.Image? image;
+  final List<double> matrix;
+  const _LookThumbnail(this.image, this.matrix);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final target = Offset.zero & size;
+    if (image == null) {
+      canvas.drawRect(target, Paint()..color = const Color(0xffcbdde6));
+      return;
+    }
+    final fitted = applyBoxFit(BoxFit.cover,
+        Size(image!.width.toDouble(), image!.height.toDouble()), size);
+    final source = Alignment.center.inscribe(fitted.source,
+        Rect.fromLTWH(0, 0, image!.width.toDouble(), image!.height.toDouble()));
+    canvas.drawImageRect(
+        image!,
+        source,
+        target,
+        Paint()
+          ..filterQuality = FilterQuality.low
+          ..colorFilter = ColorFilter.matrix(matrix));
+  }
+
+  @override
+  bool shouldRepaint(_LookThumbnail oldDelegate) =>
+      oldDelegate.image != image || oldDelegate.matrix != matrix;
+}
+
 class _CreationEditorState extends State<CreationEditor> {
   late CreationDraft _draft = widget.draft;
   List<ui.Image> _images = [];
@@ -36,7 +66,7 @@ class _CreationEditorState extends State<CreationEditor> {
   late final ScrollController _lookScroll;
   final _undo = <CreationDocument>[];
   final _redo = <CreationDocument>[];
-  int _tab = 0;
+  late int _tab = widget.draft.document.kind == 'ticket' ? 4 : 0;
   int _cropIndex = 0;
   bool _back = false;
   bool _eraser = false;
@@ -518,6 +548,7 @@ class _CreationEditorState extends State<CreationEditor> {
         },
         child: Scaffold(
           backgroundColor: context.lgBg,
+          resizeToAvoidBottomInset: false,
           appBar: AppBar(
               systemOverlayStyle: context.lgIsDark
                   ? SystemUiOverlayStyle.light
@@ -526,6 +557,8 @@ class _CreationEditorState extends State<CreationEditor> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(_d.kind == 'ticket' ? '制作票根' : '制作拍立得',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 18)),
                     Text(
                         _saveFailed
@@ -533,6 +566,8 @@ class _CreationEditorState extends State<CreationEditor> {
                             : _saved
                                 ? '私密草稿已保存'
                                 : '正在保存草稿…',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                             fontSize: 10,
                             color: _saveFailed
@@ -560,223 +595,489 @@ class _CreationEditorState extends State<CreationEditor> {
                             : _publish,
                         child: Text(_busy ? '处理中' : '收藏')))
               ]),
-          body: SafeArea(
-              child: Column(children: [
-            Expanded(
-                child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    decoration: BoxDecoration(
-                        color: _d.kind == 'ticket'
-                            ? (context.lgIsDark
-                                ? const Color(0xff303238)
-                                : const Color(0xffe7e9ed))
-                            : _d.background,
-                        borderRadius: BorderRadius.circular(24),
-                        gradient: _d.kind != 'ticket' && _d.gradient
-                            ? LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                    _d.background,
-                                    Color.lerp(_d.background, _d.accent, .30)!
-                                  ])
-                            : null),
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _loadError != null
-                            ? Center(child: Text(_loadError!))
-                            : LayoutBuilder(builder: (context, constraints) {
-                                final width = math.min(
-                                    constraints.maxWidth - 36,
-                                    (constraints.maxHeight - 32) *
-                                        _d.aspectRatio);
-                                final size =
-                                    Size(width, width / _d.aspectRatio);
-                                Offset normalized(Offset point) => Offset(
-                                    (point.dx / size.width).clamp(0, 1),
-                                    (point.dy / size.height).clamp(0, 1));
-                                return Center(
-                                    child: SizedBox.fromSize(
-                                        size: size,
-                                        child: GestureDetector(
-                                          onLongPress: _busy ||
-                                                  _drawing ||
-                                                  _loading ||
-                                                  _loadError != null
-                                              ? null
-                                              : () => Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                      builder: (_) => CreationPreview(
-                                                          document: _d,
-                                                          initialBack: _back,
-                                                          front: CreationArtwork(
-                                                              document: _d,
-                                                              images:
-                                                                  _images)))),
-                                          onTap: _busy
-                                              ? null
-                                              : () {
-                                                  if (!_drawing) _text();
-                                                },
-                                          onScaleStart: _busy || _drawing
-                                              ? null
-                                              : (details) {
-                                                  if (_back) return;
-                                                  final point = Offset(
-                                                      details.localFocalPoint
-                                                              .dx /
-                                                          size.width *
-                                                          880,
-                                                      details.localFocalPoint
-                                                              .dy /
-                                                          size.height *
-                                                          (880 /
-                                                              _d.aspectRatio));
-                                                  final index = CreationPainter
-                                                          .photoWindows(_d)
-                                                      .indexWhere((window) =>
-                                                          window
-                                                              .contains(point));
-                                                  if (index >= 0 &&
-                                                      index <
-                                                          _d.transforms
-                                                              .length) {
-                                                    _cropIndex = index;
-                                                  }
-                                                  _undo.add(_d);
-                                                  _redo.clear();
-                                                  _cropStart =
-                                                      _d.transforms[_cropIndex];
-                                                  _cropFocal =
-                                                      details.localFocalPoint;
-                                                },
-                                          onScaleUpdate: _busy || _drawing
-                                              ? null
-                                              : (details) {
-                                                  if (_back) return;
-                                                  final delta =
-                                                      details.localFocalPoint -
-                                                          _cropFocal;
-                                                  final crops =
-                                                      _d.transforms.toList();
-                                                  crops[_cropIndex] = CreationCrop(
-                                                      scale: (_cropStart.scale *
-                                                              details.scale)
-                                                          .clamp(1, 5),
-                                                      x: (_cropStart.x +
-                                                              delta.dx /
-                                                                  size.width *
-                                                                  2)
-                                                          .clamp(-1, 1),
-                                                      y: (_cropStart.y +
-                                                              delta.dy /
-                                                                  size.height *
-                                                                  2)
-                                                          .clamp(-1, 1));
-                                                  setState(() {
-                                                    _saved = false;
-                                                    _draft = _draft.copyWith(
-                                                        document: _d.copyWith(
-                                                            transforms: crops));
-                                                  });
-                                                },
-                                          onScaleEnd: _busy || _drawing
-                                              ? null
-                                              : (_) => unawaited(_save()),
-                                          child: Listener(
-                                              onPointerDown: _busy || !_drawing
-                                                  ? null
-                                                  : (event) => _startInk(
-                                                      normalized(
-                                                          event.localPosition)),
-                                              onPointerMove: _busy || !_drawing
-                                                  ? null
-                                                  : (event) => _moveInk(
-                                                      normalized(
-                                                          event.localPosition)),
-                                              onPointerUp: _busy || !_drawing
-                                                  ? null
-                                                  : (_) => _finishInk(),
-                                              onPointerCancel:
-                                                  _busy || !_drawing
-                                                      ? null
-                                                      : (_) => _finishInk(),
-                                              child: CreationArtwork(
-                                                  document: _d,
-                                                  images: _images,
-                                                  back: _back,
-                                                  activeInk: _active)),
-                                        )));
-                              }))),
-            SizedBox(
-                height: 44,
-                child:
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  IconButton(
-                      tooltip: '撤销',
-                      onPressed:
-                          _busy || _undo.isEmpty ? null : () => _history(false),
-                      icon: const Icon(Icons.undo, size: 20)),
-                  IconButton(
-                      tooltip: '重做',
-                      onPressed:
-                          _busy || _redo.isEmpty ? null : () => _history(true),
-                      icon: const Icon(Icons.redo, size: 20)),
-                  TextButton.icon(
-                      style: rebuildTextStyle(context),
-                      onPressed: _busy
-                          ? null
-                          : () {
-                              HapticFeedback.selectionClick();
-                              setState(() {
-                                _back = !_back;
-                                _active = null;
-                              });
-                            },
-                      icon: const Icon(Icons.flip, size: 18),
-                      label: Text(_back ? '查看正面' : '翻到背面')),
-                  TextButton(
-                      style: rebuildTextStyle(context),
-                      onPressed: _busy ? null : _text,
-                      child: const Text('文字／日期')),
-                ])),
-            SizedBox(
-                height: 42,
-                child: Row(children: [
-                  for (final item in [
-                    (0, _d.kind == 'ticket' ? '版式' : '相纸'),
-                    (1, '成像'),
-                    (2, '涂鸦'),
-                    (3, '更多')
-                  ])
-                    Expanded(
-                        child: TextButton(
+          body: Stack(children: [
+            const Positioned.fill(child: CreationBackdrop()),
+            SafeArea(
+                child: Column(children: [
+              Expanded(
+                  child: Container(
+                      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                      decoration: BoxDecoration(
+                          color: _d.kind == 'ticket'
+                              ? (context.lgIsDark
+                                  ? const Color(0xff303238)
+                                  : const Color(0xffe7e9ed))
+                              : _d.background,
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: _d.kind != 'ticket' && _d.gradient
+                              ? LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                      _d.background,
+                                      Color.lerp(_d.background, _d.accent, .30)!
+                                    ])
+                              : null),
+                      child: _loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _loadError != null
+                              ? Center(child: Text(_loadError!))
+                              : LayoutBuilder(builder: (context, constraints) {
+                                  final width = math.min(
+                                      constraints.maxWidth - 36,
+                                      (constraints.maxHeight - 32) *
+                                          _d.aspectRatio);
+                                  final size =
+                                      Size(width, width / _d.aspectRatio);
+                                  Offset normalized(Offset point) => Offset(
+                                      (point.dx / size.width).clamp(0, 1),
+                                      (point.dy / size.height).clamp(0, 1));
+                                  return Center(
+                                      child: SizedBox.fromSize(
+                                          size: size,
+                                          child: CreationMaterial(
+                                              document: _d,
+                                              lift: .65,
+                                              child: GestureDetector(
+                                                onLongPress: _busy ||
+                                                        _drawing ||
+                                                        _loading ||
+                                                        _loadError != null
+                                                    ? null
+                                                    : () => Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                CreationPreview(
+                                                                    document:
+                                                                        _d,
+                                                                    initialBack:
+                                                                        _back,
+                                                                    front: CreationArtwork(
+                                                                        document:
+                                                                            _d,
+                                                                        images:
+                                                                            _images)))),
+                                                onTap: _busy
+                                                    ? null
+                                                    : () {
+                                                        if (!_drawing) _text();
+                                                      },
+                                                onScaleStart: _busy || _drawing
+                                                    ? null
+                                                    : (details) {
+                                                        if (_back) return;
+                                                        final point = Offset(
+                                                            details.localFocalPoint
+                                                                    .dx /
+                                                                size.width *
+                                                                880,
+                                                            details.localFocalPoint
+                                                                    .dy /
+                                                                size.height *
+                                                                (880 /
+                                                                    _d.aspectRatio));
+                                                        final index = CreationPainter
+                                                                .photoWindows(
+                                                                    _d)
+                                                            .indexWhere(
+                                                                (window) => window
+                                                                    .contains(
+                                                                        point));
+                                                        if (index >= 0 &&
+                                                            index <
+                                                                _d.transforms
+                                                                    .length) {
+                                                          _cropIndex = index;
+                                                        }
+                                                        _undo.add(_d);
+                                                        _redo.clear();
+                                                        _cropStart =
+                                                            _d.transforms[
+                                                                _cropIndex];
+                                                        _cropFocal = details
+                                                            .localFocalPoint;
+                                                      },
+                                                onScaleUpdate: _busy || _drawing
+                                                    ? null
+                                                    : (details) {
+                                                        if (_back) return;
+                                                        final delta = details
+                                                                .localFocalPoint -
+                                                            _cropFocal;
+                                                        final crops = _d
+                                                            .transforms
+                                                            .toList();
+                                                        crops[_cropIndex] = CreationCrop(
+                                                            scale: (_cropStart
+                                                                        .scale *
+                                                                    details
+                                                                        .scale)
+                                                                .clamp(1, 5),
+                                                            x: (_cropStart.x +
+                                                                    delta.dx /
+                                                                        size
+                                                                            .width *
+                                                                        2)
+                                                                .clamp(-1, 1),
+                                                            y: (_cropStart.y +
+                                                                    delta.dy /
+                                                                        size.height *
+                                                                        2)
+                                                                .clamp(-1, 1));
+                                                        setState(() {
+                                                          _saved = false;
+                                                          _draft = _draft.copyWith(
+                                                              document:
+                                                                  _d.copyWith(
+                                                                      transforms:
+                                                                          crops));
+                                                        });
+                                                      },
+                                                onScaleEnd: _busy || _drawing
+                                                    ? null
+                                                    : (_) => unawaited(_save()),
+                                                child: Listener(
+                                                    onPointerDown: _busy || !_drawing
+                                                        ? null
+                                                        : (event) => _startInk(
+                                                            normalized(event
+                                                                .localPosition)),
+                                                    onPointerMove: _busy ||
+                                                            !_drawing
+                                                        ? null
+                                                        : (event) => _moveInk(
+                                                            normalized(event
+                                                                .localPosition)),
+                                                    onPointerUp: _busy ||
+                                                            !_drawing
+                                                        ? null
+                                                        : (_) => _finishInk(),
+                                                    onPointerCancel: _busy ||
+                                                            !_drawing
+                                                        ? null
+                                                        : (_) => _finishInk(),
+                                                    child: CreationArtwork(
+                                                        document: _d,
+                                                        images: _images,
+                                                        back: _back,
+                                                        activeInk: _active)),
+                                              ))));
+                                }))),
+              SizedBox(
+                  height: 48,
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                            tooltip: '撤销',
+                            onPressed: _busy || _undo.isEmpty
+                                ? null
+                                : () => _history(false),
+                            icon: const Icon(Icons.undo, size: 20)),
+                        IconButton(
+                            tooltip: '重做',
+                            onPressed: _busy || _redo.isEmpty
+                                ? null
+                                : () => _history(true),
+                            icon: const Icon(Icons.redo, size: 20)),
+                        TextButton.icon(
                             style: rebuildTextStyle(context),
                             onPressed: _busy
                                 ? null
-                                : () => setState(() {
-                                      _tab = item.$1;
+                                : () {
+                                    HapticFeedback.selectionClick();
+                                    setState(() {
+                                      _back = !_back;
                                       _active = null;
-                                    }),
-                            child: Text(item.$2,
-                                style: TextStyle(
-                                    fontWeight: _tab == item.$1
-                                        ? FontWeight.w800
-                                        : FontWeight.w400,
-                                    color: _tab == item.$1
-                                        ? context.lgInk
-                                        : context.lgTextSecondary))))
-                ])),
-            SizedBox(
-                height: math.min(180, MediaQuery.sizeOf(context).height * .24),
-                child: AbsorbPointer(absorbing: _busy, child: _controls())),
-            if (_busy) const LinearProgressIndicator(minHeight: 2),
-          ])),
+                                    });
+                                  },
+                            icon: const Icon(Icons.flip, size: 18),
+                            label: Text(_back ? '查看正面' : '翻到背面')),
+                        TextButton(
+                            style: rebuildTextStyle(context),
+                            onPressed: _busy ? null : _text,
+                            child: const Text('文字／日期')),
+                      ])),
+              Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+                  child: RebuildGlass(
+                      padding: const EdgeInsets.all(4),
+                      child: Row(children: [
+                        for (final item in _d.kind == 'ticket'
+                            ? [(4, '照片'), (5, '文字'), (6, '配色'), (7, '背景')]
+                            : [(0, '相纸'), (1, '成像'), (2, '涂鸦'), (3, '更多')])
+                          Expanded(
+                              child: TextButton(
+                                  style: rebuildTextStyle(context).copyWith(
+                                      backgroundColor: WidgetStatePropertyAll(
+                                          _tab == item.$1
+                                              ? context.lgInk
+                                              : Colors.transparent),
+                                      shape: const WidgetStatePropertyAll(
+                                          StadiumBorder()),
+                                      minimumSize: const WidgetStatePropertyAll(
+                                          Size(48, 48))),
+                                  onPressed: _busy
+                                      ? null
+                                      : () => setState(() {
+                                            _tab = item.$1;
+                                            _active = null;
+                                          }),
+                                  child: Text(item.$2,
+                                      style: TextStyle(
+                                          fontWeight: _tab == item.$1
+                                              ? FontWeight.w800
+                                              : FontWeight.w400,
+                                          color: _tab == item.$1
+                                              ? context.lgPaper
+                                              : context.lgTextSecondary))))
+                      ]))),
+              SizedBox(
+                  height:
+                      math.min(180, MediaQuery.sizeOf(context).height * .24),
+                  child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child:
+                          AbsorbPointer(absorbing: _busy, child: _controls()))),
+              if (_busy) const LinearProgressIndicator(minHeight: 2),
+            ])),
+          ]),
         ),
       );
 
+  Widget _ticketTools() => Row(children: [
+        for (final tool in [(0, '版式'), (1, '成像'), (2, '涂鸦'), (3, '更多')])
+          Expanded(
+              child: TextButton(
+                  style: rebuildTextStyle(context),
+                  onPressed: () => setState(() {
+                        _tab = tool.$1;
+                        _active = null;
+                      }),
+                  child: Text(tool.$2, style: const TextStyle(fontSize: 12))))
+      ]);
+
+  Widget _accentColors() => Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text('票根配色'),
+            for (final color in const [
+              Color(0xff7d899b),
+              Color(0xff608397),
+              Color(0xff986d7e),
+              Color(0xff6a8068),
+              Color(0xff282b32)
+            ])
+              _colorChoice(color, paper: false),
+          ]);
+
+  Widget _colorChoice(Color color, {required bool paper}) {
+    final selected = color == (paper ? _d.background : _d.accent);
+    return Semantics(
+        selected: selected,
+        child: IconButton(
+            tooltip:
+                paper ? (_d.kind == 'ticket' ? '更换票面底色' : '更换工作台颜色') : '更换票根配色',
+            onPressed: () => _change(paper
+                ? _d.copyWith(background: color)
+                : _d.copyWith(accent: color)),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    border: Border.all(
+                        color: selected ? context.lgInk : context.lgSeparator,
+                        width: selected ? 2 : 1)),
+                child: selected
+                    ? Icon(Icons.check,
+                        size: 16,
+                        color: color.computeLuminance() > .45
+                            ? const Color(0xff21262d)
+                            : Colors.white)
+                    : null)));
+  }
+
+  List<Widget> _backgroundControls() => [
+        Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+          Text(_d.kind == 'ticket' ? '票面底色' : '工作台'),
+          const SizedBox(width: 8),
+          for (final color in const [
+            Color(0xffeef0f3),
+            Color(0xffdce5ed),
+            Color(0xffe7e2e8),
+            Color(0xffdfe6df)
+          ])
+            _colorChoice(color, paper: true),
+        ]),
+        SwitchListTile(
+            activeColor: context.lgInk,
+            contentPadding: EdgeInsets.zero,
+            title: Text(_d.kind == 'ticket' ? '票面柔和渐变' : '柔和渐变背景',
+                style: const TextStyle(fontSize: 13)),
+            value: _d.gradient,
+            onChanged: (value) => _change(_d.copyWith(gradient: value))),
+      ];
+
+  Future<void> _templateLibrary() async {
+    final options = _d.kind == 'ticket'
+        ? ticketTemplates.map((t) => (t.id, t.label, t.minimumPhotos)).toList()
+        : paperTemplates.map((p) => (p.id, p.label, 1)).toList();
+    final id = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+            child: SizedBox(
+                height: MediaQuery.sizeOf(context).height * .83,
+                child: Column(children: [
+                  Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                      child: Row(children: [
+                        Expanded(
+                            child: Text(_d.kind == 'ticket' ? '选择票根版式' : '相纸收藏',
+                                style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700))),
+                        Text('${options.length} 款',
+                            style: TextStyle(color: context.lgTextSecondary))
+                      ])),
+                  Expanded(
+                      child: GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                          itemCount: options.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: .75,
+                                  mainAxisSpacing: 20,
+                                  crossAxisSpacing: 22),
+                          itemBuilder: (context, index) {
+                            final option = options[index];
+                            final selected = option.$1 == _d.templateId;
+                            final preview = _d.copyWith(templateId: option.$1);
+                            return Semantics(
+                                button: true,
+                                selected: selected,
+                                child: InkWell(
+                                    borderRadius: BorderRadius.circular(18),
+                                    onTap: () {
+                                      if (_images.length < option.$3) {
+                                        _message(
+                                            '这个版式需要 ${option.$3} 张照片，请新建时选择多张照片');
+                                        return;
+                                      }
+                                      Navigator.pop(context, option.$1);
+                                    },
+                                    child: Column(children: [
+                                      Expanded(
+                                          child: Center(
+                                              child: AspectRatio(
+                                                  aspectRatio:
+                                                      preview.aspectRatio,
+                                                  child: CreationMaterial(
+                                                      document: preview,
+                                                      lift: .6,
+                                                      child: RepaintBoundary(
+                                                          child: CustomPaint(
+                                                              painter:
+                                                                  CreationPainter(
+                                                                      preview,
+                                                                      _images))))))),
+                                      const SizedBox(height: 12),
+                                      Text(option.$2,
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: selected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500)),
+                                      const SizedBox(height: 4),
+                                      Text(selected ? '正在使用' : '点击使用',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: context.lgTextSecondary)),
+                                      const SizedBox(height: 8),
+                                    ])));
+                          })),
+                ]))));
+    if (id == null || !mounted) return;
+    HapticFeedback.selectionClick();
+    _change(_d.copyWith(templateId: id));
+    if (_cropIndex >= CreationPainter.photoWindows(_d).length) {
+      setState(() => _cropIndex = 0);
+    }
+  }
+
   Widget _controls() {
+    if (_tab == 4) {
+      return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(
+                  child: OutlinedButton.icon(
+                      style: rebuildOutlinedStyle(context),
+                      onPressed: _replacePhoto,
+                      icon: const Icon(Icons.add_photo_alternate_outlined,
+                          size: 18),
+                      label: Text(_images.length > 1
+                          ? '更换照片 ${_cropIndex + 1}'
+                          : '更换照片'))),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                  style: rebuildOutlinedStyle(context),
+                  onPressed: () => _change(_d.copyWith(
+                      transforms: List.generate(
+                          _images.length, (_) => const CreationCrop()))),
+                  child: const Text('重置裁切'))
+            ]),
+            if (_images.length > 1)
+              Wrap(spacing: 8, children: [
+                for (var i = 0;
+                    i <
+                        math.min(_images.length,
+                            CreationPainter.photoWindows(_d).length);
+                    i++)
+                  RebuildChoiceChip(
+                      label: Text('裁切照片 ${i + 1}'),
+                      selected: _cropIndex == i,
+                      onSelected: (_) => setState(() => _cropIndex = i))
+              ]),
+            const SizedBox(height: 4),
+            Text('在票面上双指缩放、拖动照片',
+                style: TextStyle(fontSize: 11, color: context.lgTextSecondary)),
+            _ticketTools(),
+          ]));
+    }
+    if (_tab == 5) {
+      return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(_d.title.isEmpty ? '给这段旅途起个名字' : _d.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text(_d.date ?? '添加日期与背面故事'),
+                trailing: const Icon(Icons.edit_outlined),
+                onTap: _text),
+            _ticketTools(),
+          ]));
+    }
+    if (_tab == 6 || _tab == 7) {
+      return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_tab == 6) _accentColors() else ..._backgroundControls(),
+            _ticketTools(),
+          ]));
+    }
     if (_tab == 0) {
       final options = _d.kind == 'ticket'
           ? ticketTemplates
@@ -789,11 +1090,16 @@ class _CreationEditorState extends State<CreationEditor> {
             child: Row(children: [
               Expanded(
                   child: Text(
-                      '${_d.kind == 'ticket' ? '票根版式' : '相纸收藏'} · ${options.length} 款 · 长按大图预览',
-                      style: const TextStyle(fontSize: 11))),
-              Text('左右滑动选择',
-                  style:
-                      TextStyle(fontSize: 10, color: context.lgTextSecondary)),
+                      _d.kind == 'ticket' ? _d.ticket.label : _d.paper.label,
+                      style: const TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600))),
+              TextButton.icon(
+                  style: rebuildTextStyle(context),
+                  onPressed: _templateLibrary,
+                  icon: const Icon(Icons.grid_view_outlined, size: 16),
+                  label: Text(
+                      '全部${_d.kind == 'ticket' ? '版式' : '相纸'} ${options.length}',
+                      style: const TextStyle(fontSize: 12))),
             ])),
         Expanded(
             child: ListView.separated(
@@ -863,8 +1169,7 @@ class _CreationEditorState extends State<CreationEditor> {
 
     if (_tab == 1) {
       return Column(children: [
-        SizedBox(
-            height: 66,
+        Expanded(
             child: ListView.separated(
                 key: const PageStorageKey('creation_looks'),
                 controller: _lookScroll,
@@ -874,12 +1179,45 @@ class _CreationEditorState extends State<CreationEditor> {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => SizedBox(
                     width: 88,
-                    child: Center(
-                        child: RebuildChoiceChip(
-                            label: Text(creationLooks[i].label),
-                            selected: _d.lookId == creationLooks[i].id,
-                            onSelected: (_) => _change(
-                                _d.copyWith(lookId: creationLooks[i].id))))))),
+                    child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          _change(_d.copyWith(lookId: creationLooks[i].id));
+                        },
+                        child: Column(children: [
+                          Expanded(
+                              child: Container(
+                                  margin: const EdgeInsets.only(bottom: 4),
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          width: 1.5,
+                                          color:
+                                              _d.lookId == creationLooks[i].id
+                                                  ? context.lgInk
+                                                  : Colors.transparent)),
+                                  child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: CustomPaint(
+                                          size: const Size(72, 58),
+                                          painter: _LookThumbnail(
+                                              _images.isEmpty
+                                                  ? null
+                                                  : _images.first,
+                                              creationLooks[i]
+                                                  .matrix(_d.intensity)))))),
+                          Text(creationLooks[i].label,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: _d.lookId == creationLooks[i].id
+                                      ? FontWeight.w700
+                                      : FontWeight.w400)),
+                          Text(creationLooks[i].family,
+                              style: TextStyle(
+                                  fontSize: 9, color: context.lgTextSecondary)),
+                        ]))))),
         Row(children: [
           const SizedBox(width: 20),
           const Text('强度'),
@@ -906,40 +1244,47 @@ class _CreationEditorState extends State<CreationEditor> {
           child: Column(children: [
         const Text('整张相纸都能画 · 切到其他工具后可缩放／移动照片', style: TextStyle(fontSize: 11)),
         Wrap(
-            spacing: 6,
+            spacing: 2,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              for (final color in const [
-                Color(0xff22252b),
-                Colors.white,
-                Color(0xff5b7498),
-                Color(0xffba6978),
-                Color(0xff768e72),
-                Color(0xffc7a45e)
+              for (final (color, name) in const [
+                (Color(0xff22252b), '墨黑'),
+                (Colors.white, '白色'),
+                (Color(0xff5b7498), '雾蓝'),
+                (Color(0xffba6978), '玫瑰'),
+                (Color(0xff768e72), '鼠尾草绿'),
+                (Color(0xffc7a45e), '金色')
               ])
-                InkWell(
-                    onTap: () => setState(() {
-                          _penColor = color;
-                          _eraser = false;
-                        }),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                        width: 36,
-                        height: 36,
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: _penColor == color && !_eraser
-                                    ? context.lgInk
-                                    : context.lgSeparator,
-                                width: 3)))),
-              IconButton(
-                  tooltip: '按笔画擦除',
+                Semantics(
+                    button: true,
+                    label: '$name画笔',
+                    selected: _penColor == color && !_eraser,
+                    child: InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _penColor = color;
+                            _eraser = false;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                            width: 40,
+                            height: 40,
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: _penColor == color && !_eraser
+                                        ? context.lgInk
+                                        : context.lgSeparator,
+                                    width: 3))))),
+              RebuildGlassButton(
+                  label: '按笔画擦除',
                   onPressed: () => setState(() => _eraser = !_eraser),
-                  isSelected: _eraser,
-                  icon: const Icon(Icons.auto_fix_normal)),
+                  selected: _eraser,
+                  icon: Icons.auto_fix_normal),
             ]),
         Row(children: [
           const SizedBox(width: 20),
@@ -1014,42 +1359,8 @@ class _CreationEditorState extends State<CreationEditor> {
                     selected: _cropIndex == i,
                     onSelected: (_) => setState(() => _cropIndex = i))
             ]),
-          Row(children: [
-            Text(_d.kind == 'ticket' ? '票面底色' : '工作台'),
-            const SizedBox(width: 8),
-            for (final c in const [
-              Color(0xffeef0f3),
-              Color(0xffdce5ed),
-              Color(0xffe7e2e8),
-              Color(0xffdfe6df)
-            ])
-              IconButton(
-                  tooltip: _d.kind == 'ticket' ? '更换票面底色' : '更换工作台颜色',
-                  onPressed: () => _change(_d.copyWith(background: c)),
-                  icon: Icon(Icons.circle, color: c)),
-          ]),
-          SwitchListTile(
-              activeColor: context.lgInk,
-              contentPadding: EdgeInsets.zero,
-              title: Text(_d.kind == 'ticket' ? '票面柔和渐变' : '柔和渐变背景',
-                  style: const TextStyle(fontSize: 13)),
-              value: _d.gradient,
-              onChanged: (v) => _change(_d.copyWith(gradient: v))),
-          if (_d.kind == 'ticket')
-            Wrap(spacing: 4, children: [
-              const Text('票根配色'),
-              for (final c in const [
-                Color(0xff7d899b),
-                Color(0xff608397),
-                Color(0xff986d7e),
-                Color(0xff6a8068),
-                Color(0xff282b32)
-              ])
-                IconButton(
-                    tooltip: '更换票根配色',
-                    onPressed: () => _change(_d.copyWith(accent: c)),
-                    icon: Icon(Icons.circle, color: c))
-            ]),
+          ..._backgroundControls(),
+          if (_d.kind == 'ticket') _accentColors(),
         ]));
   }
 }

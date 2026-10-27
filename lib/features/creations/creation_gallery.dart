@@ -19,6 +19,7 @@ import 'creation_document.dart';
 import 'creation_drafts.dart';
 import 'creation_editor.dart';
 import 'creation_files.dart';
+import 'creation_material.dart';
 import 'creation_preview.dart';
 
 class CreationGallery extends StatefulWidget {
@@ -26,19 +27,23 @@ class CreationGallery extends StatefulWidget {
   final int? tripId;
   final String? tripTitle;
   final String? tripDate;
+  final ApiService? api;
+  final CreationDrafts? drafts;
   const CreationGallery(
       {super.key,
       this.kind = 'polaroid',
       this.tripId,
       this.tripTitle,
-      this.tripDate});
+      this.tripDate,
+      this.api,
+      this.drafts});
   @override
   State<CreationGallery> createState() => _CreationGalleryState();
 }
 
 class _CreationGalleryState extends State<CreationGallery> {
-  final _api = ApiService();
-  final _pager = PageController(viewportFraction: .87, keepPage: false);
+  late final _api = widget.api ?? ApiService();
+  final _pager = PageController(viewportFraction: .94, keepPage: false);
   late final CreationDrafts _store;
   List<CreationWork> _works = [];
   List<CreationDraft> _drafts = [];
@@ -46,6 +51,7 @@ class _CreationGalleryState extends State<CreationGallery> {
   int _section = 0;
   bool _loading = true;
   bool _busy = false;
+  int _page = 0;
   int? _exportingId;
   final _backWorks = <int>{};
   String? _error;
@@ -56,7 +62,7 @@ class _CreationGalleryState extends State<CreationGallery> {
   @override
   void initState() {
     super.initState();
-    _store = CreationDrafts(_owner);
+    _store = widget.drafts ?? CreationDrafts(_owner);
     unawaited(_load());
   }
 
@@ -73,6 +79,7 @@ class _CreationGalleryState extends State<CreationGallery> {
   }
 
   Future<void> _load() async {
+    final previousWorks = _works.map((w) => '${w.id}_${w.revision}').join(',');
     if (mounted) {
       setState(() {
         _loading = true;
@@ -103,6 +110,10 @@ class _CreationGalleryState extends State<CreationGallery> {
                 e.document.kind == widget.kind &&
                 (widget.tripId == null || e.tripId == widget.tripId))
             .toList();
+        if (_works.map((w) => '${w.id}_${w.revision}').join(',') !=
+            previousWorks) {
+          _page = 0;
+        }
       } else {
         _error = '作品加载失败，已有内容和私密草稿仍可查看';
       }
@@ -137,6 +148,7 @@ class _CreationGalleryState extends State<CreationGallery> {
       setState(() {
         _section = 0;
         _month = null;
+        _page = 0;
       });
     }
     if (mounted) await _load();
@@ -399,13 +411,21 @@ class _CreationGalleryState extends State<CreationGallery> {
                     : w.updatedAt.toIso8601String())
                 .startsWith(_month!))
         .toList();
+    final selectedWork =
+        works.isEmpty ? null : works[_page.clamp(0, works.length - 1)];
     return Scaffold(
       backgroundColor: context.lgBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
           systemOverlayStyle: context.lgIsDark
               ? SystemUiOverlayStyle.light
               : SystemUiOverlayStyle.dark,
-          title: Text(_ticket ? '旅行票根' : '两个人的影像'),
+          title: Text(_ticket ? '旅行票根' : '我们的相片',
+              style:
+                  const TextStyle(fontSize: 23, fontWeight: FontWeight.w700)),
           actions: [
             IconButton(
                 tooltip: '刷新',
@@ -420,310 +440,373 @@ class _CreationGalleryState extends State<CreationGallery> {
                           builder: (_) => const LegacyPhotoScreen())),
                   icon: const Icon(Icons.photo_album_outlined))
           ]),
-      body: SafeArea(
-          child: Column(children: [
-        Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Row(children: [
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text(_ticket ? '把旅途，留下来。' : '把回忆握在手里',
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text('成品双人可见 · 草稿只属于你',
-                        style: TextStyle(
-                            fontSize: 12, color: context.lgTextSecondary))
-                  ])),
-              FilledButton.icon(
-                  style: rebuildFilledStyle(context),
-                  onPressed: _busy ? null : _new,
-                  icon: const Icon(Icons.add),
-                  label: const Text('制作'))
-            ])),
-        Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(children: [
-              for (final s in [
-                (0, '收藏 ${_works.length}'),
-                (1, '草稿 ${_drafts.length}'),
-                if (!_ticket) (2, '原照片 ${_old.length}')
-              ])
-                Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: RebuildChoiceChip(
-                        label: Text(s.$2),
-                        selected: _section == s.$1,
-                        onSelected: (_) => setState(() => _section = s.$1))),
-              const Spacer(),
-              if (_section == 0 && months.isNotEmpty)
-                PopupMenuButton<String>(
-                    tooltip: '按月浏览',
-                    icon: const Icon(Icons.filter_list, size: 20),
-                    onSelected: (v) =>
-                        setState(() => _month = v.isEmpty ? null : v),
-                    itemBuilder: (_) => [
-                          const PopupMenuItem(value: '', child: Text('全部月份')),
-                          ...months.map(
-                              (m) => PopupMenuItem(value: m, child: Text(m)))
-                        ]),
-            ])),
-        if (_loading || _busy) const LinearProgressIndicator(minHeight: 2),
-        if (_error != null)
+      body: Stack(children: [
+        Positioned.fill(
+            child: CreationBackdrop(
+                imageUrl: _section == 0 && selectedWork != null
+                    ? creationUrl(selectedWork.sourceUrls.isEmpty
+                        ? selectedWork.previewUrl
+                        : selectedWork.sourceUrls.first)
+                    : null)),
+        SafeArea(
+            child: Column(children: [
           Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                Expanded(
-                    child: Text(_error!, style: const TextStyle(fontSize: 12))),
-                TextButton(
-                    style: rebuildTextStyle(context),
-                    onPressed: _load,
-                    child: const Text('重试'))
-              ])),
-        Expanded(
-          child: _section == 0
-              ? works.isEmpty
-                  ? _empty(
-                      '还没有收藏的${_ticket ? '票根' : '拍立得'}', '拍摄或导入一张照片，制作第一份回忆')
-                  : PageView.builder(
-                      key: ValueKey(
-                          '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}'),
-                      controller: _pager,
-                      itemCount: works.length,
-                      itemBuilder: (_, i) {
-                        final work = works[i];
-                        return Padding(
-                            padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
-                            child: Column(children: [
-                              Expanded(
-                                  child: Center(
-                                      child: AspectRatio(
-                                          aspectRatio:
-                                              work.document.aspectRatio,
-                                          child: CreationFlip(
-                                              onInspect: () => Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                      builder: (_) => CreationPreview(
-                                                          document:
-                                                              work.document,
-                                                          initialBack:
-                                                              _backWorks
-                                                                  .contains(
-                                                                      work.id),
-                                                          front: CachedNetworkImage(
-                                                              imageUrl: creationUrl(
-                                                                  work.previewUrl),
-                                                              fit: BoxFit.contain)))),
-                                              work: work,
-                                              back: _backWorks.contains(work.id),
-                                              onFlip: () => _flip(work.id))))),
-                              const SizedBox(height: 16),
-                              Text(
-                                  work.document.title.isEmpty
-                                      ? '未命名的回忆'
-                                      : work.document.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w700)),
-                              if (work.tripTitle != null)
-                                Text(work.tripTitle!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        color: context.lgTextSecondary,
-                                        fontSize: 12)),
-                              Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    for (final s in [
+                      (0, '收藏 ${_works.length}'),
+                      (1, '草稿 ${_drafts.length}'),
+                      if (!_ticket) (2, '原照片 ${_old.length}')
+                    ])
+                      Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: RebuildChoiceChip(
+                              label: Text(s.$2),
+                              selected: _section == s.$1,
+                              onSelected: (_) => _showSection(s.$1))),
+                    const SizedBox(width: 2),
+                    if (_section == 0 && months.isNotEmpty)
+                      PopupMenuButton<String>(
+                          tooltip: '按月浏览',
+                          child: RebuildGlass(
+                              radius: 24,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    if (work.ownerId == _owner)
-                                      TextButton.icon(
-                                          style: rebuildTextStyle(context),
-                                          onPressed: _busy
-                                              ? null
-                                              : () => _editWork(work),
-                                          icon: const Icon(Icons.edit_outlined,
-                                              size: 18),
-                                          label: const Text('继续制作')),
-                                    if (work.document.note.isNotEmpty)
-                                      TextButton.icon(
-                                          style: rebuildTextStyle(context),
-                                          onPressed: () => showModalBottomSheet<void>(
-                                              context: context,
-                                              isScrollControlled: true,
-                                              showDragHandle: true,
-                                              builder: (context) => SafeArea(
-                                                  child: SizedBox(
-                                                      height: MediaQuery.sizeOf(context)
-                                                              .height *
-                                                          .65,
-                                                      child: SingleChildScrollView(
-                                                          padding:
-                                                              const EdgeInsets.all(
-                                                                  24),
-                                                          child: SelectableText(work.document.note,
-                                                              style: const TextStyle(
-                                                                  fontSize: 16,
-                                                                  height: 1.7)))))),
-                                          icon: const Icon(Icons.notes, size: 18),
-                                          label: const Text('故事')),
-                                    IconButton(
-                                        tooltip: '保存图片',
-                                        onPressed: _exportingId != null
-                                            ? null
-                                            : () => _export(work),
-                                        icon: _exportingId == work.id
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                        strokeWidth: 2))
-                                            : const Icon(
-                                                Icons.file_download_outlined)),
-                                    if (work.ownerId == _owner)
-                                      IconButton(
-                                          tooltip: '删除作品',
-                                          onPressed: () => _deleteWork(work),
+                                    Text(
+                                        _month == null
+                                            ? '月份'
+                                            : '${_month!.substring(5)}月',
+                                        style: const TextStyle(fontSize: 12)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.expand_more, size: 16)
+                                  ])),
+                          onSelected: (v) => setState(() {
+                                final month = v.isEmpty ? null : v;
+                                if (month != _month) _page = 0;
+                                _month = month;
+                              }),
+                          itemBuilder: (_) => [
+                                const PopupMenuItem(
+                                    value: '', child: Text('全部月份')),
+                                ...months.map((m) =>
+                                    PopupMenuItem(value: m, child: Text(m)))
+                              ]),
+                  ]))),
+          if (_loading || _busy) const LinearProgressIndicator(minHeight: 2),
+          if (_error != null)
+            Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(children: [
+                  Expanded(
+                      child:
+                          Text(_error!, style: const TextStyle(fontSize: 12))),
+                  TextButton(
+                      style: rebuildTextStyle(context),
+                      onPressed: _load,
+                      child: const Text('重试'))
+                ])),
+          Expanded(
+            child: _section == 0
+                ? works.isEmpty
+                    ? _empty(
+                        '还没有收藏的${_ticket ? '票根' : '拍立得'}', '拍摄或导入一张照片，制作第一份回忆')
+                    : PageView.builder(
+                        key: ValueKey(
+                            '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}'),
+                        controller: _pager,
+                        onPageChanged: (value) => setState(() => _page = value),
+                        itemCount: works.length,
+                        itemBuilder: (_, index) => _workPage(works, index))
+                : _section == 1
+                    ? _drafts.isEmpty
+                        ? _empty('还没有草稿', '编辑过程中会自动保存在这台设备')
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _drafts.length,
+                            itemBuilder: (_, i) {
+                              final d = _drafts[i];
+                              return Card(
+                                  child: ListTile(
+                                      leading:
+                                          const Icon(Icons.drafts_outlined),
+                                      title: Text(d.document.title.isEmpty
+                                          ? '未完成的回忆'
+                                          : d.document.title),
+                                      subtitle: Text(
+                                          '${d.document.kind == 'ticket' ? d.document.ticket.label : d.document.paper.label} · ${d.updatedAt.toLocal().toString().substring(0, 16)}'),
+                                      onTap: () => _edit(d),
+                                      trailing: IconButton(
+                                          tooltip: '删除私密草稿',
                                           icon:
-                                              const Icon(Icons.delete_outline)),
-                                  ]),
-                              Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text('${i + 1} / ${works.length}',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: context.lgTextSecondary)),
-                                    TextButton.icon(
-                                        style: rebuildTextStyle(context),
-                                        onPressed: () => _flip(work.id),
-                                        icon: const Icon(Icons.flip, size: 16),
-                                        label: Text(
-                                            _backWorks.contains(work.id)
-                                                ? '翻到正面'
-                                                : '翻到背面',
-                                            style:
-                                                const TextStyle(fontSize: 11))),
-                                    Text('长按放大',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: context.lgTextSecondary)),
-                                  ]),
-                            ]));
-                      })
-              : _section == 1
-                  ? _drafts.isEmpty
-                      ? _empty('还没有草稿', '编辑过程中会自动保存在这台设备')
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _drafts.length,
-                          itemBuilder: (_, i) {
-                            final d = _drafts[i];
-                            return Card(
-                                child: ListTile(
-                                    leading: const Icon(Icons.drafts_outlined),
-                                    title: Text(d.document.title.isEmpty
-                                        ? '未完成的回忆'
-                                        : d.document.title),
-                                    subtitle: Text(
-                                        '${d.document.kind == 'ticket' ? d.document.ticket.label : d.document.paper.label} · ${d.updatedAt.toLocal().toString().substring(0, 16)}'),
-                                    onTap: () => _edit(d),
-                                    trailing: IconButton(
-                                        tooltip: '删除私密草稿',
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () async {
-                                          final yes = await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                      title:
-                                                          const Text('删除这份草稿？'),
-                                                      content: const Text(
-                                                          '已收藏的作品和原相册不会受影响。'),
-                                                      actions: [
-                                                        TextButton(
-                                                            style:
-                                                                rebuildTextStyle(
-                                                                    context),
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                    context,
-                                                                    false),
-                                                            child: const Text(
-                                                                '保留')),
-                                                        TextButton(
-                                                            style:
-                                                                rebuildTextStyle(
-                                                                    context),
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                    context,
-                                                                    true),
-                                                            child: const Text(
-                                                                '删除'))
-                                                      ]));
-                                          if (yes == true) {
-                                            await _store.delete(d.id);
-                                            await _load();
-                                          }
-                                        })));
-                          })
-                  : _old.isEmpty
-                      ? _empty('原相册还没有照片', '可以拍摄或导入照片，直接制作拍立得')
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _old.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: .85,
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12),
-                          itemBuilder: (_, i) {
-                            final p = _old[i];
-                            return InkWell(
-                                onTap: _busy ? null : () => _oldPhoto(p),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Card(
-                                    clipBehavior: Clip.antiAlias,
-                                    child: Column(children: [
-                                      Expanded(
-                                          child: CachedNetworkImage(
-                                              imageUrl: creationUrl(
-                                                  (p['url'] ?? p['image'] ?? '')
-                                                      .toString()),
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              memCacheWidth: 500,
-                                              errorWidget: (_, __, ___) =>
-                                                  const Icon(Icons
-                                                      .broken_image_outlined))),
-                                      const Padding(
-                                          padding: EdgeInsets.all(12),
-                                          child: Text('用这张制作拍立得',
-                                              style: TextStyle(fontSize: 12)))
-                                    ])));
-                          }),
-        ),
-      ])),
+                                              const Icon(Icons.delete_outline),
+                                          onPressed: () async {
+                                            final yes = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) =>
+                                                    AlertDialog(
+                                                        title: const Text(
+                                                            '删除这份草稿？'),
+                                                        content: const Text(
+                                                            '已收藏的作品和原相册不会受影响。'),
+                                                        actions: [
+                                                          TextButton(
+                                                              style:
+                                                                  rebuildTextStyle(
+                                                                      context),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      false),
+                                                              child: const Text(
+                                                                  '保留')),
+                                                          TextButton(
+                                                              style:
+                                                                  rebuildTextStyle(
+                                                                      context),
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      true),
+                                                              child: const Text(
+                                                                  '删除'))
+                                                        ]));
+                                            if (yes == true) {
+                                              await _store.delete(d.id);
+                                              await _load();
+                                            }
+                                          })));
+                            })
+                    : _old.isEmpty
+                        ? _empty('原相册还没有照片', '可以拍摄或导入照片，直接制作拍立得')
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _old.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: .85,
+                                    mainAxisSpacing: 12,
+                                    crossAxisSpacing: 12),
+                            itemBuilder: (_, i) {
+                              final p = _old[i];
+                              return InkWell(
+                                  onTap: _busy ? null : () => _oldPhoto(p),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Card(
+                                      clipBehavior: Clip.antiAlias,
+                                      child: Column(children: [
+                                        Expanded(
+                                            child: CachedNetworkImage(
+                                                imageUrl: creationUrl(
+                                                    (p['url'] ??
+                                                            p['image'] ??
+                                                            '')
+                                                        .toString()),
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                memCacheWidth: 500,
+                                                errorWidget: (_, __, ___) =>
+                                                    const Icon(Icons
+                                                        .broken_image_outlined))),
+                                        const Padding(
+                                            padding: EdgeInsets.all(12),
+                                            child: Text('用这张制作拍立得',
+                                                style: TextStyle(fontSize: 12)))
+                                      ])));
+                            }),
+          ),
+          Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+              child: RebuildGlass(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(children: [
+                    RebuildGlassButton(
+                        label: _section == 1 ? '查看收藏' : '私密草稿',
+                        icon: _section == 1
+                            ? Icons.collections_outlined
+                            : Icons.drafts_outlined,
+                        onPressed: () => _showSection(_section == 1 ? 0 : 1)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: FilledButton.icon(
+                            style: rebuildFilledStyle(context),
+                            onPressed: _busy ? null : _new,
+                            icon: const Icon(Icons.add_photo_alternate_outlined,
+                                size: 20),
+                            label: Text(_ticket ? '制作票根' : '制作拍立得'))),
+                  ]))),
+        ])),
+      ]),
     );
   }
+
+  void _showSection(int section) => setState(() {
+        if (section != _section) _page = 0;
+        _section = section;
+      });
+
+  Widget _workPage(List<CreationWork> works, int index) {
+    final work = works[index];
+    final behind = works[(index + 1) % works.length];
+    final back = _backWorks.contains(work.id);
+    void inspect() => Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => CreationPreview(
+                document: work.document,
+                initialBack: back,
+                front: CachedNetworkImage(
+                    imageUrl: creationUrl(work.previewUrl),
+                    fit: BoxFit.contain))));
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+        child: Column(children: [
+          Expanded(child:
+              Center(child: LayoutBuilder(builder: (context, constraints) {
+            final width = math.max(
+                1.0,
+                math.min(constraints.maxWidth - 12,
+                    (constraints.maxHeight - 32) * work.document.aspectRatio));
+            return SizedBox(
+                width: width,
+                height: width / work.document.aspectRatio,
+                child: AnimatedBuilder(
+                    animation: _pager,
+                    builder: (context, _) {
+                      final delta =
+                          _pager.hasClients && _pager.position.haveDimensions
+                              ? ((_pager.page ?? 0) - index).clamp(-1.0, 1.0)
+                              : 0.0;
+                      final angle = MediaQuery.disableAnimationsOf(context)
+                          ? 0.0
+                          : -.025 + delta * .035;
+                      return Stack(
+                          clipBehavior: Clip.none,
+                          fit: StackFit.expand,
+                          children: [
+                            if (!_ticket && works.length > 1)
+                              IgnorePointer(
+                                  child: Transform.translate(
+                                      offset: const Offset(-10, 5),
+                                      child: Transform.rotate(
+                                          angle: -.075,
+                                          child: CreationMaterial(
+                                              document: behind.document,
+                                              child: CachedNetworkImage(
+                                                  imageUrl: creationUrl(
+                                                      behind.previewUrl),
+                                                  memCacheWidth: 650,
+                                                  fit: BoxFit.contain,
+                                                  errorWidget: (_, __, ___) =>
+                                                      const SizedBox()))))),
+                            Transform.rotate(
+                                angle: angle,
+                                child: Padding(
+                                    padding: EdgeInsets.only(
+                                        right: 14,
+                                        bottom: 14 / work.document.aspectRatio),
+                                    child: CreationFlip(
+                                        work: work,
+                                        back: back,
+                                        onInspect: inspect,
+                                        onFlip: () => _flip(work.id)))),
+                            Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: RebuildGlassButton(
+                                    label: back ? '翻到正面' : '翻到背面',
+                                    icon: Icons.flip,
+                                    onPressed: () => _flip(work.id))),
+                          ]);
+                    }));
+          }))),
+          if (work.tripTitle != null)
+            Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.location_on_outlined,
+                      size: 14, color: context.lgTextSecondary),
+                  const SizedBox(width: 4),
+                  Flexible(
+                      child: Text(work.tripTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              TextStyle(fontSize: 12, color: context.lgInk))),
+                ])),
+          RebuildGlass(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                if (work.ownerId == _owner)
+                  Expanded(
+                      child: TextButton.icon(
+                          style: rebuildTextStyle(context),
+                          onPressed: _busy ? null : () => _editWork(work),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('继续制作'))),
+                if (work.document.note.isNotEmpty)
+                  IconButton(
+                      tooltip: '故事',
+                      onPressed: () => _showStory(work),
+                      icon: const Icon(Icons.notes_outlined, size: 21)),
+                IconButton(
+                    tooltip: '保存图片',
+                    onPressed:
+                        _exportingId != null ? null : () => _export(work),
+                    icon: _exportingId == work.id
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.file_download_outlined, size: 22)),
+                if (work.ownerId == _owner)
+                  IconButton(
+                      tooltip: '删除作品',
+                      onPressed: () => _deleteWork(work),
+                      icon: const Icon(Icons.delete_outline, size: 21)),
+              ])),
+          Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text('${index + 1} / ${works.length}  ·  左右滑动  ·  长按放大',
+                  style: TextStyle(fontSize: 11, color: context.lgInk))),
+        ]));
+  }
+
+  void _showStory(CreationWork work) => showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+          child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * .65,
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText(work.document.note,
+                      style: const TextStyle(fontSize: 16, height: 1.7))))));
 
   Widget _empty(String title, String hint) => Center(
       child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(
-                _ticket
-                    ? Icons.confirmation_number_outlined
-                    : Icons.photo_camera_back_outlined,
-                size: 54,
-                color: context.lgTextMuted),
-            const SizedBox(height: 18),
+            SizedBox(
+                width: 136,
+                height: _ticket ? 70 : 165,
+                child: Transform.rotate(
+                    angle: -.06,
+                    child: CreationMaterial(
+                        document: CreationDocument(kind: widget.kind),
+                        child: CustomPaint(
+                            painter: CreationPainter(
+                                CreationDocument(kind: widget.kind),
+                                const []))))),
+            const SizedBox(height: 30),
             Text(title,
                 style:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -731,11 +814,14 @@ class _CreationGalleryState extends State<CreationGallery> {
             Text(hint,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.lgTextSecondary)),
-            const SizedBox(height: 20),
-            FilledButton(
-                style: rebuildFilledStyle(context),
-                onPressed: _busy ? null : _new,
-                child: const Text('开始制作'))
+            if (!_ticket && _old.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                  style: rebuildTextStyle(context),
+                  onPressed: () => _showSection(2),
+                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  label: const Text('从原照片开始')),
+            ],
           ])));
 }
 
@@ -753,7 +839,7 @@ class CreationFlip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
       button: true,
-      label: back ? '照片背面，轻触查看正面' : '照片正面，轻触查看背面',
+      label: '${work.document.title}，${back ? '照片背面，轻触查看正面' : '照片正面，轻触查看背面'}',
       child: GestureDetector(
         onTap: onFlip,
         onLongPress: onInspect,
@@ -770,18 +856,13 @@ class CreationFlip extends StatelessWidget {
                   transform: Matrix4.identity()
                     ..setEntry(3, 2, .0015)
                     ..rotateY(back ? angle - math.pi : angle),
-                  child: back
-                      ? CustomPaint(
-                          painter: CreationPainter(work.document, const [],
-                              back: true))
-                      : DecoratedBox(
-                          decoration: const BoxDecoration(boxShadow: [
-                            BoxShadow(
-                                color: Color(0x22000000),
-                                blurRadius: 24,
-                                offset: Offset(0, 10))
-                          ]),
-                          child: CachedNetworkImage(
+                  child: CreationMaterial(
+                      document: work.document,
+                      child: back
+                          ? CustomPaint(
+                              painter: CreationPainter(work.document, const [],
+                                  back: true))
+                          : CachedNetworkImage(
                               imageUrl: creationUrl(work.previewUrl),
                               fit: BoxFit.contain,
                               memCacheWidth: 1200,

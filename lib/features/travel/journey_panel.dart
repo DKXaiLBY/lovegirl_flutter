@@ -1,10 +1,12 @@
 import '../../widgets/rebuild_controls.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/travel.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../creations/creation_gallery.dart';
+import '../creations/creation_files.dart';
 import 'journey.dart';
 import 'journey_controller.dart';
 
@@ -375,20 +377,55 @@ class JourneyPanel extends StatelessWidget {
                   const ListTile(
                       title: Text('到达这一站的交通方式'),
                       subtitle: Text('时间与距离来自真实路线规划')),
+                  Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                              color: context.lgPrimarySoft,
+                              borderRadius: BorderRadius.circular(18)),
+                          child: Column(children: [
+                            _routeEndpoint(
+                                context,
+                                controller.previousStop(stop)?.place?.name ??
+                                    '上一站',
+                                false),
+                            const SizedBox(height: 12),
+                            _routeEndpoint(
+                                context, stop.place?.name ?? '地点已不可用', true),
+                          ]))),
                   for (final entry in journeyModes.entries)
                     FutureBuilder<JourneyLeg>(
                         future: estimates[entry.key],
-                        builder: (context, snapshot) => RadioListTile<String>(
-                              activeColor: context.lgInk,
-                              value: entry.key,
-                              groupValue: selected,
-                              secondary: Icon(_icon(entry.key)),
-                              title: Text(entry.value),
-                              subtitle: Text(snapshot.data?.estimate ?? '正在规划…',
-                                  style: const TextStyle(fontSize: 12)),
-                              onChanged: (value) =>
-                                  setSheet(() => selected = value!),
-                            )),
+                        builder: (context, snapshot) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 4),
+                            child: AnimatedContainer(
+                                duration:
+                                    MediaQuery.disableAnimationsOf(context)
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 160),
+                                decoration: BoxDecoration(
+                                    color: selected == entry.key
+                                        ? context.lgPrimarySoft
+                                        : context.lgPaper,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                        color: selected == entry.key
+                                            ? context.lgInk
+                                            : context.lgSeparator)),
+                                child: RadioListTile<String>(
+                                  activeColor: context.lgInk,
+                                  value: entry.key,
+                                  groupValue: selected,
+                                  secondary: Icon(_icon(entry.key)),
+                                  title: Text(entry.value),
+                                  subtitle: Text(
+                                      snapshot.data?.estimate ?? '正在规划…',
+                                      style: const TextStyle(fontSize: 12)),
+                                  onChanged: (value) =>
+                                      setSheet(() => selected = value!),
+                                )))),
                   Padding(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                       child: Column(
@@ -432,6 +469,22 @@ class JourneyPanel extends StatelessWidget {
               .toList()));
     }
   }
+
+  Widget _routeEndpoint(BuildContext context, String name, bool destination) =>
+      Row(children: [
+        Icon(destination ? Icons.location_on_outlined : Icons.trip_origin,
+            size: 18,
+            color: destination
+                ? const Color(0xff24798e)
+                : context.lgTextSecondary),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Text(name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600))),
+      ]);
 
   String _dateLabel(String start, int day) {
     final date = DateTime.parse(start).add(Duration(days: day));
@@ -660,11 +713,7 @@ class JourneyPanel extends StatelessWidget {
                         .update(j.reorder(controller.day, oldIndex, newIndex));
                   }
                 },
-                itemBuilder: (context, i) => Padding(
-                    key: ValueKey(stops[i].key),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                    child: _card(context, stops[i], i))),
+                itemBuilder: (context, i) => _timelineStop(context, stops, i)),
           if (stops.isNotEmpty)
             SliverToBoxAdapter(
                 child: Padding(
@@ -692,90 +741,174 @@ class JourneyPanel extends StatelessWidget {
         stop.day != null &&
         controller.visible[index - 1].day == stop.day;
     final city = stop.place?.city ?? '';
+    final photo = stop.place?.coverImage ??
+        (stop.place?.photos.isNotEmpty == true
+            ? stop.place!.photos.first
+            : null);
     final leg = controller.legs.where((l) => l.toKey == stop.key);
-    return Material(
-        color: selected ? context.lgPrimarySoft : context.lgCard,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
+    return AnimatedContainer(
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 160),
+        decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => onSelect(stop),
-            child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        CircleAvatar(
-                            radius: 13,
-                            backgroundColor: selected
-                                ? context.lgInk
-                                : const Color(0xff24798e),
-                            foregroundColor:
-                                selected ? context.lgPaper : Colors.white,
-                            child: Text('${index + 1}',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700))),
-                        const SizedBox(width: 8),
-                        Expanded(
-                            child: Text(stop.place?.name ?? '地点已不可用',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700))),
-                        if (!compact && !controller.overview)
-                          ReorderableDragStartListener(
-                              index: index,
-                              child: const Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Icon(Icons.drag_handle, size: 20))),
-                        IconButton(
-                            tooltip: '移动、备注或移除',
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => _stopMenu(context, stop),
-                            icon: const Icon(Icons.more_horiz, size: 20)),
-                      ]),
-                      if (city.isNotEmpty)
-                        Padding(
-                            padding: const EdgeInsets.only(left: 34, bottom: 4),
-                            child: Text(city,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+            border: Border.all(
+                color:
+                    selected ? const Color(0xff6396a6) : context.lgSeparator)),
+        child: Material(
+            color: selected ? context.lgPrimarySoft : context.lgCard,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => onSelect(stop),
+                child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            if (photo != null) ...[
+                              ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: CachedNetworkImage(
+                                      imageUrl: creationUrl(photo),
+                                      width: compact ? 44 : 60,
+                                      height: compact ? 44 : 60,
+                                      memCacheWidth: 180,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Container(
+                                          color: context.lgPrimarySoft,
+                                          child: const Icon(
+                                              Icons.photo_outlined,
+                                              size: 20)))),
+                              const SizedBox(width: 10),
+                            ],
+                            if (compact)
+                              CircleAvatar(
+                                  radius: 13,
+                                  backgroundColor: selected
+                                      ? context.lgInk
+                                      : const Color(0xff24798e),
+                                  foregroundColor:
+                                      selected ? context.lgPaper : Colors.white,
+                                  child: Text('${index + 1}',
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700))),
+                            if (compact) const SizedBox(width: 8),
+                            Expanded(
+                                child: Text(stop.place?.name ?? '地点已不可用',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700))),
+                            if (!compact && !controller.overview)
+                              ReorderableDragStartListener(
+                                  index: index,
+                                  child: const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child:
+                                          Icon(Icons.drag_handle, size: 20))),
+                            IconButton(
+                                tooltip: '移动、备注或移除',
+                                constraints: const BoxConstraints(
+                                    minWidth: 48, minHeight: 48),
+                                onPressed: () => _stopMenu(context, stop),
+                                icon: const Icon(Icons.more_horiz, size: 20)),
+                          ]),
+                          if (city.isNotEmpty)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 34, bottom: 4),
+                                child: Text(city,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: context.lgTextSecondary))),
+                          if (!hasPrevious && !controller.overview)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 34, top: 6),
+                                child: Text(
+                                    stop.day == null ? '待安排日期' : '当天第一站',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: context.lgTextSecondary))),
+                          if (controller.overview)
+                            Text(
+                                stop.day == null
+                                    ? '待计划'
+                                    : '第 ${stop.day! + 1} 天',
                                 style: TextStyle(
                                     fontSize: 11,
-                                    color: context.lgTextSecondary))),
-                      if (!hasPrevious && !controller.overview)
-                        Padding(
-                            padding: const EdgeInsets.only(left: 34, top: 6),
-                            child: Text(stop.day == null ? '待安排日期' : '当天第一站',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: context.lgTextSecondary))),
-                      if (controller.overview)
-                        Text(stop.day == null ? '待计划' : '第 ${stop.day! + 1} 天',
-                            style: TextStyle(
-                                fontSize: 11, color: context.lgTextSecondary)),
-                      if (stop.note.isNotEmpty)
-                        Padding(
-                            padding: const EdgeInsets.only(left: 34, right: 10),
-                            child: Text(stop.note,
-                                maxLines: compact ? 1 : 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: context.lgTextSecondary))),
-                      if (hasPrevious)
-                        TextButton.icon(
-                            style: rebuildTextStyle(context),
-                            onPressed: () => _mode(context, stop),
-                            icon: Icon(_icon(stop.mode), size: 16),
-                            label: Text(
-                                leg.isNotEmpty
-                                    ? leg.first.summary
-                                    : '${journeyModes[stop.mode]} · ${controller.routing ? '规划中' : '选择交通方式'}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 10))),
-                    ]))));
+                                    color: context.lgTextSecondary)),
+                          if (stop.note.isNotEmpty)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 34, right: 10),
+                                child: Text(stop.note,
+                                    maxLines: compact ? 1 : 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: context.lgTextSecondary))),
+                          if (hasPrevious)
+                            TextButton.icon(
+                                style: rebuildTextStyle(context),
+                                onPressed: () => _mode(context, stop),
+                                icon: Icon(_icon(stop.mode), size: 16),
+                                label: Text(
+                                    leg.isNotEmpty
+                                        ? leg.first.summary
+                                        : '${journeyModes[stop.mode]} · ${controller.routing ? '规划中' : '选择交通方式'}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 10))),
+                        ])))));
+  }
+
+  Widget _timelineStop(
+      BuildContext context, List<JourneyStop> stops, int index) {
+    final stop = stops[index];
+    final newDay = index == 0 || stops[index - 1].day != stop.day;
+    final connects = stop.day != null &&
+        index + 1 < stops.length &&
+        stops[index + 1].day == stop.day;
+    final selected = controller.selectedKey == stop.key;
+    return Padding(
+        key: ValueKey(stop.key),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (controller.overview && newDay)
+            Padding(
+                padding: const EdgeInsets.fromLTRB(34, 16, 0, 12),
+                child: Text(stop.day == null ? '待计划' : '第 ${stop.day! + 1} 天',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700))),
+          Stack(clipBehavior: Clip.none, children: [
+            if (connects)
+              Positioned(
+                  left: 12,
+                  top: 35,
+                  bottom: -27,
+                  child: Container(width: 1, color: context.lgSeparator)),
+            Padding(
+                padding: const EdgeInsets.only(left: 34, bottom: 12),
+                child: _card(context, stop, index)),
+            Positioned(
+                left: 0,
+                top: 15,
+                child: CircleAvatar(
+                    radius: 13,
+                    backgroundColor:
+                        selected ? context.lgInk : const Color(0xff24798e),
+                    foregroundColor: selected ? context.lgPaper : Colors.white,
+                    child: Text('${index + 1}',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700)))),
+          ]),
+        ]));
   }
 }

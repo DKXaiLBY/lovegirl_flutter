@@ -1,4 +1,5 @@
 import '../../widgets/rebuild_controls.dart';
+import '../../utils/lovegirl_theme.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -166,11 +167,12 @@ class _CreationCameraState extends State<CreationCamera>
   Widget build(BuildContext context) {
     final controller = _controller;
     return Scaffold(
-      backgroundColor: const Color(0xff17191d),
+      backgroundColor: context.lgBg,
       appBar: AppBar(
-          title: const Text('留住这一刻', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xff17191d),
-          foregroundColor: Colors.white,
+          title: const Text('留住这一刻',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+          backgroundColor: context.lgBg,
+          foregroundColor: context.lgInk,
           actions: [
             PopupMenuButton<int>(
                 tooltip: '定时拍摄',
@@ -217,16 +219,15 @@ class _CreationCameraState extends State<CreationCamera>
                         padding: const EdgeInsets.all(24),
                         child:
                             Column(mainAxisSize: MainAxisSize.min, children: [
-                          Text(_error!,
-                              style: const TextStyle(color: Colors.white)),
+                          Text(_error!, style: TextStyle(color: context.lgInk)),
                           TextButton(
                               style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white),
+                                  foregroundColor: context.lgInk),
                               onPressed: _open,
                               child: const Text('重试'))
                         ]))
                     : controller == null || !controller.value.isInitialized
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? CircularProgressIndicator(color: context.lgInk)
                         : AspectRatio(
                             aspectRatio: 3 / 4,
                             child: ClipRect(
@@ -254,10 +255,11 @@ class _CreationCameraState extends State<CreationCamera>
                                                                   Colors.black)
                                                         ]))))
                                     ])))))),
-        const Padding(
+        Padding(
             padding: EdgeInsets.all(8),
             child: Text('成像风格实时预览 · 颗粒与纸感在成片中呈现',
-                style: TextStyle(color: Colors.white60, fontSize: 11))),
+                style:
+                    TextStyle(color: context.lgTextSecondary, fontSize: 11))),
         SizedBox(
             height: 64,
             child: ListView.separated(
@@ -271,16 +273,37 @@ class _CreationCameraState extends State<CreationCamera>
                     onSelected: _busy || _remaining > 0
                         ? null
                         : (_) => setState(() => _look = i)))),
-        Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        Container(
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+            decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: context.lgIsDark
+                        ? const [
+                            Color(0xff484e56),
+                            Color(0xff24292f),
+                            Color(0xff363d45)
+                          ]
+                        : const [
+                            Color(0xfff8fafc),
+                            Color(0xffdce3ea),
+                            Color(0xfff0f4f7)
+                          ]),
+                border: Border(
+                    top: BorderSide(
+                        color: context.lgIsDark
+                            ? const Color(0xff66717c)
+                            : Colors.white))),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                      tooltip: '从相册导入',
+                  RebuildGlassButton(
+                      label: '从相册导入',
                       onPressed: _busy || _remaining > 0 ? null : _import,
-                      icon: const Icon(Icons.photo_library_outlined,
-                          color: Colors.white)),
+                      icon: Icons.photo_library_outlined),
                   Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
@@ -317,16 +340,15 @@ class _CreationCameraState extends State<CreationCamera>
                                   child: CircularProgressIndicator())
                               : Icon(_remaining > 0 ? Icons.close : Icons.circle_outlined,
                                   size: 54))),
-                  IconButton(
-                      tooltip: '切换镜头',
+                  RebuildGlassButton(
+                      label: '切换镜头',
                       onPressed: _busy || _remaining > 0 || _cameras.length < 2
                           ? null
                           : () {
                               _lens = (_lens + 1) % _cameras.length;
                               unawaited(_open());
                             },
-                      icon: const Icon(Icons.cameraswitch_outlined,
-                          color: Colors.white))
+                      icon: Icons.cameraswitch_outlined)
                 ]))
       ])),
     );
