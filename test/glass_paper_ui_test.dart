@@ -99,6 +99,10 @@ void main() {
   testWidgets(
       'existing photos retain their real note and date in the paper display',
       (tester) async {
+    tester.view.physicalSize = const Size(720, 1280);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     final auth = _Auth();
     await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
         value: auth,
