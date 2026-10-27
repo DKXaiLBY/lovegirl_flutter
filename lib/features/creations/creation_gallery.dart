@@ -751,7 +751,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                         child: AnimatedBuilder(
                             animation: _pager,
                             builder: (context, _) {
-                              final delta = _pager.hasClients &&
+                              final delta = _pager.positions.length == 1 &&
                                       _pager.position.haveDimensions
                                   ? ((_pager.page ?? 0) - index)
                                       .clamp(-1.0, 1.0)

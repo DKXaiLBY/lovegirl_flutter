@@ -64,6 +64,7 @@ class _RawGalleryApi extends _GalleryApi {
 
 class _GalleryApi implements ApiService {
   final String kind;
+  int count = 2;
   _GalleryApi(this.kind);
   @override
   Future<Response> getPhotos() async =>
@@ -72,7 +73,7 @@ class _GalleryApi implements ApiService {
   Future<Response> getCreations({int? tripId}) async =>
       Response(requestOptions: RequestOptions(), data: {
         'data': [
-          for (var id = 1; id < 3; id++)
+          for (var id = 1; id <= count; id++)
             {
               'id': id,
               'clientId': 'qa-$id',
@@ -96,6 +97,34 @@ class _GalleryApi implements ApiService {
 }
 
 void main() {
+  testWidgets('reloading a changed work list keeps the paper preview mounted',
+      (tester) async {
+    tester.view.physicalSize = const Size(720, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = _GalleryApi('polaroid')..count = 1;
+    final auth = _Auth();
+    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
+        value: auth,
+        child: MaterialApp(
+            theme: LoveGirlTheme.lightTheme,
+            home: CreationGallery(api: api, drafts: _Drafts()))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.takeException(), isNull);
+    for (final count in [2, 1, 2]) {
+      api.count = count;
+      await tester.tap(find.byTooltip('刷新'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.takeException(), isNull);
+      expect(find.byType(CreationFlip), findsWidgets);
+      expect(find.byTooltip('翻到背面').hitTestable(), findsOneWidget);
+    }
+    await tester.pumpWidget(const SizedBox());
+    auth.dispose();
+  });
   testWidgets(
       'existing photos retain their real note and date in the paper display',
       (tester) async {
