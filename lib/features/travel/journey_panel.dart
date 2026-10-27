@@ -406,10 +406,9 @@ class JourneyPanel extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 4),
                             child: AnimatedContainer(
-                                duration:
-                                    MediaQuery.disableAnimationsOf(context)
-                                        ? Duration.zero
-                                        : const Duration(milliseconds: 160),
+                                duration: rebuildReduceMotion(context)
+                                    ? Duration.zero
+                                    : const Duration(milliseconds: 160),
                                 decoration: BoxDecoration(
                                     color: selected == entry.key
                                         ? context.lgPrimarySoft
@@ -757,7 +756,7 @@ class JourneyPanel extends StatelessWidget {
     final detailIndent = (photo != null ? (compact ? 54.0 : 70.0) : 0.0) +
         (compact ? 34.0 : 0.0);
     return AnimatedContainer(
-        duration: MediaQuery.disableAnimationsOf(context)
+        duration: rebuildReduceMotion(context)
             ? Duration.zero
             : const Duration(milliseconds: 160),
         decoration: BoxDecoration(

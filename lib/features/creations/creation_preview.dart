@@ -66,7 +66,7 @@ class _CreationPreviewState extends State<CreationPreview> {
                           height: width / widget.document.aspectRatio,
                           child: TweenAnimationBuilder<double>(
                               tween: Tween(end: _back ? math.pi : 0),
-                              duration: MediaQuery.disableAnimationsOf(context)
+                              duration: rebuildReduceMotion(context)
                                   ? Duration.zero
                                   : const Duration(milliseconds: 420),
                               curve: Curves.easeInOutCubic,

@@ -766,10 +766,9 @@ class _CreationGalleryState extends State<CreationGallery> {
                                   ? ((_pager.page ?? 0) - index)
                                       .clamp(-1.0, 1.0)
                                   : 0.0;
-                              final angle =
-                                  MediaQuery.disableAnimationsOf(context)
-                                      ? 0.0
-                                      : (_ticket ? .045 : -.025) + delta * .035;
+                              final angle = rebuildReduceMotion(context)
+                                  ? 0.0
+                                  : (_ticket ? .045 : -.025) + delta * .035;
                               return Stack(
                                   clipBehavior: Clip.none,
                                   fit: StackFit.expand,
@@ -1078,7 +1077,7 @@ class CreationFlip extends StatelessWidget {
         onLongPress: onInspect,
         child: TweenAnimationBuilder<double>(
             tween: Tween(end: back ? math.pi : 0),
-            duration: MediaQuery.disableAnimationsOf(context)
+            duration: rebuildReduceMotion(context)
                 ? Duration.zero
                 : const Duration(milliseconds: 420),
             curve: Curves.easeInOutCubic,
@@ -1092,7 +1091,7 @@ class CreationFlip extends StatelessWidget {
                   child: CreationMaterial(
                       document: work.document,
                       glossy: !back,
-                      lightShift: MediaQuery.disableAnimationsOf(context)
+                      lightShift: rebuildReduceMotion(context)
                           ? 0
                           : lightShift + math.sin(angle) * .7,
                       lift: 1 + math.sin(angle).abs() * .2,

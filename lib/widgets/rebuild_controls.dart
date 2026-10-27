@@ -1,7 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../providers/map_prefs_provider.dart';
 import '../utils/lovegirl_theme.dart';
+
+bool rebuildReduceMotion(BuildContext context) =>
+    MediaQuery.disableAnimationsOf(context) ||
+    context.watch<MapPrefsProvider?>()?.motionLevel == 'off';
 
 ButtonStyle rebuildFilledStyle(BuildContext context) => FilledButton.styleFrom(
     backgroundColor: context.lgInk,
@@ -183,7 +189,7 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
         excludeFromSemantics: true,
         child: AnimatedScale(
             scale: _pressed && enabled ? .95 : 1,
-            duration: MediaQuery.disableAnimationsOf(context)
+            duration: rebuildReduceMotion(context)
                 ? Duration.zero
                 : const Duration(milliseconds: 130),
             curve: Curves.easeOutCubic,

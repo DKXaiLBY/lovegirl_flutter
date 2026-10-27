@@ -11,6 +11,7 @@ import 'package:lovegirl_flutter/features/travel/journey.dart';
 import 'package:lovegirl_flutter/features/travel/journey_controller.dart';
 import 'package:lovegirl_flutter/features/travel/journey_panel.dart';
 import 'package:lovegirl_flutter/models/travel.dart';
+import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/features/creations/creation_canvas.dart';
 import 'package:lovegirl_flutter/features/creations/creation_document.dart';
 import 'package:lovegirl_flutter/features/creations/creation_editor.dart';
@@ -97,6 +98,45 @@ class _GalleryApi implements ApiService {
 }
 
 void main() {
+  testWidgets(
+      'app motion-off preference suppresses glass movement without changing taps',
+      (tester) async {
+    final prefs = MapPrefsProvider()..motionLevel = 'off';
+    var taps = 0;
+    await tester.pumpWidget(ChangeNotifierProvider<MapPrefsProvider>.value(
+        value: prefs,
+        child: MaterialApp(
+            home: Scaffold(
+                body: Center(
+                    child: RebuildGlassButton(
+                        label: '动效测试',
+                        icon: Icons.flip,
+                        onPressed: () => taps++))))));
+    var gesture = await tester
+        .startGesture(tester.getCenter(find.byType(RebuildGlassButton)));
+    await tester.pump();
+    expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).duration,
+        Duration.zero);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(taps, 1);
+    await prefs.setMotionLevel('standard');
+    await tester.pumpAndSettle();
+    gesture = await tester
+        .startGesture(tester.getCenter(find.byType(RebuildGlassButton)));
+    await tester.pump();
+    expect(
+        tester
+            .widget<AnimatedScale>(find.byType(AnimatedScale))
+            .duration
+            .inMilliseconds,
+        greaterThan(0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(taps, 2);
+    await tester.pumpWidget(const SizedBox());
+    prefs.dispose();
+  });
   testWidgets('reloading a changed work list keeps the paper preview mounted',
       (tester) async {
     tester.view.physicalSize = const Size(720, 1600);
