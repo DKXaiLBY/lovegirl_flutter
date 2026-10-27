@@ -10,6 +10,9 @@ import '../creations/creation_files.dart';
 import 'journey.dart';
 import 'journey_controller.dart';
 
+String journeyRouteDisplay(String value) =>
+    value.replaceAll('RESULTS_ARE_EMPTY', '当前路段没有可用路线');
+
 // Official URI API: https://lbs.amap.com/api/uri-api/guide/travel/route
 Uri journeyNavigationUri(TravelSpot from, TravelSpot to, String mode) =>
     Uri.https('uri.amap.com', '/navigation', {
@@ -423,7 +426,8 @@ class JourneyPanel extends StatelessWidget {
                                   secondary: Icon(_icon(entry.key)),
                                   title: Text(entry.value),
                                   subtitle: Text(
-                                      snapshot.data?.estimate ?? '正在规划…',
+                                      journeyRouteDisplay(
+                                          snapshot.data?.estimate ?? '正在规划…'),
                                       style: const TextStyle(fontSize: 12)),
                                   onChanged: (value) =>
                                       setSheet(() => selected = value!),
@@ -868,7 +872,7 @@ class JourneyPanel extends StatelessWidget {
                                 icon: Icon(_icon(stop.mode), size: 16),
                                 label: Text(
                                     leg.isNotEmpty
-                                        ? leg.first.summary
+                                        ? journeyRouteDisplay(leg.first.summary)
                                         : '${journeyModes[stop.mode]} · ${controller.routing ? '规划中' : '选择交通方式'}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
