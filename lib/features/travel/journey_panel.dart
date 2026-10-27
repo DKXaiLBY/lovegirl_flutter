@@ -741,8 +741,10 @@ class JourneyPanel extends StatelessWidget {
         stop.day != null &&
         controller.visible[index - 1].day == stop.day;
     final city = stop.place?.city ?? '';
-    final photo = stop.place?.coverImage ??
-        (stop.place?.photos.isNotEmpty == true
+    final cover = stop.place?.coverImage;
+    final photo = cover?.isNotEmpty == true
+        ? cover
+        : (stop.place?.photos.isNotEmpty == true
             ? stop.place!.photos.first
             : null);
     final leg = controller.legs.where((l) => l.toKey == stop.key);

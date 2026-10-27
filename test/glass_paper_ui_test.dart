@@ -1,9 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lovegirl_flutter/features/travel/journey.dart';
+import 'package:lovegirl_flutter/features/travel/journey_controller.dart';
+import 'package:lovegirl_flutter/features/travel/journey_panel.dart';
+import 'package:lovegirl_flutter/models/travel.dart';
 import 'package:lovegirl_flutter/features/creations/creation_canvas.dart';
 import 'package:lovegirl_flutter/features/creations/creation_document.dart';
 import 'package:lovegirl_flutter/features/creations/creation_editor.dart';
@@ -65,6 +71,7 @@ class _GalleryApi implements ApiService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
             const MethodChannel('plugins.flutter.io/path_provider'),
@@ -245,4 +252,43 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+  testWidgets('journey thumbnail uses an existing photo when cover is empty',
+      (tester) async {
+    final controller = JourneyController(71, api: _GalleryApi('polaroid'))
+      ..select(Journey(id: 1, title: 'UI QA', stops: [
+        JourneyStop(
+            key: 'qa-photo',
+            spotId: 1,
+            day: 0,
+            place: TravelSpot(
+                id: 1,
+                name: '有照片的地点',
+                coverImage: '',
+                photos: ['/uploads/qa-first.png']))
+      ]));
+    final scroll = ScrollController();
+    final cards = ScrollController();
+    await tester.pumpWidget(MaterialApp(
+        theme: LoveGirlTheme.lightTheme,
+        home: Scaffold(
+            body: JourneyPanel(
+                controller: controller,
+                scrollController: scroll,
+                cardsController: cards,
+                expanded: true,
+                onSelect: (_) {},
+                onAdd: () {},
+                onStory: (_) {}))));
+    await tester.pump();
+    expect(
+        tester
+            .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+            .imageUrl,
+        endsWith('/uploads/qa-first.png'));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+    scroll.dispose();
+    cards.dispose();
+  });
 }
