@@ -603,42 +603,16 @@ class _CreationGalleryState extends State<CreationGallery> {
                         : _old.isEmpty
                             ? _empty('原相册还没有照片', '可以拍摄或导入照片，直接制作拍立得')
                             : GridView.builder(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(20),
                                 itemCount: _old.length,
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
                                         crossAxisCount: 2,
-                                        childAspectRatio: .85,
-                                        mainAxisSpacing: 12,
-                                        crossAxisSpacing: 12),
-                                itemBuilder: (_, i) {
-                                  final p = _old[i];
-                                  return InkWell(
-                                      onTap: _busy ? null : () => _oldPhoto(p),
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Card(
-                                          clipBehavior: Clip.antiAlias,
-                                          child: Column(children: [
-                                            Expanded(
-                                                child: CachedNetworkImage(
-                                                    imageUrl: creationUrl(
-                                                        (p['url'] ??
-                                                                p['image'] ??
-                                                                '')
-                                                            .toString()),
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                    memCacheWidth: 500,
-                                                    errorWidget: (_, __, ___) =>
-                                                        const Icon(Icons
-                                                            .broken_image_outlined))),
-                                            const Padding(
-                                                padding: EdgeInsets.all(12),
-                                                child: Text('用这张制作拍立得',
-                                                    style: TextStyle(
-                                                        fontSize: 12)))
-                                          ])));
-                                }),
+                                        childAspectRatio: .65,
+                                        mainAxisSpacing: 18,
+                                        crossAxisSpacing: 20),
+                                itemBuilder: (_, i) =>
+                                    _sourcePhotoTile(_old[i])),
           ),
           Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
@@ -669,6 +643,70 @@ class _CreationGalleryState extends State<CreationGallery> {
         if (section != _section) _page = 0;
         _section = section;
       });
+
+  Widget _sourcePhotoTile(Map<String, dynamic> photo) {
+    final document = CreationDocument(
+        title: photo['frame_note']?.toString() ?? '',
+        date: (photo['photo_date'] ?? photo['created_at'])
+            ?.toString()
+            .split('T')
+            .first
+            .split(' ')
+            .first);
+    final window = CreationPainter.photoWindows(document).first;
+    return InkWell(
+        onTap: _busy ? null : () => _oldPhoto(photo),
+        borderRadius: BorderRadius.circular(6),
+        child: Column(children: [
+          Expanded(
+              child: Center(
+                  child: AspectRatio(
+                      aspectRatio: document.aspectRatio,
+                      child: CreationMaterial(
+                          document: document,
+                          lift: .55,
+                          child: LayoutBuilder(
+                              builder: (context, box) =>
+                                  Stack(fit: StackFit.expand, children: [
+                                    CustomPaint(
+                                        painter: CreationPainter(
+                                            document, const [])),
+                                    Positioned(
+                                        left: window.left / 880 * box.maxWidth,
+                                        top: window.top /
+                                            (880 / document.aspectRatio) *
+                                            box.maxHeight,
+                                        width:
+                                            window.width / 880 * box.maxWidth,
+                                        height: window.height /
+                                            (880 / document.aspectRatio) *
+                                            box.maxHeight,
+                                        child: CachedNetworkImage(
+                                            imageUrl: creationUrl(
+                                                (photo['url'] ??
+                                                        photo['image'] ??
+                                                        '')
+                                                    .toString()),
+                                            fit: BoxFit.cover,
+                                            memCacheWidth: 500,
+                                            placeholder: (_, __) => ColoredBox(
+                                                color: context.lgPrimarySoft,
+                                                child: Center(
+                                                    child: SizedBox(
+                                                        width: 16,
+                                                        height: 16,
+                                                        child: CircularProgressIndicator(
+                                                            strokeWidth: 1.5,
+                                                            color: context
+                                                                .lgInk)))),
+                                            errorWidget: (_, __, ___) =>
+                                                const Icon(Icons.broken_image_outlined))),
+                                  ])))))),
+          const Padding(
+              padding: EdgeInsets.only(top: 10, bottom: 4),
+              child: Text('用这张制作拍立得', style: TextStyle(fontSize: 11))),
+        ]));
+  }
 
   Widget _workPage(List<CreationWork> works, int index) {
     final work = works[index];

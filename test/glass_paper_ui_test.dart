@@ -43,6 +43,25 @@ class _PendingGalleryApi extends _GalleryApi {
   Future<Response> getCreations({int? tripId}) => result.future;
 }
 
+class _RawGalleryApi extends _GalleryApi {
+  _RawGalleryApi() : super('polaroid');
+  @override
+  Future<Response> getCreations({int? tripId}) async =>
+      Response(requestOptions: RequestOptions(), data: {'data': []});
+  @override
+  Future<Response> getPhotos() async =>
+      Response(requestOptions: RequestOptions(), data: {
+        'data': [
+          {
+            'id': 1,
+            'url': '/uploads/qa-original.png',
+            'frame_note': '原照片的备注',
+            'photo_date': '2026-10-24T00:00:00Z'
+          }
+        ]
+      });
+}
+
 class _GalleryApi implements ApiService {
   final String kind;
   _GalleryApi(this.kind);
@@ -77,6 +96,31 @@ class _GalleryApi implements ApiService {
 }
 
 void main() {
+  testWidgets(
+      'existing photos retain their real note and date in the paper display',
+      (tester) async {
+    final auth = _Auth();
+    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
+        value: auth,
+        child: MaterialApp(
+            theme: LoveGirlTheme.lightTheme,
+            home: CreationGallery(api: _RawGalleryApi(), drafts: _Drafts()))));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('原照片 1'));
+    await tester.pump(const Duration(milliseconds: 600));
+    final frame = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((w) => w.painter)
+        .whereType<CreationPainter>()
+        .single;
+    expect(frame.document.title, '原照片的备注');
+    expect(frame.document.date, '2026-10-24');
+    expect(find.text('用这张制作拍立得').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    auth.dispose();
+  });
   testWidgets('a pending collection load never claims the memories are empty',
       (tester) async {
     final api = _PendingGalleryApi();
