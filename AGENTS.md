@@ -4,12 +4,14 @@
 
 > **2026-10-26 视觉验收纠正：4.4.1+186已发布且功能检查有效，但拍立得、票根、旅行未完成已确认参考图的视觉还原。此前将整个重建目标标记完成过早。后续不得用144项测试、20／12／8数量或发布成功代替视觉验收；具体缺口见 `docs/implementation/lovegirl-visual-gap-review-20261026.md`。三个模块视觉仍在原授权范围，其他页面全局换装继续暂停。**
 
+> **2026-10-30 补记：后续按用户 10/27 确认的新材质参考完成三模块清透玻璃／实体相纸 UI 轮次，4.4.2+187 已发布并完成收尾核验。实际截图、功能回归、数据保护与边界见 `docs/implementation/glass-paper-ui-acceptance-20261027.md`。这是本轮材质和布局改造的验收，不代表旧全部参考页面逐像素复刻或全 App 换装。**
+
 ## 项目概况
 
 **LoveGirl** — 情侣双人 App（Flutter 前端 + Node/Express 服务器 + MySQL）。
-当前版本 v4.4.1+186（2026-10-26 已发布：拍立得、模板型票根与逐日旅行行程重建，补修票面底色分离；详见 CHANGELOG.md）。**全局视觉换装仍暂停；本次仅重建拍立得、票根和旅行，不能描述成已完成参考图的全局 UI 换装。** 全局视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；新作品的相纸／票面配色按独立材质和模板处理，外围导航保持中性；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
+当前版本 v4.4.2+187（已发布：拍立得、票根与旅行相关展示的清透控件、实体纸材质和布局；2026-10-30 完成发布收尾复核，详见 CHANGELOG.md）。**全局视觉换装仍暂停；本次仅改造三模块 UI，不能描述成已完成参考图的全局 UI 换装。** 全局视觉风格：**冷白工具风（倒数日式）**——纯白底 #FFFFFF、黑灰字阶、主行动黑底白字、**暖色全部清零**（陶土橘/杏黄/橙已退役，accent/orange token 转灰阶、brandEmotion 转黑；恋爱天数/爱心同正文黑）；功能性红 #E95B4E 仅删除/警示；新作品的相纸／票面配色按独立材质和模板处理，外围导航保持中性；深色模式为中性深灰体系。衣柜虚拟试穿/热量计算器等方案已调研存档。
 
-- 当前仓库地址：**`D:\Projects\codex\lovegirl`**（此前Personal目录及2026-09-25英文化记录为历史路径；切换工作区后先flutter pub get刷新插件路径）。git remote = github.com/DKXaiLBY/lovegirl_flutter，默认分支master；本轮工作分支codex/photo-ticket-itinerary-rebuild已推送并快进远端master。
+- 当前仓库地址：**`D:\Projects\codex\lovegirl`**（此前Personal目录及2026-09-25英文化记录为历史路径；切换工作区后先flutter pub get刷新插件路径）。git remote = github.com/DKXaiLBY/lovegirl_flutter，默认分支master；本轮工作分支codex/glass-paper-ui已推送并快进远端master。
 - Flutter SDK：`D:\SoftwarePrograms\dev\flutter-sdk`；Android SDK：`D:\SoftwarePrograms\dev\android-sdk`（旧 `01-开发工具` 路径已失效）；`D:\lovegirl_build` junction 已重挂指向新路径，构建走 junction 或真实路径均可
 - **git 可执行文件 PATH 已失效**：用全路径 `"D:\SoftwarePrograms\01-开发工具\Git Setup\Git\cmd\git.exe"`（PATH 里的 `D:\Git Setup\Git\cmd` 是死路径）；Git 自带 ssh/scp 不可用，用系统 `C:\Windows\System32\OpenSSH\`；中文 commit 信息用 UTF-8 文件 + `git commit -F`（PowerShell Set-Content 会带 BOM，可接受）
 - 服务器：`root@47.121.119.191`（SSH 免密），LoveGirl 跑在 Docker（lovegirl-server / lovegirl-mysql / lovegirl-web），端口 3001
@@ -73,6 +75,8 @@ JAVA_HOME="C:\Program Files\Java\jdk-17.0.3.1" "D:\SoftwarePrograms\dev\flutter-
 18. **mysql2 的 DECIMAL 列返回字符串**（如 price="100.00"）——fromJson 里 `as num` 会在单字段上炸掉整个列表解析→界面显示空态（v3.35.1 线上事故：上传成功但衣橱显示空）。数字字段一律 `_asInt/_asDouble`（tryParse 兜底），单测已回归。**诊断套路：用户报"看不到数据"先查 DB 有没有行 + GET 接口状态码/字节数，DB 有数据=App 解析问题**
 
 ## 待办 / 未竟
+
+- **v4.4.2+187（已发布，2026-10-30 收尾复核）**：只改拍立得、票根与旅行相关 UI。清透按钮、大张真实相邻作品叠放、薄边/接触阴影/随动光泽，原照片按相纸显示；票根哑光材质、清楚的详情与编辑分组；旅行逐日连线、照片缩略、交通起终点及无路线中文提示。遵循系统与 App 关闭动效设置，修复本轮新布局的多滚动视图灰色预览和荣耀底部触控区域；不改业务规则、数据格式、后端或其他页面主题。编译源码4c2a43f、tag v4.4.2，分支和master已推送；Flutter159项/analyze0，荣耀正常release验证亮暗、字号、翻面/手绘/再编辑/导出、地图排序与真实路线。APK56941355字节，SHA256=04bbecf1e65af99cfb46711e88a42b9b3fb794725657911ede30787b4269d5bc，MD5=9d2c5093fdf86fbc727276a0828b59cb。公网完整下载/服务器备份/真机安装包一致，184/185/186升级true、187false，中文6行changelog核验。原6照片/8地点/原作品5和7散列不变，原两份私有草稿保留，本轮QA作品/草稿/媒体已清理。源码回滚分支backup/ui-before-glass-paper-20261027，旧186包与正式187包在服务器apk-backups保留；验收/截图/边界见docs/implementation/glass-paper-ui-acceptance-20261027.md。未做完整原生FPS或双物理手机UI联调，不声称与生成图光学表现逐像素相同。
 
 - **v4.4.1+186（2026-10-26 已发布）**：终局核对补修185票根底色与外围工作台、accent联动。票根工作台固定中性底，票面底色／渐变单独编辑，选底色保留配色与照片成像；数据格式和服务端不变。源码fbb7b2d已推master，tag v4.4.1。Flutter144项、analyze0；荣耀186实际改色／渐变，票面像素变化，外部工作台与照片像素不变；唯一QA草稿和测试源图已删。APK56875988字节，SHA256=ebacaff77572e83baaf3906774117313da0b9b7a9edcd635bd61dd40eee52c86，MD5=154ca04f980162e4ae344d08d63fbf29；184／185升级true、186false，公网下载完全一致，中文9行changelog及元数据核验。v4.4.0.apk仍保留回滚，新增v4.4.1.apk；容器内两份临时上传副本已删，正式包／备份未动。原6照片、8地点及空行程表最终散列仍与基线相同。完整验收边界同下条及验收文档。
 

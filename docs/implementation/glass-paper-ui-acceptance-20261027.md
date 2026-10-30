@@ -1,6 +1,6 @@
 # 4.4.2 清透玻璃与实体相纸 UI 验收
 
-日期：2026-10-27。依据为用户确认的两张新材质参考图，以及本轮 [目标与验收标准](glass-paper-ui-20261027.md)。仅调整拍立得、票根、旅行相关展示与控件；没有迁移作品/草稿格式、修改服务端业务或更换其他页面的全局主题。
+实施记录始于 2026-10-27，最终发布收尾核验于 2026-10-30。依据为用户确认的两张新材质参考图，以及本轮 [目标与验收标准](glass-paper-ui-20261027.md)。仅调整拍立得、票根、旅行相关展示与控件；没有迁移作品/草稿格式、修改服务端业务或更换其他页面的全局主题。
 
 ## 交付内容与视觉检查
 
@@ -17,6 +17,18 @@
 | 动效偏好 | 同时遵循系统关闭动画和 App 现有 `motion_level=off`；关闭后操作保留，装饰性过渡关闭。三模块没有增加常驻装饰 ticker |
 
 上述判断来自运行画面、实际操作和源实现核对，不以样式数量、测试通过或生成参考图替代视觉检查。材质为 Flutter 中的视觉近似，不声称与生成图的光学表现逐像素相同。
+
+## 修改清单
+
+| 源码 | 改动目的 |
+|---|---|
+| `lib/widgets/rebuild_controls.dart` | 三模块共用的清透控件、可触控面积、反馈及现有减少动态偏好 |
+| `lib/features/creations/creation_material.dart`、`creation_canvas.dart`、`creation_preview.dart` | 照片背景、相纸与票根材质、薄边和阴影、翻面与光泽 |
+| `lib/features/creations/creation_gallery.dart` | 大张叠放、原照片陈列、票根详情与完整记录；修复新布局中控制器替换的灰色预览 |
+| `lib/features/creations/creation_editor.dart`、`creation_camera.dart` | 编辑工具与模板层级、可选/不可选提示、安全区域和相机控件外观 |
+| `lib/features/travel/journey_panel.dart`、`travel_screen.dart` | 既有地图控件、逐日清单、缩略图与交通结果的展示 |
+| `test/glass_paper_ui_test.dart` | 本轮回归、窄屏字号、触控、动效偏好与动态增删列表检查 |
+| `pubspec.yaml`、`lib/utils/constants.dart`、`CHANGELOG.md` | 4.4.2+187 版本及更新说明；没有新增依赖 |
 
 ## 实际设备与过程
 
@@ -37,6 +49,7 @@
 | 证据 | 文件 |
 |---|---|
 | 相纸、原照片与字号 | `honor/30-187-looks-clearance.png`、`honor/75-final-original-photo-papers.png` |
+| 键盘与文字编辑 | `honor/10-qa-keyboard-title.png`、`honor/57-ticket-title-input.png`、`honor/58-ticket-record-saved.png` |
 | 票根详情、记录与导出 | `honor/66-final-ticket-loaded.png`、`honor/70-final-ticket-record-sheet.png`、`qa-export-verification.json` |
 | 独立配色/背景 | `ticket-color-ui-verification.json`：改票面颜色与渐变时，照片区域像素相同，外部工作台像素始终为 RGB(231,233,237) |
 | 旅行与真实路线 | `honor/87-final-journey-expanded.png`、`honor/88-final-route-comparison.png`、`honor/92-final-journey-reordered.png` |
@@ -62,9 +75,12 @@
 
 - 编译源码：`4c2a43f4d44d0c17bd4a2aedd85d707e880ff7d6`。
 - 版本：4.4.2+187。完整 Flutter 测试 **159 项通过**，analyze **0 问题**。
-- 正式候选包：56,941,355 字节；SHA256 `04bbecf1e65af99cfb46711e88a42b9b3fb794725657911ede30787b4269d5bc`，MD5 `9d2c5093fdf86fbc727276a0828b59cb`。
-- 备用机实际安装包已做 SHA256 校验，和上述候选包相同。
-- 服务器已备份原 4.4.1 包并校验，候选包已上传备份；正式发布与公网核验状态将以实际发布结果补记。
+- 正式包：56,941,355 字节；SHA256 `04bbecf1e65af99cfb46711e88a42b9b3fb794725657911ede30787b4269d5bc`，MD5 `9d2c5093fdf86fbc727276a0828b59cb`。
+- 已正式发布至现有服务器，版本名称/版本码、文件大小、MD5、激活状态与中文 6 行 changelog 均核对正确，不强制更新。
+- 公网完整下载文件、服务器正式备份及荣耀备用机实际安装包的 SHA256 一致。184/185/186 的 `hasUpdate=true`，187 的 `hasUpdate=false`；2026-10-30 再查仍成立。
+- 编译源码 tag 为 `v4.4.2`；实施分支 `codex/glass-paper-ui` 已推送并快进远端 `master`。后续验收文档提交不改变该编译产物。
+- 发布证据：备份目录中的 `release-187-published.json`、`release-187-public-verification.json`、`release-187-final-verification.json` 和 `honor-installed-apk-match.json`。发布后原数据查询结果仍与基线一致。
+- 正式新旧 APK 与上一版发布元数据均保留并重新校验；仅移除本轮 3 个未发布候选包及容器内临时上传副本，保留正式下载文件。
 
 ## 回滚
 
@@ -74,3 +90,15 @@
 - 客户端正式回退采用基线源码构建更高版本码的修复包，保留应用数据；不对手机执行卸载或清数据，不回退数据库。后续源码如有新改动，先在回滚分支处理冲突并验证，避免覆盖别的工作。
 
 本记录是这轮三模块材质与布局 UI 的验收，不是全 App 换装、旧全部参考页面逐像素复刻或所有历史功能审计的完成声明。
+
+## 目标完成核对（2026-10-30）
+
+| 原要求 | 完成依据 |
+|---|---|
+| 先备份并建立验收标准 | 目标文档及实施前基线分支、完整 bundle、旧 APK；收尾再做 bundle verify 和旧包散列核对 |
+| 清透玻璃、光面相纸、纸质票根 | 上述运行截图与确认参考图逐项核对；光面与哑光分离，控件透出实际背景，动态中间态保留 |
+| 只做相关三模块 UI | 基线至最终源码差异已核对；模型、草稿格式、API 服务、行程控制器、后端副本、依赖锁及全局主题均未修改 |
+| 可读性、触控、适配及反馈 | 荣耀亮暗与 1.15 倍字号截图、真实按压/翻面/排序和键盘操作；360 宽及 1.4 字号、48 触控与关闭动态回归 |
+| 原有流程与数据 | 制作/再编辑/翻面/草稿/导出及地图操作实测；159 项完整测试/analyze0；发布后原数据再查询、原两份草稿保留 |
+| 发布与升级核验 | 正式版本 187 激活；旧版升级 true/新版 false，中文说明正确，公网完整下载与备份及真机安装包散列相同 |
+| 交付与可回滚 | 本文修改清单、原始截图目录、源码与旧 APK 回滚说明；已记录设备/帧率/双端边界 |
