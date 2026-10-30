@@ -78,6 +78,7 @@ class RebuildGlass extends StatelessWidget {
         decoration: BoxDecoration(borderRadius: border, boxShadow: [
           BoxShadow(
               color: Colors.black.withAlpha(dark ? 40 : 18),
+              blurStyle: BlurStyle.outer,
               blurRadius: 20,
               offset: const Offset(0, 6)),
         ]),

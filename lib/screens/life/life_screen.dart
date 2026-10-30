@@ -174,7 +174,7 @@ class _LifeScreenState extends State<LifeScreen> {
   }
 
   Widget _surface(Widget child) => Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
           color:
               context.lgIsDark ? context.lgCard : Colors.white.withAlpha(145),
@@ -189,19 +189,16 @@ class _LifeScreenState extends State<LifeScreen> {
         .toList();
     final todo = _surface(
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      InkWell(
-          onTap: () => _open(_tool('待办', const TodoListWidget())),
-          child: const SizedBox(
-              height: 40,
-              child: Row(children: [
-                Icon(Icons.checklist_outlined, size: 21),
-                SizedBox(width: 8),
-                Text('待办',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                Spacer(),
-                Icon(Icons.chevron_right, size: 18)
-              ]))),
+      const SizedBox(
+          height: 24,
+          child: Row(children: [
+            Icon(Icons.checklist_outlined, size: 21),
+            SizedBox(width: 8),
+            Text('待办',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            Spacer(),
+            Icon(Icons.chevron_right, size: 18)
+          ])),
       Text(
           _loading
               ? '正在加载…'
@@ -211,7 +208,7 @@ class _LifeScreenState extends State<LifeScreen> {
                       ? '今天从容一点'
                       : '还有${active.length}件小事',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      const SizedBox(height: 6),
+      const SizedBox(height: 4),
       if (active?.isNotEmpty == true)
         for (final row in active!.take(2))
           InkWell(
@@ -237,16 +234,14 @@ class _LifeScreenState extends State<LifeScreen> {
     ]));
     final finance = _surface(
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      InkWell(
-          onTap: () => _open(_tool('记账', const FinanceListWidget())),
-          child: const SizedBox(
-              height: 40,
-              child: Row(children: [
-                Icon(Icons.account_balance_wallet_outlined, size: 21),
-                SizedBox(width: 8),
-                Text('本月账本',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600))
-              ]))),
+      const SizedBox(
+          height: 24,
+          child: Row(children: [
+            Icon(Icons.account_balance_wallet_outlined, size: 21),
+            SizedBox(width: 8),
+            Text('本月账本',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600))
+          ])),
       FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
@@ -259,7 +254,7 @@ class _LifeScreenState extends State<LifeScreen> {
                   const TextStyle(fontSize: 28, fontWeight: FontWeight.w700))),
       Text('本月支出',
           style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
-      const SizedBox(height: 12),
+      const SizedBox(height: 8),
       Align(
           alignment: Alignment.centerRight,
           child: RebuildGlassButton(
@@ -269,17 +264,28 @@ class _LifeScreenState extends State<LifeScreen> {
               onPressed: () => _open(
                   _tool('记账', const FinanceListWidget(createOnOpen: true))))),
     ]));
+    final todoPanel = InkWell(
+        onTap: () => _open(_tool('待办', const TodoListWidget())),
+        borderRadius: BorderRadius.circular(22),
+        child: todo);
+    final financePanel = InkWell(
+        onTap: () => _open(_tool('记账', const FinanceListWidget())),
+        borderRadius: BorderRadius.circular(22),
+        child: finance);
     return LayoutBuilder(
         builder: (context, bounds) => bounds.maxWidth < 300 ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.35
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [todo, const SizedBox(height: 10), finance])
-            : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: todo),
-                const SizedBox(width: 10),
-                Expanded(child: finance)
-              ]));
+                children: [todoPanel, const SizedBox(height: 10), financePanel])
+            : IntrinsicHeight(
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                    Expanded(child: todoPanel),
+                    const SizedBox(width: 10),
+                    Expanded(child: financePanel)
+                  ])));
   }
 
   Widget _kitchen() => ClipRRect(
@@ -326,6 +332,7 @@ class _LifeScreenState extends State<LifeScreen> {
                           child: TextButton.icon(
                               style: TextButton.styleFrom(
                                   foregroundColor: Colors.white,
+                                  iconColor: Colors.white,
                                   minimumSize: const Size(48, 50)),
                               onPressed: () => _open(const KitchenScreen()),
                               icon: const Icon(Icons.restaurant_outlined),
@@ -338,6 +345,7 @@ class _LifeScreenState extends State<LifeScreen> {
                           child: TextButton.icon(
                               style: TextButton.styleFrom(
                                   foregroundColor: Colors.white,
+                                  iconColor: Colors.white,
                                   minimumSize: const Size(48, 50)),
                               onPressed: () =>
                                   _open(const KitchenScreen(initialTab: 1)),
@@ -390,6 +398,28 @@ class _LifeScreenState extends State<LifeScreen> {
             style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
       ]);
 
+  Widget _shortcut(String title, String hint, IconData icon, Widget page) =>
+      InkWell(
+          onTap: () => _open(page),
+          borderRadius: BorderRadius.circular(22),
+          child: _surface(SizedBox(
+              height: 32,
+              child: Row(children: [
+                Icon(icon, size: 22),
+                const SizedBox(width: 12),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Text(hint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12, color: context.lgTextSecondary))),
+                const Icon(Icons.chevron_right, size: 20),
+              ]))));
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -411,7 +441,7 @@ class _LifeScreenState extends State<LifeScreen> {
               child: RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                      padding: const EdgeInsets.fromLTRB(14, 16, 14, 28),
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
                       children: [
                         Row(children: [
                           const Expanded(
@@ -424,11 +454,11 @@ class _LifeScreenState extends State<LifeScreen> {
                               icon: Icons.add,
                               onPressed: _quickAdd)
                         ]),
-                        const SizedBox(height: 5),
+                        const SizedBox(height: 2),
                         Text('把日子过成喜欢的样子',
                             style: TextStyle(
                                 fontSize: 13, color: context.lgTextSecondary)),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         if (_failed.isNotEmpty)
                           Padding(
                               padding: const EdgeInsets.only(bottom: 10),
@@ -447,25 +477,15 @@ class _LifeScreenState extends State<LifeScreen> {
                         const SizedBox(height: 10),
                         _wardrobe(),
                         const SizedBox(height: 12),
-                        _surface(ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.calendar_month_outlined),
-                            title: const Text('课程表',
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600)),
-                            subtitle: const Text('查看本周安排'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => _open(
-                                _tool('课程', const ScheduleListWidget())))),
+                        _shortcut(
+                            '课程表',
+                            '查看本周安排',
+                            Icons.calendar_month_outlined,
+                            _tool('课程', const ScheduleListWidget())),
                         if (context.watch<AuthProvider>().isOriginalGirl) ...[
                           const SizedBox(height: 10),
-                          _surface(ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.lock_outline),
-                              title: const Text('经期记录'),
-                              subtitle: const Text('仅自己可见'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => _open(const HealthScreen()))),
+                          _shortcut('经期记录', '仅自己可见', Icons.lock_outline,
+                              const HealthScreen()),
                         ],
                       ])))),
     );

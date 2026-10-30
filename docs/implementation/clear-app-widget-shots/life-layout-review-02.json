@@ -1,0 +1,29 @@
+{
+  "kind": "controlled Flutter widget rendering; NOT Honor screenshots",
+  "date": "2026-10-31",
+  "screenLogicalWidth": 360,
+  "capturedBodyLogicalHeight": 726,
+  "pixelRatio": 2,
+  "font": "Microsoft YaHei loaded locally for probe",
+  "rootNavigationCaptured": false,
+  "data": "explicit test fixtures; empty wardrobe uses decorative cover with empty-state label",
+  "sourceBase": "a67cb3fa7c42850526370b5fd00f0529a7a5ddc7",
+  "uncommittedLibDiffSha256": "579fe31b8930df4f7812b19111bcc30778ee3380f3fb0ecf35565e245b04c375",
+  "images": [
+    {
+      "file": "life-layout-review-02.png",
+      "sha256": "7126d5909530565758ef9972b9c90e599f717d762cdfbe0b2838b8defdc20ff6"
+    },
+    {
+      "file": "life-layout-review-02-lower.png",
+      "sha256": "24a4eec24932f733894aae5ddc0113fe4e6811a779b80a7694faeb331b1fa864"
+    }
+  ],
+  "nativeVisualAcceptance": false,
+  "renderedFilesSha256": {
+    "lib/screens/life/life_screen.dart": "9e2d0b46cb0979227394978c1910ac46c948f8ff44907dabfb1c7901dc6e8407",
+    "lib/widgets/rebuild_controls.dart": "e04492d37eb4aa7687d022ece661229593fc47f46fb76517e3684a1c3ead6831",
+    "assets/images/clear_app/kitchen_cover.png": "19ae11325af05524c2a8301d64b17416c7ba7464af301be50ad8cfc64dd025de",
+    "assets/images/clear_app/wardrobe_cover.png": "abfb08688eb73e67e2ad62a97881897a8e7f4a8c434af74f41126b78d8c57657"
+  }
+}
