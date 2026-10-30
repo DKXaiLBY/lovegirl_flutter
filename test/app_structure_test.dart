@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 
 import 'package:lovegirl_flutter/main.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
-import 'package:lovegirl_flutter/providers/daily_provider.dart';
 import 'package:lovegirl_flutter/providers/home_provider.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/notification_provider.dart';
@@ -49,7 +48,6 @@ void main() {
         ChangeNotifierProvider<AuthProvider>(
             create: (_) => _Auth(girl, perspectiveGirl)),
         ChangeNotifierProvider<HomeProvider>(create: (_) => today ?? _Home()),
-        ChangeNotifierProvider<DailyProvider>(create: (_) => _Daily()),
         ChangeNotifierProvider<NotificationProvider>(
             create: (_) => notifications ?? _Notifications()),
         ChangeNotifierProvider<MapPrefsProvider>(
@@ -329,11 +327,6 @@ class _Home extends HomeProvider {
       'feed': {'hasActiveOrder': false}
     };
   }
-  @override
-  Future<void> refresh() async {}
-}
-
-class _Daily extends DailyProvider {
   @override
   Future<void> refresh() async {}
 }

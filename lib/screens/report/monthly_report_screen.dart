@@ -12,17 +12,18 @@ import '../../widgets/illus_image.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'package:gal/gal.dart';
 
-/// 月度小报：当月两人小日子的聚合卡（照片/旅行/厨房/每日一问/时光轴/慢信/豆）。
+/// 月度小报：当月两人小日子的聚合卡（照片/旅行/厨房/时光轴）。
 /// 卡片整体可保存为图片（RepaintBoundary 截图）。
 class MonthlyReportScreen extends StatefulWidget {
-  const MonthlyReportScreen({super.key});
+  final ApiService? api;
+  const MonthlyReportScreen({super.key, this.api});
 
   @override
   State<MonthlyReportScreen> createState() => _MonthlyReportScreenState();
 }
 
 class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   final GlobalKey _cardKey = GlobalKey();
 
   late int _year;
@@ -221,8 +222,6 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
 
   Widget _buildReportCard(BuildContext context) {
     final d = _data ?? const <String, dynamic>{};
-    final earned = (d['beansEarned'] as num?)?.toInt() ?? 0;
-    final spent = (d['beansSpent'] as num?)?.toInt() ?? 0;
     final topDish = d['topDish']?.toString() ?? '';
 
     return LoveTicketCard(
@@ -285,14 +284,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
               Icons.restaurant_rounded,
               '厨房开火',
               '${(d['kitchenDone'] as num?)?.toInt() ?? 0} 单${topDish.isEmpty ? '' : ' · 最常点 $topDish'}'),
-          _statRow(Icons.question_answer_rounded, '每日一问',
-              '同答 ${(d['dailyDays'] as num?)?.toInt() ?? 0} 天'),
           _statRow(Icons.timeline_rounded, '时光轴',
               '${(d['timelineEvents'] as num?)?.toInt() ?? 0} 件小事'),
-          _statRow(Icons.mark_email_unread_outlined, '慢信',
-              '${(d['letters'] as num?)?.toInt() ?? 0} 封'),
-          _statRow(Icons.savings_rounded, '爱心豆',
-              '+$earned / -$spent'),
           const SizedBox(height: 6),
           Text(
             '—— LoveGirl 月度小报 · $_year 年 $_month 月',

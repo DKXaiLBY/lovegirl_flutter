@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/auth_provider.dart';
-import '../../providers/daily_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../models/travel.dart';
@@ -18,7 +17,6 @@ import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/weather_widget.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../photo/photo_screen.dart';
-import '../daily/daily_question_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
 import '../anniversary/anniversary_screen.dart';
@@ -51,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         context.read<HomeProvider>().refresh();
         context.read<NotificationProvider>().refreshCount();
-        context.read<DailyProvider>().refresh();
         _loadPartnerRecent();
         _loadMemoryToday();
       }
@@ -200,12 +197,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// 从后台切回时刷新角标/每日一问（对方可能刚产生了新动态）
+  /// 从后台切回时刷新角标和近况（对方可能刚产生了新动态）
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<NotificationProvider>().refreshCount();
-      context.read<DailyProvider>().refresh();
       _loadPartnerRecent();
     }
   }
@@ -278,12 +274,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         onTap: () => _push(const AnniversaryScreen()),
                       ),
                     ],
-                    const SizedBox(height: 18),
-                    StaggerIn(
-                      index: 2,
-                      child: _DailyQuestionTicket(
-                          onTap: () => _push(const DailyQuestionScreen())),
-                    ),
                     const SizedBox(height: 18),
                     if (_memoryToday == null && home.memory?.isNotEmpty == true)
                       StaggerIn(
@@ -844,135 +834,6 @@ class _PartnerRecentCard extends StatelessWidget {
                   ],
                 ],
               ),
-      ),
-    );
-  }
-}
-
-/// 每日一问入口卡：状态三态（待作答 / 等 TA / 已揭晓）
-class _DailyQuestionTicket extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _DailyQuestionTicket({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final daily = context.watch<DailyProvider>();
-    final t = daily.today;
-
-    final String status;
-    final IconData statusIcon;
-    if (t == null) {
-      status = '看看今天的问题';
-      statusIcon = Icons.campaign_outlined;
-    } else if (t.myAnswer == null) {
-      status = '去作答';
-      statusIcon = Icons.edit_rounded;
-    } else if (!t.bothAnswered) {
-      status = '等 TA 揭晓';
-      statusIcon = Icons.hourglass_top_rounded;
-    } else {
-      status = '已揭晓';
-      statusIcon = Icons.auto_awesome_rounded;
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        key: const ValueKey('home_daily_question'),
-        padding: const EdgeInsets.all(16),
-        // v4.0：纯白卡+细线描边（阴影≈0，立体感交描边）
-        decoration: BoxDecoration(
-          color: context.lgPaper,
-          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-          border: Border.all(color: context.lgCardBorder),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              // v4.0 黑底座图标：深色态用米白底+深色图标（原白图标对浅底对比度塌陷）
-              decoration: BoxDecoration(
-                color: context.lgEmotion,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(Icons.quiz_rounded,
-                  size: 20,
-                  color:
-                      context.lgIsDark ? LoveGirlTheme.bgDark : Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text(
-                        '每日一问',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (t != null && t.streakCurrent > 0) ...[
-                        Icon(Icons.local_fire_department_rounded,
-                            size: 13, color: LoveGirlTheme.orange),
-                        const SizedBox(width: 2),
-                        Text(
-                          '连续${t.streakCurrent}天',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: LoveGirlTheme.orange,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    t?.question ?? '两个人每天答一题，都提交后才互相揭晓',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: context.lgTextSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              // v4.0：状态胶囊走中性徽章体系（lgBadgeBg 深色安全）
-              decoration: BoxDecoration(
-                color: context.lgBadgeBg,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(statusIcon, size: 13, color: context.lgEmotion),
-                  const SizedBox(width: 4),
-                  Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: context.lgInk,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

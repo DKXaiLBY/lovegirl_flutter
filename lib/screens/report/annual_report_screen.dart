@@ -7,7 +7,8 @@ import '../../widgets/lovegirl_ui.dart';
 
 /// 年度恋爱报告：把这一年的数据讲成一个故事（截图友好）
 class AnnualReportScreen extends StatefulWidget {
-  const AnnualReportScreen({super.key});
+  final ApiService? api;
+  const AnnualReportScreen({super.key, this.api});
 
   @override
   State<AnnualReportScreen> createState() => _AnnualReportScreenState();
@@ -31,7 +32,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
       _error = null;
     });
     try {
-      final res = await ApiService().getLoveReport(year: _year);
+      final res = await (widget.api ?? ApiService()).getLoveReport(year: _year);
       final d = res.data?['data'];
       if (d is Map) {
         _report = d.cast<String, dynamic>();
@@ -131,11 +132,8 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
     final orders = (kitchen['orders'] as num?)?.toInt() ?? 0;
     final fedMe = (kitchen['fedMe'] as num?)?.toInt() ?? 0;
     final topDish = kitchen['topDish']?.toString();
-    final dailyDays = (r['dailyDays'] as num?)?.toInt() ?? 0;
-    final beans = (r['beansEarned'] as num?)?.toInt() ?? 0;
     final photos = (r['photos'] as num?)?.toInt() ?? 0;
     final timelineEvents = (r['timelineEvents'] as num?)?.toInt() ?? 0;
-    final letters = (r['letters'] as num?)?.toInt() ?? 0;
     final busiestMonth = r['busiestMonth']?.toString();
 
     return ListView(
@@ -164,7 +162,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                _heroSummary(spots, orders, dailyDays),
+                _heroSummary(spots, orders),
                 style: const TextStyle(
                   fontSize: 20,
                   height: 1.5,
@@ -197,18 +195,6 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                 sub: 'TA 为你做了 $fedMe 次',
                 color: LoveGirlTheme.orange),
             _StatTile(
-                icon: Icons.quiz_rounded,
-                label: '每日一问',
-                value: '$dailyDays 天',
-                sub: '一起作答的日子',
-                color: context.lgEmotion),
-            _StatTile(
-                icon: Icons.savings_rounded,
-                label: '爱心豆',
-                value: '$beans',
-                sub: '今年一起赚到',
-                color: LoveGirlTheme.brandEmotion),
-            _StatTile(
                 icon: Icons.photo_library_rounded,
                 label: '相册照片',
                 value: '$photos',
@@ -218,7 +204,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                 icon: Icons.confirmation_number_outlined,
                 label: '时光轴事件',
                 value: '$timelineEvents',
-                sub: letters > 0 ? '慢信 $letters 封' : '值得纪念的瞬间',
+                sub: '值得纪念的瞬间',
                 color: context.lgInk),
           ],
         ),
@@ -239,15 +225,11 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
               if (busiestMonth != null)
                 _HighlightRow(Icons.calendar_month_rounded,
                     '$busiestMonth 是你们最热闹的一个月'),
-              if (dailyDays > 0)
-                _HighlightRow(Icons.favorite_rounded,
-                    '有 $dailyDays 天，你们都认真回答了同一个问题'),
               if (fedMe > 0)
                 _HighlightRow(Icons.soup_kitchen_rounded,
                     'TA 给你做了 $fedMe 次饭，都记在这里'),
               if (topDish == null &&
                   busiestMonth == null &&
-                  dailyDays == 0 &&
                   fedMe == 0)
                 _HighlightRow(Icons.auto_awesome_rounded,
                     '新的一年，多留下一些两个人的痕迹吧'),
@@ -258,11 +240,10 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
     );
   }
 
-  String _heroSummary(int spots, int orders, int dailyDays) {
+  String _heroSummary(int spots, int orders) {
     final parts = <String>[];
     if (spots > 0) parts.add('一起去了 $spots 个地方');
     if (orders > 0) parts.add('下了 $orders 次厨房订单');
-    if (dailyDays > 0) parts.add('答了 $dailyDays 天每日一问');
     if (parts.isEmpty) return '这一年才刚开始，故事慢慢写。';
     return '${parts.join('，')}。'.replaceFirst('，。', '。');
   }

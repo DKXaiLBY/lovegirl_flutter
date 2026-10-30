@@ -4,8 +4,6 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../features/creations/creation_gallery.dart';
 import '../cooking/cooking_log_screen.dart';
-import '../daily/daily_question_screen.dart';
-import '../letter/slow_letter_screen.dart';
 import '../mood/mood_screen.dart';
 import '../photo/photo_screen.dart';
 import '../report/annual_report_screen.dart';
@@ -23,13 +21,6 @@ class MemoriesScreen extends StatelessWidget {
       (Icons.history_rounded, '时光轴', '一起经历的事', TimelineScreen()),
       (Icons.mood_rounded, '心情', '记录与回看每天的感受', const MoodScreen()),
       (Icons.restaurant_rounded, '美食手账', '两个人的餐桌照片', const CookingLogScreen()),
-      (
-        Icons.question_answer_outlined,
-        '每日一问',
-        '今天的问题与往日回答',
-        const DailyQuestionScreen()
-      ),
-      (Icons.mail_outline_rounded, '慢信', '寄给未来的心意', const SlowLetterScreen()),
     ];
     return Scaffold(
       backgroundColor: context.lgBg,

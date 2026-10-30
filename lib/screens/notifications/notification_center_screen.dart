@@ -7,10 +7,7 @@ import '../../utils/app_section.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../cooking/cooking_log_screen.dart';
-import '../daily/daily_question_screen.dart';
-import '../profile/achievements_screen.dart';
 import '../kitchen/kitchen_screen.dart';
-import '../letter/slow_letter_screen.dart';
 
 /// 通知中心：分组列表 + 全部已读 + 点击深链接
 class NotificationCenterScreen extends StatefulWidget {
@@ -173,24 +170,15 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         widget.onNavigateToTab?.call(AppSection.travel);
         break;
       case 'daily_question':
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const DailyQuestionScreen()));
+      case 'achievement':
+      case 'slow_letter':
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('该功能已停用，历史记录已保留')));
         break;
       case 'cooking':
       case 'cooking_taste':
         Navigator.of(context)
             .push(MaterialPageRoute(builder: (_) => const CookingLogScreen()));
-        break;
-      case 'achievement':
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AchievementsScreen()));
-        break;
-      case 'slow_letter':
-        final letterId = (item.payload['letter_id'] as num?)?.toInt();
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => letterId != null
-                ? LetterReadScreen(letterId: letterId)
-                : const SlowLetterScreen()));
         break;
       default:
         if (payload['order_id'] != null) {

@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
-import 'providers/daily_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/kitchen_provider.dart';
 import 'providers/map_prefs_provider.dart';
@@ -60,7 +59,6 @@ class LoveGirlApp extends StatelessWidget {
           update: (_, auth, workspace) => workspace!..setAccount(auth.userId),
         ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
-        ChangeNotifierProvider(create: (_) => DailyProvider()),
         ChangeNotifierProvider(create: (_) => WardrobeProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],

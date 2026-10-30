@@ -9,25 +9,21 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
-import '../profile/achievements_screen.dart';
 import '../settings/settings_screen.dart';
-import '../beans/beans_screen.dart';
-import '../voucher/wish_voucher_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final ApiService? api;
+  const ProfileScreen({super.key, this.api});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
 
   bool _loading = true;
   String? _partnerName;
-  int _beanBalance = 0;
-  int _achievementCount = 0;
   int _loveDays = 1;
 
   @override
@@ -43,14 +39,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = auth.user;
       final results = await Future.wait([
         _api.getCoupleStatus(),
-        _api.getBeanBalance(),
-        _api.getAchievements(),
         _api.getAnniversaries(),
       ]);
 
       String? partnerName;
-      int beanBalance = 0;
-      int achievementCount = 0;
       int loveDays = auth.loveDays;
 
       final coupleData = results[0].data?['data'];
@@ -60,24 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         partnerName = coupleData['partner']['nickname']?.toString();
       }
 
-      final beanData = results[1].data?['data'];
-      if (beanData is Map) {
-        beanBalance = int.tryParse(beanData['balance']?.toString() ?? '0') ?? 0;
-      }
-
-      final achievementData = results[2].data?['data'];
-      if (achievementData is List) {
-        achievementCount = achievementData.length;
-      } else if (achievementData is Map) {
-        achievementCount = int.tryParse(
-              achievementData['total']?.toString() ??
-                  achievementData['count']?.toString() ??
-                  '0',
-            ) ??
-            0;
-      }
-
-      final anniversaryData = results[3].data?['data'];
+      final anniversaryData = results[1].data?['data'];
       final anniversaryList = anniversaryData is List
           ? anniversaryData
               .map((item) => Map<String, dynamic>.from(item as Map))
@@ -92,8 +67,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _partnerName = partnerName;
-        _beanBalance = beanBalance;
-        _achievementCount = achievementCount;
         _loveDays = loveDays;
         _loading = false;
       });
@@ -212,48 +185,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildFunctionZone(BuildContext context) {
-    return LovePaper(
-      child: Column(
-        children: [
-          LoveMenuRow(
-            icon: Icons.savings_outlined,
-            title: '爱心豆',
-            value: '余额 $_beanBalance · 签到与流水',
-            color: context.lgInk,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const BeansScreen())),
-          ),
-          const Divider(height: 1),
-          LoveMenuRow(
-            icon: Icons.redeem_outlined,
-            title: '愿望兑换券',
-            value: '兑换两个人的小约定',
-            color: context.lgInk,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const WishVoucherScreen())),
-          ),
-          const Divider(height: 1),
-          LoveMenuRow(
-            icon: Icons.emoji_events_outlined,
-            title: '成就',
-            value: '$_achievementCount 项',
-            color: context.lgInk,
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const AchievementsScreen())),
-          ),
-          const Divider(height: 1),
-          LoveMenuRow(
-            icon: Icons.settings_outlined,
-            title: '设置',
-            value: '资料、隐私、更新与诊断',
-            color: context.lgInk,
-            onTap: () => _openSettings(context),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildFunctionZone(BuildContext context) => LovePaper(
+      child: LoveMenuRow(
+        icon: Icons.settings_outlined,
+        title: '设置',
+        value: '资料、隐私、更新与诊断',
+        color: context.lgInk,
+        onTap: () => _openSettings(context),
+      ));
 
   void _openSettings(BuildContext context) {
     Navigator.push(

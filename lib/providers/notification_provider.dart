@@ -120,7 +120,7 @@ class NotificationProvider extends ChangeNotifier {
           : [];
       await refreshCount();
     } catch (_) {
-      // 网络失败保留旧列表（下拉可重试），与 DailyProvider 行为一致
+      // 网络失败保留旧列表，允许下拉重试
     } finally {
       loading = false;
       notifyListeners();

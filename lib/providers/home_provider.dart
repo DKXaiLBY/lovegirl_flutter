@@ -14,14 +14,6 @@ class HomeProvider extends ChangeNotifier {
   String? error;
   Map<String, dynamic>? today;
   Map<String, dynamic>? memory;
-  bool checkedIn = false;
-  List<Map<String, dynamic>> recentAchievements = [];
-
-  int get beanBalance {
-    final value = today?['beanBalance'];
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
 
   int get loveDays {
     final value = today?['loveDays'];
@@ -39,7 +31,6 @@ class HomeProvider extends ChangeNotifier {
       final results = await Future.wait([
         _safeRequest(() => _api.getHomeToday()),
         _safeRequest(() => _api.getHomeMemory()),
-        _safeRequest(() => _api.getBeanCheckInStatus()),
         _safeRequest(() => _api.getKitchenOrders()),
         _safeRequest(() => _api.getTodos()),
         _safeRequest(() => _api.getTravelTrips()),
@@ -52,19 +43,18 @@ class HomeProvider extends ChangeNotifier {
       final hadPartialFailure = results.any((item) => item == null);
       final todayRaw = _extractDataMap(results[0]);
       final memoryData = _extractData(results[1]);
-      final statusData = _extractDataMap(results[2]);
-      final kitchenData = _extractDataMap(results[3]);
+      final kitchenData = _extractDataMap(results[2]);
       final feedingOrders = [
         ..._extractList(kitchenData['incoming']),
         ..._extractList(kitchenData['outgoing']),
       ];
-      final todos = _extractList(results[4]);
+      final todos = _extractList(results[3]);
       _rawTodos = todos;
-      final travelTrips = _extractList(results[5]);
-      final travelRoutes = _extractList(results[6]);
-      final travelSpots = _extractList(results[7]);
-      final financeStats = _extractDataMap(results[8]);
-      final anniversaries = _extractList(results[9]);
+      final travelTrips = _extractList(results[4]);
+      final travelRoutes = _extractList(results[5]);
+      final travelSpots = _extractList(results[6]);
+      final financeStats = _extractDataMap(results[7]);
+      final anniversaries = _extractList(results[8]);
 
       today = _buildTodayViewModel(
         todayRaw,
@@ -79,19 +69,6 @@ class HomeProvider extends ChangeNotifier {
       memory = memoryData is Map
           ? _buildMemoryViewModel(Map<String, dynamic>.from(memoryData))
           : null;
-      checkedIn = statusData['checkedIn'] == true ||
-          statusData['checked_in'] == true ||
-          statusData['is_checked_in'] == true;
-
-      final achievementsRaw = today?['recentAchievements'];
-      if (achievementsRaw is List) {
-        recentAchievements = achievementsRaw
-            .map((item) => _mapFrom(item))
-            .toList(growable: false);
-      } else {
-        recentAchievements = const [];
-      }
-
       if (hadPartialFailure) {
         error =
             '\u7f51\u7edc\u6709\u70b9\u4e0d\u7a33\u5b9a\uff0c\u521a\u521a\u6709\u4e00\u90e8\u5206\u5185\u5bb9\u6ca1\u52a0\u8f7d\u51fa\u6765';
@@ -105,22 +82,6 @@ class HomeProvider extends ChangeNotifier {
     } finally {
       isLoading = false;
       notifyListeners();
-    }
-  }
-
-  Future<void> checkIn() async {
-    try {
-      await _api.dailyBeanCheckIn();
-      checkedIn = true;
-      await refresh();
-    } catch (err) {
-      error = _friendlyErrorMessage(
-        err,
-        fallback:
-            '\u7b7e\u5230\u5931\u8d25\u4e86\uff0c\u7a0d\u540e\u518d\u8bd5\u8bd5',
-      );
-      notifyListeners();
-      rethrow;
     }
   }
 

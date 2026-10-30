@@ -52,6 +52,7 @@ build_apk.bat
 
 # Python scripts (deployment tools)
 *.py
+!tools/audit_retired_features.py
 
 # Server fixes — now tracked in git for code review
 # server_fixes/

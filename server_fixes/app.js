@@ -86,6 +86,8 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
 app.get('/api/health', (req, res) => res.json({ code: 200, message: 'OK', uptime: process.uptime() }));
 
 // ========== Routes ==========
+require('./routes/retired_features')(app);
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/user'));
 app.use('/api/travel', require('./routes/travel'));
@@ -104,12 +106,7 @@ app.use('/api/home', require('./routes/home'));
 app.use('/api/feeding', require('./routes/feeding_v2'));
 app.use('/api/weather', require('./routes/weather'));
 app.use('/api/version', require('./routes/version'));
-app.use('/api/beans', require('./routes/beans'));
-app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/daily', require('./routes/daily_question'));
-app.use('/api/letter', require('./routes/slow_letter'));
-app.use('/api/voucher', require('./routes/wish_voucher'));
 app.use('/api/cooking', require('./routes/cooking'));
 app.use('/api/partner', require('./routes/partner_recent'));
 app.use('/api/report', require('./routes/love_report'));
