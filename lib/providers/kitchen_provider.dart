@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 
 import '../services/api_service.dart';
 
@@ -124,7 +125,8 @@ class KitchenOrder {
 
 /// 情侣厨房状态
 class KitchenProvider extends ChangeNotifier {
-  final ApiService _api = ApiService();
+  final ApiService _api;
+  KitchenProvider({ApiService? api}) : _api = api ?? ApiService();
 
   bool bound = false;
   String? partnerName;
@@ -137,6 +139,7 @@ class KitchenProvider extends ChangeNotifier {
 
   bool loading = false;
   bool ordersLoading = false;
+  bool placingOrder = false;
   String? error;
 
   /// 购物车：dishId -> 数量（只针对对方菜品）
@@ -157,7 +160,7 @@ class KitchenProvider extends ChangeNotifier {
   int get cartCount => cart.values.fold(0, (a, b) => a + b);
 
   String? _serverMessage(Object err) {
-    final data = (err as dynamic).response?.data;
+    final data = err is DioException ? err.response?.data : null;
     if (data is Map && data['message'] != null) return data['message'].toString();
     return null;
   }
@@ -298,7 +301,10 @@ class KitchenProvider extends ChangeNotifier {
 
   // ---------- 订单 ----------
   Future<String?> placeOrder(String? note) async {
+    if (placingOrder) return '正在提交，请稍候';
     if (cart.isEmpty) return '购物车是空的';
+    placingOrder = true;
+    notifyListeners();
     try {
       await _api.createKitchenOrder({
         'items': cart.entries
@@ -311,6 +317,9 @@ class KitchenProvider extends ChangeNotifier {
       return null;
     } catch (e) {
       return _serverMessage(e) ?? '下单失败，请稍后再试';
+    } finally {
+      placingOrder = false;
+      notifyListeners();
     }
   }
 

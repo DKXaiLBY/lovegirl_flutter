@@ -562,7 +562,7 @@ class _DishCard extends StatelessWidget {
     );
   }
 
-  Widget _emojiBox(context) => Container(
+  Widget _emojiBox(BuildContext context) => Container(
         color: context.lgPrimarySoft,
         alignment: Alignment.center,
         child: Text(dish.emoji, style: const TextStyle(fontSize: 34)),
@@ -781,11 +781,11 @@ class _CartSheetState extends State<_CartSheet> {
             SizedBox(
               width: double.infinity,
               child: LovePrimaryButton(
-                text: '下单 · 等主厨开火',
-                onPressed: () async {
+                text: kitchen.placingOrder ? '提交中…' : '下单 · 等主厨开火',
+                onPressed: kitchen.placingOrder ? null : () async {
                   final err = await kitchen.placeOrder(_noteCtrl.text.trim());
                   if (!context.mounted) return;
-                  Navigator.of(context).pop();
+                  if (err == null) Navigator.of(context).pop();
                   if (err == null) HapticFeedback.mediumImpact();
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(err ?? '下单成功！等 TA 开火啦 🔥'),
@@ -1185,7 +1185,7 @@ class _DishEditSheetState extends State<_DishEditSheet> {
         : await kitchen.updateDish(widget.existing!.id, data);
     if (!mounted) return;
     setState(() => _saving = false);
-    Navigator.of(context).pop();
+    if (err == null) Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(err ?? (widget.existing == null ? '已挂上菜单 ✅' : '已保存 ✅')),
       behavior: SnackBarBehavior.floating,
@@ -1614,7 +1614,7 @@ class _FulfillSheetState extends State<_FulfillSheet> {
         .updateOrderStatus(widget.orderId, 'done', extra: {'photo_url': url});
     if (!mounted) return;
     setState(() => _working = false);
-    Navigator.of(context).pop();
+    if (err == null) Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(err ?? '这单完成！+5 爱心豆 🫘'),
         behavior: SnackBarBehavior.floating));
