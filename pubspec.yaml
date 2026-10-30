@@ -60,6 +60,7 @@ flutter:
     - assets/images/icons/
     - assets/images/deco/
     - assets/images/illus/
+    - assets/images/clear_app/
     - assets/geo/
   fonts:
     - family: Caveat

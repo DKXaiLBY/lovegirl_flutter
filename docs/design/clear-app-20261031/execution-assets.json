@@ -1,0 +1,20 @@
+{
+  "kind": "generated-reference-and-decorative-covers-not-user-records",
+  "assets": [
+    {
+      "file": "assets/images/clear_app/kitchen_cover.png",
+      "sourceFilename": "exec-a2e8c325-2fd7-4feb-a648-701d55c0a9f9.png",
+      "sha256": "19ae11325af05524c2a8301d64b17416c7ba7464af301be50ad8cfc64dd025de"
+    },
+    {
+      "file": "assets/images/clear_app/wardrobe_cover.png",
+      "sourceFilename": "exec-ef9aece8-1c7e-4d1c-8779-6ba6a197e179.png",
+      "sha256": "abfb08688eb73e67e2ad62a97881897a8e7f4a8c434af74f41126b78d8c57657"
+    },
+    {
+      "file": "docs/design/clear-app-20261031/09-us.png",
+      "sourceFilename": "exec-e1d6c0e4-1b4c-4265-8762-f827df01cf09.png",
+      "sha256": "c536026d2c468657c812dbd8bc4df141201f15a0dca9d8b53abd8bfefdc9fb15"
+    }
+  ]
+}

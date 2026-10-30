@@ -18,19 +18,22 @@ import '../../widgets/illus_image.dart';
 
 /// 情侣厨房：TA 的菜单点菜 / 我的厨房 / 开饭记录
 class KitchenScreen extends StatelessWidget {
-  const KitchenScreen({super.key});
+  final int initialTab;
+  const KitchenScreen({super.key, this.initialTab = 0})
+      : assert(initialTab >= 0 && initialTab < 3);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: context.read<KitchenProvider>(),
-      child: const _KitchenView(),
+      child: _KitchenView(initialTab: initialTab),
     );
   }
 }
 
 class _KitchenView extends StatefulWidget {
-  const _KitchenView();
+  final int initialTab;
+  const _KitchenView({this.initialTab = 0});
 
   @override
   State<_KitchenView> createState() => _KitchenViewState();
@@ -38,7 +41,8 @@ class _KitchenView extends StatefulWidget {
 
 class _KitchenViewState extends State<_KitchenView>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 3, vsync: this);
+  late final TabController _tab = TabController(
+      length: 3, initialIndex: widget.initialTab, vsync: this);
 
   @override
   void initState() {

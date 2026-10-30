@@ -119,7 +119,8 @@ class _HandDrawnCheckboxPainter extends CustomPainter {
 
 /// ===== 待办列表 =====
 class TodoListWidget extends StatefulWidget {
-  const TodoListWidget({super.key});
+  final bool createOnOpen;
+  const TodoListWidget({super.key, this.createOnOpen = false});
 
   @override
   State<TodoListWidget> createState() => _TodoListWidgetState();
@@ -135,6 +136,11 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   void initState() {
     super.initState();
     _loadTodos();
+    if (widget.createOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showAddDialog();
+      });
+    }
   }
 
   // 分类映射：中文 -> 英文

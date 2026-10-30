@@ -85,7 +85,8 @@ class OrganicArrowButton extends StatelessWidget {
 
 /// ===== 记账列表 =====
 class FinanceListWidget extends StatefulWidget {
-  const FinanceListWidget({super.key});
+  final bool createOnOpen;
+  const FinanceListWidget({super.key, this.createOnOpen = false});
 
   @override
   State<FinanceListWidget> createState() => _FinanceListWidgetState();
@@ -107,6 +108,11 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   void initState() {
     super.initState();
     _currentMonth = DateTime.now();
+    if (widget.createOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showAddDialog();
+      });
+    }
     _loadData();
     _loadTrendData();
   }

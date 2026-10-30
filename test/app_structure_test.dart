@@ -91,10 +91,13 @@ void main() {
   for (final role in [(false, false), (true, false), (false, true)]) {
     testWidgets('period entry uses original identity: $role', (tester) async {
       await tester.pumpWidget(
-          app(const LifeScreen(), girl: role.$1, perspectiveGirl: role.$2));
+          app(LifeScreen(api: _LifeApi()), girl: role.$1, perspectiveGirl: role.$2));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -1100));
+      await tester.pumpAndSettle();
       expect(find.text('经期记录'), role.$1 ? findsOneWidget : findsNothing);
       expect(find.byType(TabBar), findsNothing);
-      expect(find.text('衣橱'), findsOneWidget);
+      expect(find.text('我的衣橱'), findsOneWidget);
       expect(find.text('情侣厨房'), findsOneWidget);
     });
   }
@@ -109,14 +112,14 @@ void main() {
 
   testWidgets('life tools open as pages and back returns to the list',
       (tester) async {
-    await tester.pumpWidget(app(const LifeScreen()));
+    await tester.pumpWidget(app(LifeScreen(api: _LifeApi())));
     await tester.tap(find.text('待办'));
     await tester.pumpAndSettle();
     expect(find.byType(TodoListWidget), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('记账'), findsOneWidget);
+    expect(find.text('本月账本'), findsOneWidget);
     expect(find.byType(TodoListWidget), findsNothing);
   });
 
@@ -184,7 +187,7 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2280);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
-      for (final page in [const LifeScreen(), const MemoriesScreen()]) {
+      for (final page in [LifeScreen(api: _LifeApi()), const MemoriesScreen()]) {
         await tester.pumpWidget(app(
             MediaQuery(
               data: const MediaQueryData(
@@ -288,6 +291,16 @@ class _TodoApi implements ApiService {
       });
   @override
   dynamic noSuchMethod(Invocation invocation) => response([]);
+}
+
+class _LifeApi extends _TodoApi {
+  _LifeApi() : super([]);
+  @override
+  Future<Response<dynamic>> getFinanceStats(String month, {String? source}) =>
+      response({'expense': 0});
+  @override
+  Future<Response<dynamic>> getKitchenMenu() =>
+      response({'mine': [], 'partner_dishes': []});
 }
 
 class _Auth extends AuthProvider {
