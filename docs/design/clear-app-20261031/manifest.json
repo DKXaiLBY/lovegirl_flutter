@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-31",
+  "planningBaseline": "f90b9dd93cb0eca276bfe234d58ed236f221c7d5",
+  "kind": "generated-design-references-not-runtime-screenshots",
+  "status": "visual direction accepted; detailed specifications pending",
+  "images": [
+    {
+      "file": "01-today.png",
+      "subject": "今天",
+      "sourceFilename": "exec-a7e82760-0844-4f05-9b5f-1d0e35e2df0c.png",
+      "bytes": 1926509,
+      "sha256": "d6f005b78c538e7a564f53063552a239db9610ae859efa88a806f72cb0a0ff09"
+    },
+    {
+      "file": "02-memories.png",
+      "subject": "回忆",
+      "sourceFilename": "exec-2b8b85c6-6100-4936-8cb1-1ca9cf989252.png",
+      "bytes": 2364207,
+      "sha256": "6e371de5cc98a21e68401cebb5defde94bc1464b54377babbd482211a0303f40"
+    },
+    {
+      "file": "03-map-home.png",
+      "subject": "地图首页",
+      "sourceFilename": "exec-1fda4e93-53f8-4ab5-b05c-0c26c26f0760.png",
+      "bytes": 2135165,
+      "sha256": "e796f8a6032d57d61132f092d53ddd5d9ba122e18fa435ac62aa8e03277ca9c9"
+    },
+    {
+      "file": "04-map-place.png",
+      "subject": "地点浮卡",
+      "sourceFilename": "exec-b22bf800-b1b8-4e6a-8617-fa5c1a29879e.png",
+      "bytes": 2007796,
+      "sha256": "50addbb6a4db97d173a07dde92fde980b57826825613335a9d0fda3bb1ef6de8"
+    },
+    {
+      "file": "05-map-itinerary.png",
+      "subject": "展开行程",
+      "sourceFilename": "exec-b2621698-1323-4677-a7ea-a82694e4987b.png",
+      "bytes": 1687404,
+      "sha256": "657c6d27fc34f1414f477523614d49e859eb7cff50e1af03d3d81fea8ec46a38"
+    },
+    {
+      "file": "06-life.png",
+      "subject": "生活",
+      "sourceFilename": "exec-b6af812e-3510-4ff1-9010-b62db5f15782.png",
+      "bytes": 1809991,
+      "sha256": "3118667aaf08e6e3d6913a5de3888745a656115565ed0ad6a767c4e765de68be"
+    },
+    {
+      "file": "07-trip-packing.png",
+      "subject": "旅行准备概念",
+      "sourceFilename": "exec-3c073272-dd01-4f17-8762-827441afa253.png",
+      "bytes": 1935166,
+      "sha256": "f695e6928dacf424997e7dbb6823844d2546c20d9f07c82335bd33bc458db776"
+    },
+    {
+      "file": "08-kitchen-menu.png",
+      "subject": "厨房点菜概念",
+      "sourceFilename": "exec-72ceaee5-9e35-427c-bb16-c936f07c4ae1.png",
+      "bytes": 1885627,
+      "sha256": "d7124bf3c4db90ef8ecd1cb451646f20b6bedbca28d2290591aff3ac2432738f"
+    }
+  ]
+}
