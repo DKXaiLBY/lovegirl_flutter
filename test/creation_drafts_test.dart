@@ -10,9 +10,25 @@ void main() {
   setUp(() async =>
       root = await Directory.systemTemp.createTemp('lovegirl_draft_test_'));
   tearDown(() async {
-    expect(root.absolute.path.startsWith(Directory.systemTemp.absolute.path),
-        isTrue);
-    await root.delete(recursive: true);
+    final resolved = await root.resolveSymbolicLinks();
+    final parent = await Directory.systemTemp.resolveSymbolicLinks();
+    expect(Directory(resolved).parent.path.toLowerCase(), parent.toLowerCase());
+    expect(Directory(resolved).uri.pathSegments.where((s) => s.isNotEmpty).last,
+        startsWith('lovegirl_draft_test_'));
+    for (var attempt = 0;; attempt++) {
+      try {
+        if (await root.exists()) await root.delete(recursive: true);
+        break;
+      } on FileSystemException catch (error) {
+        // Retry only the observed Windows directory-not-empty cleanup failure.
+        if (!Platform.isWindows ||
+            error.osError?.errorCode != 145 ||
+            attempt == 4) {
+          rethrow;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
   });
   const document = CreationDocument(
       title: '海边，和你',
