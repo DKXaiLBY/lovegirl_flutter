@@ -67,7 +67,8 @@ void main() {
     await tester.pumpWidget(app(const AppShell()));
     await tester.pump();
     for (final label in ['今天', '回忆', '旅行', '生活', '我们']) {
-      expect(find.text(label), findsOneWidget);
+      expect(
+          find.text(label), label == '今天' ? findsNWidgets(2) : findsOneWidget);
     }
     expect(find.text('健康'), findsNothing);
     await tester.tap(find.text('回忆'));
@@ -150,7 +151,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(app(const HomeScreen()));
     await tester.pump();
-    expect(find.text('暂无待办'), findsOneWidget);
+    expect(find.text('记下一件今天想做的小事'), findsOneWidget);
     expect(find.text('提醒她多喝水'), findsNothing);
     expect(find.text('睡前讲故事'), findsNothing);
     expect(find.text('0/2 完成'), findsNothing);

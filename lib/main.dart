@@ -52,7 +52,10 @@ class LoveGirlApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
-        ChangeNotifierProvider(create: (_) => HomeProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, HomeProvider>(
+          create: (_) => HomeProvider(),
+          update: (_, auth, home) => home!..setAccount(auth.userId),
+        ),
         ChangeNotifierProvider(create: (_) => KitchenProvider()),
         ChangeNotifierProvider(create: (_) => MapPrefsProvider()..load()),
         ChangeNotifierProxyProvider<AuthProvider, TravelWorkspace>(

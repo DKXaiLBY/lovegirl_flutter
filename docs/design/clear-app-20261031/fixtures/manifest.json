@@ -1,0 +1,9 @@
+{
+  "kind": "generated-photographic-QA-fixture-not-app-demo-data",
+  "file": "today-seaside-photo.png",
+  "sourceFilename": "exec-75405e29-fec0-4b9a-947b-7b00c1b02b0a.png",
+  "reference": "../01-today.png",
+  "sha256": "427362d157ef2dfd9c08946904c01bed3e42a76bf2819d4e2b222e0587a3708d",
+  "purpose": "same-composition photo content for real Flutter/Honor comparisons; uploaded only to the isolated QA account; not declared as an APK asset",
+  "rendering": "photo pixels are generated; glass, controls and labels are rendered by the App"
+}

@@ -63,7 +63,7 @@ void main() {
   });
 
   group('pickMemoryToday（N 年前的今天）', () {
-    final now = DateTime(2026, 9, 30);
+    final now = DateTime(2026, 9, 30, 20);
     test('命中去年同月日的照片（年最远优先）', () {
       final m = pickMemoryToday([
         {'id': 1, 'photo_date': '2025-09-30 10:00:00', 'description': '去年'},
@@ -78,6 +78,7 @@ void main() {
         {'id': 1, 'photo_date': '2026-09-30 10:00:00'},
       ], [], now);
       expect(m, isNull);
+      expect(pickMemoryToday([], [_spot(id: 8, visitedDate: '2026-09-30')], now), isNull);
     });
     test('照片与足迹同日：照片优先', () {
       final m = pickMemoryToday([

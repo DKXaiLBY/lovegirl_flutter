@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
@@ -12,9 +13,10 @@ import '../../models/travel.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
-import '../../widgets/shimmer.dart';
 import '../../widgets/lovegirl_ui.dart';
-import '../../widgets/weather_widget.dart';
+import '../../widgets/rebuild_controls.dart';
+import '../../utils/constants.dart';
+import '../couple/couple_binding_screen.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../photo/photo_screen.dart';
 import '../kitchen/kitchen_screen.dart';
@@ -26,10 +28,12 @@ import '../../utils/app_section.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<AppSection>? onNavigateToTab;
+  final ApiService? api;
 
   const HomeScreen({
     super.key,
     this.onNavigateToTab,
+    this.api,
   });
 
   @override
@@ -37,22 +41,53 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  late final ApiService _api = widget.api ?? ApiService();
   List<Map<String, dynamic>> _partnerRecent = [];
   bool _partnerBound = false;
   Map<String, dynamic>? _memoryToday; // W5 弹药库 7.3/10.2：N 年前的今天
+  Map<String, dynamic>? _heroPhoto;
+  Map<String, dynamic>? _partner;
+  bool _coupleLoaded = false;
+  bool _coupleLoading = true;
+  bool _photoLoading = true;
+  bool _photoFailed = false;
+  int? _account;
+  int _mediaRequest = 0;
+  int _accountRevision = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<HomeProvider>().refresh();
-        context.read<NotificationProvider>().refreshCount();
-        _loadPartnerRecent();
-        _loadMemoryToday();
-      }
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final account = context.watch<AuthProvider>().userId;
+    if (_mediaRequest == 0 || account != _account) {
+      _account = account;
+      final accountRevision = ++_accountRevision;
+      _mediaRequest++;
+      _heroPhoto = _memoryToday = _partner = null;
+      _photoLoading = true;
+      _photoFailed = false;
+      _coupleLoaded = _partnerBound = false;
+      _coupleLoading = true;
+      _partnerRecent = [];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _accountRevision == accountRevision) _refresh();
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      context.read<HomeProvider>().refresh(),
+      context.read<NotificationProvider>().refreshCount(),
+      _loadPartnerRecent(),
+      _loadMemoryToday(),
+    ]);
   }
 
   /// W5「N 年前的今天」回忆卡（白卡+蜜桃点缀；不进渐变白名单；X 关闭当天不再出现）
@@ -136,35 +171,100 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   /// W5「N 年前的今天」：轻量拉取照片+足迹，命中则渲染回忆卡（失败/无命中零痕迹）
   Future<void> _loadMemoryToday() async {
-    List<Map<String, dynamic>> photos = const [];
-    List<TravelSpot> spots = const [];
-    try {
-      final res = await ApiService().getPhotos();
-      final d = res.data?['data'];
-      if (d is List) {
-        photos = d.map((e) => Map<String, dynamic>.from(e)).toList();
+    final request = ++_mediaRequest;
+    final account = _accountRevision;
+    if (mounted) setState(() => _photoLoading = true);
+    Future<dynamic> read(Future<dynamic> response) async {
+      try {
+        return (await response.timeout(const Duration(seconds: 8)))
+            .data['data'];
+      } catch (_) {
+        return null;
       }
-    } catch (_) {}
-    try {
-      final res = await ApiService().getTravelSpots();
-      final d = res.data?['data'];
-      final rawList = d is List ? d : (d is Map ? d['list'] as List? : null);
-      if (rawList != null) {
-        spots = rawList
-            .map((e) => TravelSpot.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
+    }
+
+    final results = await Future.wait([
+      read(_api.getPhotos()),
+      read(_api.getCreations()),
+      read(_api.getTravelSpots()),
+    ]);
+    if (!mounted || account != _accountRevision || request != _mediaRequest) {
+      return;
+    }
+    final photos = results[0] is List
+        ? (results[0] as List)
+            .whereType<Map>()
+            .map((p) => Map<String, dynamic>.from(p))
+            .toList()
+        : <Map<String, dynamic>>[];
+    final candidates = <Map<String, dynamic>>[];
+    for (final photo in photos) {
+      final url = (photo['url'] ?? photo['image'] ?? '').toString();
+      if (url.isEmpty) continue;
+      candidates.add({
+        'url': url,
+        'title': '${photo['frame_note'] ?? ''}'.trim().isNotEmpty
+            ? photo['frame_note']
+            : photo['description'] ?? '',
+        'date': photo['photo_date'] ?? photo['created_at'],
+        'sort': photo['created_at'] ?? photo['photo_date']
+      });
+    }
+    if (results[1] is List) {
+      for (final work in (results[1] as List).whereType<Map>()) {
+        final document = work['document'];
+        final sources = work['sourceUrls'];
+        if (document is! Map ||
+            document['kind'] != 'polaroid' ||
+            sources is! List ||
+            sources.isEmpty) {
+          continue;
+        }
+        candidates.add({
+          'url': sources.first.toString(),
+          'title': document['title'] ?? '',
+          'date': document['date'],
+          'location': work['tripTitle'] ?? '',
+          'sort': work['updatedAt']
+        });
       }
-    } catch (_) {}
-    if (!mounted) return;
+    }
+    DateTime date(Map<String, dynamic> p) =>
+        DateTime.tryParse('${p['sort']}'.replaceFirst(' ', 'T')) ??
+        DateTime(1970);
+    candidates.sort((a, b) => date(b).compareTo(date(a)));
+    final failed = results[0] is! List || results[1] is! List;
+    setState(() {
+      if (candidates.isNotEmpty) {
+        _heroPhoto = candidates.first;
+      } else if (!failed) {
+        _heroPhoto = null;
+      }
+      _photoLoading = false;
+      _photoFailed = failed;
+    });
+    final raw = results[2];
+    final rows = raw is List
+        ? raw
+        : raw is Map
+            ? raw['list']
+            : null;
+    final spots = rows is List
+        ? rows
+            .whereType<Map>()
+            .map((p) => TravelSpot.fromJson(Map<String, dynamic>.from(p)))
+            .toList()
+        : <TravelSpot>[];
     final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
+    if (!mounted || account != _accountRevision || request != _mediaRequest) {
+      return;
+    }
     final now = DateTime.now();
-    final todayKey =
+    final key =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-    if (prefs.getString('memory_dismiss_last') == todayKey) return;
-    final m = pickMemoryToday(photos, spots, now);
-    if (m == null || !mounted) return;
-    setState(() => _memoryToday = m);
+    setState(() => _memoryToday = prefs.getString('memory_dismiss_last') == key
+        ? null
+        : pickMemoryToday(photos, spots, now));
   }
 
   Future<void> _dismissMemoryToday() async {
@@ -177,18 +277,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadPartnerRecent() async {
-    try {
-      final res = await ApiService().getPartnerRecent();
-      final d = res.data?['data'];
-      if (!mounted) return;
-      setState(() {
-        _partnerBound = d?['hasPartner'] == true;
-        _partnerRecent = (d?['items'] as List? ?? [])
-            .whereType<Map>()
-            .map((e) => e.cast<String, dynamic>())
-            .toList();
-      });
-    } catch (_) {}
+    final account = _accountRevision;
+    Future<dynamic> read(Future<dynamic> response) async {
+      try {
+        return (await response.timeout(const Duration(seconds: 8)))
+            .data['data'];
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final results = await Future.wait(
+        [read(_api.getPartnerRecent()), read(_api.getCoupleStatus())]);
+    if (!mounted || account != _accountRevision) return;
+    setState(() {
+      final recent = results[0];
+      if (recent is Map) {
+        if (recent['hasPartner'] is bool) {
+          _partnerBound = recent['hasPartner'] == true;
+        }
+        _partnerRecent =
+            (recent['items'] is List ? recent['items'] as List : [])
+                .whereType<Map>()
+                .where((e) => e['type'] == 'cooking' || e['type'] == 'travel')
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList();
+      }
+      final couple = results[1];
+      _coupleLoading = false;
+      if (couple is Map && couple['coupled'] is bool) {
+        _coupleLoaded = true;
+        _partnerBound = couple['coupled'] == true;
+        _partner = _partnerBound && couple['partner'] is Map
+            ? Map<String, dynamic>.from(couple['partner'])
+            : null;
+      }
+    });
   }
 
   @override
@@ -200,9 +324,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// 从后台切回时刷新角标和近况（对方可能刚产生了新动态）
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && mounted) {
-      context.read<NotificationProvider>().refreshCount();
-      _loadPartnerRecent();
+    if (state == AppLifecycleState.resumed &&
+        mounted &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      _refresh();
     }
   }
 
@@ -210,289 +335,458 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final home = context.watch<HomeProvider>();
-
+    final anniversary = home.today?['anniversary'];
     return Scaffold(
-      backgroundColor: context.lgBg,
-      body: LovePage(
-        padding: EdgeInsets.zero,
-        child: RefreshIndicator(
-          onRefresh: home.refresh,
-          child: (home.isLoading && home.today == null)
-              ? const HomeSkeleton()
-              : ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-                  children: [
-                    StaggerIn(
-                      index: 0,
-                      child: _HomeHeader(
-                        loveDays: math.max(auth.loveDays, home.loveDays),
-                        onNavigateToTab: widget.onNavigateToTab,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    if (_memoryToday != null) ...[
-                      _buildMemoryTodayCard(),
-                      const SizedBox(height: 14),
-                    ],
-                    if (_partnerBound && _partnerRecent.isNotEmpty) ...[
-                      StaggerIn(
-                        index: 0,
-                        child: _PartnerRecentCard(
-                          items: _partnerRecent,
-                          onTapCooking: () => _push(const CookingLogScreen()),
-                          onNavigateToTab: widget.onNavigateToTab,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-                    if (home.error != null) ...[
-                      _ErrorBanner(message: home.error!, onRetry: home.refresh),
-                      const SizedBox(height: 16),
-                    ],
-                    StaggerIn(
-                      index: 1,
-                      child: _TodayCareSection(
-                        today: home.today,
-                        onFeedingTap: () => _push(const KitchenScreen()),
-                        onTodoTap: () => _push(const LifeToolScreen(
-                            title: '待办', child: TodoListWidget())),
-                        onTodoToggle: (id, complete) => context
-                            .read<HomeProvider>()
-                            .toggleTodo(id, complete: complete),
-                      ),
-                    ),
-                    if (home.today?['anniversary'] is Map) ...[
-                      const SizedBox(height: 14),
-                      LoveMenuRow(
-                        icon: Icons.event_outlined,
-                        title: home.today!['anniversary']['title'].toString(),
-                        value: home.today!['anniversary']['days'] == 0
-                            ? '就是今天'
-                            : '还有 ${home.today!['anniversary']['days']} 天',
-                        color: context.lgInk,
-                        onTap: () => _push(const AnniversaryScreen()),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    if (_memoryToday == null && home.memory?.isNotEmpty == true)
-                      StaggerIn(
-                        index: 3,
-                        child: _MemoryTicket(
-                          memory: home.memory,
-                          onTap: () =>
-                              widget.onNavigateToTab?.call(AppSection.memories),
-                        ),
-                      ),
-                  ],
-                ),
-        ),
-      ),
-    );
+        backgroundColor: context.lgBg,
+        body: RebuildPageBackground(
+            child: SafeArea(
+                bottom: false,
+                child: RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
+                        children: [
+                          _HomeHeader(
+                              loveDays: math.max(auth.loveDays, home.loveDays),
+                              partner: _partner,
+                              bound: _partnerBound,
+                              known: _coupleLoaded,
+                              loading: _coupleLoading,
+                              onRelationship: () =>
+                                  _push(const CoupleBindingScreen()),
+                              onNavigateToTab: widget.onNavigateToTab),
+                          const SizedBox(height: 16),
+                          _HomePhotoHero(
+                              photo: _heroPhoto,
+                              loading: _photoLoading,
+                              failed: _photoFailed,
+                              revision: _mediaRequest,
+                              onRecord: () =>
+                                  _push(const PhotoScreen(createOnOpen: true)),
+                              onOpen: () => _push(const PhotoScreen()),
+                              onRetry: _loadMemoryToday),
+                          if (home.error != null) ...[
+                            const SizedBox(height: 12),
+                            _ErrorBanner(
+                                message: home.error!, onRetry: _refresh),
+                          ],
+                          const SizedBox(height: 16),
+                          _TodayCareSection(
+                              today: home.today,
+                              loading: home.isLoading && home.today == null,
+                              onFeedingTap: () => _push(const KitchenScreen()),
+                              onTodoTap: () => _push(const LifeToolScreen(
+                                  title: '待办', child: TodoListWidget())),
+                              onAddTodo: () => _push(const LifeToolScreen(
+                                  title: '待办',
+                                  child: TodoListWidget(createOnOpen: true))),
+                              onTodoToggle: _toggleTodo),
+                          if (anniversary is Map) ...[
+                            const SizedBox(height: 14),
+                            _NextAnniversary(
+                                data: anniversary,
+                                onTap: () => _push(const AnniversaryScreen())),
+                          ],
+                          if (_memoryToday != null) ...[
+                            const SizedBox(height: 14),
+                            _buildMemoryTodayCard(),
+                          ],
+                          if (_partnerBound && _partnerRecent.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            _PartnerRecentCard(
+                                items: _partnerRecent,
+                                onTapCooking: () =>
+                                    _push(const CookingLogScreen()),
+                                onNavigateToTab: widget.onNavigateToTab),
+                          ],
+                          if (_memoryToday == null &&
+                              home.memory?.isNotEmpty == true) ...[
+                            const SizedBox(height: 14),
+                            _MemoryTicket(
+                                memory: home.memory,
+                                onTap: () => widget.onNavigateToTab
+                                    ?.call(AppSection.memories)),
+                          ],
+                        ])))));
   }
 
-  void _push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  Future<void> _toggleTodo(int id, bool complete) async {
+    final home = context.read<HomeProvider>();
+    if (home.isTodoSaving(id)) return;
+    final saved = await home.toggleTodo(id, complete: complete);
+    if (!saved && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('没有修改成功，待办仍然保留，请再试一次')));
+    }
+  }
+
+  Future<void> _push(Widget page) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    if (mounted) await _refresh();
   }
 }
 
+String _homeImageUrl(String path) =>
+    path.startsWith('http') ? path : AppConstants.baseUrl + path;
+
 class _HomeHeader extends StatelessWidget {
   final int loveDays;
+  final Map<String, dynamic>? partner;
+  final bool bound, known, loading;
+  final VoidCallback onRelationship;
   final ValueChanged<AppSection>? onNavigateToTab;
-
-  const _HomeHeader({
-    required this.loveDays,
-    this.onNavigateToTab,
-  });
-
+  const _HomeHeader(
+      {required this.loveDays,
+      required this.partner,
+      required this.bound,
+      required this.known,
+      required this.loading,
+      required this.onRelationship,
+      this.onNavigateToTab});
   @override
   Widget build(BuildContext context) {
-    return KeyedSubtree(
-      key: const ValueKey('home_header'),
-      // v4.0 浅灰渐变 hero（渐变白名单三处之一，接替 gradientSunrise；
-      // 深色态维持 primarySoftDark 单色不上渐变）
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.lgPrimarySoft,
-          gradient: context.lgIsDark
-              ? null
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: LoveGirlTheme.surfaceGradient,
-                ),
-          borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'LoveGirl',
-                            style: TextStyle(
-                              fontFamily: 'serif',
-                              fontSize: 30,
-                              height: 1,
-                              fontWeight: FontWeight.w700,
-                              color: context.lgTextPrimary,
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Icon(
-                              Icons.favorite_rounded,
-                              size: 15,
-                              color: context.lgEmotion,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      // 数字层级：恋爱天数是整屏视觉锚点（清爽化 v2 数字 hero）
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '我们在一起的第 ',
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: context.lgTextSecondary,
-                              ),
-                            ),
-                            RollingNumber(
-                              value: loveDays,
-                              style: TextStyle(
-                                fontSize: 38,
-                                height: 1,
-                                fontWeight: FontWeight.w900,
-                                color: context.lgEmotion,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              '天',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: context.lgTextSecondary,
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.only(left: 5),
-                              child: Icon(
-                                Icons.favorite_rounded,
-                                size: 13,
-                                color: context.lgEmotion,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 12),
-                _BellBadge(onNavigateToTab: onNavigateToTab),
-              ],
-            ),
-            SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: WeatherWidget(compact: true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ), // Column 收尾
-      ), // Container（日出 hero）收尾
-    );
+    final user = context.watch<AuthProvider>().user;
+    final now = DateTime.now();
+    final weekday = const [
+      '星期一',
+      '星期二',
+      '星期三',
+      '星期四',
+      '星期五',
+      '星期六',
+      '星期日'
+    ][now.weekday - 1];
+    return Column(key: const ValueKey('home_header'), children: [
+      Row(children: [
+        const Expanded(
+            child: Text('今天',
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800))),
+        Semantics(
+            button: true,
+            label: '查看你们的关系',
+            child: InkWell(
+                borderRadius: BorderRadius.circular(28),
+                onTap: onRelationship,
+                child: SizedBox(
+                    width: 72,
+                    height: 48,
+                    child: Stack(children: [
+                      Positioned(
+                          left: 0,
+                          top: 4,
+                          child: _HomeAvatar(
+                              path: user?['avatar']?.toString() ?? '')),
+                      Positioned(
+                          left: 28,
+                          top: 4,
+                          child: _HomeAvatar(
+                              path: (partner?['avatar'] ??
+                                      partner?['avatar_url'] ??
+                                      '')
+                                  .toString(),
+                              invite: !bound)),
+                    ])))),
+        const SizedBox(width: 8),
+        _BellBadge(onNavigateToTab: onNavigateToTab),
+      ]),
+      const SizedBox(height: 4),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+            child: Text('${now.month}月${now.day}日 · $weekday',
+                maxLines: 2,
+                style:
+                    TextStyle(fontSize: 12, color: context.lgTextSecondary))),
+        const SizedBox(width: 8),
+        Expanded(
+            child: Text(
+                bound
+                    ? '在一起的第$loveDays天'
+                    : loading
+                        ? '正在读取双人信息…'
+                        : known
+                            ? '邀请Ta，一起记录日常'
+                            : '双人信息暂未读取',
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                style:
+                    TextStyle(fontSize: 12, color: context.lgTextSecondary))),
+      ]),
+    ]);
   }
+}
+
+class _HomeAvatar extends StatelessWidget {
+  final String path;
+  final bool invite;
+  const _HomeAvatar({required this.path, this.invite = false});
+  @override
+  Widget build(BuildContext context) => Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: context.lgPaper, width: 2)),
+      child: ClipOval(
+          child: path.isEmpty
+              ? ColoredBox(
+                  color: context.lgPrimarySoft,
+                  child: Icon(
+                      invite
+                          ? Icons.person_add_alt_outlined
+                          : Icons.person_outline,
+                      size: 22,
+                      color: context.lgTextSecondary))
+              : CachedNetworkImage(
+                  imageUrl: _homeImageUrl(path),
+                  fit: BoxFit.cover,
+                  memCacheWidth: 120,
+                  errorWidget: (_, __, ___) => ColoredBox(
+                      color: context.lgPrimarySoft,
+                      child: Icon(Icons.person_outline,
+                          color: context.lgTextSecondary)))));
 }
 
 class _BellBadge extends StatelessWidget {
   final ValueChanged<AppSection>? onNavigateToTab;
-
   const _BellBadge({this.onNavigateToTab});
-
   @override
   Widget build(BuildContext context) {
     final unread = context.select((NotificationProvider p) => p.unreadCount);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) =>
-              NotificationCenterScreen(onNavigateToTab: onNavigateToTab))),
-      child: SizedBox(
-        height: 42,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Center(
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: context.lgCard,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: context.lgSeparator),
-                ),
-                child: Icon(
-                  Icons.notifications_none_rounded,
-                  size: 19,
-                  color: context.lgInk,
-                ),
-              ),
-            ),
-            if (unread > 0)
-              Positioned(
-                top: -2,
-                right: -4,
+    return Stack(clipBehavior: Clip.none, children: [
+      RebuildGlassButton(
+          label: unread == 0 ? '通知' : '通知，$unread条未读',
+          icon: Icons.notifications_none_outlined,
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) =>
+                  NotificationCenterScreen(onNavigateToTab: onNavigateToTab)))),
+      if (unread > 0)
+        Positioned(
+            top: 3,
+            right: 3,
+            child: IgnorePointer(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  constraints: const BoxConstraints(minWidth: 15),
-                  decoration: BoxDecoration(
-                    color: LoveGirlTheme.red,
-                    borderRadius: BorderRadius.circular(10),
-                    // 角标白圈随卡片底（深色跟随 cardDark，不再突兀白环）
-                    border: Border.all(color: context.lgCard, width: 1.5),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    unread > 99 ? '99+' : '$unread',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      height: 1.25,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: LoveGirlTheme.red,
+                        border:
+                            Border.all(color: context.lgPaper, width: 1.5))))),
+    ]);
+  }
+}
+
+class _HomePhotoHero extends StatelessWidget {
+  final Map<String, dynamic>? photo;
+  final bool loading, failed;
+  final int revision;
+  final VoidCallback onRecord, onOpen;
+  final Future<void> Function() onRetry;
+  const _HomePhotoHero(
+      {required this.photo,
+      required this.loading,
+      required this.failed,
+      required this.revision,
+      required this.onRecord,
+      required this.onOpen,
+      required this.onRetry});
+
+  Widget _fallback(BuildContext context, {bool imageError = false}) =>
+      ColoredBox(
+          color: imageError ? const Color(0xff465566) : context.lgPrimarySoft,
+          child: Center(
+              child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    if (loading)
+                      SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: imageError ? Colors.white : context.lgInk))
+                    else
+                      Icon(
+                          failed || imageError
+                              ? Icons.cloud_off_outlined
+                              : Icons.add_photo_alternate_outlined,
+                          size: 40,
+                          color: imageError
+                              ? Colors.white
+                              : context.lgTextSecondary),
+                    const SizedBox(height: 12),
+                    Text(
+                        loading
+                            ? '正在找回你们的照片…'
+                            : failed || imageError
+                                ? '照片暂时没加载出来'
+                                : '留下一张两个人的照片',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: imageError
+                                ? Colors.white
+                                : context.lgTextPrimary)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                        spacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          if (failed || imageError)
+                            TextButton(
+                                style: imageError
+                                    ? TextButton.styleFrom(
+                                        foregroundColor: Colors.white)
+                                    : rebuildTextStyle(context),
+                                onPressed: loading ? null : onRetry,
+                                child: const Text('重试')),
+                          if (!imageError)
+                            RebuildGlassButton(
+                                label: '记录今天',
+                                icon: Icons.edit_outlined,
+                                showLabel: true,
+                                onPressed: onRecord),
+                        ]),
+                  ]))));
+
+  @override
+  Widget build(BuildContext context) {
+    final item = photo;
+    final rawDate =
+        DateTime.tryParse('${item?['date']}'.replaceFirst(' ', 'T'));
+    final title = '${item?['title'] ?? ''}'.trim().split('\n').first;
+    final date = [
+      if (rawDate != null) '${rawDate.month}月${rawDate.day}日',
+      if ('${item?['location'] ?? ''}'.isNotEmpty) '${item!['location']}'
+    ].join(' · ');
+    final large = MediaQuery.textScalerOf(context).scale(14) > 19;
+    return ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: item == null
+            ? SizedBox(
+                key: const ValueKey('home_photo_empty'),
+                height: 210,
+                child: _fallback(context))
+            : AspectRatio(
+                key: const ValueKey('home_photo_hero'),
+                aspectRatio: .8,
+                child: Stack(fit: StackFit.expand, children: [
+                  GestureDetector(
+                      onTap: onOpen,
+                      child: CachedNetworkImage(
+                          key: ValueKey('${item['url']}:$revision'),
+                          imageUrl: _homeImageUrl('${item['url']}'),
+                          fit: BoxFit.cover,
+                          memCacheWidth: 1000,
+                          placeholder: (_, __) => ColoredBox(
+                              color: const Color(0xff465566),
+                              child: const Center(
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white))),
+                          errorWidget: (_, __, ___) =>
+                              _fallback(context, imageError: true))),
+                  if (failed)
+                    Positioned(
+                        top: 12,
+                        left: 12,
+                        child: RebuildGlass(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('照片暂未刷新',
+                                style: TextStyle(
+                                    fontSize: 11, color: context.lgInk)))),
+                  Positioned(
+                      left: 8,
+                      right: 8,
+                      bottom: 8,
+                      child: RebuildGlass(
+                          radius: 22,
+                          padding: const EdgeInsets.all(12),
+                          child: large
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                      _caption(context, title, date),
+                                      const SizedBox(height: 8),
+                                      Align(
+                                          alignment: Alignment.centerRight,
+                                          child: RebuildGlassButton(
+                                              label: '记录今天',
+                                              icon: Icons.edit_outlined,
+                                              showLabel: true,
+                                              onPressed: onRecord))
+                                    ])
+                              : Row(children: [
+                                  Expanded(
+                                      child: _caption(context, title, date)),
+                                  const SizedBox(width: 8),
+                                  RebuildGlassButton(
+                                      label: '记录今天',
+                                      icon: Icons.edit_outlined,
+                                      showLabel: true,
+                                      onPressed: onRecord)
+                                ]))),
+                ])));
+  }
+
+  Widget _caption(BuildContext context, String title, String date) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title.isEmpty ? '我们的照片' : title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                shadows: [Shadow(color: Color(0x66000000), blurRadius: 4)])),
+        if (date.isNotEmpty)
+          Text(date,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  shadows: [Shadow(color: Color(0x66000000), blurRadius: 4)])),
+      ]);
+}
+
+class _NextAnniversary extends StatelessWidget {
+  final Map data;
+  final VoidCallback onTap;
+  const _NextAnniversary({required this.data, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final days = _asInt(data['days']);
+    final date = DateTime.now().add(Duration(days: days));
+    return RebuildGlass(
+        radius: 22,
+        child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(children: [
+                  Icon(Icons.event_outlined, size: 26, color: context.lgInk),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        const Text('下一个纪念日',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        Text('${date.month}月${date.day}日 · ${data['title']}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 11, color: context.lgTextSecondary))
+                      ])),
+                  const SizedBox(width: 8),
+                  Text(days == 0 ? '就是今天' : '还有$days天',
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextSecondary)),
+                  const Icon(Icons.chevron_right, size: 18),
+                ]))));
   }
 }
 
@@ -537,6 +831,7 @@ class _ErrorBanner extends StatelessWidget {
             ),
           ),
           TextButton(
+            style: rebuildTextStyle(context),
             onPressed: onRetry,
             child: const Text('\u91cd\u8bd5'),
           ),
@@ -558,69 +853,85 @@ String _sanitizeNetworkMessage(String message) {
 
 class _TodayCareSection extends StatelessWidget {
   final Map<String, dynamic>? today;
-  final VoidCallback onFeedingTap;
-  final VoidCallback onTodoTap;
+  final bool loading;
+  final VoidCallback onFeedingTap, onTodoTap, onAddTodo;
   final void Function(int id, bool complete)? onTodoToggle;
-
-  const _TodayCareSection({
-    required this.today,
-    required this.onFeedingTap,
-    required this.onTodoTap,
-    this.onTodoToggle,
-  });
-
+  const _TodayCareSection(
+      {required this.today,
+      required this.loading,
+      required this.onFeedingTap,
+      required this.onTodoTap,
+      required this.onAddTodo,
+      this.onTodoToggle});
   @override
   Widget build(BuildContext context) {
     final feed = _typedMap(today?['feed']);
     final todo = _typedMap(today?['todo']);
-    final todoItems = (todo['items'] is List)
-        ? (todo['items'] as List).map(_typedMap).toList()
-        : const <Map<String, dynamic>>[];
-    final totalTodos = _asInt(todo['total']).clamp(0, 1 << 30);
-    final activeTodos = _asInt(todo['active']).clamp(0, totalTodos);
-    final completedTodos = totalTodos - activeTodos;
-
-    // v3.23 清单化重设计：两个横向条目（厨房/待办），高度减半信息密度更高
-    final badge = feed['statusLabel']?.toString() ?? '还没点单';
-    final careEntries = Column(
-      key: const ValueKey('home_today_care'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text('今天要照顾的事',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: context.lgTextPrimary)),
-        ),
-        if (feed['hasActiveOrder'] == true)
-          _CareEntry(
-            emoji: '🍳',
-            title: '情侣厨房',
-            badge: badge,
-            badgeTone:
-                badge == '还没点单' ? _CareBadgeTone.warn : _CareBadgeTone.ok,
-            subtitle: feed['title']?.toString(),
-            onTap: onFeedingTap,
-          ),
-        const SizedBox(height: 10),
-        _TodoCareTile(
-          badge: totalTodos == 0 ? '暂无待办' : '$completedTodos/$totalTodos 完成',
-          allDone: activeTodos == 0,
-          rows: todoItems
-              .map((item) => {
-                    'id': (item['id'] as num?)?.toInt() ?? 0,
-                    'title': _asString(item['title']),
-                    'dueDate': _asString(item['dueDate']),
-                  })
-              .toList(),
-          onTap: onTodoTap,
-          onToggle: onTodoToggle,
-        ),
-      ],
-    );
-    return careEntries;
+    final rows = todo['items'] is List
+        ? (todo['items'] as List).map(_typedMap).take(2).toList()
+        : <Map<String, dynamic>>[];
+    final total = _asInt(todo['total']).clamp(0, 1 << 30);
+    final active = _asInt(todo['active']).clamp(0, total);
+    final available = todo['available'] != false;
+    return Column(
+        key: const ValueKey('home_today_care'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            const Expanded(
+                child: Text('今天的小事',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+            if (!loading && available && total > 0)
+              TextButton(
+                  style: rebuildTextStyle(context),
+                  onPressed: onTodoTap,
+                  child: Text('${total - active}/$total 完成',
+                      style: TextStyle(
+                          fontSize: 11, color: context.lgTextSecondary))),
+            RebuildGlassButton(
+                label: '添加今天的小事', icon: Icons.add, onPressed: onAddTodo),
+          ]),
+          for (final row in rows) ...[
+            _HomeTodoRow(
+                key: _asInt(row['id']) > 0
+                    ? ValueKey('home_todo_${row['id']}')
+                    : null,
+                id: _asInt(row['id']),
+                title: _asString(row['title']),
+                dueDate: _asString(row['dueDate']),
+                onToggle: onTodoToggle == null
+                    ? null
+                    : (complete) => onTodoToggle!(_asInt(row['id']), complete)),
+            Divider(height: 1, color: context.lgSeparator.withAlpha(90)),
+          ],
+          if (rows.isEmpty)
+            TextButton(
+                style: rebuildTextStyle(context),
+                onPressed: loading ? null : onTodoTap,
+                child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                        loading
+                            ? '正在加载待办…'
+                            : !available
+                                ? '待办暂时没能读取，请下拉重试'
+                                : total > 0
+                                    ? '小事都完成了，今天从容一点'
+                                    : '记下一件今天想做的小事',
+                        style: TextStyle(
+                            fontSize: 13, color: context.lgTextSecondary)))),
+          if (feed['hasActiveOrder'] == true)
+            Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _CareEntry(
+                    emoji: '🍳',
+                    title: '情侣厨房',
+                    badge: feed['statusLabel']?.toString() ?? '这一餐',
+                    badgeTone: _CareBadgeTone.neutral,
+                    subtitle: feed['title']?.toString(),
+                    onTap: onFeedingTap)),
+        ]);
   }
 }
 
@@ -872,8 +1183,8 @@ class _MemoryTicket extends StatelessWidget {
               child: imageUrl.isNotEmpty
                   ? Image.network(imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _memPlaceholder())
-                  : _memPlaceholder(),
+                      errorBuilder: (_, __, ___) => _memPlaceholder(context))
+                  : _memPlaceholder(context),
             ),
           ),
           SizedBox(width: 12),
@@ -919,10 +1230,10 @@ class _MemoryTicket extends StatelessWidget {
     );
   }
 
-  Widget _memPlaceholder() => Image.asset(
-        'assets/images/icons/placeholder_memory.png',
-        fit: BoxFit.cover,
-      );
+  Widget _memPlaceholder(BuildContext context) => ColoredBox(
+      color: context.lgPrimarySoft,
+      child: Icon(Icons.auto_stories_outlined,
+          size: 28, color: context.lgTextSecondary));
 }
 
 Map<String, dynamic> _typedMap(dynamic value) {
@@ -941,6 +1252,10 @@ String _asString(dynamic value, {String fallback = ''}) {
 }
 
 String _localizedMemoryTitle(String value) {
+  const travelPrefix = 'Travel check-in:';
+  if (value.startsWith(travelPrefix)) {
+    return value.substring(travelPrefix.length).trim();
+  }
   const moodMap = {
     'excited': '那天很期待',
     'happy': '那天很开心',
@@ -984,257 +1299,78 @@ DateTime? _parseDate(String value) {
 
 String _relativeDayLabel(String value) {
   final date = _parseDate(value);
-  if (date == null) {
-    return '\u628a\u559c\u6b22\u7684\u5c0f\u4e8b\uff0c\u5b58\u6210\u4e00\u5f20\u7968\u6839';
-  }
-  final today = DateTime.now();
-  final diff =
-      today.difference(DateTime(date.year, date.month, date.day)).inDays;
-  if (diff <= 0) return '\u4eca\u5929\u4e5f\u503c\u5f97\u7559\u4e0b\u6765';
-  if (diff == 1) return '\u6628\u5929\u7684\u8fd9\u4e00\u5929';
-  if (diff < 30) return '$diff \u5929\u524d\u7684\u4eca\u5929';
-  final months = diff ~/ 30;
-  if (months < 12) return '$months \u4e2a\u6708\u524d\u7684\u4eca\u5929';
-  final years = diff ~/ 365;
-  return '$years \u5e74\u524d\u7684\u4eca\u5929';
+  if (date == null) return '日期未记录';
+  final now = DateTime.now();
+  final diff = DateTime(now.year, now.month, now.day)
+      .difference(DateTime(date.year, date.month, date.day))
+      .inDays;
+  if (diff == 0) return '今天';
+  if (diff == 1) return '昨天';
+  if (diff > 1 && diff < 30) return '$diff天前';
+  return '${date.year}年${date.month}月${date.day}日';
 }
 
-/// 待办清单条目（内联待办行：圆圈点击直接切换，DRAW 勾选动画）
-class _TodoCareTile extends StatelessWidget {
-  final String badge;
-  final bool allDone;
-  final List<Map<String, dynamic>> rows;
-  final VoidCallback onTap;
-  final void Function(int id, bool complete)? onToggle;
-
-  const _TodoCareTile({
-    required this.badge,
-    required this.allDone,
-    required this.rows,
-    required this.onTap,
-    this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: context.lgCard,
-        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-        border: Border.all(color: context.lgCardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: context.lgPrimarySoft,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Center(
-                    child: Icon(Icons.checklist_rounded,
-                        size: 20, color: context.lgInk),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('待办清单',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: context.lgTextPrimary)),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  // v4.0 状态徽章：完成=绿族浅底，未完=中性浅灰（getter 深色安全）
-                  decoration: BoxDecoration(
-                    color: allDone ? context.lgSoftGreenBg : context.lgBadgeBg,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(badge,
-                      style: TextStyle(
-                          color: allDone
-                              ? context.lgSoftGreenText
-                              : context.lgBadgeText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right_rounded,
-                    size: 18, color: context.lgTextMuted),
-              ],
-            ),
-          ),
-          for (final row in rows)
-            _HomeTodoRow(
-              id: (row['id'] as num?)?.toInt() ?? 0,
-              title: (row['title'] ?? '').toString(),
-              dueDate: (row['dueDate'] ?? '').toString(),
-              onToggle: onToggle == null
-                  ? null
-                  : (complete) =>
-                      onToggle!((row['id'] as num?)?.toInt() ?? 0, complete),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 首页待办行：圆圈点击直接切换完成（DRAW 描边动画）
-class _HomeTodoRow extends StatefulWidget {
+/// The provider owns the pending state so failures never leave a checked row.
+class _HomeTodoRow extends StatelessWidget {
   final int id;
   final String title;
   final String dueDate;
   final void Function(bool complete)? onToggle;
-
-  const _HomeTodoRow({
-    required this.id,
-    required this.title,
-    required this.dueDate,
-    this.onToggle,
-  });
-
-  @override
-  State<_HomeTodoRow> createState() => _HomeTodoRowState();
-}
-
-class _HomeTodoRowState extends State<_HomeTodoRow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 520));
-  bool _done = false;
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    if (widget.id == 0 || widget.onToggle == null) return;
-    setState(() => _done = !_done);
-    if (_done) {
-      _ctrl.forward(from: 0);
-      HapticFeedback.selectionClick();
-    }
-    widget.onToggle!(_done);
-  }
+  const _HomeTodoRow(
+      {super.key,
+      required this.id,
+      required this.title,
+      required this.dueDate,
+      this.onToggle});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _toggle,
-            child: SizedBox(
-              width: 26,
-              height: 26,
-              child: AnimatedBuilder(
-                animation: _ctrl,
-                builder: (context, _) {
-                  final p = _ctrl.value;
-                  if (_done && p >= 1) {
-                    return const Icon(Icons.check_circle_rounded,
-                        size: 22, color: LoveGirlTheme.secondary);
-                  }
-                  return CustomPaint(
-                    painter: _CheckDrawPainter(
-                        progress: p, color: LoveGirlTheme.secondary),
-                    child: p == 0
-                        ? Icon(Icons.radio_button_unchecked,
-                            size: 20, color: context.lgTextMuted)
-                        : const SizedBox.shrink(),
-                  );
-                },
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                color: _done ? context.lgTextMuted : context.lgTextPrimary,
-                decoration:
-                    _done ? TextDecoration.lineThrough : TextDecoration.none,
-              ),
-            ),
-          ),
-          if (widget.dueDate.isNotEmpty)
-            Text(widget.dueDate,
-                style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
-        ],
-      ),
-    );
+    final saving =
+        context.select<HomeProvider, bool>((home) => home.isTodoSaving(id));
+    return Semantics(
+        button: true,
+        enabled: id > 0 && !saving && onToggle != null,
+        label: saving ? '正在完成：$title' : '完成：$title',
+        excludeSemantics: true,
+        child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: id <= 0 || saving || onToggle == null
+                ? null
+                : () {
+                    HapticFeedback.selectionClick();
+                    onToggle!(true);
+                  },
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Row(children: [
+                  SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: saving
+                          ? const Padding(
+                              padding: EdgeInsets.all(3),
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : Icon(Icons.check_box_outline_blank,
+                              color: context.lgTextSecondary, size: 23)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 14, color: context.lgTextPrimary))),
+                  if (dueDate.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 80),
+                        child: Text(dueDate,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 11, color: context.lgTextSecondary))),
+                  ],
+                ]))));
   }
-}
-
-class _CheckDrawPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-
-  _CheckDrawPainter({required this.progress, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 3;
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-
-    final ringProgress = (progress / 0.6).clamp(0.0, 1.0);
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2, 2 * math.pi * ringProgress, false, ringPaint);
-
-    if (progress > 0.6) {
-      final checkProgress = ((progress - 0.6) / 0.4).clamp(0.0, 1.0);
-      final p1 = Offset(center.dx - radius * 0.45, center.dy + radius * 0.05);
-      final p2 = Offset(center.dx - radius * 0.1, center.dy + radius * 0.4);
-      final p3 = Offset(center.dx + radius * 0.5, center.dy - radius * 0.35);
-      final path = Path()
-        ..moveTo(p1.dx, p1.dy)
-        ..lineTo(p2.dx, p2.dy)
-        ..lineTo(p3.dx, p3.dy);
-      final metrics = path.computeMetrics().toList();
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.4
-        ..strokeCap = StrokeCap.round
-        ..color = color;
-      var drawn = 0.0;
-      for (final metric in metrics) {
-        final target = metric.length * checkProgress;
-        if (target <= drawn) break;
-        canvas.drawPath(
-            metric.extractPath(0, (target - drawn).clamp(0.0, metric.length)),
-            paint);
-        drawn += metric.length;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CheckDrawPainter oldDelegate) =>
-      oldDelegate.progress != progress;
 }
 
 /// W5 弹药库 7.3/10.2：确定性挑选「N 年前的今天」（年最远优先→照片优先→id 升序；
@@ -1252,7 +1388,7 @@ Map<String, dynamic>? pickMemoryToday(
   final candidates = <Map<String, dynamic>>[];
   for (final p in photos) {
     final d = parseDate(p['photo_date'] ?? p['created_at']);
-    if (d == null || !d.isBefore(now)) continue;
+    if (d == null || d.year >= now.year || !d.isBefore(now)) continue;
     if (d.month != now.month || d.day != now.day) continue;
     candidates.add({
       'type': 'photo',
@@ -1263,7 +1399,7 @@ Map<String, dynamic>? pickMemoryToday(
   }
   for (final s in spots) {
     final d = parseDate(s.visitedDate);
-    if (d == null || !d.isBefore(now)) continue;
+    if (d == null || d.year >= now.year || !d.isBefore(now)) continue;
     if (d.month != now.month || d.day != now.day) continue;
     candidates.add({
       'type': 'travel',

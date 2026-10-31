@@ -5,6 +5,25 @@ import 'package:provider/provider.dart';
 import '../providers/map_prefs_provider.dart';
 import '../utils/lovegirl_theme.dart';
 
+class RebuildPageBackground extends StatelessWidget {
+  final Widget child;
+  const RebuildPageBackground({super.key, required this.child});
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+      decoration: BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: context.lgIsDark
+                  ? [context.lgBg, context.lgBg]
+                  : const [
+                      Color(0xfff3fbff),
+                      Colors.white,
+                      Color(0xffedf7ff)
+                    ])),
+      child: child);
+}
+
 bool rebuildReduceMotion(BuildContext context) =>
     MediaQuery.disableAnimationsOf(context) ||
     context.watch<MapPrefsProvider?>()?.motionLevel == 'off';

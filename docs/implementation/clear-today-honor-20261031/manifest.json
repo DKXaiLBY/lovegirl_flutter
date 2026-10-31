@@ -1,0 +1,123 @@
+{
+  "kind": "actual-Honor-QA-screenshots-not-generated-UI",
+  "device": "KOZ-AL00 Android10 720x1600 dpr2",
+  "fontScales": [
+    1.15,
+    1.4
+  ],
+  "scope": "one physical phone with normal login to two isolated QA accounts",
+  "photography": "generated photo derived from reference01; only QA data, not an APK demo or actual couple photo",
+  "screenshots": [
+    {
+      "file": "today-dark.png",
+      "source": "50-today-final-dark.png",
+      "sha256": "87a927a23e657032663d754d3bc63c4557258a72e28a957e4f7f02f2a3b63574",
+      "candidate": "02"
+    },
+    {
+      "file": "today-large-dark.png",
+      "source": "51-today-large-dark.png",
+      "sha256": "7bc3de916c4b9738b5e9cf19b339f1c5f45029571326a52f0ab82c2848efec8f",
+      "candidate": "02"
+    },
+    {
+      "file": "girl-empty-home.png",
+      "source": "56-girl-empty-home.png",
+      "sha256": "33cde4a26adcb3d2b9b7f9ffb521acff2af0cc9db622f065e7755a0420960628",
+      "candidate": "02"
+    },
+    {
+      "file": "girl-private-entry.png",
+      "source": "57-girl-life-private-entry.png",
+      "sha256": "a7973a25e0dc3788caa450ba0344f3caec4e7968cce5edb88665fd08691d1841",
+      "candidate": "02"
+    },
+    {
+      "file": "todo-failure.png",
+      "source": "61-home-todo-failure.png",
+      "sha256": "da61e2af804507fc4366582b103ada36d157202bba831f013b9038625ec63435",
+      "candidate": "02"
+    },
+    {
+      "file": "todo-retry.png",
+      "source": "63-home-todo-retry-succeeded.png",
+      "sha256": "ef1d66dfe8b3376134d3414d52d75b445831b524d62d51faa494d2920ffe80af",
+      "candidate": "02"
+    },
+    {
+      "file": "today-light.png",
+      "source": "67-today-03-light.png",
+      "candidate": "03",
+      "sha256": "f3d76b02139133a5e59693f5a5979f2d2acc3bb13490bb3fb0d4a71fa15ed212"
+    },
+    {
+      "file": "today-lower.png",
+      "source": "68-today-03-lower.png",
+      "candidate": "03",
+      "sha256": "c2f4c3cd831494e4403ff4d80154524594d76ff0e6b5eaed929cba76350c855f"
+    },
+    {
+      "file": "record-source.png",
+      "source": "64-record-source-latest.png",
+      "candidate": "02",
+      "sha256": "c28449019b0056184fdaaf95ba86c0f116234c78f408fa6403dd90816c9379c1"
+    }
+  ],
+  "internalApk": {
+    "filename": "qa-today-03-187.apk",
+    "bytes": 61063141,
+    "sha256": "325886f387d860a9ad794281a8a1c80ba1758651d53c3b2e85920701d0670dfd",
+    "versionCode": 187,
+    "api": "loopback QA; normal login; no auth override",
+    "published": false
+  },
+  "compiledSourceFiles": {
+    "lib/main.dart": "28c44a16702e3565ec905181817987618cb840f5dcf8ee6c9c777d40a801643a",
+    "lib/providers/home_provider.dart": "485b4e3668561b644acaac2be825904c2c5abf80432ca0db56a24d89fb20ae90",
+    "lib/screens/home/home_screen.dart": "1dc58697b7b8bffcb7c274839eb83eaf331ca620e40e0a153529135c518a1f90",
+    "lib/screens/life/life_screen.dart": "87bcf2bbed1d7e692e0fa27927ba9ed6bd7144135db5f252d62c81e1b23f839b",
+    "lib/widgets/rebuild_controls.dart": "7d8c53efffb5586e1bd785388db5ccf78cac6fd7d0e27d86d8d3b8ed206e4e50",
+    "lib/screens/photo/photo_screen.dart": "69fe3a0b9d7100d554d0bd4e100e91f356cf3bcff3a5e8ae69a854d9b972e07d",
+    "lib/features/creations/creation_gallery.dart": "3eb134e51c7dd8888c9a55dd6704be99b54b2f6eb2fe8a8eee417e5d1ebff924",
+    "lib/utils/constants.dart": "27a4093f0ca1c841116ff7e02c12119973d0de1fe5daa7a28b3b695da4dd5691",
+    "pubspec.yaml": "f9c37905a98f0cacee7a7eb4d7a91096331da931342f91452cf063ceb1212d3a"
+  },
+  "checks": {
+    "flutter": 197,
+    "analyzeIssues": 0,
+    "visualAcceptanceComplete": false,
+    "originalFontAndLightModeRestored": true
+  },
+  "networkFailure": {
+    "scope": "owned QA backend and one Honor phone; production server untouched",
+    "failureMessageInUiDump": true,
+    "failureCountRetained": true,
+    "failureRowRetained": true,
+    "failedWriteDidNotChangeQaData": true,
+    "qaServiceRunning": true,
+    "productionProcessUnchanged": true,
+    "retryNormallySucceeded": true,
+    "qaTaskRestored": true
+  },
+  "previousCandidate02": {
+    "internalApk": {
+      "filename": "qa-today-02-187.apk",
+      "bytes": 61063011,
+      "sha256": "182c4827e3292c160ea69e36a022e90a4303ca6b4a8cc847e156be1c41389816",
+      "versionCode": 187,
+      "api": "loopback QA only; no auth override",
+      "published": false
+    },
+    "compiledSourceFiles": {
+      "lib/main.dart": "28c44a16702e3565ec905181817987618cb840f5dcf8ee6c9c777d40a801643a",
+      "lib/providers/home_provider.dart": "485b4e3668561b644acaac2be825904c2c5abf80432ca0db56a24d89fb20ae90",
+      "lib/screens/home/home_screen.dart": "2b862509b41591ef6f115dc2d3a9cfdcce5416eb9d604c65eddd8486a8cae246",
+      "lib/screens/life/life_screen.dart": "87bcf2bbed1d7e692e0fa27927ba9ed6bd7144135db5f252d62c81e1b23f839b",
+      "lib/widgets/rebuild_controls.dart": "7d8c53efffb5586e1bd785388db5ccf78cac6fd7d0e27d86d8d3b8ed206e4e50",
+      "lib/screens/photo/photo_screen.dart": "69fe3a0b9d7100d554d0bd4e100e91f356cf3bcff3a5e8ae69a854d9b972e07d",
+      "lib/features/creations/creation_gallery.dart": "3eb134e51c7dd8888c9a55dd6704be99b54b2f6eb2fe8a8eee417e5d1ebff924"
+    }
+  },
+  "latestCandidate": "03",
+  "candidateScope": "03 adds concise legacy memory labels and a neutral missing-image icon; layout, account-switch and failure checks are evidenced by 02 screenshots with unchanged corresponding logic"
+}

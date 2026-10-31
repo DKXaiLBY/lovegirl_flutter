@@ -14,6 +14,34 @@ class HomeProvider extends ChangeNotifier {
   String? error;
   Map<String, dynamic>? today;
   Map<String, dynamic>? memory;
+  int? _accountId;
+  bool _accountSet = false;
+  int _session = 0;
+  int _request = 0;
+  bool _disposed = false;
+  final Set<int> _savingTodos = {};
+
+  bool isTodoSaving(int id) => _savingTodos.contains(id);
+
+  void setAccount(int? id) {
+    if (_accountSet && _accountId == id) return;
+    _accountSet = true;
+    _accountId = id;
+    _session++;
+    _request++;
+    today = memory = null;
+    _rawTodos = [];
+    _savingTodos.clear();
+    isLoading = false;
+    error = null;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   int get loveDays {
     final value = today?['loveDays'];
@@ -22,6 +50,7 @@ class HomeProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    final request = ++_request;
     isLoading = true;
     error = null;
     notifyListeners();
@@ -39,6 +68,7 @@ class HomeProvider extends ChangeNotifier {
         _safeRequest(() => _api.getFinanceStats(month)),
         _safeRequest(() => _api.getAnniversaries()),
       ]);
+      if (_disposed || request != _request) return;
 
       final hadPartialFailure = results.any((item) => item == null);
       final todayRaw = _extractDataMap(results[0]);
@@ -66,7 +96,8 @@ class HomeProvider extends ChangeNotifier {
         financeStats: financeStats,
         anniversaries: anniversaries,
       );
-      memory = memoryData is Map
+      today!['todo']['available'] = results[3] != null;
+      memory = memoryData is Map && memoryData.isNotEmpty
           ? _buildMemoryViewModel(Map<String, dynamic>.from(memoryData))
           : null;
       if (hadPartialFailure) {
@@ -74,14 +105,17 @@ class HomeProvider extends ChangeNotifier {
             '\u7f51\u7edc\u6709\u70b9\u4e0d\u7a33\u5b9a\uff0c\u521a\u521a\u6709\u4e00\u90e8\u5206\u5185\u5bb9\u6ca1\u52a0\u8f7d\u51fa\u6765';
       }
     } catch (err) {
+      if (_disposed || request != _request) return;
       error = _friendlyErrorMessage(
         err,
         fallback:
             '\u9996\u9875\u6709\u4e00\u70b9\u52a0\u8f7d\u5931\u8d25\uff0c\u5148\u5237\u65b0\u4e00\u6b21\u8bd5\u8bd5',
       );
     } finally {
-      isLoading = false;
-      notifyListeners();
+      if (!_disposed && request == _request) {
+        isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -189,42 +223,44 @@ class HomeProvider extends ChangeNotifier {
 
   List<Map<String, dynamic>> _rawTodos = const [];
 
-  /// 首页待办圆圈直接切换完成状态（乐观更新 + 失败回滚）
-  Future<void> toggleTodo(int id, {required bool complete}) async {
-    final raw = _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
-    var touched = false;
-    for (final t in raw) {
-      if ((t['id'] as num?)?.toInt() == id) {
-        t['completed'] = complete ? 1 : 0;
-        touched = true;
-      }
+  /// Pending changes keep their row visible; only a successful write changes it.
+  Future<bool> toggleTodo(int id, {required bool complete}) async {
+    if (id <= 0 ||
+        _disposed ||
+        _savingTodos.contains(id) ||
+        !_rawTodos.any((t) => _asInt(t['id']) == id)) {
+      return false;
     }
-    if (!touched) return;
-    _rawTodos = raw;
-    final todayMap = today;
-    if (todayMap != null) {
-      final todoNode = _mapFrom(todayMap['todo']);
-      if (todoNode.isNotEmpty) {
-        final active = _rawTodos
-            .where((t) => t['completed'] != true && t['completed'] != 1)
-            .length;
-        todoNode['active'] = active;
-        todayMap['todo'] = {...todoNode, 'items': _buildTodoItems(_rawTodos)};
-      }
-    }
+    final session = _session;
+    _savingTodos.add(id);
     notifyListeners();
     try {
       await _api.toggleTodo(id);
-    } catch (_) {
-      final rolled =
-          _rawTodos.map((t) => Map<String, dynamic>.from(t)).toList();
-      for (final t in rolled) {
-        if ((t['id'] as num?)?.toInt() == id) {
-          t['completed'] = complete ? 0 : 1;
-        }
+      if (_disposed || session != _session) return true;
+      _rawTodos = _rawTodos
+          .map((todo) => {
+                ...todo,
+                if (_asInt(todo['id']) == id) 'completed': complete ? 1 : 0,
+              })
+          .toList();
+      if (today != null) {
+        today!['todo'] = {
+          ..._mapFrom(today!['todo']),
+          'total': _rawTodos.length,
+          'active': _rawTodos
+              .where((t) => t['completed'] != true && t['completed'] != 1)
+              .length,
+          'items': _buildTodoItems(_rawTodos),
+        };
       }
-      _rawTodos = rolled;
-      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      if (!_disposed && session == _session) {
+        _savingTodos.remove(id);
+        notifyListeners();
+      }
     }
   }
 

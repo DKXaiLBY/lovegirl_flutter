@@ -29,6 +29,7 @@ class CreationGallery extends StatefulWidget {
   final String? tripDate;
   final ApiService? api;
   final CreationDrafts? drafts;
+  final bool createOnOpen;
   const CreationGallery(
       {super.key,
       this.kind = 'polaroid',
@@ -36,7 +37,8 @@ class CreationGallery extends StatefulWidget {
       this.tripTitle,
       this.tripDate,
       this.api,
-      this.drafts});
+      this.drafts,
+      this.createOnOpen = false});
   @override
   State<CreationGallery> createState() => _CreationGalleryState();
 }
@@ -64,6 +66,11 @@ class _CreationGalleryState extends State<CreationGallery> {
     super.initState();
     _store = widget.drafts ?? CreationDrafts(_owner);
     unawaited(_load());
+    if (widget.createOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_new());
+      });
+    }
   }
 
   @override

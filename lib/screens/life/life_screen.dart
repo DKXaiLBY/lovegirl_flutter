@@ -428,18 +428,7 @@ class _LifeScreenState extends State<LifeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.lgBg,
-      body: DecoratedBox(
-          decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: context.lgIsDark
-                      ? [context.lgBg, context.lgBg]
-                      : const [
-                          Color(0xfff3fbff),
-                          Colors.white,
-                          Color(0xffedf7ff)
-                        ])),
+      body: RebuildPageBackground(
           child: SafeArea(
               bottom: false,
               child: RefreshIndicator(

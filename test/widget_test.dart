@@ -138,16 +138,16 @@ void main() {
 
     await tester.pump();
 
-    expect(find.text('LoveGirl'), findsOneWidget);
+    expect(find.text('今天'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('今天要照顾的事'),
+      find.text('今天的小事'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
-    expect(find.text('今天要照顾的事'), findsOneWidget);
+    expect(find.text('今天的小事'), findsOneWidget);
     expect(find.text('情侣厨房'), findsOneWidget);
-    expect(find.text('待办清单'), findsOneWidget);
+    expect(find.text('一起选旅行酒店'), findsOneWidget);
     expect(find.byKey(const ValueKey('home_travel_ticket')), findsNothing);
     expect(find.text('设计心理学'), findsNothing);
     expect(find.text('剩余预算'), findsNothing);
