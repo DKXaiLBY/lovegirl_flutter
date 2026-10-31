@@ -34,6 +34,7 @@ Widget legacyMemoryPolaroid(Map<String, dynamic> photo,
         child: _PolaroidTile(
             photo: photo,
             rotation: 0,
+            fillAvailable: true,
             selectionMode: false,
             selected: false,
             onTapSelect: () {},
@@ -1009,6 +1010,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
 
 /// 拍立得小卡：正面白框+方图+手写日期；点按 3D 翻面看牛皮纸背卡（故事+留言）。
 class _PolaroidTile extends StatefulWidget {
+  final bool fillAvailable;
   final Map<String, dynamic> photo;
   final double rotation;
   final bool selectionMode;
@@ -1018,6 +1020,7 @@ class _PolaroidTile extends StatefulWidget {
   final VoidCallback onLongPress;
 
   const _PolaroidTile({
+    this.fillAvailable = false,
     required this.photo,
     required this.rotation,
     required this.selectionMode,
@@ -1078,7 +1081,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
           final theme = PolaroidThemeX.fromName(
               widget.photo['polaroid_theme']?.toString() ?? 'classic');
           final card = polaroidCardSize(box,
-              topDecorHeight: theme.style.topDecorHeight);
+              topDecorHeight: theme.style.topDecorHeight, fillAvailable: widget.fillAvailable);
           final cellW = box.maxWidth;
 
           // 厚度侧边几何：卡片绕中心转，近缘 = 中线 ± 投影半宽，条贴在近缘外侧
@@ -1122,13 +1125,16 @@ class _PolaroidTileState extends State<_PolaroidTile>
                     transform: Matrix4.identity()
                       ..setEntry(3, 2, 0.0015)
                       ..rotateY(angle),
-                    child: showBack
+                    child: SizedBox(
+                        width: widget.fillAvailable ? card.width : null,
+                        height: widget.fillAvailable ? card.height : null,
+                        child: showBack
                         ? Transform(
                             alignment: Alignment.center,
                             transform: Matrix4.rotationY(math.pi),
                             child: _buildBack(context),
                           )
-                        : _buildFront(context, polaroidGlossShift(angle)),
+                        : _buildFront(context, polaroidGlossShift(angle))),
                   ),
                   // 厚度侧边：翻面中贴近缘露出卡纸截面（静置宽=0 不渲染）
                   if (edgeW > 0.2)
@@ -1208,6 +1214,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
             : null,
       ),
       child: PolaroidFrame(
+        fillAvailable: widget.fillAvailable,
         theme: theme,
         inkStrokes: _savedInk,
         date: date,

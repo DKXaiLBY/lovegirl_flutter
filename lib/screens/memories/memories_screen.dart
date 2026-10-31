@@ -28,7 +28,7 @@ class MemoriesScreen extends StatefulWidget {
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
   late final _api = widget.api ?? ApiService();
-  final _pager = PageController(viewportFraction: .88);
+  final _pager = PageController(viewportFraction: .82);
   List<CreationWork> _works = [];
   List<Map<String, dynamic>> _photos = [];
   bool _loading = true;
@@ -240,13 +240,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     }
     return Column(children: [
       SizedBox(
-          height: 360,
+          height: (MediaQuery.sizeOf(context).width * .82 - 16) * 107 / 88 + 16,
           child: PageView.builder(
               controller: _pager,
               itemCount: count,
               onPageChanged: (p) => setState(() => _page = p),
               itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 18),
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
                   child: Transform.rotate(
                       angle: rebuildReduceMotion(context)
                           ? 0
@@ -307,8 +307,16 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         child: Transform.rotate(
             angle: rebuildReduceMotion(context) ? 0 : -.018,
             child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                color: context.lgPaper,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: ShapeDecoration(
+                    color: context.lgPaper,
+                    shape: const _FilmStripBorder(),
+                    shadows: [
+                      BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5))
+                    ]),
                 child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -441,5 +449,39 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         ),
       ),
     );
+  }
+}
+
+class _FilmStripBorder extends ShapeBorder {
+  const _FilmStripBorder();
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+  @override
+  ShapeBorder scale(double t) => this;
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final path = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(rect);
+    for (var x = rect.left + 6; x + 5 < rect.right; x += 12) {
+      for (final y in [rect.top + 4, rect.bottom - 10]) {
+        path.addRRect(RRect.fromRectAndRadius(
+            Rect.fromLTWH(x, y, 5, 6), const Radius.circular(1)));
+      }
+    }
+    return path;
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    canvas.drawPath(
+        getOuterPath(rect),
+        Paint()
+          ..color = Colors.black.withAlpha(16)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = .5);
   }
 }

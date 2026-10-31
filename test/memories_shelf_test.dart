@@ -104,6 +104,15 @@ void main() {
       ];
     await show(tester, api, ShelfAuth());
     final frame = find.byType(PolaroidFrame);
+    final paper = find.descendant(
+        of: frame,
+        matching: find.byWidgetPredicate((w) =>
+            w is SizedBox &&
+            w.width != null &&
+            w.height != null &&
+            w.width! > 100 &&
+            (w.height! / w.width! - 107 / 88).abs() < .005));
+    expect(tester.getSize(paper).width, greaterThanOrEqualTo(260));
     expect(tester.widget<PolaroidFrame>(frame).inkStrokes.length, 1);
     await tester.tapAt(tester.getCenter(frame));
     await tester.pump();

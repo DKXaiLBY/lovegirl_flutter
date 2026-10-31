@@ -8,9 +8,13 @@ import 'polaroid_theme.dart';
 /// 溢出——紧约束父级如 GridView cell/根节点会把宽度撑到与高度失配）。
 /// PolaroidFrame 内部与 photo_screen._PolaroidTile 的阴影/侧边层必须用同一公式，
 /// 否则阴影与卡片错位（cell 紧约束下卡片只占约 83% 宽，不能拿 cell 尺寸当卡片尺寸）。
-Size polaroidCardSize(BoxConstraints box, {required double topDecorHeight}) {
+Size polaroidCardSize(BoxConstraints box, {required double topDecorHeight, bool fillAvailable = false}) {
   var w = box.maxWidth;
   final maxH = box.maxHeight;
+  if (fillAvailable) {
+    final width = math.min(w, maxH * 88 / 107);
+    return Size(width, width * 107 / 88);
+  }
   if (maxH.isFinite) {
     final maxWForH = (maxH - w * 0.057 - topDecorHeight - w * 0.15) * 88 / 107;
     if (maxWForH > 60 && maxWForH < w) w = maxWForH;
@@ -80,6 +84,7 @@ class PolaroidFrame extends StatelessWidget {
   /// 是否由本组件自绘静置双层影。_PolaroidTile 翻面场景传 false，
   /// 落影改由 tile 在翻面旋转之外绘制（影子不随卡旋转、翻起时变形）。
   final bool shadows;
+  final bool fillAvailable;
 
   const PolaroidFrame({
     super.key,
@@ -95,6 +100,7 @@ class PolaroidFrame extends StatelessWidget {
     this.overlay,
     this.glossShift = 0,
     this.shadows = true,
+    this.fillAvailable = false,
   });
 
   /// 拍立得显影色：黑位提灰、对比柔化、中间调偏暖（胶片乳剂感）
@@ -114,7 +120,7 @@ class PolaroidFrame extends StatelessWidget {
       angle: rotation,
       child: LayoutBuilder(builder: (context, box) {
         final decorH = t.topDecorHeight;
-        final card = polaroidCardSize(box, topDecorHeight: decorH);
+        final card = polaroidCardSize(box, topDecorHeight: decorH, fillAvailable: fillAvailable);
         final w = card.width;
         final h = card.height;
         final pad = w * 0.057; // 侧边/顶边（≈5.7%）

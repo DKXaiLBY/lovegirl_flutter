@@ -34,6 +34,18 @@
       "source": "75-memory-month-selected.png",
       "candidate": "03",
       "sha256": "6deaf4854d824b9a7158bbc7ca717295dc120c63f15e655d8bbda13d498cd639"
+    },
+    {
+      "file": "larger-paper.png",
+      "source": "76-memories-large-paper.png",
+      "candidate": "04",
+      "sha256": "e2fc297a70b6b4d63195493df3bc5ff3cf87b68990cc0d28b31a543369234f8f"
+    },
+    {
+      "file": "film-holes.png",
+      "source": "77-memories-film-holes.png",
+      "candidate": "04",
+      "sha256": "7ad33fe09a8a63ceeb1fb2433b909c776ac9fe312643f6586557adeb4a75d61a"
     }
   ],
   "candidate02": {
@@ -46,7 +58,7 @@
     "analyzeIssues": 0,
     "visualAcceptanceComplete": false
   },
-  "pending": "paper size/spacing, authentic neighboring works, populated tickets, film perforations, full dark/font/empty/error and creation regression",
+  "pending": "genuine neighboring published works, populated tickets, remaining spacing, full dark/font/empty/error and creation regression",
   "candidate03": {
     "apk": "qa-memories-03-187.apk",
     "bytes": 63635955,
@@ -55,9 +67,16 @@
     "api": "loopback-only QA override; normal login"
   },
   "currentSourceFiles": {
-    "lib/screens/memories/memories_screen.dart": "3e436f0596c59d669d525671fff40e46ba4667f515601bddcb8be15a73ceeb55",
-    "lib/screens/photo/legacy_photo_screen.dart": "f2abd4f5b2991820d46868cb29683cd9a085242f3ff034eddb143de714a786f0",
-    "lib/widgets/polaroid_frame.dart": "8cdd7cf3f7aaa8bf79b359cf25dfd53ab74498320e696226f5d8c01ab43d53b1",
+    "lib/screens/memories/memories_screen.dart": "c2fac4df8522fa7f86ed558724f219c0a27101fb3f3d8bbebe1f31ec2e21884e",
+    "lib/screens/photo/legacy_photo_screen.dart": "f9427e6554fa55753e24a615e1207ec42b10d629c2f7b141a4953588c2a97891",
+    "lib/widgets/polaroid_frame.dart": "a52240534b9c34552f680c5a5096e146dcf07a46c92d6a0779fb62491a199d8a",
     "lib/features/creations/creation_gallery.dart": "2aa1964599ec9f417669f5fb6482d5bcc6dfc21a8c457d691bffe1d32a42517f"
+  },
+  "candidate04": {
+    "apk": "qa-memories-04-187.apk",
+    "sha256": "f4622369da6140015408c0b71da3f424a07f946cb9e499b2902b31c10c858c26",
+    "bytes": 63646780,
+    "published": false,
+    "api": "loopback QA only"
   }
 }
