@@ -151,6 +151,7 @@ class PolaroidFrame extends StatelessWidget {
                           SizedBox(
                             height: photoH,
                             child: Stack(
+                              fit: StackFit.expand,
                               children: [
                                 // 显影色
                                 ColorFiltered(

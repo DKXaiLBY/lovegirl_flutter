@@ -30,6 +30,8 @@ class CreationGallery extends StatefulWidget {
   final ApiService? api;
   final CreationDrafts? drafts;
   final bool createOnOpen;
+  final String? initialMonth;
+  final int initialSection;
   const CreationGallery(
       {super.key,
       this.kind = 'polaroid',
@@ -38,7 +40,10 @@ class CreationGallery extends StatefulWidget {
       this.tripDate,
       this.api,
       this.drafts,
-      this.createOnOpen = false});
+      this.createOnOpen = false,
+      this.initialMonth,
+      this.initialSection = 0})
+      : assert(initialSection >= 0 && initialSection <= 2);
   @override
   State<CreationGallery> createState() => _CreationGalleryState();
 }
@@ -64,6 +69,8 @@ class _CreationGalleryState extends State<CreationGallery> {
   @override
   void initState() {
     super.initState();
+    _section = widget.initialSection;
+    _month = widget.initialMonth;
     _store = widget.drafts ?? CreationDrafts(_owner);
     unawaited(_load());
     if (widget.createOnOpen) {

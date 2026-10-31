@@ -20,11 +20,26 @@ import '../../widgets/illus_image.dart';
 import '../../widgets/polaroid_back.dart';
 import '../../widgets/polaroid_frame.dart';
 import '../../widgets/polaroid_theme.dart';
+import '../../widgets/rebuild_controls.dart';
 import 'photo_flipbook_screen.dart';
 import 'package:gal/gal.dart';
 
 /// 云端相册 · 拍立得收集本
 /// 纸感背景 + 两列拍立得流（随机小倾斜 + 底边日期）+ 翻转故事背卡 + 批量管理。
+/// Reuse the original theme, ink and reverse-side renderer on the memory shelf.
+Widget legacyMemoryPolaroid(Map<String, dynamic> photo,
+        {required VoidCallback onEdit, required VoidCallback onInspect}) =>
+    KeyedSubtree(
+        key: ValueKey('legacy_memory_${photo['id']}'),
+        child: _PolaroidTile(
+            photo: photo,
+            rotation: 0,
+            selectionMode: false,
+            selected: false,
+            onTapSelect: () {},
+            onEdit: onEdit,
+            onLongPress: onInspect));
+
 class LegacyPhotoScreen extends StatefulWidget {
   const LegacyPhotoScreen({super.key});
 
@@ -1018,6 +1033,9 @@ class _PolaroidTile extends StatefulWidget {
 
 class _PolaroidTileState extends State<_PolaroidTile>
     with SingleTickerProviderStateMixin {
+  bool _reduceMotion = false;
+  String? _inkSource;
+  List<InkStroke> _savedInk = [];
   late final AnimationController _flip = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 480),
@@ -1035,6 +1053,10 @@ class _PolaroidTileState extends State<_PolaroidTile>
       return;
     }
     if (_flip.isAnimating) return;
+    if (_reduceMotion) {
+      _flip.value = _flip.value < .5 ? 1 : 0;
+      return;
+    }
     if (_flip.value < 0.5) {
       _flip.forward();
     } else {
@@ -1044,6 +1066,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = rebuildReduceMotion(context);
     return GestureDetector(
       onTap: _handleTap,
       onLongPress: widget.onLongPress,
@@ -1163,6 +1186,20 @@ class _PolaroidTileState extends State<_PolaroidTile>
             .toString()
             .replaceFirst(' ', 'T'));
 
+    final rawInk = widget.photo['ink_strokes']?.toString() ?? '';
+    if (rawInk != _inkSource) {
+      _inkSource = rawInk;
+      _savedInk = [];
+      try {
+        if (rawInk.isNotEmpty) {
+          _savedInk = (jsonDecode(rawInk) as List)
+              .whereType<Map>()
+              .map((value) => InkStroke.fromJson(
+                  Map<String, dynamic>.from(value), InkStroke.decodePoint))
+              .toList();
+        }
+      } catch (_) {/* Keep malformed legacy ink stored for repair. */}
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
@@ -1172,6 +1209,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
       ),
       child: PolaroidFrame(
         theme: theme,
+        inkStrokes: _savedInk,
         date: date,
         caption: (widget.photo['frame_note'] ?? '').toString(),
         // 落影由 tile 层在翻面旋转之外绘制（polaroidCastShadows），frame 关自绘

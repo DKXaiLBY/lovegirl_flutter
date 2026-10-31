@@ -138,8 +138,8 @@ void main() {
 
   testWidgets('reports share one entry and preserve month and year choices',
       (tester) async {
-    await tester.pumpWidget(app(const MemoriesScreen()));
-    await tester.ensureVisible(find.text('回忆报告'));
+    await tester.pumpWidget(app(MemoriesScreen(api: _LifeApi())));
+    await tester.scrollUntilVisible(find.text('回忆报告'), 300, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('回忆报告'));
     await tester.pumpAndSettle();
     expect(find.text('月度小报'), findsOneWidget);
@@ -186,7 +186,7 @@ void main() {
       tester.view.physicalSize = const Size(1080, 2280);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
-      for (final page in [LifeScreen(api: _LifeApi()), const MemoriesScreen()]) {
+      for (final page in [LifeScreen(api: _LifeApi()), MemoriesScreen(api: _LifeApi())]) {
         await tester.pumpWidget(app(
             MediaQuery(
               data: const MediaQueryData(

@@ -15,6 +15,12 @@
       "file": "docs/design/clear-app-20261031/09-us.png",
       "sourceFilename": "exec-e1d6c0e4-1b4c-4265-8762-f827df01cf09.png",
       "sha256": "c536026d2c468657c812dbd8bc4df141201f15a0dca9d8b53abd8bfefdc9fb15"
+    },
+    {
+      "file": "assets/images/clear_app/memories_linen.png",
+      "sourceFilename": "exec-28dba089-7340-497d-9a2a-35b1a4bb3aa4.png",
+      "sha256": "2649fc2ddf3e3778165b8c929cf49f0d75bf8f171cff958673ef673708d3ff74",
+      "role": "generic neutral linen background, not a user record"
     }
   ]
 }

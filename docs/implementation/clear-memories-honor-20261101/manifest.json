@@ -1,0 +1,63 @@
+{
+  "kind": "actual-Honor-QA-first-pass-not-visual-acceptance",
+  "device": "KOZ-AL00 Android10 720x1600 dpr2",
+  "qaData": "one original generated photo, no published works or tickets; not production data",
+  "screenshots": [
+    {
+      "file": "before-portrait-fill.png",
+      "source": "70-memories-first-native.png",
+      "sha256": "e4cbd56bb8819460075ee6d80c67369ce4c6b1d2b74d1c9173398e68ee525dd2"
+    },
+    {
+      "file": "original-reverse.png",
+      "source": "71-memories-original-back.png",
+      "sha256": "9bc2e39e600af342c48f8273c70005c6ac65ec3ec709b9199def70613fe390ab"
+    },
+    {
+      "file": "portrait-fill-fixed.png",
+      "source": "72-memories-filled-window.png",
+      "sha256": "1b164f31f61363e9a02f85a0b1061f949520bef3baddb03ae3af8a4a1d132708"
+    },
+    {
+      "file": "month-menu-before-inset.png",
+      "source": "73-memory-month-menu.png",
+      "sha256": "b418303da0dd002cda8776faa50219e9ffba4896ebff0e385a3c05b00461d1fd"
+    },
+    {
+      "file": "month-menu-fixed.png",
+      "source": "74-memory-month-inset-fixed.png",
+      "candidate": "03",
+      "sha256": "58a4ca809ab888c4a29b3ff0aadb84440b5327ac95895af63388462748f8ba6e"
+    },
+    {
+      "file": "month-selected.png",
+      "source": "75-memory-month-selected.png",
+      "candidate": "03",
+      "sha256": "6deaf4854d824b9a7158bbc7ca717295dc120c63f15e655d8bbda13d498cd639"
+    }
+  ],
+  "candidate02": {
+    "apk": "qa-memories-02-187.apk",
+    "bytes": 63635849,
+    "sha256": "32d2925f2e5ea0445ce212ea102ef7092bc5f1dc069789fc08ed84a3dce191d3"
+  },
+  "checks": {
+    "flutter": 201,
+    "analyzeIssues": 0,
+    "visualAcceptanceComplete": false
+  },
+  "pending": "paper size/spacing, authentic neighboring works, populated tickets, film perforations, full dark/font/empty/error and creation regression",
+  "candidate03": {
+    "apk": "qa-memories-03-187.apk",
+    "bytes": 63635955,
+    "sha256": "9442bdb5c3ae5a8450755fde3e6a197779f19b923befdc4eefdf617146e9ae83",
+    "published": false,
+    "api": "loopback-only QA override; normal login"
+  },
+  "currentSourceFiles": {
+    "lib/screens/memories/memories_screen.dart": "3e436f0596c59d669d525671fff40e46ba4667f515601bddcb8be15a73ceeb55",
+    "lib/screens/photo/legacy_photo_screen.dart": "f2abd4f5b2991820d46868cb29683cd9a085242f3ff034eddb143de714a786f0",
+    "lib/widgets/polaroid_frame.dart": "8cdd7cf3f7aaa8bf79b359cf25dfd53ab74498320e696226f5d8c01ab43d53b1",
+    "lib/features/creations/creation_gallery.dart": "2aa1964599ec9f417669f5fb6482d5bcc6dfc21a8c457d691bffe1d32a42517f"
+  }
+}

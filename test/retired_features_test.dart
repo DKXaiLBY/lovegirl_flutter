@@ -80,10 +80,11 @@ void main() {
   });
 
   testWidgets('memory hub retains useful entries without questions or letters', (tester) async {
-    await tester.pumpWidget(app(const MemoriesScreen()));
+    await tester.pumpWidget(app(MemoriesScreen(api: _Api())));
     expect(find.text('每日一问'), findsNothing);
     expect(find.text('慢信'), findsNothing);
     expect(find.text('相册'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('美食手账'), 300, scrollable: find.byType(Scrollable).first);
     expect(find.text('美食手账'), findsOneWidget);
   });
 
