@@ -82,8 +82,10 @@ class _LifeScreenState extends State<LifeScreen> {
       _failed = failures;
       _todos = values[0] == null ? null : _rows(values[0]);
       final finance = values[1];
-      _expense =
-          finance is Map ? num.tryParse('${finance['expense'] ?? 0}') : null;
+      _expense = finance is Map
+          ? num.tryParse(
+              '${finance['totalExpense'] ?? finance['expense'] ?? 0}')
+          : null;
       final kitchen = values[2];
       _dishes = kitchen is Map
           ? [..._rows(kitchen['mine']), ..._rows(kitchen['partner_dishes'])]
@@ -228,6 +230,7 @@ class _LifeScreenState extends State<LifeScreen> {
                   ])))
       else
         TextButton(
+            style: rebuildTextStyle(context),
             onPressed: () =>
                 _open(_tool('待办', const TodoListWidget(createOnOpen: true))),
             child: const Text('记一件事')),
@@ -361,6 +364,7 @@ class _LifeScreenState extends State<LifeScreen> {
               child: Text('我的衣橱',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
           TextButton(
+              style: rebuildTextStyle(context),
               onPressed: () => _open(_tool('衣橱', const WardrobeModuleScreen())),
               child: const Text('查看全部 ›'))
         ]),

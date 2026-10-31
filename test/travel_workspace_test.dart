@@ -281,9 +281,13 @@ void main() {
               home: const TravelScreen())));
       await tester.pumpAndSettle();
       final before = tester.state(find.byType(TravelMapCanvas));
-      expect(find.text('记地点'), findsOneWidget);
-      expect(find.byTooltip('足迹总览'), findsOneWidget);
+      expect(find.byTooltip('添加地点'), findsOneWidget);
+      expect(find.byTooltip('地图选项'), findsOneWidget);
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
       expect(find.text('先放一个想去的地方进来'), findsNothing);
+      await tester.tap(find.text('地点清单'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
       await tester.tap(find.text('想去'));
       await tester.pumpAndSettle();
       expect(
@@ -293,6 +297,64 @@ void main() {
       expect(
           identical(before, tester.state(find.byType(TravelMapCanvas))), true);
       expect(api.reads, 1);
+      await tester.tap(find.byTooltip('收起地点清单'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+      expect(
+          identical(before, tester.state(find.byType(TravelMapCanvas))), true);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      workspace.dispose();
+    });
+  }
+
+  for (final scale in [1.0, 1.6]) {
+    testWidgets(
+        'selected place keeps map, author actions and readable card at scale $scale',
+        (tester) async {
+      tester.view.physicalSize = const Size(720, 1600);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+      final api = PlacesApi()..failDelete = true;
+      final workspace = TravelWorkspace(api: api);
+      if (scale > 1) workspace.camera = const TravelCamera(31, 121, 13);
+      await workspace.load();
+      await tester.pumpWidget(MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: workspace),
+            ChangeNotifierProvider(create: (_) => AuthProvider())
+          ],
+          child: MaterialApp(
+              theme: LoveGirlTheme.lightTheme,
+              builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.linear(scale)),
+                  child: child!),
+              home: const TravelScreen())));
+      await tester.pumpAndSettle();
+      final canvas = tester.state(find.byType(TravelMapCanvas));
+      tester.widget<TravelMapCanvas>(find.byType(TravelMapCanvas)).onReady!();
+      await tester.pumpAndSettle();
+      expect(workspace.camera!.lat, scale > 1 ? 31 : 30);
+      expect(workspace.camera!.lng, scale > 1 ? 121 : 120);
+      tester
+          .widget<TravelMapCanvas>(find.byType(TravelMapCanvas))
+          .onSelect(workspace.places.single);
+      await tester.pumpAndSettle();
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
+      expect(find.text('加入行程'), findsOneWidget);
+      expect(find.text('照片故事'), findsOneWidget);
+      await tester.ensureVisible(find.byTooltip('地点操作'));
+      await tester.tap(find.byTooltip('地点操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除地点'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除').last);
+      await tester.pumpAndSettle();
+      expect(find.text('删除失败，记录仍然保留'), findsOneWidget);
+      expect(workspace.places.single.id, 1);
+      expect(
+          identical(canvas, tester.state(find.byType(TravelMapCanvas))), true);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       workspace.dispose();

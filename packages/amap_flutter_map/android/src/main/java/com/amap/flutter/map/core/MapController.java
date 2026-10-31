@@ -97,6 +97,11 @@ public class MapController
                 break;
             case Const.METHOD_MAP_UPDATE:
                 if (amap != null) {
+                    Map<String, Object> options = call.argument("options");
+                    if (options != null && options.get("logoBottomInset") instanceof Number) {
+                        amap.getUiSettings().setLogoBottomMargin(
+                                ((Number) options.get("logoBottomInset")).intValue());
+                    }
                     ConvertUtil.interpretAMapOptions(call.argument("options"), this);
                     result.success(ConvertUtil.cameraPositionToMap(getCameraPosition()));
                 }

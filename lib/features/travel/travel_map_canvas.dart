@@ -7,9 +7,11 @@ import 'package:amap_flutter_base/amap_flutter_base.dart';
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/travel.dart' show TravelSpot;
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/constants.dart';
 import 'map_platform.dart';
 import 'travel_workspace.dart';
 import 'journey.dart';
@@ -28,6 +30,7 @@ class TravelMapCanvas extends StatefulWidget {
   final List<JourneyLeg> journeyLegs;
   final String? selectedStopKey;
   final ValueChanged<JourneyStop>? onStopSelect;
+  final double bottomOverlay;
   const TravelMapCanvas(
       {super.key,
       required this.places,
@@ -40,7 +43,8 @@ class TravelMapCanvas extends StatefulWidget {
       this.journeyStops,
       this.journeyLegs = const [],
       this.selectedStopKey,
-      this.onStopSelect});
+      this.onStopSelect,
+      this.bottomOverlay = 0});
 
   @override
   State<TravelMapCanvas> createState() => TravelMapCanvasState();
@@ -53,9 +57,36 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
       TravelMapPlatform.isSupported().catchError((_) => false);
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   final Set<int> _pendingIcons = {};
+  final Map<String, BitmapDescriptor> _photoIcons = {};
+  final Set<String> _pendingPhotos = {};
+  final Set<String> _failedPhotos = {};
   bool _locationVisible = false;
   Completer<LatLng>? _fix;
   int _intent = 0;
+  int? _logoInset;
+
+  Future<void> setBottomOverlay(double height) async {
+    final controller = _controller;
+    if (controller == null || !mounted) return;
+    final pixels =
+        ((height + 8) * MediaQuery.devicePixelRatioOf(context)).round();
+    if (_logoInset == pixels) return;
+    _logoInset = pixels;
+    try {
+      await TravelMapPlatform.setLogoBottomInset(controller.mapId, pixels);
+    } catch (error) {
+      _logoInset = null;
+      debugPrint('Travel map overlay inset could not be applied: $error');
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TravelMapCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.bottomOverlay != widget.bottomOverlay) {
+      unawaited(setBottomOverlay(widget.bottomOverlay));
+    }
+  }
 
   Future<void> focus(double lat, double lng, {double zoom = 15}) async {
     _intent++;
@@ -175,21 +206,32 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
             _stopMarker(stops[i], i + 1)
       };
     }
+    var photoCount = 0;
     return clusterPlaces(widget.places, _camera.zoom).map((cluster) {
       final grouped = cluster.places.length > 1;
       if (grouped) unawaited(_prepareIcon(cluster.places.length));
       final selected =
           cluster.places.any((place) => place.id == widget.selectedId);
+      final place = cluster.places.first;
+      final photo = place.coverImage ??
+          (place.photos.isEmpty ? null : place.photos.first);
+      final photoKey = '${place.id}|${place.name}|$photo|${context.lgIsDark}';
+      final showPhoto =
+          !grouped && photo != null && _camera.zoom >= 11 && photoCount++ < 8;
+      if (showPhoto) unawaited(_preparePhotoIcon(place, photo, photoKey));
+      final photoIcon = showPhoto ? _photoIcons[photoKey] : null;
       return Marker(
         position: LatLng(cluster.lat, cluster.lng),
-        icon: grouped
-            ? (_clusterIcons[cluster.places.length] ??
-                BitmapDescriptor.defaultMarker)
-            : BitmapDescriptor.defaultMarkerWithHue(selected
-                ? BitmapDescriptor.hueAzure
-                : cluster.places.first.status == 'visited'
-                    ? BitmapDescriptor.hueGreen
-                    : BitmapDescriptor.hueViolet),
+        anchor: photoIcon == null ? const Offset(.5, 1) : const Offset(.1, .76),
+        icon: photoIcon ??
+            (grouped
+                ? (_clusterIcons[cluster.places.length] ??
+                    BitmapDescriptor.defaultMarker)
+                : BitmapDescriptor.defaultMarkerWithHue(selected
+                    ? BitmapDescriptor.hueAzure
+                    : cluster.places.first.status == 'visited'
+                        ? BitmapDescriptor.hueGreen
+                        : BitmapDescriptor.hueAzure)),
         infoWindowEnable: false,
         onTap: (_) {
           if (grouped) {
@@ -203,6 +245,93 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
           ? 'cluster_${cluster.id}'
           : 'place_${cluster.places.first.id}');
     }).toSet();
+  }
+
+  Future<void> _preparePhotoIcon(
+      TravelSpot place, String path, String key) async {
+    if (_photoIcons.containsKey(key) ||
+        _failedPhotos.contains(key) ||
+        !_pendingPhotos.add(key)) {
+      return;
+    }
+    final url = path.startsWith('http') ? path : AppConstants.baseUrl + path;
+    final dark = context.lgIsDark;
+    final stream = ResizeImage(CachedNetworkImageProvider(url), width: 240)
+        .resolve(ImageConfiguration.empty);
+    final ready = Completer<ImageInfo>();
+    final listener = ImageStreamListener((info, _) {
+      if (!ready.isCompleted) {
+        ready.complete(info);
+      } else {
+        info.dispose();
+      }
+    }, onError: (Object error, StackTrace? stack) {
+      if (!ready.isCompleted) {
+        ready.completeError(error, stack);
+      }
+    });
+    stream.addListener(listener);
+    ImageInfo? photo;
+    try {
+      photo = await ready.future.timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final frame = RRect.fromRectAndRadius(
+          const Rect.fromLTWH(6, 4, 124, 84), const Radius.circular(14));
+      canvas.drawShadow(
+          Path()..addRRect(frame), Colors.black.withAlpha(70), 4, true);
+      canvas.drawRRect(frame, Paint()..color = Colors.white);
+      canvas.save();
+      canvas.clipRRect(frame.deflate(3));
+      paintImage(
+          canvas: canvas,
+          rect: frame.outerRect.deflate(3),
+          image: photo.image,
+          fit: BoxFit.cover);
+      canvas.restore();
+      canvas.drawCircle(
+          const Offset(20, 110), 12, Paint()..color = Colors.white);
+      canvas.drawCircle(
+          const Offset(20, 110), 8, Paint()..color = const Color(0xff2684ff));
+      final label = TextPainter(
+          text: TextSpan(
+              text: place.name,
+              style: TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w600,
+                  color:
+                      dark ? const Color(0xfff1f5fa) : const Color(0xff18212b),
+                  shadows: [
+                    Shadow(
+                        color: dark ? Colors.black : Colors.white,
+                        blurRadius: 5),
+                    Shadow(
+                        color: dark ? Colors.black : Colors.white,
+                        blurRadius: 3)
+                  ])),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+          ellipsis: '…')
+        ..layout(maxWidth: 158);
+      label.paint(canvas, const Offset(38, 95));
+      label.dispose();
+      final picture = recorder.endRecording();
+      final bitmap = await picture.toImage(200, 144);
+      final bytes = await bitmap.toByteData(format: ui.ImageByteFormat.png);
+      bitmap.dispose();
+      picture.dispose();
+      if (!mounted || bytes == null) return;
+      if (_photoIcons.length >= 24) _photoIcons.remove(_photoIcons.keys.first);
+      setState(() => _photoIcons[key] =
+          BitmapDescriptor.fromBytes(bytes.buffer.asUint8List()));
+    } catch (_) {
+      _failedPhotos.add(key);
+    } finally {
+      photo?.dispose();
+      stream.removeListener(listener);
+      _pendingPhotos.remove(key);
+    }
   }
 
   Marker _stopMarker(JourneyStop stop, int number) {
@@ -287,6 +416,7 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
               : null,
           onMapCreated: (controller) {
             _controller = controller;
+            unawaited(setBottomOverlay(widget.bottomOverlay));
             widget.onReady?.call();
           },
           onCameraMove: (_) {

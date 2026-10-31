@@ -169,8 +169,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
           final data = res.data?['data'] ?? {};
           trend.add({
             'month': month.month,
-            'income': (data['income'] ?? 0).toDouble(),
-            'expense': (data['expense'] ?? 0).toDouble(),
+            'income':
+                num.tryParse('${data['totalIncome'] ?? data['income'] ?? 0}')
+                        ?.toDouble() ??
+                    0,
+            'expense':
+                num.tryParse('${data['totalExpense'] ?? data['expense'] ?? 0}')
+                        ?.toDouble() ??
+                    0,
           });
         } catch (_) {
           trend.add({
@@ -657,8 +663,14 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       );
     }
 
-    final income = (_stats['income'] ?? 0).toDouble();
-    final expense = (_stats['expense'] ?? 0).toDouble();
+    final income =
+        num.tryParse('${_stats['totalIncome'] ?? _stats['income'] ?? 0}')
+                ?.toDouble() ??
+            0;
+    final expense =
+        num.tryParse('${_stats['totalExpense'] ?? _stats['expense'] ?? 0}')
+                ?.toDouble() ??
+            0;
     final balance = income - expense;
     final grouped = _groupByDate(_records);
     final monthNames = [

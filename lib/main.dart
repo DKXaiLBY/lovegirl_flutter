@@ -25,6 +25,7 @@ import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
 import 'utils/app_section.dart';
 import 'widgets/illus_image.dart';
+import 'widgets/rebuild_controls.dart' show rebuildReduceMotion;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -160,11 +161,10 @@ class _AppShellState extends State<AppShell> {
 
   Widget _buildBottomNav() {
     const items = [
-      _LoveNavItem('今天', Icons.home_outlined, Icons.home_rounded),
-      _LoveNavItem(
-          '回忆', Icons.photo_library_outlined, Icons.photo_library_rounded),
-      _LoveNavItem('旅行', Icons.map_outlined, Icons.map_rounded),
-      _LoveNavItem('生活', Icons.grid_view_rounded, Icons.grid_view_rounded),
+      _LoveNavItem('今天', Icons.calendar_today_outlined, Icons.calendar_today),
+      _LoveNavItem('回忆', Icons.landscape_outlined, Icons.landscape_rounded),
+      _LoveNavItem('旅行', Icons.location_on_outlined, Icons.location_on),
+      _LoveNavItem('生活', Icons.eco_outlined, Icons.eco_outlined),
       _LoveNavItem('我们', Icons.people_outline_rounded, Icons.people_rounded),
     ];
 
@@ -175,18 +175,11 @@ class _AppShellState extends State<AppShell> {
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             height: 74,
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             decoration: BoxDecoration(
-              color: context.lgPaper.withAlpha(216),
-              border: const Border(
-                  top: BorderSide(color: Color(0x33FFFFFF), width: 1)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(12),
-                  blurRadius: 22,
-                  offset: const Offset(0, -8),
-                ),
-              ],
+              color: context.lgPaper.withAlpha(235),
+              border: Border(
+                  top: BorderSide(color: context.lgSeparator.withAlpha(100))),
             ),
             child: Row(
               children: [
@@ -257,40 +250,44 @@ class _LoveBottomNavButton extends StatelessWidget {
       selected: selected,
       label: item.label,
       child: InkResponse(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         radius: 32,
         child: ExcludeSemantics(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: selected ? 34 : 30,
-                height: selected ? 30 : 28,
-                decoration: BoxDecoration(
-                  color: selected ? context.lgInk : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            height: 58,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedScale(
+                  duration: rebuildReduceMotion(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  scale: selected ? 1.06 : 1,
+                  child: Icon(
+                    selected ? item.activeIcon : item.icon,
+                    size: 25,
+                    color: color,
+                  ),
                 ),
-                child: Icon(
-                  selected ? item.activeIcon : item.icon,
-                  size: selected ? 20 : 23,
-                  color: selected ? context.lgPaper : color,
+                const SizedBox(height: 3),
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: color,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                item.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

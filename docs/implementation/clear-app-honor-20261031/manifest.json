@@ -1,0 +1,89 @@
+{
+  "kind": "actual-honor-release-screenshots-isolated-QA",
+  "device": "Honor KOZ-AL00 Android 10 720x1600 dpr2",
+  "originalFontScale": 1.15,
+  "largerFontScale": 1.4,
+  "fontRestored": 1.15,
+  "appThemeRestored": "light",
+  "dataScope": "isolated QA schema only; generated photography fixtures, not actual destination photos or production data",
+  "screenshots": [
+    {
+      "file": "life-light.png",
+      "source": "30-life-03-light.png",
+      "sha256": "5574ade647750c81d4e144c8c47bda59d45deca72312940e5b04e8a1a79cc07c",
+      "revision": 3
+    },
+    {
+      "file": "life-dark.png",
+      "source": "28-life-03-dark.png",
+      "sha256": "b0f3c65549bbd25bc4a05c119e6b412b81c24ab17055eb05de2963b4c3e0bcc7",
+      "revision": 3
+    },
+    {
+      "file": "life-lower.png",
+      "source": "31-life-lower.png",
+      "sha256": "619c89ef69786c8bc10207237c77330a267073b0fb62c919da456e23008f77e2",
+      "revision": 3
+    },
+    {
+      "file": "map-home-light.png",
+      "source": "34-map-03-light.png",
+      "sha256": "61f1208502f22d55f2acabf414e009d2de5fdad00ecb72b11a511a2d17b3e5aa",
+      "revision": 3
+    },
+    {
+      "file": "map-place-light.png",
+      "source": "35-map-03-card.png",
+      "sha256": "96c0c77796564a1eb7c931181e6e6cd38dd92fbe3ae82fd58916817e50cffc8a",
+      "revision": 3
+    },
+    {
+      "file": "map-place-menu.png",
+      "source": "36-map-place-menu.png",
+      "sha256": "e7937d5dccc7a8b29c31510b4a9b44c8e5f89be07a48696fd88a50c8828edb34",
+      "revision": 3
+    },
+    {
+      "file": "map-home-dark-revision02.png",
+      "source": "22-map-refined-dark.png",
+      "sha256": "43b4f575f8947e54ac41006d9cd550cab4d4533cc75ece70950389a384f19162",
+      "revision": 2
+    },
+    {
+      "file": "map-large-dark-revision02.png",
+      "source": "27-map-large-dark.png",
+      "sha256": "7bf49bc91c923d1bf2dd69329f2a3c18e5da974a8da0a2f81dd672a620283730",
+      "revision": 2
+    },
+    {
+      "file": "life-large-dark-revision02.png",
+      "source": "26-life-large-dark.png",
+      "sha256": "ce441ff139c71f510fd46166471fb4f76c8f3b838108fe31427ede7d9c2f549b",
+      "revision": 2
+    }
+  ],
+  "internalApk": {
+    "filename": "qa-map-03-187.apk",
+    "versionCode": 187,
+    "bytes": 61052019,
+    "sha256": "f8c4382275b1b6ddc8f4391048778b9899ce99395180415b155d332017cc93cf",
+    "api": "loopback QA override only; normal login; not published"
+  },
+  "compiledSourceFiles": {
+    "lib/main.dart": "3c88d24600ff097161c45ebcc7b0125a5934567087d580171bf3f3d5f540a838",
+    "lib/utils/constants.dart": "27a4093f0ca1c841116ff7e02c12119973d0de1fe5daa7a28b3b695da4dd5691",
+    "lib/screens/life/life_screen.dart": "a7c2b69233c09d79981a3ea509ed3a591c604b6a0612fb68809aaf87dc508254",
+    "lib/screens/life/widgets/finance_list.dart": "098e23fb411fd53497dc8038b00617563fd0a740ecd8afc91db04422154ac27b",
+    "lib/features/travel/travel_screen.dart": "fe6f5c346e16613e6f5a469dc7408534f9663aa9e8b0f80d7d48c2b5f5a07bb4",
+    "lib/features/travel/travel_map_canvas.dart": "d55f2a31024d491ddf8a391f843a088cdfae93d48649368cde1f0d601da6aa83",
+    "lib/features/travel/map_platform.dart": "420e2f9979fd0a3f41b99cc73a511cfa6f82ec560b9651ff8e63afb888981dcf",
+    "packages/amap_flutter_map/android/src/main/java/com/amap/flutter/map/core/MapController.java": "c06bb772a554e02dd60c2af008dc66235601c3d204fab45b44eeb1d7aab6889f"
+  },
+  "validation": {
+    "flutterTests": 183,
+    "analyzeIssues": 0,
+    "testTempDirectory": "owned isolated directory; process-local TEMP/TMP only",
+    "productionTablesUnchanged": 68,
+    "visualAcceptanceComplete": false
+  }
+}

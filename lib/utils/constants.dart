@@ -2,7 +2,9 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'LoveGirl';
-  static const String baseUrl = 'http://47.121.119.191:3001';
+  // Only internal QA builds set this define; formal releases use the default.
+  static const String baseUrl = String.fromEnvironment('LOVEGIRL_QA_API_URL',
+      defaultValue: 'http://47.121.119.191:3001');
   static const String versionName = '4.4.2';
   static const int versionCode = 187;
 

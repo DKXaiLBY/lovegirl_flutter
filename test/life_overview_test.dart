@@ -24,6 +24,7 @@ class _Auth extends AuthProvider {
 
 class _Api implements ApiService {
   bool financeFails = false;
+  Map<String, dynamic> stats = {'totalExpense': '2360.50'};
   bool toggleFails = false;
   int toggles = 0;
   int todoReads = 0;
@@ -45,7 +46,7 @@ class _Api implements ApiService {
   @override
   Future<Response> getFinanceStats(String month, {String? source}) {
     if (financeFails) return Future.error(Exception('offline'));
-    return response({'expense': '2360.50'});
+    return response(stats);
   }
 
   @override
@@ -115,6 +116,12 @@ void main() {
     expect(find.text('¥0'), findsNothing);
   });
 
+  testWidgets('legacy expense field remains readable during rollout',
+      (tester) async {
+    await show(tester, _Api()..stats = {'expense': 123.45}, _Auth());
+    expect(find.text('¥123.45'), findsOneWidget);
+  });
+
   testWidgets('failed task toggle preserves the task and allows retry',
       (tester) async {
     final api = _Api()..toggleFails = true;
@@ -162,6 +169,18 @@ void main() {
         '360px overview works with larger text in ${dark ? 'dark' : 'light'} mode',
         (tester) async {
       await show(tester, _Api(), _Auth(), scale: 1.4, dark: dark);
+      final more = find.widgetWithText(TextButton, '查看全部 ›');
+      final theme = Theme.of(tester.element(more));
+      final foreground = tester
+          .widget<TextButton>(more)
+          .style!
+          .foregroundColor!
+          .resolve({})!.computeLuminance();
+      final background = theme.scaffoldBackgroundColor.computeLuminance();
+      final contrast = foreground > background
+          ? (foreground + .05) / (background + .05)
+          : (background + .05) / (foreground + .05);
+      expect(contrast, greaterThanOrEqualTo(4.5));
       await tester.drag(find.byType(ListView), const Offset(0, -1200));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);

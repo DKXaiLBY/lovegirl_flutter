@@ -22,4 +22,11 @@ class TravelMapPlatform {
     return LatLng(
         (point['lat'] as num).toDouble(), (point['lng'] as num).toDouble());
   }
+
+  static Future<void> setLogoBottomInset(int mapId, int pixels) async {
+    if (!Platform.isAndroid) return;
+    await MethodChannel('amap_flutter_map_$mapId').invokeMethod('map#update', {
+      'options': {'logoBottomInset': pixels}
+    });
+  }
 }
