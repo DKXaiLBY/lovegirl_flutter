@@ -1,0 +1,69 @@
+{
+  "kind": "actual-Honor-QA-screenshots-not-design-art",
+  "device": "KOZ-AL00 Android10 720x1600 dpr2",
+  "fontScales": [
+    1.15,
+    1.4
+  ],
+  "restoredFontScale": 1.15,
+  "restoredTheme": "light",
+  "data": "ordinary isolated QA account; generated photo source; no relationship start date, one upcoming custom anniversary",
+  "apk": {
+    "file": "qa-us-02-187.apk",
+    "bytes": 63655164,
+    "sha256": "9944c1664755e2b94d9c4e1b0149903670d450e9a18d468a5c664e88aa849178",
+    "published": false,
+    "api": "loopback QA; normal login"
+  },
+  "screenshots": [
+    {
+      "file": "first-pass.png",
+      "source": "79-us-first-native.png",
+      "candidate": "01",
+      "sha256": "250d7bc1a895efd2e81f2e1f5590323fb98b443b2aac7c114bdbb74fa5d12346"
+    },
+    {
+      "file": "people.png",
+      "source": "80-us-people-sheet.png",
+      "candidate": "01",
+      "sha256": "92e2754bd6a5f0ef7d4e167ee3e14c8ac5bfc9a66b370bfe860c901bd301bbde"
+    },
+    {
+      "file": "date-card.png",
+      "source": "82-us-date-card.png",
+      "candidate": "02",
+      "sha256": "c79a3c75c5187468bea8a9599fb51b8dd58c709c3544872d41688831b312a923"
+    },
+    {
+      "file": "dark.png",
+      "source": "83-us-dark.png",
+      "candidate": "02",
+      "sha256": "a943aecd490ec6d7119a8b4d92d5930cb21bf6d7a1207999dc5f2c9e01b1485b"
+    },
+    {
+      "file": "large-dark.png",
+      "source": "84-us-large-dark.png",
+      "candidate": "02",
+      "sha256": "91c3ee146bdeecbcfd88669826b4e1e88f522837271372d1ff002a6654a2520f"
+    },
+    {
+      "file": "restored-light.png",
+      "source": "85-us-restored-light.png",
+      "candidate": "02",
+      "sha256": "884cf62674a3e1948edad62ce345434de5bb0de41b557ec09f6b556b6a8c4f6d"
+    },
+    {
+      "file": "settings-access.png",
+      "source": "86-us-settings-row.png",
+      "candidate": "02",
+      "sha256": "ecd8609de21243d253bd24c7efeee8976f44993d795e653f65bd80855dc69fbd"
+    }
+  ],
+  "sourceSha256": "67c4fd28fb27c2fcfdd7e434a4eaa69b4245e44c488774a70056f5a447b28682",
+  "validation": {
+    "flutter": 207,
+    "analyzeIssues": 0,
+    "visualAcceptanceComplete": false
+  },
+  "remaining": "actual face avatars, known-start populated scenario on device, unbound/error device matrix, remaining vertical density and secondary settings UI"
+}

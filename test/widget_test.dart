@@ -229,14 +229,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('我们'), findsOneWidget);
-    expect(find.textContaining('520', findRichText: true), findsOneWidget);
+    expect(find.textContaining('520', findRichText: true), findsNothing);
     await tester.scrollUntilVisible(
-      find.text('设置'),
+      find.text('设置与更新'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
-    expect(find.text('设置'), findsOneWidget);
+    expect(find.text('设置与更新'), findsOneWidget);
     expect(find.text('相册与回忆照片'), findsNothing);
     expect(find.text('旅行票根'), findsNothing);
     expect(find.text('月度小报'), findsNothing);

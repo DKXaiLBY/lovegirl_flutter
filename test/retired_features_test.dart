@@ -97,8 +97,10 @@ void main() {
     for (final text in ['爱心豆', '签到', '成就', '愿望兑换券']) {
       expect(find.textContaining(text), findsNothing);
     }
-    expect(find.text('纪念日'), findsOneWidget);
-    expect(find.text('设置'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('管理纪念日'), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text('管理纪念日'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('设置与更新'), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text('设置与更新'), findsOneWidget);
   });
 
   for (final type in ['daily_question', 'slow_letter', 'achievement']) {
