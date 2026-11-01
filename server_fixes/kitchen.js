@@ -1,10 +1,9 @@
 /**
  * 情侣厨房（Kitchen）— v3.20 投喂站重构
  * 菜单是"我会为你做的事"：双方挂自家菜单，对方以外卖交互下单，
- * 厨师接单→买菜做菜→拍成品照完成，完成 +5 爱心豆，订单沉淀为投喂记录。
+ * 厨师接单→买菜做菜→拍成品照完成，订单沉淀为投喂记录。
  * 依赖表：kitchen_dishes / kitchen_orders（见 server_fixes/kitchen_tables.sql）
- * 复用：couples（绑定关系）、users.bean_balance + bean_transactions（爱心豆）、
- *       notifications（站内通知）、/uploads 静态目录（成品照/菜品照）
+ * 复用：couples（绑定关系）、notifications（站内通知）、/uploads 静态目录（成品照/菜品照）
  */
 const express = require('express');
 const multer = require('multer');
@@ -14,9 +13,6 @@ const crypto = require('crypto');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
-const { addBeanTransaction } = require('./utils/lovegirl_rewards');
-
-const KITCHEN_BEAN_REWARD = 5;
 
 // ---------- 图片上传（菜品照 / 成品照） ----------
 const uploadDir = path.join(__dirname, '..', 'uploads', 'kitchen');
@@ -256,7 +252,6 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
     if (!isCook && !isOrderer) { conn.release(); return res.status(403).json({ code: 403, message: '这不是你的订单' }); }
     const target = String(req.body?.status || '');
     const now = new Date();
-    let beans = 0;
 
     if (target === 'accepted') {
       if (!isCook || order.status !== 'placed') { conn.release(); return res.status(400).json({ code: 400, message: '当前状态不能接单' }); }
@@ -267,15 +262,6 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
       const photo = req.body?.photo_url ? String(req.body.photo_url).slice(0, 500) : null;
       if (!photo) { conn.release(); return res.status(400).json({ code: 400, message: '拍一张成品照才能完成这单' }); }
       await conn.beginTransaction();
-      if (!order.beans_awarded) {
-        const beanResult = await addBeanTransaction(conn, {
-          userId, amount: KITCHEN_BEAN_REWARD, type: 'kitchen_order_done',
-          title: '情侣厨房开火', sourceModule: 'kitchen',
-          description: `完成订单 #${order.id}`,
-        });
-        if (beanResult) beans = KITCHEN_BEAN_REWARD;
-        await conn.query('UPDATE kitchen_orders SET beans_awarded = 1 WHERE id = ?', [order.id]);
-      }
       await conn.query(
         "UPDATE kitchen_orders SET status = 'done', photo_url = ?, done_at = ? WHERE id = ?",
         [photo, now, order.id]
@@ -301,7 +287,7 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
       data: {
         id: r.id, status: r.status, items: parseItems(r.items), total_price: r.total_price,
         photo_url: r.photo_url, beans_awarded: !!r.beans_awarded,
-        beans_earned: beans, created_at: r.created_at, done_at: r.done_at,
+        beans_earned: 0, created_at: r.created_at, done_at: r.done_at,
       },
     });
   } catch (err) {

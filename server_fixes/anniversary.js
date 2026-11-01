@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
-const { addBeanTransaction, todayString } = require('./utils/lovegirl_rewards');
 
 function isoDate(value) {
   if (!value) return '';
@@ -25,23 +24,6 @@ function daysUntilNext(eventDateValue) {
     daysUntil: Math.floor((next - today) / 86400000),
     years: Math.max(years, 0),
   };
-}
-
-async function rewardAnniversaryToday(userId, anniversaryId, title, eventDate) {
-  if (isoDate(eventDate) !== todayString()) return;
-  try {
-    await addBeanTransaction(pool, {
-      userId,
-      amount: 20,
-      type: 'anniversary_day',
-      title: 'Anniversary day',
-      sourceModule: 'anniversary',
-      sourceId: anniversaryId,
-      description: title,
-    });
-  } catch (err) {
-    console.error('Anniversary bean reward failed:', err.message);
-  }
 }
 
 router.get('/', authRequired, async (req, res) => {
@@ -94,7 +76,6 @@ router.post('/', authRequired, async (req, res) => {
         repeatType || 'yearly',
       ]
     );
-    await rewardAnniversaryToday(req.user.id, result.insertId, title, eventDate);
     res.json({ code: 200, message: 'created', data: { id: result.insertId } });
   } catch (err) {
     console.error('Create anniversary failed:', err);
@@ -123,7 +104,6 @@ router.put('/:id', authRequired, async (req, res) => {
       ]
     );
     if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: 'anniversary not found' });
-    await rewardAnniversaryToday(req.user.id, req.params.id, title, eventDate);
     res.json({ code: 200, message: 'updated' });
   } catch (err) {
     console.error('Update anniversary failed:', err);

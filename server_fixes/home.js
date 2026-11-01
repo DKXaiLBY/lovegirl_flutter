@@ -34,8 +34,8 @@ router.get('/today', authRequired, async (req, res) => {
     const today = todayString();
     const weekday = new Date(`${today}T00:00:00`).getDay() || 7;
 
-    const [users, todos, courses, moods, financeExpense, financeIncome, anniversaries, achievements] = await Promise.all([
-      safeQuery('SELECT id, nickname, avatar_url, role, created_at, bean_balance FROM users WHERE id = ?', [userId], [{}]),
+    const [users, todos, courses, moods, financeExpense, financeIncome, anniversaries] = await Promise.all([
+      safeQuery('SELECT id, nickname, avatar_url, role, created_at FROM users WHERE id = ?', [userId], [{}]),
       safeQuery(
         `SELECT
            COUNT(*) AS total,
@@ -66,16 +66,6 @@ router.get('/today', authRequired, async (req, res) => {
         []
       ),
       safeQuery('SELECT id, title, event_date, icon FROM anniversaries WHERE user_id = ?', [userId], []),
-      safeQuery(
-        `SELECT ua.unlocked_at, a.title, a.description, a.category, a.reward_beans
-         FROM user_achievements ua
-         JOIN achievements a ON a.id = ua.achievement_id
-         WHERE ua.user_id = ?
-         ORDER BY ua.unlocked_at DESC
-         LIMIT 5`,
-        [userId],
-        []
-      ),
     ]);
 
     const user = users[0] || {};
@@ -110,7 +100,7 @@ router.get('/today', authRequired, async (req, res) => {
           role: user.role || '',
         },
         loveDays,
-        beanBalance: Number(user.bean_balance || 0),
+        beanBalance: 0, // Compatibility only; retired balances are not queried.
         todo: {
           total: Number(todos[0]?.total || 0),
           active: Number(todos[0]?.active || 0),
@@ -130,13 +120,7 @@ router.get('/today', authRequired, async (req, res) => {
           today: anniversaryData.filter((item) => item.daysUntil === 0),
           upcoming: anniversaryData.filter((item) => item.daysUntil > 0 && item.daysUntil <= 30).slice(0, 3),
         },
-        recentAchievements: achievements.map((a) => ({
-          title: a.title,
-          description: a.description,
-          category: a.category,
-          rewardBeans: Number(a.reward_beans || 0),
-          unlockedAt: a.unlocked_at,
-        })),
+        recentAchievements: [],
       },
     });
   } catch (err) {

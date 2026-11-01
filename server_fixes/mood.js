@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
-const { addBeanTransaction, checkAchievements, todayString } = require('./utils/lovegirl_rewards');
+const { todayString } = require('./utils/lovegirl_rewards');
 
 const moodLabels = ['开心', '幸福', '恋爱', '难过', '生气', '疲惫', '兴奋', '悠闲', '委屈', '烦躁'];
 
@@ -90,23 +90,7 @@ router.post('/', authRequired, async (req, res) => {
         'INSERT INTO mood_diary (user_id, mood, note, record_date) VALUES (?, ?, ?, ?)',
         [req.user.id, mood, note || '', date]
       );
-      try {
-        await addBeanTransaction(pool, {
-          userId: req.user.id,
-          amount: 2,
-          type: 'mood_record',
-          title: 'Mood recorded',
-          sourceModule: 'mood',
-          sourceId: result.insertId,
-          description: date,
-          oncePerDay: true,
-        });
-      } catch (err) {
-        console.error('Mood bean reward failed:', err.message);
-      }
-      const unlocked = await checkAchievements(req.user.id, 'mood');
-      return res.json({ code: 200, message: 'mood recorded', data: { id: result.insertId, unlocked } });
-      res.json({ code: 200, message: '记录成功', data: { id: result.insertId } });
+      return res.json({ code: 200, message: 'mood recorded', data: { id: result.insertId, unlocked: [] } });
     }
   } catch (err) {
     console.error('记录心情失败:', err);

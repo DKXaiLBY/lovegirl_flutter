@@ -5,13 +5,11 @@ const pool = require('../config/database');
 const {
   todayString,
   getPartnerId,
-  addBeanTransaction,
   createTimelineEvent,
-  checkAchievements,
 } = require('./utils/lovegirl_rewards');
 
 // 美食手账：共同的餐桌相册。谁做的记录（chef），对方品尝评分（eater），
-// 新菜可一键挂上点单菜单（kitchen_dishes），自动沉淀时光轴 + 成就 + 豆子激励。
+// 新菜可一键挂上点单菜单（kitchen_dishes），自动沉淀时光轴。
 
 function cleanText(v, max) {
   return String(v ?? '').trim().slice(0, max);
@@ -155,23 +153,6 @@ router.post('/', authRequired, async (req, res) => {
       }
     }
 
-    // 新菜激励：+10 豆（每条记录一次，幂等）
-    if (isNew) {
-      try {
-        await addBeanTransaction(pool, {
-          userId: req.user.id,
-          amount: 10,
-          type: 'cooking_new',
-          title: '尝试新菜',
-          sourceModule: 'cooking',
-          sourceId: logId,
-          description: title,
-        });
-      } catch (err) {
-        console.error('[Cooking] bean reward failed:', err.message);
-      }
-    }
-
     // 双人时光轴沉淀（各自一条，幂等）
     const tlTitle = `${isNew ? '新菜' : '复刻'}「${title}」`;
     const tlDesc = story || (recipe ? recipe.slice(0, 80) : '');
@@ -205,17 +186,9 @@ router.post('/', authRequired, async (req, res) => {
       }
     }
 
-    // 成就检查（cooking 类别）
-    let unlocked = [];
-    try {
-      unlocked = await checkAchievements(req.user.id, 'cooking');
-    } catch (err) {
-      console.error('[Cooking] achievement check failed:', err.message);
-    }
-
     res.json({
       code: 200,
-      data: { id: logId, dishId, unlocked: unlocked.map((a) => ({ title: a.title, reward: a.reward_beans })) },
+      data: { id: logId, dishId, unlocked: [] },
     });
   } catch (err) {
     console.error('[Cooking] create failed:', err);
@@ -246,28 +219,13 @@ router.put('/:id/taste', authRequired, async (req, res) => {
     if (myPartner == null || myPartner !== log.chef_id) {
       return res.status(403).json({ code: 403, message: '只有 TA 的伴侣可以品尝打分' });
     }
-    // P0 修复：原子条件更新，防并发重复评分/双发豆
+    // P0 修复：原子条件更新，防并发重复评分
     const [upd] = await pool.query(
       'UPDATE cooking_logs SET eater_id = ?, eater_rating = ?, eater_comment = ? WHERE id = ? AND eater_id IS NULL',
       [req.user.id, rating, comment, id]
     );
     if (upd.affectedRows === 0) {
       return res.status(403).json({ code: 403, message: '这道菜已经有人品尝打分啦' });
-    }
-
-    // 品尝互动 +2 豆
-    try {
-      await addBeanTransaction(pool, {
-        userId: req.user.id,
-        amount: 2,
-        type: 'cooking_taste',
-        title: '品尝评分',
-        sourceModule: 'cooking_taste',
-        sourceId: id,
-        description: log.title,
-      });
-    } catch (err) {
-      console.error('[Cooking] taste bean failed:', err.message);
     }
 
     try {

@@ -4,11 +4,8 @@ const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
 const {
-  addBeanTransaction,
   createFinanceRecord,
   createTimelineEvent,
-  unlockTravelAchievement,
-  checkAchievements,
   todayString,
 } = require('./utils/lovegirl_rewards');
 
@@ -192,20 +189,6 @@ async function handleTravelCheckin(userId, spotId, data) {
     [spotId]
   );
 
-  try {
-    await addBeanTransaction(pool, {
-      userId,
-      amount: 10,
-      type: 'travel_checkin',
-      title: 'Travel check-in',
-      sourceModule: 'travel',
-      sourceId: spotId,
-      description: data.name,
-    });
-  } catch (err) {
-    console.error('[Travel] bean reward failed:', err.message);
-  }
-
   await createTimelineEvent({
     userId,
     title: `Travel check-in: ${data.name}`,
@@ -228,9 +211,6 @@ async function handleTravelCheckin(userId, spotId, data) {
       recordDate: data.visitedDate || todayString(),
     });
   }
-
-  await unlockTravelAchievement(userId, 'first_checkin', 'First travel check-in', data.name, { spotId });
-  await checkAchievements(userId, 'travel');
 
   // 打卡成功后通知对方（通知中心展示；失败不影响打卡主流程）
   try {

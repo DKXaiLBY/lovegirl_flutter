@@ -1,0 +1,170 @@
+{
+  "database": "lovegirl_clear_qa_20261031",
+  "purpose": "isolated functional fixtures only",
+  "historicFixtureIds": {
+    "beanId": 87,
+    "questionId": 4,
+    "letterId": 3
+  },
+  "resources": [
+    {
+      "kind": "todo",
+      "id": 23
+    },
+    {
+      "kind": "anniversary",
+      "id": 15
+    },
+    {
+      "kind": "mood",
+      "id": 18
+    },
+    {
+      "kind": "cooking",
+      "id": 21
+    },
+    {
+      "kind": "dish",
+      "id": 11
+    },
+    {
+      "kind": "kitchen-order",
+      "id": 1
+    },
+    {
+      "kind": "travel-spot",
+      "id": 72
+    },
+    {
+      "kind": "feeding-order",
+      "id": 11
+    }
+  ],
+  "checks": [
+    {
+      "retiredAuthenticatedRequests410": 35,
+      "unauthenticatedRequests401": 7
+    }
+  ],
+  "status": "passed",
+  "historicBefore": {
+    "balances": {
+      "count": 2,
+      "sha256": "15d7578bfd316f40522fef47f48347eb75b93a0a001f7505c40593d62ccd9eac"
+    },
+    "beans": {
+      "count": 1,
+      "sha256": "5ada93754bb3ef700c550725a295f3f3c951bfe6d166736bc712445c14d82c15"
+    },
+    "questions": {
+      "count": 1,
+      "sha256": "08b4331bc3354d22b63ce1e1d27ce986155bdbf7f4e886cfc6a2cf0d5798ac51"
+    },
+    "letters": {
+      "count": 1,
+      "sha256": "67de1e3b350e0201d1b94061b538511e95684ae531461eaa6109312a77213b43"
+    },
+    "achievements": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "unlocked": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "vouchers": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "redemptions": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "historicAfter": {
+    "balances": {
+      "count": 2,
+      "sha256": "15d7578bfd316f40522fef47f48347eb75b93a0a001f7505c40593d62ccd9eac"
+    },
+    "beans": {
+      "count": 1,
+      "sha256": "5ada93754bb3ef700c550725a295f3f3c951bfe6d166736bc712445c14d82c15"
+    },
+    "questions": {
+      "count": 1,
+      "sha256": "08b4331bc3354d22b63ce1e1d27ce986155bdbf7f4e886cfc6a2cf0d5798ac51"
+    },
+    "letters": {
+      "count": 1,
+      "sha256": "67de1e3b350e0201d1b94061b538511e95684ae531461eaa6109312a77213b43"
+    },
+    "achievements": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "unlocked": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "vouchers": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "redemptions": {
+      "count": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  },
+  "linkage": {
+    "finance": [
+      {
+        "source_module": "travel",
+        "source_id": 72
+      },
+      {
+        "source_module": "feeding",
+        "source_id": 11
+      }
+    ],
+    "timeline": [
+      {
+        "source_module": "travel",
+        "source_id": 69,
+        "user_id": 100001
+      },
+      {
+        "source_module": "travel",
+        "source_id": 70,
+        "user_id": 100001
+      },
+      {
+        "source_module": "travel",
+        "source_id": 71,
+        "user_id": 100001
+      },
+      {
+        "source_module": "cooking",
+        "source_id": 21,
+        "user_id": 100001
+      },
+      {
+        "source_module": "cooking",
+        "source_id": 21,
+        "user_id": 100002
+      },
+      {
+        "source_module": "travel",
+        "source_id": 72,
+        "user_id": 100001
+      },
+      {
+        "source_module": "feeding",
+        "source_id": 11,
+        "user_id": 100001
+      }
+    ]
+  },
+  "normalQaSessions": 2,
+  "physicalDevices": 0,
+  "productionMutations": 0
+}

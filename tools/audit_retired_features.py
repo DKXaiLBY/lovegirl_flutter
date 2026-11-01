@@ -8,6 +8,7 @@ library = root / 'lib'
 pending = [library / 'main.dart']
 visited = set()
 calls = []
+claims = []
 retired = {
     'providers/daily_provider.dart',
     'screens/daily/daily_question_screen.dart',
@@ -41,14 +42,20 @@ while pending:
     for number, line in enumerate(source.splitlines(), 1):
         if pattern.search(line):
             calls.append({'file': file.relative_to(library).as_posix(), 'line': number})
+        if not line.lstrip().startswith(('//', '/*', '*')) and any(
+            claim in line for claim in ('爱心豆', '签到得', '签到成功', '奖励豆')
+        ):
+            claims.append({'file': file.relative_to(library).as_posix(), 'line': number})
 reachable = {file.relative_to(library).as_posix() for file in visited}
 result = {
     'entrypoint': 'lib/main.dart',
     'reachableLibraries': len(visited),
     'retiredLibrariesStillReachable': sorted(retired & reachable),
     'retiredCallsInReachableCode': calls,
-    'scope': 'static project imports and qualified retired API calls; not server retirement or runtime UI acceptance',
+    'retiredRewardClaimsInReachableCode': claims,
+    'scope': 'static project imports, qualified retired API calls and reward claims; not server retirement or runtime UI acceptance',
 }
 print(json.dumps(result, ensure_ascii=False, indent=2))
 assert not result['retiredLibrariesStillReachable']
 assert not calls
+assert not claims

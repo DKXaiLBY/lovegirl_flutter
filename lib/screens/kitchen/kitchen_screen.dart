@@ -1616,7 +1616,7 @@ class _FulfillSheetState extends State<_FulfillSheet> {
     setState(() => _working = false);
     if (err == null) Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(err ?? '这单完成！+5 爱心豆 🫘'),
+        content: Text(err ?? '已经开饭，记录已保存'),
         behavior: SnackBarBehavior.floating));
   }
 

@@ -59,26 +59,7 @@ router.get('/', authRequired, async (req, res) => {
       topDish = t.length > 0 ? t[0].name : null;
     } catch (_) {}
 
-    // 每日一问：今年双方都答的天数
-    const dailyRows = await rows(
-      `SELECT COUNT(*) AS days FROM (
-         SELECT question_date FROM daily_answers
-         WHERE user_id IN (?, ?) AND question_date >= ? AND question_date < ?
-         GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?
-       ) t`,
-      [...pairIds, yStart, yEnd, userIds.length]
-    );
-
-    // 爱心豆：今年两人总获得
-    const beanRows = await rows(
-      `SELECT COALESCE(SUM(amount),0) AS earned
-       FROM bean_transactions
-       WHERE user_id IN (?, ?) AND amount > 0
-         AND created_at >= ? AND created_at < ?`,
-      [...pairIds, yStart, yEnd]
-    );
-
-    // 相册照片 / 时光轴 / 慢信
+    // 相册照片 / 时光轴
     const photoRows = await rows(
       `SELECT COUNT(*) AS n FROM photos
        WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?`,
@@ -89,13 +70,6 @@ router.get('/', authRequired, async (req, res) => {
        WHERE user_id IN (?, ?) AND event_date >= ? AND event_date < ?`,
       [...pairIds, yStart, yEnd]
     );
-    const letterRows = await rows(
-      `SELECT COUNT(*) AS n FROM slow_letters
-       WHERE (sender_id IN (?, ?) OR receiver_id IN (?, ?))
-         AND created_at >= ? AND created_at < ?`,
-      [...pairIds, ...pairIds, yStart, yEnd]
-    );
-
     // 最活跃月份（厨房订单 + 旅行打卡 + 时光轴）
     let busiestMonth = null;
     try {
@@ -119,6 +93,7 @@ router.get('/', authRequired, async (req, res) => {
       }
     } catch (_) {}
 
+    // Neutral compatibility fields do not read or erase retired history.
     res.json({
       code: 200,
       data: {
@@ -134,11 +109,11 @@ router.get('/', authRequired, async (req, res) => {
           fedMe: Number(kitchenRows[0]?.fedMe || 0),
           topDish,
         },
-        dailyDays: dailyRows[0]?.days || 0,
-        beansEarned: Number(beanRows[0]?.earned || 0),
+        dailyDays: 0,
+        beansEarned: 0,
         photos: photoRows[0]?.n || 0,
         timelineEvents: timelineRows[0]?.n || 0,
-        letters: letterRows[0]?.n || 0,
+        letters: 0,
         busiestMonth,
       },
     });
@@ -182,10 +157,6 @@ router.get('/monthly', authRequired, async (req, res) => {
       );
       topDish = t.length > 0 ? t[0].name : null;
     } catch (_) {}
-    const dailyRows = await rows(
-      'SELECT COUNT(*) AS days FROM (SELECT question_date FROM daily_answers WHERE user_id IN (?, ?) AND question_date >= ? AND question_date < ? GROUP BY question_date HAVING COUNT(DISTINCT user_id) = ?) t',
-      [...pairIds, mStart, mEnd, userIds.length]
-    );
     const photoRows = await rows(
       'SELECT COUNT(*) AS n FROM photos WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?',
       [...pairIds, mStart, mEnd]
@@ -194,15 +165,7 @@ router.get('/monthly', authRequired, async (req, res) => {
       'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id IN (?, ?) AND event_date >= ? AND event_date < ?',
       [...pairIds, mStart, mEnd]
     );
-    const letterRows = await rows(
-      'SELECT COUNT(*) AS n FROM slow_letters WHERE (sender_id IN (?, ?) OR receiver_id IN (?, ?)) AND created_at >= ? AND created_at < ?',
-      [...pairIds, ...pairIds, mStart, mEnd]
-    );
-    const beanRows = await rows(
-      'SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount END),0) AS earned, COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END),0) AS spent FROM bean_transactions WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?',
-      [...pairIds, mStart, mEnd]
-    );
-
+    // Neutral compatibility fields do not read or erase retired history.
     res.json({
       code: 200,
       data: {
@@ -215,11 +178,11 @@ router.get('/monthly', authRequired, async (req, res) => {
         travelCities: travelRows[0]?.cities || 0,
         kitchenDone: Number(kitchenRows[0]?.done || 0),
         topDish,
-        dailyDays: dailyRows[0]?.days || 0,
+        dailyDays: 0,
         timelineEvents: timelineRows[0]?.n || 0,
-        letters: letterRows[0]?.n || 0,
-        beansEarned: Number(beanRows[0]?.earned || 0),
-        beansSpent: Number(beanRows[0]?.spent || 0),
+        letters: 0,
+        beansEarned: 0,
+        beansSpent: 0,
       },
     });
   } catch (err) {

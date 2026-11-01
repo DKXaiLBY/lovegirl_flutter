@@ -3,10 +3,8 @@ const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
 const {
-  addBeanTransaction,
   createFinanceRecord,
   createTimelineEvent,
-  checkAchievements,
   isUserInPeriod,
   todayString,
 } = require('./utils/lovegirl_rewards');
@@ -150,20 +148,6 @@ async function completeOrderLinkage(order, actualAmount = null) {
     sourceModule: 'feeding',
     sourceId: order.id,
   });
-  try {
-    await addBeanTransaction(pool, {
-      userId: order.receiver_id,
-      amount: 1,
-      type: 'feeding_received',
-      title: '收到投喂',
-      sourceModule: 'feeding',
-      sourceId: order.id,
-      description: order.product_name,
-    });
-  } catch (err) {
-    console.error('[Feeding] completion bean award failed:', err.message);
-  }
-  await checkAchievements(order.receiver_id, 'feeding');
 }
 
 router.get('/shops', authRequired, async (req, res) => {
@@ -341,14 +325,6 @@ router.post('/orders', authRequired, async (req, res) => {
     const girlUserId = req.user.role === 'girl' ? senderId : receiverId;
 
     await conn.beginTransaction();
-    await addBeanTransaction(conn, {
-      userId: senderId,
-      amount: -totalPrice,
-      type: 'feeding_order',
-      title: `Feeding - ${productName}`,
-      sourceModule: 'feeding',
-      description: `${productName} x${qty}`,
-    });
     const [result] = await conn.query(
       `INSERT INTO feeding_orders
        (sender_id, receiver_id, boy_user_id, girl_user_id, shop_id, product_id, product_name,
@@ -357,12 +333,6 @@ router.post('/orders', authRequired, async (req, res) => {
       [senderId, receiverId, boyUserId, girlUserId, shopId, productId, productName, productPrice, qty, totalPrice, req.body.message || '']
     );
     const orderId = result.insertId;
-    await conn.query(
-      `UPDATE bean_transactions SET source_id = ?, reference_id = ?
-       WHERE user_id = ? AND type = 'feeding_order' AND source_module = 'feeding'
-       ORDER BY id DESC LIMIT 1`,
-      [orderId, orderId, senderId]
-    );
     await conn.commit();
 
     await createNotification(receiverId, 'feeding_order', '收到新的投喂订单', `${productName} x${qty}`, { order_id: orderId });
@@ -493,20 +463,6 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
         sourceModule: 'feeding',
         sourceId: orderId,
       });
-      try {
-        await addBeanTransaction(pool, {
-          userId: order.receiver_id,
-          amount: 1,
-          type: 'feeding_received',
-          title: '完成投喂',
-          sourceModule: 'feeding',
-          sourceId: orderId,
-          description: order.product_name,
-        });
-      } catch (err) {
-        console.error('[Feeding] completion bean award failed:', err.message);
-      }
-      await checkAchievements(order.receiver_id, 'feeding');
     }
 
     const notifyUserId = status === 'cancelled' ? (userId === order.sender_id ? order.receiver_id : order.sender_id) : order.sender_id;

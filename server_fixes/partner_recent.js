@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
-const { todayString, getPartnerId } = require('./utils/lovegirl_rewards');
+const { getPartnerId } = require('./utils/lovegirl_rewards');
 
-// TA 的近况：聚合对方最近的动作（做饭/打卡/今日一问），首页展示"对方的存在感"
+// TA 的近况：聚合对方最近的动作（做饭/旅行打卡），首页展示"对方的存在感"
 // 只读、轻量；心情等内容性隐私数据不进入此接口
 
 router.get('/recent', authRequired, async (req, res) => {
@@ -50,24 +50,6 @@ router.get('/recent', authRequired, async (req, res) => {
           text: `打卡了「${r.name}」`,
           at: r.visited_date instanceof Date ? r.visited_date.toISOString().slice(0, 10) : String(r.visited_date || '').slice(0, 10),
           rank: r.visited_date,
-        });
-      }
-    } catch (_) {}
-
-    // 3. 今日一问是否已答（只有"今天答了"才算动态）
-    try {
-      const today = todayString();
-      const [daily] = await pool.query(
-        'SELECT id, created_at FROM daily_answers WHERE user_id = ? AND question_date = ?',
-        [partnerId, today]
-      );
-      if (daily.length > 0) {
-        events.push({
-          type: 'daily',
-          icon: 'quiz',
-          text: '已经交了今日一问的答卷',
-          at: today,
-          rank: daily[0].created_at,
         });
       }
     } catch (_) {}

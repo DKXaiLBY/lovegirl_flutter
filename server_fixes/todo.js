@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
-const { addBeanTransaction } = require('./utils/lovegirl_rewards');
 
 function normalizeCategory(category) {
   return category || 'daily';
@@ -16,22 +15,6 @@ function nextRepeatDate(dueDate, repeatType) {
   else if (repeatType === 'monthly') next.setMonth(next.getMonth() + 1);
   else next.setDate(next.getDate() + 1);
   return next.toISOString().slice(0, 10);
-}
-
-async function rewardTodoCompleted(userId, todoId, title) {
-  try {
-    await addBeanTransaction(pool, {
-      userId,
-      amount: 3,
-      type: 'todo_completed',
-      title: 'Todo completed',
-      sourceModule: 'todo',
-      sourceId: todoId,
-      description: title || '',
-    });
-  } catch (err) {
-    console.error('Todo bean reward failed:', err.message);
-  }
 }
 
 router.get('/', authRequired, async (req, res) => {
@@ -129,10 +112,6 @@ router.put('/:id/toggle', authRequired, async (req, res) => {
       [newCompleted, newCompleted ? new Date() : null, todo.id]
     );
 
-    if (newCompleted) {
-      await rewardTodoCompleted(req.user.id, todo.id, todo.title);
-    }
-
     if (newCompleted && todo.is_repeat) {
       await pool.query(
         `INSERT INTO todos
@@ -176,13 +155,11 @@ router.put('/:id/boyfriend-help', authRequired, async (req, res) => {
         [req.params.id, girls[0].id]
       );
       if (todos.length === 0) return res.status(404).json({ code: 404, message: 'todo not found' });
-      const todo = todos[0];
       const [result] = await pool.query(
         'UPDATE todos SET completed = 1, completed_at = COALESCE(completed_at, NOW()), boyfriend_help = 0, version = version + 1 WHERE id = ?',
         [req.params.id]
       );
       if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: 'todo not found' });
-      if (!todo.completed) await rewardTodoCompleted(todo.user_id, todo.id, todo.title);
       return res.json({ code: 200, message: 'help completed' });
     }
 
