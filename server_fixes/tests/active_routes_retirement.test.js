@@ -48,7 +48,7 @@ function fixture(route, query) {
   };
   loaded._compile(fs.readFileSync(filename, 'utf8'), filename);
   const app = express(); app.use(express.json()); app.use(loaded.exports);
-  return { app, calls };
+  return { app, calls, pool };
 }
 
 async function request(f, suffix, method = 'GET', body, user = 71) {
@@ -59,6 +59,7 @@ async function request(f, suffix, method = 'GET', body, user = 71) {
     const response = await fetch('http://127.0.0.1:' + server.address().port + suffix, {
       method, headers: { 'Content-Type': 'application/json', 'x-test-user': String(user) },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
     });
     return { status: response.status, body: await response.json() };
   } finally {
@@ -144,6 +145,39 @@ test('unauthorized and failed kitchen completions cannot grant points or announc
   assert.deepEqual(failed.calls.transactions, ['begin', 'rollback', 'release']);
   assert.equal(failed.calls.sql.some(c => c.sql.includes('INSERT INTO notifications')), false);
   assert.deepEqual(failed.calls.retired, []);
+});
+
+test('a meal can finish without a photo and a repeated completion creates no second notification', async () => {
+  const f = kitchenFixture();
+  const first = await request(f, '/orders/8/status', 'PUT', { status: 'done' });
+  assert.equal(first.status, 200);
+  assert.equal(first.body.data.photo_url, null);
+  const repeated = await request(f, '/orders/8/status', 'PUT', { status: 'done' });
+  assert.equal(repeated.status, 200);
+  assert.equal(repeated.body.data.status, 'done');
+  assert.equal(f.calls.sql.filter(c => c.sql.includes("SET status = 'done'")).length, 1);
+  assert.equal(f.calls.sql.filter(c => c.sql.includes('INSERT INTO notifications')).length, 1);
+  assert.ok(f.calls.sql.some(c => c.sql.includes('FOR UPDATE')));
+});
+
+test('only the cook can undo an accepted meal, and stale expected status is a conflict', async () => {
+  let order = { id: 8, cook_id: 71, orderer_id: 72, status: 'accepted', items: '[]' };
+  const f = fixture('kitchen', sql => {
+    if (sql.startsWith('SELECT * FROM kitchen_orders')) return [order];
+    if (sql.includes("SET status = 'placed'")) order = { ...order, status: 'placed' };
+    return { affectedRows: 1 };
+  });
+  assert.equal((await request(f, '/orders/8/status', 'PUT', { status: 'placed' }, 72)).status, 403);
+  assert.equal((await request(f, '/orders/8/status', 'PUT', { status: 'placed', expected_status: 'placed' })).status, 409);
+  assert.equal((await request(f, '/orders/8/status', 'PUT', { status: 'placed', expected_status: 'accepted' })).body.data.status, 'placed');
+  assert.ok(f.calls.sql.some(c => c.sql.includes('accepted_at = NULL')));
+});
+
+test('a kitchen connection failure returns an error instead of escaping the async router', async () => {
+  const f = fixture('kitchen', () => []);
+  // The stub is scoped to the real route dependency; no process/database failure is induced.
+  f.pool.getConnection = async () => { throw Error('controlled database unavailable'); };
+  assert.equal((await request(f, '/orders/8/status', 'PUT', { status: 'done' })).status, 500);
 });
 
 test('visited places retain visit time, timeline, actual expense and partner notification', async () => {

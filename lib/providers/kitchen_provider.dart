@@ -140,6 +140,8 @@ class KitchenProvider extends ChangeNotifier {
   bool loading = false;
   bool ordersLoading = false;
   bool placingOrder = false;
+  final Set<int> _updatingOrders = {};
+  bool isOrderBusy(int id) => _updatingOrders.contains(id);
   String? error;
 
   /// 购物车：dishId -> 数量（只针对对方菜品）
@@ -325,12 +327,30 @@ class KitchenProvider extends ChangeNotifier {
 
   Future<String?> updateOrderStatus(int id, String status,
       {Map? extra}) async {
+    if (!_updatingOrders.add(id)) return '正在处理这一餐，请稍候';
+    notifyListeners();
     try {
-      await _api.updateKitchenOrderStatus(id, status, extra: extra);
+      String? previousStatus;
+      for (final order in [...incoming, ...outgoing]) {
+        if (order.id == id) {
+          previousStatus = order.status;
+          break;
+        }
+      }
+      await _api.updateKitchenOrderStatus(id, status, extra: {
+        if (previousStatus != null) 'expected_status': previousStatus,
+        ...?extra,
+      });
       await refreshAll();
       return null;
     } catch (e) {
+      if (e is DioException && e.response?.statusCode == 409) {
+        await refreshAll();
+      }
       return _serverMessage(e) ?? '操作失败，请稍后再试';
+    } finally {
+      _updatingOrders.remove(id);
+      notifyListeners();
     }
   }
 

@@ -1,7 +1,7 @@
 /**
  * 情侣厨房（Kitchen）— v3.20 投喂站重构
  * 菜单是"我会为你做的事"：双方挂自家菜单，对方以外卖交互下单，
- * 厨师接单→买菜做菜→拍成品照完成，订单沉淀为投喂记录。
+ * 厨师接单→买菜做菜→开饭（可选成品照），订单沉淀为投喂记录。
  * 依赖表：kitchen_dishes / kitchen_orders（见 server_fixes/kitchen_tables.sql）
  * 复用：couples（绑定关系）、notifications（站内通知）、/uploads 静态目录（成品照/菜品照）
  */
@@ -241,46 +241,63 @@ router.post('/orders', authRequired, async (req, res) => {
 });
 
 router.put('/orders/:id/status', authRequired, async (req, res) => {
-  const conn = await pool.getConnection();
+  let conn;
+  let inTransaction = false;
   try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    inTransaction = true;
     const userId = req.user.id;
-    const [rows] = await conn.query('SELECT * FROM kitchen_orders WHERE id = ?', [Number(req.params.id)]);
-    if (!rows.length) { conn.release(); return res.status(404).json({ code: 404, message: '订单不存在' }); }
+    const [rows] = await conn.query('SELECT * FROM kitchen_orders WHERE id = ? FOR UPDATE', [Number(req.params.id)]);
+    if (!rows.length) throw Object.assign(new Error('订单不存在'), { status: 404 });
     const order = rows[0];
     const isCook = order.cook_id === userId;
     const isOrderer = order.orderer_id === userId;
-    if (!isCook && !isOrderer) { conn.release(); return res.status(403).json({ code: 403, message: '这不是你的订单' }); }
+    if (!isCook && !isOrderer) throw Object.assign(new Error('这不是你的订单'), { status: 403 });
     const target = String(req.body?.status || '');
     const now = new Date();
+    let notice;
 
-    if (target === 'accepted') {
-      if (!isCook || order.status !== 'placed') { conn.release(); return res.status(400).json({ code: 400, message: '当前状态不能接单' }); }
+    // A retry after a committed completion must not create another completion or notification.
+    const completedRetry = target === 'done' && order.status === 'done' && isCook;
+    if (!completedRetry && req.body?.expected_status && req.body.expected_status !== order.status) {
+      throw Object.assign(new Error('这一餐已被更新，请刷新后再操作'), { status: 409 });
+    }
+    if (completedRetry) {
+      // Return the existing record below.
+    } else if (target === 'accepted') {
+      if (!isCook) throw Object.assign(new Error('只有主厨可以接单'), { status: 403 });
+      if (order.status !== 'placed') throw Object.assign(new Error('当前状态不能接单'), { status: 400 });
       await conn.query("UPDATE kitchen_orders SET status = 'accepted', accepted_at = ? WHERE id = ?", [now, order.id]);
-      await notify(order.orderer_id, 'kitchen_order', '订单已被接下', 'TA 接单啦，准备为你下厨', { order_id: order.id });
+      notice = [order.orderer_id, '订单已被接下', 'TA 接单啦，准备为你下厨'];
+    } else if (target === 'placed') {
+      if (!isCook) throw Object.assign(new Error('只有主厨可以撤销接单'), { status: 403 });
+      if (order.status !== 'accepted') throw Object.assign(new Error('当前状态不能撤销接单'), { status: 400 });
+      await conn.query("UPDATE kitchen_orders SET status = 'placed', accepted_at = NULL WHERE id = ?", [order.id]);
+      notice = [order.orderer_id, '接单已撤销', '这一餐回到待确认状态，可以再商量一下'];
     } else if (target === 'done') {
-      if (!isCook || order.status !== 'accepted') { conn.release(); return res.status(400).json({ code: 400, message: '请先接单再做完成' }); }
+      if (!isCook) throw Object.assign(new Error('只有主厨可以完成这一餐'), { status: 403 });
+      if (order.status !== 'accepted') throw Object.assign(new Error('请先接单再做完成'), { status: 400 });
       const photo = req.body?.photo_url ? String(req.body.photo_url).slice(0, 500) : null;
-      if (!photo) { conn.release(); return res.status(400).json({ code: 400, message: '拍一张成品照才能完成这单' }); }
-      await conn.beginTransaction();
       await conn.query(
         "UPDATE kitchen_orders SET status = 'done', photo_url = ?, done_at = ? WHERE id = ?",
         [photo, now, order.id]
       );
-      await conn.commit();
-      await notify(order.orderer_id, 'kitchen_order', '菜做好啦', 'TA 完成了你的订单，快去尝尝', { order_id: order.id });
+      notice = [order.orderer_id, '菜做好啦', 'TA 完成了你的订单，快去尝尝'];
     } else if (target === 'cancelled') {
       if (!isOrderer || !['placed', 'accepted'].includes(order.status)) {
-        conn.release(); return res.status(400).json({ code: 400, message: '当前状态不能取消' });
+        throw Object.assign(new Error('当前状态不能取消'), { status: 400 });
       }
       const reason = req.body?.reason ? String(req.body.reason).slice(0, 255) : null;
       await conn.query("UPDATE kitchen_orders SET status = 'cancelled', cancel_reason = ? WHERE id = ?", [reason, order.id]);
-      await notify(order.cook_id, 'kitchen_order', '订单取消了', reason ? `理由：${reason}` : 'TA 取消了订单', { order_id: order.id });
+      notice = [order.cook_id, '订单取消了', reason ? `理由：${reason}` : 'TA 取消了订单'];
     } else {
-      conn.release();
-      return res.status(400).json({ code: 400, message: '不支持的状态' });
+      throw Object.assign(new Error('不支持的状态'), { status: 400 });
     }
     const [updated] = await conn.query('SELECT * FROM kitchen_orders WHERE id = ?', [order.id]);
-    conn.release();
+    await conn.commit();
+    inTransaction = false;
+    if (notice) await notify(notice[0], 'kitchen_order', notice[1], notice[2], { order_id: order.id });
     const r = updated[0];
     res.json({
       code: 200,
@@ -291,10 +308,11 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
       },
     });
   } catch (err) {
-    try { await conn.rollback(); } catch (_) {}
-    conn.release();
-    console.error('[Kitchen] update order status failed:', err);
-    res.status(500).json({ code: 500, message: '服务器错误' });
+    if (inTransaction) { try { await conn.rollback(); } catch (_) {} }
+    if (!err.status) console.error('[Kitchen] update order status failed:', err);
+    res.status(err.status || 500).json({ code: err.status || 500, message: err.status ? err.message : '服务器错误' });
+  } finally {
+    if (conn) conn.release();
   }
 });
 

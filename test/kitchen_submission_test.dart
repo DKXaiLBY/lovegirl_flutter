@@ -15,6 +15,12 @@ class _Api implements ApiService {
   int orderCalls = 0;
   Object? orderFailure;
   bool dishFails = false;
+  int statusCalls = 0;
+  int uploadCalls = 0;
+  bool statusFails = false;
+  Map? lastStatusExtra;
+  Completer<Response>? pendingStatus;
+  List<Map<String, dynamic>> incoming = [];
   Completer<Response>? pending;
   Future<Response> response(dynamic value) async => Response(
       requestOptions: RequestOptions(), data: {'code': 200, 'data': value});
@@ -34,7 +40,7 @@ class _Api implements ApiService {
       });
   @override
   Future<Response> getKitchenOrders() =>
-      response({'incoming': [], 'outgoing': []});
+      response({'incoming': incoming, 'outgoing': []});
   @override
   Future<Response> getKitchenSummary() => response({'bound': true});
   @override
@@ -47,6 +53,20 @@ class _Api implements ApiService {
   @override
   Future<Response> createKitchenDish(Map data) =>
       dishFails ? Future.error(rejected()) : response({'id': 12});
+  @override
+  Future<Response> updateKitchenOrderStatus(int id, String status, {Map? extra}) async {
+    statusCalls++;
+    lastStatusExtra = extra;
+    if (statusFails) throw rejected();
+    if (pendingStatus != null) await pendingStatus!.future;
+    incoming = incoming.map((order) => order['id'] == id ? {...order, 'status': status} : order).toList();
+    return response({'id': id, 'status': status});
+  }
+  @override
+  Future<Response> uploadKitchenPhoto(String filePath) {
+    uploadCalls++;
+    return response({'url': '/uploads/qa.jpg'});
+  }
   @override
   dynamic noSuchMethod(Invocation invocation) => response([]);
 }
@@ -61,6 +81,89 @@ void main() {
   });
 
   KitchenProvider provider(_Api api) => KitchenProvider(api: api)..cart[1] = 1;
+
+  KitchenProvider acceptedMeal(_Api api) {
+    api.incoming = [{'id': 8, 'cook_id': 1, 'orderer_id': 2, 'status': 'accepted',
+      'items': [{'dish_id': 1, 'name': '番茄炒蛋', 'quantity': 1, 'price': 0}]}];
+    return KitchenProvider(api: api)..incoming = api.incoming.map(KitchenOrder.fromJson).toList();
+  }
+
+  test('one pending meal status request disables duplicates and keeps expected status', () async {
+    final api = _Api()..pendingStatus = Completer<Response>();
+    final kitchen = acceptedMeal(api);
+    final first = kitchen.updateOrderStatus(8, 'done');
+    expect(kitchen.isOrderBusy(8), isTrue);
+    expect(await kitchen.updateOrderStatus(8, 'done'), '正在处理这一餐，请稍候');
+    expect(api.statusCalls, 1);
+    expect(api.lastStatusExtra?['expected_status'], 'accepted');
+    api.pendingStatus!.complete(await api.response({}));
+    expect(await first, isNull);
+    expect(kitchen.isOrderBusy(8), isFalse);
+    expect(kitchen.incoming.single.status, 'done');
+  });
+
+  Future<void> showMeal(WidgetTester tester, KitchenProvider kitchen, {bool large = false}) async {
+    tester.view.physicalSize = const Size(720, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider<KitchenProvider>.value(value: kitchen),
+        ChangeNotifierProvider(create: (_) => MapPrefsProvider()),
+      ],
+      child: MaterialApp(theme: LoveGirlTheme.lightTheme,
+        builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(large ? 1.4 : 1)), child: child!),
+        home: const KitchenOrdersScreen()),
+    ));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('accepted meal has visible undo and can finish without uploading a photo', (tester) async {
+    final api = _Api();
+    final kitchen = acceptedMeal(api);
+    await showMeal(tester, kitchen, large: true);
+    expect(find.text('撤销接单'), findsOneWidget);
+    await tester.tap(find.text('开饭了'));
+    await tester.pumpAndSettle();
+    expect(find.text('确认开饭'), findsOneWidget);
+    await tester.tap(find.text('确认开饭'));
+    await tester.pumpAndSettle();
+    expect(api.statusCalls, 1);
+    expect(api.uploadCalls, 0);
+    expect(kitchen.incoming.single.status, 'done');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('failed meal completion retains the confirmation sheet and can retry', (tester) async {
+    final api = _Api()..statusFails = true;
+    final kitchen = acceptedMeal(api);
+    await showMeal(tester, kitchen);
+    await tester.tap(find.text('开饭了'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认开饭'));
+    await tester.pumpAndSettle();
+    expect(find.text('开饭了，留下这一餐'), findsOneWidget);
+    expect(kitchen.incoming.single.status, 'accepted');
+    expect(kitchen.isOrderBusy(8), isFalse);
+    api.statusFails = false;
+    await tester.tap(find.text('确认开饭'));
+    await tester.pumpAndSettle();
+    expect(api.statusCalls, 2);
+    expect(kitchen.incoming.single.status, 'done');
+    expect(find.text('开饭了，留下这一餐'), findsNothing);
+  });
+
+  testWidgets('undo changes the accepted meal back to waiting without a hidden drag timer', (tester) async {
+    final api = _Api();
+    final kitchen = acceptedMeal(api);
+    await showMeal(tester, kitchen);
+    await tester.tap(find.text('撤销接单'));
+    await tester.pumpAndSettle();
+    expect(kitchen.incoming.single.status, 'placed');
+    expect(find.text('接下这一餐'), findsOneWidget);
+    expect(api.lastStatusExtra?['expected_status'], 'accepted');
+  });
 
   test(
       'a non-network exception returns a retryable error and preserves selection',

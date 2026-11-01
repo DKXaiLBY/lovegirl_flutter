@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
@@ -1447,7 +1446,7 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kitchen = context.read<KitchenProvider>();
+    final kitchen = context.watch<KitchenProvider>();
     // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
     return LovePaper(
       padding: const EdgeInsets.all(14),
@@ -1496,29 +1495,30 @@ class _OrderCard extends StatelessWidget {
                     fontSize: 12, color: context.lgTextSecondary)),
           ],
           SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text('合计 ¥${order.totalPrice}',
                   style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       color: context.lgTextPrimary)),
-              Spacer(),
               if (isIncoming && order.status == 'placed')
-                _AcceptWithUndo(orderId: order.id),
+                _MealStatusButton(orderId: order.id, status: 'accepted', text: '接下这一餐'),
               if (isIncoming && order.status == 'accepted')
-                GestureDetector(
-                  onTap: () => _showFulfillSheet(context, order.id),
-                  child: LovePill(
-                    text: '完成并拍照',
-                    icon: Icons.camera_alt_rounded,
-                    color: LoveGirlTheme.secondary,
-                    background: context.lgSecondarySoft,
+                Wrap(children: [
+                  _MealStatusButton(orderId: order.id, status: 'placed', text: '撤销接单'),
+                  TextButton(
+                    style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                    onPressed: kitchen.isOrderBusy(order.id) ? null : () => _showFulfillSheet(context, order.id),
+                    child: const Text('开饭了'),
                   ),
-                ),
+                ]),
               if (!isIncoming && order.isActive)
                 GestureDetector(
-                  onTap: () async {
+                  onTap: kitchen.isOrderBusy(order.id) ? null : () async {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (dCtx) => AlertDialog(
@@ -1551,12 +1551,14 @@ class _OrderCard extends StatelessWidget {
                       }
                     }
                   },
-                  child: LovePill(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+                    child: Center(widthFactor: 1, child: LovePill(
                     text: '取消订单',
                     icon: Icons.close_rounded,
                     color: context.lgTextMuted,
                     background: context.lgSeparator,
-                  ),
+                  ))),
                 ),
             ],
           ),
@@ -1587,31 +1589,36 @@ class _FulfillSheet extends StatefulWidget {
 
 class _FulfillSheetState extends State<_FulfillSheet> {
   XFile? _photo;
+  String? _uploadedUrl;
   bool _working = false;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pick(ImageSource source) async {
+    if (_working) return;
     final xFile = await _picker.pickImage(
         source: source, maxWidth: 1600, imageQuality: 85);
-    if (xFile == null) return;
-    setState(() => _photo = xFile);
+    if (!mounted || xFile == null) return;
+    setState(() { _photo = xFile; _uploadedUrl = null; });
   }
 
   Future<void> _submit() async {
-    if (_photo == null) return;
+    if (_working) return;
     setState(() => _working = true);
     final kitchen = context.read<KitchenProvider>();
-    final (url, uploadErr) = await kitchen.uploadPhoto(_photo!.path);
-    if (!mounted) return;
-    if (uploadErr != null || url == null) {
-      setState(() => _working = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(uploadErr ?? '上传失败，再试一次'),
-          behavior: SnackBarBehavior.floating));
-      return;
+    if (_photo != null && _uploadedUrl == null) {
+      final (url, uploadErr) = await kitchen.uploadPhoto(_photo!.path);
+      if (!mounted) return;
+      if (uploadErr != null || url == null) {
+        setState(() => _working = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(uploadErr ?? '上传失败，再试一次'),
+            behavior: SnackBarBehavior.floating));
+        return;
+      }
+      _uploadedUrl = url;
     }
     final err = await kitchen
-        .updateOrderStatus(widget.orderId, 'done', extra: {'photo_url': url});
+        .updateOrderStatus(widget.orderId, 'done', extra: {'photo_url': _uploadedUrl});
     if (!mounted) return;
     setState(() => _working = false);
     if (err == null) Navigator.of(context).pop();
@@ -1642,13 +1649,13 @@ class _FulfillSheetState extends State<_FulfillSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            Text('菜做好了？拍张成品照',
+            Text('开饭了，留下这一餐',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: context.lgTextPrimary)),
             const SizedBox(height: 4),
-            Text('照片会成为这单的投喂小票和回忆素材',
+            Text('可以拍照留念，也可以直接完成。照片不是必填项。',
                 style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
             const SizedBox(height: 14),
             Row(
@@ -1687,8 +1694,8 @@ class _FulfillSheetState extends State<_FulfillSheet> {
             SizedBox(
               width: double.infinity,
               child: LovePrimaryButton(
-                text: _working ? '上传中…' : '完成这单',
-                onPressed: (_working || _photo == null) ? null : _submit,
+                text: _working ? '保存中…' : '确认开饭',
+                onPressed: _working ? null : _submit,
               ),
             ),
           ],
@@ -1698,98 +1705,28 @@ class _FulfillSheetState extends State<_FulfillSheet> {
   }
 }
 
-/// 接单（可撤销）：接单成功后 3 秒内出现撤销钮，跟手拖动松手判定
-class _AcceptWithUndo extends StatefulWidget {
+/// One explicit action per state; the accepted row keeps its undo action visible.
+class _MealStatusButton extends StatelessWidget {
   final int orderId;
-  const _AcceptWithUndo({required this.orderId});
-
-  @override
-  State<_AcceptWithUndo> createState() => _AcceptWithUndoState();
-}
-
-class _AcceptWithUndoState extends State<_AcceptWithUndo> {
-  bool _accepted = false;
-  Timer? _undoTimer;
-  double _dragOffset = -80;
-
-  @override
-  void dispose() {
-    _undoTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _accept() async {
-    final kitchen = context.read<KitchenProvider>();
-    final err = await kitchen.updateOrderStatus(widget.orderId, 'accepted');
-    if (!mounted) return;
-    if (err == null) {
-      HapticFeedback.mediumImpact();
-      setState(() => _accepted = true);
-      _undoTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _dragOffset = -80);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('已接单，3 秒内可撤销'),
-          behavior: SnackBarBehavior.floating));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(err), behavior: SnackBarBehavior.floating));
-    }
-  }
+  final String status;
+  final String text;
+  const _MealStatusButton({required this.orderId, required this.status, required this.text});
 
   @override
   Widget build(BuildContext context) {
-    final kitchen = context.read<KitchenProvider>();
-    if (!_accepted) {
-      return GestureDetector(
-        onTap: _accept,
-        child: LovePill(
-          text: '接单',
-          icon: Icons.check_rounded,
-          color: context.lgInk,
-          background: context.lgPrimarySoft,
-        ),
-      );
-    }
-    return GestureDetector(
-      onHorizontalDragUpdate: (d) => setState(
-          () => _dragOffset = (_dragOffset + d.delta.dx).clamp(-80.0, 0.0)),
-      onHorizontalDragEnd: (d) async {
-        final undo = _dragOffset > -40;
-        setState(() => _dragOffset = -80);
-        _undoTimer?.cancel();
-        if (undo) {
-          final err =
-              await kitchen.updateOrderStatus(widget.orderId, 'placed');
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(err ?? '已撤销接单'),
-                behavior: SnackBarBehavior.floating));
-          }
-        }
+    final kitchen = context.watch<KitchenProvider>();
+    return TextButton(
+      style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+      onPressed: kitchen.isOrderBusy(orderId) ? null : () async {
+        final error = await kitchen.updateOrderStatus(orderId, status);
+        if (!context.mounted) return;
+        if (error == null) HapticFeedback.selectionClick();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(error ?? (status == 'accepted' ? '已接下这一餐' : '已撤销接单，可以重新商量')),
+          behavior: SnackBarBehavior.floating,
+        ));
       },
-      child: Transform.translate(
-        offset: Offset(_dragOffset + 80, 0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: context.lgSecondarySoft,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.undo_rounded, size: 14, color: LoveGirlTheme.secondary),
-              const SizedBox(width: 4),
-              Text('撤销',
-                  style: TextStyle(
-                      color: LoveGirlTheme.secondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      ),
+      child: Text(kitchen.isOrderBusy(orderId) ? '处理中…' : text),
     );
   }
 }

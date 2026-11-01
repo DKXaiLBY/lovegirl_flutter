@@ -1,0 +1,23 @@
+{
+  "status": "awaiting guarded native check",
+  "scope": "first kitchen state fixes, not the complete menu redesign",
+  "apk": {
+    "name": "qa-kitchen-status-187.apk",
+    "bytes": 63655284,
+    "sha256": "7b2316124e2dfdcaed77878bf687ddba2893a16a3d74c587be88597b4e80d94f",
+    "internalOnly": true,
+    "api": "http://127.0.0.1:3002",
+    "versionCode": 187
+  },
+  "source": {
+    "lib/screens/kitchen/kitchen_screen.dart": "af5b8d280db1440f7065529100dc867cf336595458689065434e5ae31c926c0f",
+    "lib/providers/kitchen_provider.dart": "e1f6e45e9e0720fc4d32764746ee31afca79ae6ebbd82f7c93dd7237c931bcbc",
+    "server_fixes/kitchen.js": "9c021038f718dfa5993f0206f8b9eb384ee19d69bd9533004ec230c53e196db0",
+    "server_fixes/tests/active_routes_retirement.test.js": "d276229c5ffa78605b050ea5ebd506a48075b80cf171179c133663864bc77fbc",
+    "test/kitchen_submission_test.dart": "8e9865999dc3a46a7faa1dc3a64f73a4d11e9ca35450bc71a1ca64e64c531503"
+  },
+  "phoneControl": "paused after unexpected system StatusBar; user question pending",
+  "flutterTests": 211,
+  "analyzeIssues": 0,
+  "nodeTests": 30
+}
