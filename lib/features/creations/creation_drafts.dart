@@ -130,6 +130,19 @@ class CreationDrafts {
   Future<void> delete(String id) async {
     await _writes.catchError((Object _) {});
     final folder = await directory(id);
-    if (await folder.exists()) await folder.delete(recursive: true);
+    for (var attempt = 0;; attempt++) {
+      try {
+        if (await folder.exists()) await folder.delete(recursive: true);
+        return;
+      } on FileSystemException catch (error) {
+        // Windows may defer a just-deleted child while releasing a file handle.
+        if (!Platform.isWindows ||
+            error.osError?.errorCode != 145 ||
+            attempt == 4) {
+          rethrow;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
   }
 }

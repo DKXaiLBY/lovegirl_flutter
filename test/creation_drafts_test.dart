@@ -168,6 +168,20 @@ void main() {
     expect(await store.list(), isEmpty);
   });
 
+  test('consecutive draft deletes wait for all queued saves and remove owned files', () async {
+    final source = await File('${root.path}/source.jpg').writeAsBytes([1]);
+    final store = CreationDrafts(33, root: root);
+    for (var index = 0; index < 10; index++) {
+      final draft = await store.create(document, [source.path]);
+      final first = store.save(draft.copyWith(document: document.copyWith(title: 'first-$index')));
+      final second = store.save(draft.copyWith(document: document.copyWith(title: 'second-$index')));
+      await store.delete(draft.id);
+      await Future.wait([first, second]);
+      expect(await (await store.directory(draft.id)).exists(), isFalse);
+      expect(await store.list(), isEmpty);
+    }
+  });
+
   test('catalog has twenty paper materials, eight layouts and twelve looks',
       () {
     expect(paperTemplates.map((value) => value.id).toSet().length, 20);
