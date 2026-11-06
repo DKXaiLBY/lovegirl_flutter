@@ -1,0 +1,26 @@
+{
+  "fontScale": "1.15",
+  "switches": [
+    {
+      "class": "android.widget.Switch",
+      "checked": "true",
+      "bounds": "[534,716][654,812]"
+    },
+    {
+      "class": "android.widget.Switch",
+      "checked": "false",
+      "bounds": "[534,860][654,956]"
+    },
+    {
+      "class": "android.widget.Switch",
+      "checked": "true",
+      "bounds": "[534,1320][654,1416]"
+    },
+    {
+      "class": "android.widget.Switch",
+      "checked": "true",
+      "bounds": "[534,1464][654,1552]"
+    }
+  ],
+  "observedAppMode": "light"
+}

@@ -1,0 +1,11 @@
+{
+  "orderId": 4,
+  "qaContainerOnlyStoppedAndRestored": true,
+  "failedCompletionRetainsAcceptedOrder": true,
+  "productionProcessUnchanged": true,
+  "screenshot": "kitchen-grid-01-completion-failed.png",
+  "retryCompletedOnHonor": true,
+  "noPhotoOnCompletedOrder": true,
+  "orderStatusAfterRetry": "done",
+  "beansAwardedAfterRetry": false
+}

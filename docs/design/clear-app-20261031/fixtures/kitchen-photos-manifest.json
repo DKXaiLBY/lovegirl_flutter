@@ -1,0 +1,49 @@
+{
+  "kind": "generated photographic QA fixtures; not APK assets or production records",
+  "tool": "built-in image_gen",
+  "reference": "../08-kitchen-menu.png",
+  "promptSet": {
+    "base": "Square natural food photograph, a speckled ceramic bowl centered on a wooden dining table with soft window daylight, 35mm at 40 degrees downward, rice and glass blurred behind. No text, UI, border or watermark. Subject within central 80 percent for crop.",
+    "subjects": [
+      "番茄炒蛋",
+      "青椒炒肉",
+      "清炒时蔬",
+      "紫菜蛋花汤"
+    ],
+    "tomatoEdit": "Reframe existing kitchen_cover around tomato-and-egg bowl, remove the second vegetable plate; preserve food textures, light and table. Original cover unchanged."
+  },
+  "assets": [
+    {
+      "file": "kitchen-tomato-egg.png",
+      "sourceFilename": "exec-9ff5b31a-e40a-4cd9-8eb4-3977eac9eca3.png",
+      "dish": "番茄炒蛋",
+      "sha256": "3fbc0b9a17ffb381ab77c1af5bfff301362e9aeeec5f282165feba7371ce732a",
+      "bytes": 2253879,
+      "prompt": "Use case: precise-object-edit, a separate non-destructive QA photograph. Reframe this photo into one square food photograph focused entirely on the tomato-and-egg stir fry bowl. Put the tomato-and-egg bowl in the center, the entire rim visible and filling 85 percent of the square image. Remove the plate of green vegetables from the composition. Retain the authentic homemade tomato and egg textures, speckled ceramic, wood table and soft window daylight of the source. Rice bowl and water glass only softly blurred in the far background. No lettering, UI, frame, collage or watermarks. This is photographic content only, not an app screenshot."
+    },
+    {
+      "file": "kitchen-pepper-pork.png",
+      "sourceFilename": "exec-2205327e-46f6-42c3-a491-8f0cff31cfbf.png",
+      "dish": "青椒炒肉",
+      "sha256": "91a1658b97aa3e381e8a5e2c721dc4c28f2429b2f90dc000e1e10ef3ba13a59e",
+      "bytes": 2550787,
+      "prompt": "Use case: photorealistic-natural. Generate one standalone square editorial food photograph for an isolated mobile-app UI acceptance fixture. Subject: green bell pepper and pork stir-fry, thin tender browned pork slices with bright green pepper pieces in a low speckled ceramic bowl. Warm daylight from an adjacent window, wooden dining table, shallow depth of field, 35mm food photography at a 40 degree downward angle, realistic homemade food texture, ceramic bowl fills most of the image with the entire bowl rim visible, rice bowl and glass subtly blurred in background. Natural inviting colors, restrained highlights, authentic small home kitchen table, no oversaturated commercial gloss. Only the photograph: no lettering, no UI, no frame, no collage, no watermark. Keep the main dish inside the central 80 percent for cropping."
+    },
+    {
+      "file": "kitchen-greens.png",
+      "sourceFilename": "exec-13045245-9511-44e5-8537-883b68d0e751.png",
+      "dish": "清炒时蔬",
+      "sha256": "6946146c7baade1677cdd048d10289753a7499f98811a0757f4aadce278439c4",
+      "bytes": 2556023,
+      "prompt": "Use case: photorealistic-natural. Generate one standalone square editorial food photograph for an isolated mobile-app UI acceptance fixture. Subject: Chinese stir-fried leafy greens, glossy fresh green bok choy leaves with a few thin slices of garlic in a low speckled ceramic bowl. Warm daylight from an adjacent window, wooden dining table, shallow depth of field, 35mm food photography at a 40 degree downward angle, realistic homemade food texture, ceramic bowl fills most of the image with the entire bowl rim visible, rice bowl and glass subtly blurred in background. Natural inviting colors, restrained highlights, authentic small home kitchen table, no oversaturated commercial gloss. Only the photograph: no lettering, no UI, no frame, no collage, no watermark. Keep the main dish inside the central 80 percent for cropping."
+    },
+    {
+      "file": "kitchen-egg-soup.png",
+      "sourceFilename": "exec-97ec6e59-89fd-49f8-b5e9-e3f8bb7bc864.png",
+      "dish": "紫菜蛋花汤",
+      "sha256": "8fbc35930843f7803155fc2b36bbafa593c7b6aa8be9f6059ecc0aa922886179",
+      "bytes": 2427289,
+      "prompt": "Use case: photorealistic-natural. Generate one standalone square editorial food photograph for an isolated mobile-app UI acceptance fixture. Subject: Chinese seaweed egg drop soup, translucent golden broth with delicate egg ribbons and a little seaweed and scallions in a round speckled ceramic bowl. Warm daylight from an adjacent window, wooden dining table, shallow depth of field, 35mm food photography at a 40 degree downward angle, realistic homemade food texture, ceramic bowl fills most of the image with the entire bowl rim visible, rice bowl and glass subtly blurred in background. Natural inviting colors, restrained highlights, authentic small home kitchen table, no oversaturated commercial gloss. Only the photograph: no lettering, no UI, no frame, no collage, no watermark. Keep the main dish inside the central 80 percent for cropping."
+    }
+  ]
+}

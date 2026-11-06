@@ -1,0 +1,15 @@
+{
+  "fontScale": "1.15",
+  "appMode": "light",
+  "restored": true,
+  "switches": [
+    {
+      "checked": "true",
+      "bounds": "[534,716][654,812]"
+    },
+    {
+      "checked": "false",
+      "bounds": "[534,860][654,956]"
+    }
+  ]
+}

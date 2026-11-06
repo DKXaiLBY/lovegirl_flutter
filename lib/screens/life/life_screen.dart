@@ -351,9 +351,9 @@ class _LifeScreenState extends State<LifeScreen> {
                                   iconColor: Colors.white,
                                   minimumSize: const Size(48, 50)),
                               onPressed: () =>
-                                  _open(const KitchenScreen(initialTab: 1)),
+                                  _open(const KitchenMenuManagementScreen()),
                               icon: const Icon(Icons.menu_book_outlined),
-                              label: const Text('看菜单'))),
+                              label: const Text('我的菜单'))),
                     ]))),
           ])));
 

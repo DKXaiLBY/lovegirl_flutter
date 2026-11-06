@@ -1,0 +1,26 @@
+[
+  {
+    "dishId": 10,
+    "status": 200,
+    "bytes": "2253879",
+    "type": "image/png"
+  },
+  {
+    "dishId": 12,
+    "status": 200,
+    "bytes": "2550787",
+    "type": "image/png"
+  },
+  {
+    "dishId": 13,
+    "status": 200,
+    "bytes": "2556023",
+    "type": "image/png"
+  },
+  {
+    "dishId": 14,
+    "status": 200,
+    "bytes": "2427289",
+    "type": "image/png"
+  }
+]

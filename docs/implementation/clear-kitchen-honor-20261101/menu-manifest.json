@@ -1,0 +1,232 @@
+{
+  "status": "partial native acceptance; full kitchen workflow and visual acceptance pending",
+  "archivedAt": "2026-11-06",
+  "references": [
+    "../../design/clear-app-20261031/08-kitchen-menu.png"
+  ],
+  "candidate01": {
+    "candidate": "qa-kitchen-grid-01",
+    "status": "installed, native verification ongoing",
+    "apk": {
+      "file": "qa-kitchen-grid-01-187.apk",
+      "bytes": 63662188,
+      "sha256": "a77c6c5acaf94bafa49216977892f2b3edc41f456b540a9d9babf006eaad089f",
+      "internalOnly": true,
+      "api": "http://127.0.0.1:3002",
+      "versionCode": 187
+    },
+    "source": {
+      "lib/main.dart": "747ee978414dbfef848bc55e1dc32e8974a837f86be501714e2843ecbd9c7da0",
+      "lib/providers/kitchen_provider.dart": "6f30caddd503cccb7792c5d57f3113286bb4cceec17cb158ff1e29442439d85b",
+      "lib/screens/kitchen/kitchen_screen.dart": "638927250333549b9c0dc8248c7dcc348f261c231e26aec48c8f12e6429af9b3",
+      "lib/screens/kitchen/kitchen_menu_grid.dart": "486b395091694f12b4c173ead096f252c846777f057ab5da810a9776806c7ecc",
+      "lib/screens/life/life_screen.dart": "267550e885606daf66fdec933f7b9cd8e8951c0b1bb581a99084e9b4983b7c17",
+      "lib/widgets/rebuild_controls.dart": "7d8c53efffb5586e1bd785388db5ccf78cac6fd7d0e27d86d8d3b8ed206e4e50"
+    },
+    "flutterTests": 224,
+    "analyzeIssues": 0,
+    "reference": "docs/design/clear-app-20261031/08-kitchen-menu.png",
+    "screenshots": []
+  },
+  "candidate02": {
+    "candidate": "qa-kitchen-grid-02",
+    "status": "built; native check ongoing",
+    "apk": {
+      "file": "qa-kitchen-grid-02-187.apk",
+      "bytes": 63659281,
+      "sha256": "3a6f2a464a28c8a9bd5a45e0d39e6e9b713ffe3ac9cb041d62907c3529bca7a8",
+      "internalOnly": true,
+      "api": "http://127.0.0.1:3002",
+      "versionCode": 187
+    },
+    "source": {
+      "lib/main.dart": "747ee978414dbfef848bc55e1dc32e8974a837f86be501714e2843ecbd9c7da0",
+      "lib/providers/kitchen_provider.dart": "6f30caddd503cccb7792c5d57f3113286bb4cceec17cb158ff1e29442439d85b",
+      "lib/screens/kitchen/kitchen_screen.dart": "c4de23df76fb07b72a9cc52172cba6d73a120efefbc3cc64b6c58ae1da5f7727",
+      "lib/screens/kitchen/kitchen_menu_grid.dart": "3e0a8a9032f51f44b55989466b56b80c494eaee1c3af41205bb76b66d77a76d1",
+      "lib/screens/life/life_screen.dart": "267550e885606daf66fdec933f7b9cd8e8951c0b1bb581a99084e9b4983b7c17",
+      "lib/widgets/rebuild_controls.dart": "7d8c53efffb5586e1bd785388db5ccf78cac6fd7d0e27d86d8d3b8ed206e4e50",
+      "lib/features/creations/creation_drafts.dart": "95bc060caf2c8a255e9150db8787058ec953d86762a7bdefc23e69e9bba68c92"
+    },
+    "flutterTests": 226,
+    "analyzeIssues": 0,
+    "reference": "docs/design/clear-app-20261031/08-kitchen-menu.png",
+    "screenshots": []
+  },
+  "screenshots": [
+    {
+      "file": "menu-01.png",
+      "sourceFilename": "kitchen-grid-01-menu.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:17:05.317316+00:00",
+      "sha256": "22f38f05fe2afc701b01990aa3531c1d1613d146f55b1a76c480319955b849a8"
+    },
+    {
+      "file": "current-meal-01.png",
+      "sourceFilename": "kitchen-grid-01-current-meal.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:19:26.291031+00:00",
+      "sha256": "52008ef7d35620faba98e2f9ff1bd2eb802acf8e65a268022633d673ea8740c1"
+    },
+    {
+      "file": "undo-01.png",
+      "sourceFilename": "kitchen-grid-01-undo.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:19:41.219382+00:00",
+      "sha256": "2849f278f35185abde2bebd11a45411c864ed9c916ffa3ce632ac55607e98c54"
+    },
+    {
+      "file": "optional-photo-01.png",
+      "sourceFilename": "kitchen-grid-01-optional-photo.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:20:04.773015+00:00",
+      "sha256": "3eb5e80aad006f7db2ad321bbdd8d108c0fe64ae716112296add3d26fa8adc8e"
+    },
+    {
+      "file": "failed-completion-01.png",
+      "sourceFilename": "kitchen-grid-01-completion-failed.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:21:10.622686+00:00",
+      "sha256": "9433f73eb82daa91d7c483800314a2944972e57cc565be131b63291d61d14a48"
+    },
+    {
+      "file": "completed-01.png",
+      "sourceFilename": "kitchen-grid-01-completed.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:22:14.221921+00:00",
+      "sha256": "21bde590825a025f79d7c2c46eeae530fc61a8338d807da0a0dda38cda5edbf6"
+    },
+    {
+      "file": "history-01.png",
+      "sourceFilename": "kitchen-grid-01-history.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:22:49.189183+00:00",
+      "sha256": "8ea207acc006eb7feaf7b4dc4e6f0f594e477d44b0740b3b2fc9af7a1b3bf649"
+    },
+    {
+      "file": "girl-menu-01.png",
+      "sourceFilename": "kitchen-grid-01-girl-menu.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:34:24.578007+00:00",
+      "sha256": "025e18dad71bebed49d47edaee9c982fbef930cc6770bc9c3191e1426fabe676"
+    },
+    {
+      "file": "girl-own-menu-01.png",
+      "sourceFilename": "kitchen-grid-01-girl-own-menu.png",
+      "candidate": "01",
+      "collectedAtUTC": "2026-11-01T05:34:47.219278+00:00",
+      "sha256": "f75e07e3acaafe045b77fe5240e9e6bb1abd9e442d9237ea6eeb533fd7fe4b1b"
+    },
+    {
+      "file": "menu-02.png",
+      "sourceFilename": "kitchen-grid-02-menu.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:40:05.413649+00:00",
+      "sha256": "8824b1a2358b64e7c802feef13f6f4ac6f122fc1c6c0b41d40dae47c215c6b81"
+    },
+    {
+      "file": "selected-two-02.png",
+      "sourceFilename": "kitchen-grid-02-selected-two.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:43:24.685556+00:00",
+      "sha256": "c48f3724f5e58258e938fe87de715953dd3df528d00878b10404acb38f8c7741"
+    },
+    {
+      "file": "selected-two-scrolled-02.png",
+      "sourceFilename": "kitchen-grid-02-selected-two-scrolled.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:43:17.126524+00:00",
+      "sha256": "c8e53dd6c402bbe5149627ef3bfa9ef109f17e69214518416d7bdfb14265aafb"
+    },
+    {
+      "file": "detail-02.png",
+      "sourceFilename": "kitchen-grid-02-detail.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:43:38.671243+00:00",
+      "sha256": "10b6422b08a16d6f3f34117bbf7bc21c4c5db6e3a5da75eba1b070ef5d5813b1"
+    },
+    {
+      "file": "search-keyboard-02.png",
+      "sourceFilename": "kitchen-grid-02-search-keyboard.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:44:09.663010+00:00",
+      "sha256": "2ca7ffd69cbe325b92404089f6fe5080b6acb1c7978c4b79070c6e6ec6cc91e8"
+    },
+    {
+      "file": "search-empty-02.png",
+      "sourceFilename": "kitchen-grid-02-search-empty.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:44:26.122316+00:00",
+      "sha256": "ad65b61f5a09e5b0aa6b3349a9680c0e08503f34d5c6677f805749d894e28c57"
+    },
+    {
+      "file": "search-return-02.png",
+      "sourceFilename": "kitchen-grid-02-search-return.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:44:48.726691+00:00",
+      "sha256": "292ed2018700f67b81c93cbb956335778644b2da9b768a0077d42fb7c2c056a9"
+    },
+    {
+      "file": "history-02.png",
+      "sourceFilename": "kitchen-grid-02-history.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-01T05:45:02.918959+00:00",
+      "sha256": "5997c4f8960dc6d6eae0d0c286aad33f31cd09f9a0fd15b49411330b66db3b11"
+    },
+    {
+      "file": "dark-loading-02-20261106.png",
+      "sourceFilename": "kitchen-grid-02-dark-menu-20261106.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-06T14:43:52.783368+00:00",
+      "sha256": "d1b43a5787cbc5cafe0103ca3a3d40f5521c3ded8353e12f676c8e6fe66be088"
+    },
+    {
+      "file": "dark-large-initial-02-20261106.png",
+      "sourceFilename": "kitchen-grid-02-dark-large-20261106.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-06T14:44:43.257885+00:00",
+      "sha256": "792fb379e68a4a577511aa0848dadf68a2a74fc8662f15ac8af93fd7cc779c3b"
+    },
+    {
+      "file": "dark-large-scrolled-02-20261106.png",
+      "sourceFilename": "kitchen-grid-02-dark-large-loaded-20261106.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-06T14:50:03.125396+00:00",
+      "sha256": "e490489b107a90f734cbcae3d40e8733e6adfc56909ff319f013b270bbf18a7f"
+    },
+    {
+      "file": "light-restored-02-20261106.png",
+      "sourceFilename": "kitchen-grid-02-light-restored-20261106.png",
+      "candidate": "02",
+      "collectedAtUTC": "2026-11-06T15:10:43.144160+00:00",
+      "sha256": "7a732afffe9c3a1eeefdc32fadcf41a3c6ae03d46de2c94b5d2d24d1ef258e1b"
+    }
+  ],
+  "performanceBoundary": "native interaction observations only; no full FPS measurement",
+  "physicalDeviceCount": 1,
+  "sessions": "ordinary boy/girl QA logins, not two physical devices",
+  "pending": [
+    "dark and larger type native checks",
+    "full editable meal workflow and chef selection",
+    "ingredients and recipes persistence",
+    "kitchen to food-journal unique linkage",
+    "full-app visual and release acceptance"
+  ],
+  "currentVerification": {
+    "date": "2026-11-06",
+    "installedApkMatchesCandidate02": true,
+    "sourceFilesMatchCandidate02": true,
+    "qaRoutesUnchangedFromOriginalLiveSnapshot": 10,
+    "darkLayoutObserved": true,
+    "largeTypeLayoutObserved": true,
+    "largeTypeFullInteractionPending": true,
+    "phoneControl": "resumed after user confirmation; original display settings restored",
+    "restoreRequired": false,
+    "loadingFeedbackPending": true,
+    "displayRestored": {
+      "appMode": "light",
+      "fontScale": "1.15"
+    },
+    "unexplainedScroll": "user reports no manual action; cause not established, retained for controlled reproduction"
+  }
+}

@@ -154,6 +154,7 @@ class KitchenProvider extends ChangeNotifier {
     outgoing = [];
     incomingNew = outgoingActive = 0;
     loading = ordersLoading = placingOrder = false;
+    menuLoaded = ordersLoaded = false;
     menuError = ordersError = null;
     cart.clear();
     _updatingOrders.clear();
@@ -178,6 +179,8 @@ class KitchenProvider extends ChangeNotifier {
 
   bool loading = false;
   bool ordersLoading = false;
+  bool menuLoaded = false;
+  bool ordersLoaded = false;
   bool placingOrder = false;
   final Set<int> _updatingOrders = {};
   bool isOrderBusy(int id) => _updatingOrders.contains(id);
@@ -218,7 +221,7 @@ class KitchenProvider extends ChangeNotifier {
   Future<void> loadMenu({bool silent = false}) async {
     final session = _session;
     final request = ++_menuRequest;
-    if (!silent) {
+    if (!silent || !menuLoaded) {
       loading = true;
       notifyListeners();
     }
@@ -243,6 +246,7 @@ class KitchenProvider extends ChangeNotifier {
       // 清掉购物车里已下架的菜
       cart.removeWhere((id, _) => partnerDishes.every((d) => d.id != id));
       menuError = null;
+      menuLoaded = true;
     } catch (e) {
       if (!_current(session) || request != _menuRequest) return;
       menuError = _serverMessage(e) ?? '菜单加载失败，请稍后再试';
@@ -255,7 +259,7 @@ class KitchenProvider extends ChangeNotifier {
   Future<void> loadOrders({bool silent = false}) async {
     final session = _session;
     final request = ++_ordersRequest;
-    if (!silent) {
+    if (!silent || !ordersLoaded) {
       ordersLoading = true;
       notifyListeners();
     }
@@ -275,6 +279,7 @@ class KitchenProvider extends ChangeNotifier {
               .toList(growable: false)
           : [];
       ordersError = null;
+      ordersLoaded = true;
     } catch (e) {
       if (!_current(session) || request != _ordersRequest) return;
       ordersError = _serverMessage(e) ?? '订单加载失败，请稍后再试';
@@ -311,6 +316,7 @@ class KitchenProvider extends ChangeNotifier {
 
   // ---------- 购物车 ----------
   void addToCart(int dishId) {
+    if ((cart[dishId] ?? 0) >= 9 || placingOrder) return;
     cart[dishId] = (cart[dishId] ?? 0) + 1;
     notifyListeners();
   }

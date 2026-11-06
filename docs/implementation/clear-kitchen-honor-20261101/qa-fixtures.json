@@ -1,0 +1,70 @@
+{
+  "database": "lovegirl_clear_qa_20261031",
+  "purpose": "controlled visual fixtures, not production data",
+  "status": "ready",
+  "originalDish10": {
+    "id": 10,
+    "user_id": 100002,
+    "name": "番茄炒蛋",
+    "category": "家常菜",
+    "emoji": "🍳",
+    "photo_url": "/uploads/kitchen/1793394490801_739372ec.png",
+    "price": 0,
+    "description": "隔离视觉测试示例",
+    "is_active": true
+  },
+  "resources": [
+    {
+      "kind": "upload",
+      "file": "kitchen-tomato-egg.png",
+      "url": "/uploads/kitchen/1793510010002_cb9b1fd3.png"
+    },
+    {
+      "kind": "dish",
+      "id": 10,
+      "name": "番茄炒蛋",
+      "created": false
+    },
+    {
+      "kind": "upload",
+      "file": "kitchen-pepper-pork.png",
+      "url": "/uploads/kitchen/1793510010650_6d6a7776.png"
+    },
+    {
+      "kind": "dish",
+      "id": 12,
+      "name": "青椒炒肉",
+      "created": true
+    },
+    {
+      "kind": "upload",
+      "file": "kitchen-greens.png",
+      "url": "/uploads/kitchen/1793510012179_63fa06d4.png"
+    },
+    {
+      "kind": "dish",
+      "id": 13,
+      "name": "清炒时蔬",
+      "created": true
+    },
+    {
+      "kind": "upload",
+      "file": "kitchen-egg-soup.png",
+      "url": "/uploads/kitchen/1793510014100_123d90bf.png"
+    },
+    {
+      "kind": "dish",
+      "id": 14,
+      "name": "紫菜蛋花汤",
+      "created": true
+    }
+  ],
+  "nativeBoyAcceptedOrderId": 4,
+  "menuIdsInDisplayOrder": [
+    10,
+    12,
+    13,
+    14
+  ],
+  "productionMutations": 0
+}

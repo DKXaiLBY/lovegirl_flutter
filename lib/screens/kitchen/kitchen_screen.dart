@@ -9,13 +9,13 @@ import 'package:provider/provider.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
-import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
+import '../../widgets/rebuild_controls.dart';
+import 'kitchen_menu_grid.dart';
 
-/// 情侣厨房：TA 的菜单点菜 / 我的厨房 / 开饭记录
+/// 情侣厨房：照片菜单 / 这一餐 / 开饭记录
 class KitchenScreen extends StatelessWidget {
   final int initialTab;
   const KitchenScreen({super.key, this.initialTab = 0})
@@ -40,15 +40,13 @@ class _KitchenView extends StatefulWidget {
 
 class _KitchenViewState extends State<_KitchenView>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(
-      length: 3, initialIndex: widget.initialTab, vsync: this);
-
+  late final TabController _tab =
+      TabController(length: 3, initialIndex: widget.initialTab, vsync: this);
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<KitchenProvider>().refreshAll();
+      if (mounted) context.read<KitchenProvider>().refreshAll();
     });
   }
 
@@ -59,190 +57,221 @@ class _KitchenViewState extends State<_KitchenView>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.lgBg,
-      body: SafeArea(
-        bottom: false,
-        child: Consumer<KitchenProvider>(builder: (context, kitchen, _) {
-          return Column(
-            children: [
-              _buildHeader(context, kitchen),
-              Expanded(
-                child: kitchen.loading && kitchen.mine.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : !kitchen.bound
-                        ? _UnboundView()
-                        : Column(
-                            children: [
-                              Padding(
-                                padding:
-                                    EdgeInsets.fromLTRB(16, 4, 16, 8),
-                                child: LoveSectionTitle(
-                                    title: '今晚想吃什么？由 TA 掌勺'),
-                              ),
-                              TabBar(
-                                controller: _tab,
-                                labelColor: context.lgInk,
-                                unselectedLabelColor:
-                                    context.lgTextMuted,
-                                indicatorColor: context.lgInk,
-                                indicatorSize: TabBarIndicatorSize.label,
-                                labelStyle: const TextStyle(
-                                    fontWeight: FontWeight.w800),
-                                tabs: const [
-                                  Tab(text: '点菜单'),
-                                  Tab(text: '我的厨房'),
-                                  Tab(text: '开饭记录'),
-                                ],
-                              ),
-                              Expanded(
-                                child: TabBarView(
-                                  controller: _tab,
-                                  children: [
-                                    _MenuTab(kitchen: kitchen),
-                                    _MyKitchenTab(kitchen: kitchen),
-                                    _RecordsTab(kitchen: kitchen),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, KitchenProvider kitchen) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: AppIcon('back'),
-            color: context.lgTextPrimary,
-          ),
-          SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '情侣厨房 ❤',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                    color: context.lgTextPrimary,
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: context.lgBg,
+        body: RebuildPageBackground(
+            child: SafeArea(
+                child: Consumer<KitchenProvider>(
+          builder: (context, kitchen, _) => Column(children: [
+            _KitchenHeader(
+                title: '情侣厨房',
+                subtitle: '今晚想吃什么？',
+                onManage: () async {
+                  await Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const KitchenMenuManagementScreen()));
+                  if (mounted) await kitchen.loadMenu(silent: true);
+                }),
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: RebuildGlass(
+                  radius: 26,
+                  child: TabBar(
+                    controller: _tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: context.lgInk,
+                    unselectedLabelColor: context.lgTextMuted,
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 14),
+                    unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w400, fontSize: 14),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.all(3),
+                    indicator: BoxDecoration(
+                        color: context.lgPaper.withAlpha(190),
+                        borderRadius: BorderRadius.circular(24)),
+                    tabs: const [
+                      Tab(text: '菜单'),
+                      Tab(text: '这一餐'),
+                      Tab(text: '开饭记录')
+                    ],
                   ),
-                ),
-                Text(
-                  kitchen.bound && kitchen.partnerName != null
-                      ? '主厨：${kitchen.partnerName} · 想吃就点'
-                      : '把会做的菜挂上菜单，等 TA 来点',
-                  style: TextStyle(
-                      fontSize: 12, color: context.lgTextMuted),
-                ),
-              ],
-            ),
-          ),
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: () => _openOrders(context),
-                icon: AppIcon('ticket'),
-                color: context.lgTextPrimary,
-              ),
-              if (kitchen.incomingNew > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: LoveGirlTheme.red,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${kitchen.incomingNew}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openOrders(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => KitchenOrdersScreen()),
-    );
-  }
+                )),
+            if (kitchen.error != null)
+              Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(children: [
+                    Expanded(
+                        child: Text(kitchen.error!,
+                            style: TextStyle(
+                                fontSize: 12, color: context.lgTextSecondary))),
+                    TextButton(
+                        onPressed: () => kitchen.refreshAll(),
+                        child: const Text('重试')),
+                  ])),
+            Expanded(
+                child: TabBarView(controller: _tab, children: [
+              _MenuTab(kitchen: kitchen),
+              _CurrentMealTab(
+                  kitchen: kitchen, onMenu: () => _tab.animateTo(0)),
+              _RecordsTab(kitchen: kitchen),
+            ])),
+          ]),
+        ))),
+      );
 }
 
-// ================= 未绑定引导 =================
+class _KitchenHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback? onManage;
+  const _KitchenHeader(
+      {required this.title, required this.subtitle, this.onManage});
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        child: Row(children: [
+          RebuildGlassButton(
+              label: '返回',
+              icon: Icons.arrow_back_ios_new_rounded,
+              onPressed: () => Navigator.maybePop(context)),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Column(children: [
+            Text(title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 24, height: 1.1, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 12, height: 1.15, color: context.lgTextMuted)),
+          ])),
+          const SizedBox(width: 8),
+          if (onManage != null)
+            RebuildGlassButton(
+                label: '管理我的菜单', icon: Icons.edit_outlined, onPressed: onManage)
+          else
+            const SizedBox(width: 48),
+        ]),
+      );
+}
 
-class _UnboundView extends StatelessWidget {
+/// Own menu remains usable before binding a partner.
+class KitchenMenuManagementScreen extends StatefulWidget {
+  const KitchenMenuManagementScreen({super.key});
+  @override
+  State<KitchenMenuManagementScreen> createState() =>
+      _KitchenMenuManagementScreenState();
+}
+
+class _KitchenMenuManagementScreenState
+    extends State<KitchenMenuManagementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<KitchenProvider>().loadMenu();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                  color: context.lgPrimarySoft, shape: BoxShape.circle),
-              child: Icon(Icons.restaurant_menu_rounded,
-                  size: 42, color: context.lgInk),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              '绑定 TA，菜单才有食客',
-              style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: context.lgTextPrimary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '情侣厨房需要先绑定伴侣\n绑定后你们可以互相挂菜单、点菜、开火',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: context.lgTextMuted),
-            ),
-            const SizedBox(height: 24),
-            LovePrimaryButton(
-              text: '去绑定伴侣',
-              onPressed: () async {
-                await Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => const CoupleBindingScreen()));
-                if (context.mounted) {
-                  context.read<KitchenProvider>().refreshAll();
-                }
-              },
-            ),
-          ],
-        ),
-      ),
+    final kitchen = context.watch<KitchenProvider>();
+    return Scaffold(
+      backgroundColor: context.lgBg,
+      body: RebuildPageBackground(
+          child: SafeArea(
+              child: Column(children: [
+        const _KitchenHeader(title: '我的菜单', subtitle: '留下自己会做的拿手菜'),
+        if (kitchen.menuError != null)
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(kitchen.menuError!,
+                  style: TextStyle(color: context.lgTextSecondary))),
+        Expanded(
+            child: kitchen.loading && !kitchen.menuLoaded
+                ? const Center(child: CircularProgressIndicator())
+                : _MyKitchenTab(kitchen: kitchen)),
+      ]))),
     );
   }
 }
 
-// ================= 点菜单（TA 的菜单） =================
+class _UnboundView extends StatelessWidget {
+  final KitchenProvider kitchen;
+  const _UnboundView({required this.kitchen});
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: RebuildGlass(
+              radius: 22,
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+              child: Row(children: [
+                const Expanded(
+                    child: Text('可以先整理自己的菜单\n绑定后一起商量每一餐',
+                        style: TextStyle(fontSize: 12))),
+                TextButton(
+                    onPressed: () async {
+                      await Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => const CoupleBindingScreen()));
+                      if (context.mounted) await kitchen.refreshAll();
+                    },
+                    child: const Text('去绑定')),
+              ]),
+            )),
+        Expanded(child: _MyKitchenTab(kitchen: kitchen)),
+      ]);
+}
+
+class _CurrentMealTab extends StatelessWidget {
+  final KitchenProvider kitchen;
+  final VoidCallback onMenu;
+  const _CurrentMealTab({required this.kitchen, required this.onMenu});
+  @override
+  Widget build(BuildContext context) {
+    if (!kitchen.ordersLoaded && kitchen.ordersError == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final orders = [...kitchen.incoming, ...kitchen.outgoing]
+        .where((o) => o.isActive)
+        .toList()
+      ..sort((a, b) => b.id.compareTo(a.id));
+    if (orders.isEmpty) {
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.restaurant_outlined,
+                      size: 40, color: context.lgTextMuted),
+                  const SizedBox(height: 12),
+                  Text(kitchen.ordersError ?? '这一餐还没安排',
+                      textAlign: TextAlign.center),
+                  TextButton(
+                      onPressed: kitchen.ordersError == null
+                          ? onMenu
+                          : () => kitchen.loadOrders(),
+                      child: Text(
+                          kitchen.ordersError == null ? '从菜单选几道菜' : '重新加载餐次')),
+                ],
+              )));
+    }
+    return RefreshIndicator(
+        onRefresh: () => kitchen.loadOrders(),
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(12),
+          itemCount: orders.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (_, i) => _OrderCard(
+              order: orders[i],
+              isIncoming: kitchen.incoming.any((o) => o.id == orders[i].id)),
+        ));
+  }
+}
 
 const List<String> _presetCategories = [
   '硬菜',
@@ -254,415 +283,35 @@ const List<String> _presetCategories = [
   '饮品',
 ];
 
-class _MenuTab extends StatefulWidget {
+class _MenuTab extends StatelessWidget {
   final KitchenProvider kitchen;
   const _MenuTab({required this.kitchen});
-
-  @override
-  State<_MenuTab> createState() => _MenuTabState();
-}
-
-class _MenuTabState extends State<_MenuTab> {
-  String _category = '全部';
-
-  List<String> get _categories {
-    final names =
-        widget.kitchen.partnerDishes.map((d) => d.category).toSet();
-    return ['全部', ..._presetCategories.where(names.contains), ...names.where((c) => !_presetCategories.contains(c))];
-  }
-
-  List<KitchenDish> get _filtered {
-    final dishes = widget.kitchen.partnerDishes;
-    if (_category == '全部') return dishes;
-    return dishes.where((d) => d.category == _category).toList(growable: false);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final dishes = _filtered;
-    return Stack(
-      children: [
-        Column(
-          children: [
-            Expanded(
-              child: dishes.isEmpty
-                  ? _MenuEmpty(partnerName: widget.kitchen.partnerName)
-                  : Row(
-                      children: [
-                        _CategoryRail(
-                          categories: _categories,
-                          selected: _category,
-                          onSelected: (c) => setState(() => _category = c),
-                        ),
-                        Expanded(
-                          child: ListView.separated(
-                            padding:
-                                EdgeInsets.fromLTRB(12, 12, 16, 96),
-                            itemCount: dishes.length,
-                            separatorBuilder: (_, __) =>
-                                SizedBox(height: 10),
-                            itemBuilder: (context, i) => StaggerIn(
-                              index: i,
-                              child: _DishCard(
-                                dish: dishes[i],
-                                onAdd: () {
-                                  widget.kitchen.addToCart(dishes[i].id);
-                                  HapticFeedback.selectionClick();
-                                },
-                                qty: widget.kitchen.cart[dishes[i].id] ?? 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ],
-        ),
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 16,
-          child: _CartBar(
-            count: widget.kitchen.cartCount,
-            total: widget.kitchen.cartTotal,
-            onOpen: widget.kitchen.cartCount > 0 ? _openCart : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _openCart() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _CartSheet(),
-    );
-  }
-}
-
-class _MenuEmpty extends StatelessWidget {
-  final String? partnerName;
-  const _MenuEmpty({this.partnerName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IllusImg('ui_kitchen', height: 120),
-          SizedBox(height: 12),
-          Text(
-            '${partnerName ?? 'TA'} 的菜单还是空的',
-            style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: context.lgTextPrimary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '提醒 TA 把会做的菜挂上来吧',
-            style: TextStyle(fontSize: 12, color: context.lgTextMuted),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryRail extends StatelessWidget {
-  final List<String> categories;
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  const _CategoryRail({
-    required this.categories,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 92,
-      color: context.lgPaperWarm,
-      child: ListView.builder(
-        itemCount: categories.length,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        itemBuilder: (context, i) {
-          final c = categories[i];
-          final active = c == selected;
-          return InkWell(
-            onTap: () => onSelected(c),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              decoration: BoxDecoration(
-                color: active ? context.lgBg : Colors.transparent,
-                border: Border(
-                  left: BorderSide(
-                    width: 3,
-                    color: active
-                        ? context.lgInk
-                        : Colors.transparent,
-                  ),
-                ),
-              ),
-              child: Text(
-                c,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w500,
-                  color: active
-                      ? context.lgInk
-                      : context.lgTextSecondary,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DishCard extends StatelessWidget {
-  final KitchenDish dish;
-  final VoidCallback onAdd;
-  final int qty;
-
-  const _DishCard({
-    required this.dish,
-    required this.onAdd,
-    required this.qty,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
-    return LovePaper(
-      padding: const EdgeInsets.all(12),
-      radius: LoveGirlTheme.radiusLg,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 64,
-              height: 64,
-              child: dish.photoUrl != null
-                  ? Image.network(
-                      kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl),
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _emojiBox(context),
-                    )
-                  : _emojiBox(context),
-            ),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dish.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: context.lgTextPrimary),
-                ),
-                if (dish.description != null &&
-                    dish.description!.isNotEmpty) ...[
-                  SizedBox(height: 3),
-                  Text(
-                    dish.description!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12, color: context.lgTextMuted),
-                  ),
-                ],
-                SizedBox(height: 6),
-                Row(
-                  children: [
-                    Text(
-                      dish.price > 0 ? '¥${dish.price}' : '心意价',
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: LoveGirlTheme.red),
-                    ),
-                    SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        '· ${dish.category}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12, color: context.lgTextMuted),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          qty > 0
-              ? Container(
-                  decoration: BoxDecoration(
-                    color: context.lgPrimarySoft,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => context
-                            .read<KitchenProvider>()
-                            .removeFromCart(dish.id),
-                        child: SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: Icon(Icons.remove_rounded,
-                              size: 16, color: context.lgInk),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 22,
-                        child: Text('$qty',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: context.lgInk)),
-                      ),
-                      GestureDetector(
-                        onTap: onAdd,
-                        child: SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: Icon(Icons.add_rounded,
-                              size: 16, color: context.lgInk),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : _AddButton(onTap: onAdd),
-        ],
-      ),
-    );
-  }
-
-  Widget _emojiBox(BuildContext context) => Container(
-        color: context.lgPrimarySoft,
-        alignment: Alignment.center,
-        child: Text(dish.emoji, style: const TextStyle(fontSize: 34)),
-      );
-}
-
-class _AddButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AddButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-            color: context.lgInk, shape: BoxShape.circle),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-      ),
-    );
-  }
-}
-
-class _CartBar extends StatelessWidget {
-  final int count;
-  final int total;
-  final VoidCallback? onOpen;
-
-  const _CartBar({
-    required this.count,
-    required this.total,
-    this.onOpen,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onOpen,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 12, 12, 12),
-        decoration: BoxDecoration(
-          color: count > 0 ? context.lgTextPrimary : context.lgTextMuted,
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withAlpha(40),
-                blurRadius: 16,
-                offset: const Offset(0, 6)),
-          ],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(Icons.shopping_bag_rounded,
-                    color: Colors.white, size: 24),
-                if (count > 0)
-                  Positioned(
-                    right: -6,
-                    top: -6,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                          color: LoveGirlTheme.red, shape: BoxShape.circle),
-                      child: Text('$count',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800)),
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                count > 0 ? '合计 ¥$total' : '看看 TA 能做什么菜',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14),
-              ),
-            ),
-            Text(
-              count > 0 ? '去下单' : '先逛逛',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14),
-            ),
-            SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded,
-                color: Colors.white, size: 20),
-          ],
-        ),
-      ),
-    );
+    if (!kitchen.menuLoaded && kitchen.menuError == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (kitchen.menuError != null && !kitchen.menuLoaded) {
+      return Center(
+          child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(kitchen.menuError!, textAlign: TextAlign.center),
+          TextButton(
+              onPressed: () => kitchen.loadMenu(), child: const Text('重新加载菜单')),
+        ]),
+      ));
+    }
+    if (!kitchen.bound) return _UnboundView(kitchen: kitchen);
+    return KitchenMenuGrid(
+        kitchen: kitchen,
+        onOpenCart: () {
+          showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              isScrollControlled: true,
+              builder: (_) => const _CartSheet());
+        });
   }
 }
 
@@ -817,13 +466,13 @@ class _MyKitchenTab extends StatelessWidget {
                   children: [
                     IllusImg('ui_kitchen', height: 120),
                     const SizedBox(height: 12),
-                    Text('你的菜单还是空的',
+                    Text(kitchen.menuError == null ? '你的菜单还是空的' : '菜单暂未加载',
                         style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: context.lgTextPrimary)),
                     const SizedBox(height: 6),
-                    Text('把会做的菜挂上来，等 TA 来点',
+                    Text(kitchen.menuError == null ? '把会做的菜挂上来，等 TA 来点' : '可以稍后重试，或先添加一道拿手菜',
                         style: TextStyle(
                             fontSize: 12, color: context.lgTextMuted)),
                   ],
@@ -862,7 +511,13 @@ class _MyKitchenTab extends StatelessWidget {
                         ),
                       );
                       if (confirm == true && context.mounted) {
-                        await kitchen.deleteDish(dish.id);
+                        final error = await kitchen.deleteDish(dish.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(error ?? '已从菜单下架'),
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        }
                       }
                     },
                   );
@@ -1200,6 +855,23 @@ class _RecordsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!kitchen.ordersLoaded) {
+      if (kitchen.ordersError == null) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return Center(
+          child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(kitchen.ordersError!, textAlign: TextAlign.center),
+                  TextButton(
+                      onPressed: () => kitchen.loadOrders(),
+                      child: const Text('重新加载记录')),
+                ],
+              )));
+    }
     final done = [...kitchen.incoming, ...kitchen.outgoing]
         .where((o) => o.status == 'done')
         .toList()
@@ -1211,13 +883,13 @@ class _RecordsTab extends StatelessWidget {
           children: [
             IllusImg('ui_kitchen', height: 120),
             SizedBox(height: 12),
-            Text('还没有开火记录',
+            Text('还没有开饭记录',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: context.lgTextPrimary)),
             SizedBox(height: 6),
-            Text('完成第一单后，这里会留下投喂小票',
+            Text('完成一餐后，照片和留言会留在这里',
                 style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
           ],
         ),
@@ -1240,104 +912,87 @@ class _ReceiptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = (order.doneAt ?? order.createdAt ?? '').split('.').first;
+    final rawDate =
+        (order.doneAt ?? order.createdAt ?? '').replaceAll('T', ' ');
+    final date = rawDate.length > 16 ? rawDate.substring(0, 16) : rawDate;
+    final quantity =
+        order.items.fold<int>(0, (sum, item) => sum + item.quantity);
     return LoveTicketCard(
-      padding: const EdgeInsets.all(14),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.local_fire_department_rounded,
-                      size: 18, color: context.lgInk),
-                  SizedBox(width: 6),
-                  Text('投喂小票',
+      padding: const EdgeInsets.all(16),
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.restaurant_outlined, size: 18),
+              const SizedBox(width: 8),
+              const Expanded(
+                  child: Text('餐桌记录',
                       style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                          color: context.lgTextPrimary)),
-                  Spacer(),
-                  Text('#${order.id}',
+                          fontSize: 15, fontWeight: FontWeight.w600))),
+              Text('#${order.id}',
+                  style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
+            ]),
+            const SizedBox(height: 12),
+            LoveTicketDivider(
+                axis: Axis.horizontal,
+                length: double.infinity,
+                color: context.lgSeparator),
+            const SizedBox(height: 12),
+            ...order.items.map((item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(children: [
+                  Expanded(
+                      child: Text(item.name,
+                          style: const TextStyle(fontSize: 14))),
+                  const SizedBox(width: 12),
+                  Text('×${item.quantity}',
                       style: TextStyle(
-                          fontSize: 12, color: context.lgTextMuted)),
-                ],
-              ),
-              SizedBox(height: 8),
-              LoveTicketDivider(),
-              SizedBox(height: 8),
-              ...order.items.map((it) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      children: [
-                        Text(it.emoji, style: const TextStyle(fontSize: 15)),
-                        SizedBox(width: 8),
-                        Expanded(
-                            child: Text('${it.name} x${it.quantity}',
-                                style: const TextStyle(fontSize: 13))),
-                        Text('¥${it.price * it.quantity}',
-                            style: const TextStyle(fontSize: 13)),
-                      ],
-                    ),
-                  )),
-              SizedBox(height: 6),
-              LoveTicketDivider(),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(dateStr,
+                          fontSize: 13, color: context.lgTextSecondary)),
+                ]))),
+            if (order.note?.isNotEmpty == true)
+              Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(order.note!,
                       style: TextStyle(
-                          fontSize: 12, color: context.lgTextMuted)),
-                  Spacer(),
-                  Text('合计 ¥${order.totalPrice}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: context.lgTextPrimary)),
-                ],
-              ),
-              if (order.photoUrl != null) ...[
-                SizedBox(height: 10),
-                ClipRRect(
+                          fontSize: 12, color: context.lgTextSecondary))),
+            if (order.photoUrl?.isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: Image.network(
-                      kitchenPhotoUrl(order.photoUrl!, AppConstants.baseUrl),
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-              ],
-              SizedBox(height: 8),
-              LoveBarcode(),
+                  child: AspectRatio(
+                      aspectRatio: 1.8,
+                      child: Image.network(
+                          kitchenPhotoUrl(
+                              order.photoUrl!, AppConstants.baseUrl),
+                          fit: BoxFit.cover,
+                          cacheWidth: 800,
+                          errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.broken_image_outlined))))),
             ],
-          ),
-          Positioned(
-            right: 4,
-            top: 26,
-            child: Transform.rotate(
-              angle: -0.35,
-              child: Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: context.lgInk, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                  color: context.lgPrimarySoft.withAlpha(200),
-                ),
-                child: Text('已开火 ♥',
-                    style: TextStyle(
-                        color: context.lgInk,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13)),
-              ),
-            ),
-          ),
-        ],
-      ),
+            const SizedBox(height: 12),
+            LoveTicketDivider(
+                axis: Axis.horizontal,
+                length: double.infinity,
+                color: context.lgSeparator),
+            const SizedBox(height: 10),
+            Wrap(spacing: 12, runSpacing: 6, children: [
+              if (date.isNotEmpty)
+                Text(date,
+                    style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
+              Text('共 $quantity 份',
+                  style:
+                      TextStyle(fontSize: 12, color: context.lgTextSecondary)),
+              const Text('已开饭',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ]),
+            if (order.totalPrice > 0)
+              Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('菜单参考价 ¥${order.totalPrice}',
+                      style:
+                          TextStyle(fontSize: 11, color: context.lgTextMuted))),
+          ]),
     );
   }
 }
@@ -1500,7 +1155,7 @@ class _OrderCard extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('合计 ¥${order.totalPrice}',
+              Text(order.totalPrice > 0 ? '菜单参考价 ¥${order.totalPrice}' : '共 ${order.items.fold<int>(0, (sum, item) => sum + item.quantity)} 份',
                   style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
