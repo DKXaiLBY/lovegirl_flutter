@@ -37,6 +37,7 @@ function rowToJson(r) {
       ? r.cooked_at.toISOString().slice(0, 10)
       : String(r.cooked_at || '').slice(0, 10),
     dishId: r.dish_id,
+    kitchenOrderId: r.kitchen_order_id || null,
     createdAt: r.created_at,
   };
 }
@@ -98,6 +99,24 @@ router.get('/list', authRequired, async (req, res) => {
   }
 });
 
+// A linked meal opens one record without loading the full journal.
+router.get('/:id', authRequired, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ code: 400, message: '记录编号不正确' });
+    const partnerId = await getPartnerId(req.user.id);
+    const [rows] = await pool.query(
+      'SELECT * FROM cooking_logs WHERE id = ? AND chef_id IN (?, ?)',
+      [id, req.user.id, partnerId || req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ code: 404, message: '记录不可见或已删除' });
+    res.json({ code: 200, data: rowToJson(rows[0]) });
+  } catch (error) {
+    console.error('[Cooking] detail failed:', error.code || error.message);
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+});
+
 // 记录一次下厨
 router.post('/', authRequired, async (req, res) => {
   try {
@@ -134,11 +153,12 @@ router.post('/', authRequired, async (req, res) => {
       try {
         // 去重：同名菜已在菜单则复用，不重复插入
         const [existing] = await pool.query(
-          'SELECT id FROM kitchen_dishes WHERE user_id = ? AND name = ? LIMIT 1',
+          'SELECT id FROM kitchen_dishes WHERE user_id = ? AND name = ? ORDER BY is_active DESC, id DESC LIMIT 1',
           [req.user.id, title]
         );
         if (existing.length > 0) {
           dishId = existing[0].id;
+          await pool.query('UPDATE kitchen_dishes SET is_active = 1 WHERE id = ? AND user_id = ?', [dishId, req.user.id]);
         } else {
           const [dish] = await pool.query(
             `INSERT INTO kitchen_dishes (user_id, name, category, emoji, photo_url, description)
@@ -246,26 +266,33 @@ router.put('/:id/taste', authRequired, async (req, res) => {
 
 // 删除记录（仅掌勺本人）
 router.delete('/:id', authRequired, async (req, res) => {
+  let conn;
   try {
-    const id = parseInt(req.params.id);
-    const [rows] = await pool.query(
-      'SELECT id, dish_id FROM cooking_logs WHERE id = ? AND chef_id = ?',
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ code: 400, message: '记录编号不正确' });
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const [rows] = await conn.query(
+      'SELECT id FROM cooking_logs WHERE id = ? AND chef_id = ? FOR UPDATE',
       [id, req.user.id]
     );
-    if (rows.length === 0) return res.status(404).json({ code: 404, message: '记录不存在' });
-    const dishId = rows[0].dish_id;
-    // 级联清理：挂上菜单的菜品、双人时光轴条目
-    if (dishId) {
-      await pool.query('DELETE FROM kitchen_dishes WHERE id = ?', [dishId]);
+    if (rows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ code: 404, message: '记录不存在' });
     }
-    await pool.query(
+    // 菜单是独立实体，删除手账只清理这条回忆和对应时光轴。
+    await conn.query(
       "DELETE FROM love_timeline WHERE source_module = 'cooking' AND source_id = ?",
       [id]
     );
-    await pool.query('DELETE FROM cooking_logs WHERE id = ?', [id]);
+    await conn.query('DELETE FROM cooking_logs WHERE id = ?', [id]);
+    await conn.commit();
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
+    if (conn) { try { await conn.rollback(); } catch (_) {} }
     res.status(500).json({ code: 500, message: '服务器错误' });
+  } finally {
+    if (conn) conn.release();
   }
 });
 

@@ -115,12 +115,12 @@ test('partner tasting remains conditional and notifies the chef without points',
 function kitchenFixture(user = 71, fail = false) {
   let order = { id: 8, cook_id: user, orderer_id: 72, status: 'accepted', beans_awarded: 0, items: '[]' };
   return fixture('kitchen', (sql, args) => {
-    if (sql.startsWith('SELECT * FROM kitchen_orders')) return [order];
+    if (sql.startsWith('SELECT') && sql.includes('FROM kitchen_orders')) return [order];
     if (sql.includes("SET status = 'done'")) {
       if (fail) throw Error('controlled completion failure');
       order = { ...order, status: 'done', photo_url: args[0], done_at: args[1] };
     }
-    return { affectedRows: 1 };
+    return { affectedRows: 1, insertId: 81 };
   });
 }
 
@@ -163,7 +163,7 @@ test('a meal can finish without a photo and a repeated completion creates no sec
 test('only the cook can undo an accepted meal, and stale expected status is a conflict', async () => {
   let order = { id: 8, cook_id: 71, orderer_id: 72, status: 'accepted', items: '[]' };
   const f = fixture('kitchen', sql => {
-    if (sql.startsWith('SELECT * FROM kitchen_orders')) return [order];
+    if (sql.startsWith('SELECT') && sql.includes('FROM kitchen_orders')) return [order];
     if (sql.includes("SET status = 'placed'")) order = { ...order, status: 'placed' };
     return { affectedRows: 1 };
   });

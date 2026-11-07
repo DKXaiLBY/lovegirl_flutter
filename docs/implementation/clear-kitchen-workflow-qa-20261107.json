@@ -1,0 +1,100 @@
+{
+  "checkedOn": "2026-11-07",
+  "scope": "owned QA database and ordinary sessions, not a production deployment",
+  "baselineFailures": [
+    {
+      "path": "/api/kitchen/orders",
+      "method": "POST",
+      "statusBefore": 400,
+      "expectedAfter": 200
+    },
+    {
+      "path": "/api/kitchen/orders/3",
+      "method": "PUT",
+      "statusBefore": 404,
+      "expectedAfter": 200
+    }
+  ],
+  "schema": {
+    "database": "lovegirl_clear_qa_20261031",
+    "firstChanges": [
+      "kitchen_dishes.ingredients",
+      "kitchen_dishes.recipe",
+      "kitchen_orders.partner_id",
+      "kitchen_orders.meal_date",
+      "kitchen_orders.meal_slot",
+      "kitchen_orders.revision",
+      "kitchen_orders.request_key",
+      "kitchen_orders.request_hash",
+      "cooking_logs.kitchen_order_id",
+      "kitchen_orders.uq_ko_request",
+      "kitchen_orders.idx_ko_partner",
+      "cooking_logs.uq_cl_kitchen_order"
+    ],
+    "secondChanges": [],
+    "preserved": {
+      "kitchen_orders": {
+        "originalRowsPreserved": 5,
+        "sha256OriginalColumns": "ce455c06673e090807dab3dce44b0700732927a505c4cc7074022ac4b0d8f154",
+        "newRowsDuringCheck": 0
+      },
+      "kitchen_dishes": {
+        "originalRowsPreserved": 5,
+        "sha256OriginalColumns": "c8b40088b26af3e9fe1993249f113b4be37590154f9b9e7b2cedf71f6a2c5cb6",
+        "newRowsDuringCheck": 0
+      },
+      "cooking_logs": {
+        "originalRowsPreserved": 1,
+        "sha256OriginalColumns": "a0a0383a4bef69b55981a40569d4f755f8ca134c4eb783d4c1a24ca4bc3083c9",
+        "newRowsDuringCheck": 0
+      }
+    },
+    "backupSha256": "560e74775d9165a2e9d7c3645403c3278617aa452e5cb058a9e3e8d8777d4e2e",
+    "productionMutations": 0
+  },
+  "qaRouteOverlay": {
+    "kitchen.js": {
+      "before": "9c021038f718dfa5993f0206f8b9eb384ee19d69bd9533004ec230c53e196db0",
+      "after": "d3cbeab3d4afaa9f865fa168b5a6c6eeffa29425b973a69a14f223c373b9dced"
+    },
+    "cooking.js": {
+      "before": "a1b84cdc660ae078cb14bde0f72d244afcb001577128c4236fe719f564c79036",
+      "after": "ed8e4b33f689dee5b81f98d4a2f39a0456003f181419ffceb73bbf592d7b9b04"
+    }
+  },
+  "realIntegration": {
+    "marker": "QA_KITCHEN_fa34b8e372a2",
+    "cleaned": {
+      "dishes": [
+        27,
+        28,
+        29
+      ],
+      "orders": [
+        31,
+        32,
+        33,
+        34,
+        37
+      ],
+      "logs": [
+        34,
+        35,
+        36
+      ]
+    },
+    "retiredHistoryGroups": 8,
+    "productionMutations": 0
+  },
+  "realTestsPassed": 13,
+  "routeRegressionPassed": 30,
+  "ordinarySessions": 3,
+  "newClientUiVerified": false,
+  "productionMutations": 0,
+  "logs": {
+    "kitchen-workflow-integration-20261106.log": "45820bfabc11d5f0439cc7139083cdfa9be016baa7315b8e80392e3aba5dbec5",
+    "kitchen-workflow-menu-delete-before.log": "feccf0cf1fffd48c62974b6a29f17e1a0991b518b28f9f9b4728bbd24daf5e79",
+    "kitchen-workflow-plan-before.log": "e1d54e7dc2923d88df790a7882ca760e42cbdab226f816529e791fe156896307",
+    "retirement-server-tests-all.log": "f16a73ea475815f26867ad32c8e499ca2daf6a5a58742f3c9aee7e5a039835dd"
+  }
+}
