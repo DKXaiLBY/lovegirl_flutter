@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +10,7 @@ import '../../providers/notification_provider.dart';
 import '../../models/travel.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../utils/lovegirl_dates.dart';
 import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/rebuild_controls.dart';
@@ -336,6 +335,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final auth = context.watch<AuthProvider>();
     final home = context.watch<HomeProvider>();
     final anniversary = home.today?['anniversary'];
+    final start = resolveLoveStartDate(
+            explicitDate: auth.user?['loveStartDate']?.toString()) ??
+        home.relationshipStart;
     return Scaffold(
         backgroundColor: context.lgBg,
         body: RebuildPageBackground(
@@ -348,7 +350,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
                         children: [
                           _HomeHeader(
-                              loveDays: math.max(auth.loveDays, home.loveDays),
+                              loveDays: start == null
+                                  ? null
+                                  : resolveLoveDays(
+                                      explicitDate: start.toIso8601String()),
                               partner: _partner,
                               bound: _partnerBound,
                               known: _coupleLoaded,
@@ -431,7 +436,7 @@ String _homeImageUrl(String path) =>
     path.startsWith('http') ? path : AppConstants.baseUrl + path;
 
 class _HomeHeader extends StatelessWidget {
-  final int loveDays;
+  final int? loveDays;
   final Map<String, dynamic>? partner;
   final bool bound, known, loading;
   final VoidCallback onRelationship;
@@ -501,7 +506,9 @@ class _HomeHeader extends StatelessWidget {
         Expanded(
             child: Text(
                 bound
-                    ? '在一起的第$loveDays天'
+                    ? loveDays == null
+                        ? '设置属于你们的纪念日起点'
+                        : '在一起的第$loveDays天'
                     : loading
                         ? '正在读取双人信息…'
                         : known

@@ -13,12 +13,14 @@ import 'package:lovegirl_flutter/providers/notification_provider.dart';
 import 'package:lovegirl_flutter/screens/home/home_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
+import 'package:lovegirl_flutter/utils/lovegirl_dates.dart';
 
 Response<dynamic> _result(dynamic data) => Response(
     requestOptions: RequestOptions(), data: {'code': 200, 'data': data});
 
 class _Api implements ApiService {
   List<Map<String, dynamic>> photos = [], works = [];
+  List<Map<String, dynamic>> anniversaries = [];
   Map<String, dynamic>? memory;
   bool failMedia = false;
   int photoReads = 0;
@@ -41,6 +43,8 @@ class _Api implements ApiService {
 
   @override
   Future<Response<dynamic>> getHomeToday() async => _result({'loveDays': 123});
+  @override
+  Future<Response<dynamic>> getAnniversaries() async => _result(anniversaries);
   @override
   Future<Response<dynamic>> getHomeMemory() async => _result(memory);
   @override
@@ -121,6 +125,27 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
   }
 
+  testWidgets('bound today prompts for a missing relationship start date',
+      (tester) async {
+    await show(tester, _Api(), _Auth());
+    expect(find.text('设置属于你们的纪念日起点'), findsOneWidget);
+    expect(find.text('在一起的第123天'), findsNothing);
+    await finish(tester);
+  });
+
+  testWidgets('today counts from the same love anniversary as profile',
+      (tester) async {
+    const date = '2024-05-20';
+    final api = _Api()
+      ..anniversaries = [
+        {'title': '在一起', 'event_date': date, 'type': 'love'},
+      ];
+    await show(tester, api, _Auth());
+    final days = resolveLoveDays(explicitDate: date);
+    expect(find.text('在一起的第$days天'), findsOneWidget);
+    await finish(tester);
+  });
+
   testWidgets(
       'published polaroid source can lead the hero ahead of older album photos',
       (tester) async {
@@ -156,7 +181,6 @@ void main() {
             w.imageUrl.endsWith('/uploads/published.jpg')),
         findsOneWidget);
     expect(find.text('更早的照片'), findsNothing);
-    expect(find.text('在一起的第123天'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await finish(tester);
   });

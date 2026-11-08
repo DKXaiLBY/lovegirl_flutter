@@ -49,6 +49,8 @@ class HomeProvider extends ChangeNotifier {
     return int.tryParse(value?.toString() ?? '') ?? 1;
   }
 
+  DateTime? get relationshipStart => today?['relationshipStart'] as DateTime?;
+
   Future<void> refresh() async {
     final request = ++_request;
     isLoading = true;
@@ -142,15 +144,19 @@ class HomeProvider extends ChangeNotifier {
     final nextCourse = _mapFrom(courseSummary['next']);
     final financeToday = _mapFrom(raw['financeToday']);
 
-    final preciseLoveDays = resolveLoveDays(
+    final relationshipStart = resolveLoveStartDate(
       explicitDate: raw['loveStartDate']?.toString(),
       anniversaries: anniversaries,
+    );
+    final preciseLoveDays = resolveLoveDays(
+      explicitDate: relationshipStart?.toIso8601String(),
       fallbackDays: _asInt(raw['loveDays'], fallback: 1),
     );
 
     return {
       ...raw,
       'loveDays': preciseLoveDays,
+      'relationshipStart': relationshipStart,
       'anniversary': upcomingAnniversary(anniversaries),
       'feed': _buildFeedPreview(feedingOrders),
       'todo': {
