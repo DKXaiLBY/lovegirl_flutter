@@ -11,6 +11,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import '../health/health_screen.dart';
 import '../kitchen/kitchen_screen.dart';
+import '../travel/trip_preparation_list_screen.dart';
 import '../wardrobe/wardrobe_module_screen.dart';
 import 'widgets/finance_list.dart';
 import 'widgets/schedule_list.dart';
@@ -470,6 +471,12 @@ class _LifeScreenState extends State<LifeScreen> {
                         const SizedBox(height: 10),
                         _wardrobe(),
                         const SizedBox(height: 12),
+                        _shortcut(
+                            '旅行准备',
+                            '搭配与行李清单',
+                            Icons.luggage_outlined,
+                            TripPreparationListScreen(api: _api)),
+                        const SizedBox(height: 10),
                         _shortcut(
                             '课程表',
                             '查看本周安排',

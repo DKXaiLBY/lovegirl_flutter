@@ -23,10 +23,15 @@ import 'journey_panel.dart';
 
 class TravelScreen extends StatefulWidget {
   final TravelSpot? initialSpot;
+  final int? initialJourneyId;
   final bool embedded;
   final VoidCallback? onMapReady;
   const TravelScreen(
-      {super.key, this.initialSpot, this.embedded = true, this.onMapReady});
+      {super.key,
+      this.initialSpot,
+      this.initialJourneyId,
+      this.embedded = true,
+      this.onMapReady});
   @override
   State<TravelScreen> createState() => _TravelScreenState();
 }
@@ -57,7 +62,7 @@ class _TravelScreenState extends State<TravelScreen> {
         api: _workspace.api);
     _journeys.addListener(_journeyChanged);
     _workspace.addListener(_placesChanged);
-    unawaited(_journeys.load());
+    unawaited(_loadJourneys());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (widget.initialSpot != null) {
@@ -69,6 +74,21 @@ class _TravelScreenState extends State<TravelScreen> {
       }
       unawaited(_workspace.load());
     });
+  }
+
+  Future<void> _loadJourneys() async {
+    await _journeys.load();
+    if (!mounted || widget.initialJourneyId == null || _journeys.current != null) {
+      return;
+    }
+    final journey = _journeys.library
+        .where((entry) => entry.id == widget.initialJourneyId)
+        .firstOrNull;
+    if (journey != null) {
+      _journeys.select(journey);
+    } else {
+      _message(_journeys.error ?? '这份行程已取消或不可见');
+    }
   }
 
   @override

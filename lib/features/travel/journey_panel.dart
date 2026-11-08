@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/travel.dart';
+import '../../screens/travel/trip_preparation_screen.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../creations/creation_gallery.dart';
 import '../creations/creation_files.dart';
@@ -552,6 +553,15 @@ class JourneyPanel extends StatelessWidget {
                         if (action == 'edit' && context.mounted) {
                           await journeyDetails(context, controller, edit: true);
                         }
+                        if (action == 'preparation' && context.mounted && j.id != null) {
+                          final navigator = Navigator.of(context);
+                          await navigator.push<void>(MaterialPageRoute(
+                              builder: (_) => TripPreparationScreen(
+                                  tripId: j.id!,
+                                  journey: j,
+                                  api: controller.api,
+                                  onViewJourney: () => navigator.pop())));
+                        }
                         if (action == 'works' && context.mounted) {
                           await Navigator.push(
                               context,
@@ -596,6 +606,9 @@ class JourneyPanel extends StatelessWidget {
                                 value: 'edit', child: Text('行程信息')),
                             const PopupMenuItem(
                                 value: 'refresh', child: Text('查看最新版本（保留草稿）')),
+                            if (j.id != null)
+                              const PopupMenuItem(
+                                  value: 'preparation', child: Text('旅行准备')),
                             if (j.id != null)
                               const PopupMenuItem(
                                   value: 'works', child: Text('旅行拍立得')),
