@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 import 'widgets/period_tracker.dart';
 
 class HealthScreen extends StatefulWidget {
@@ -81,9 +82,8 @@ class _HealthScreenState extends State<HealthScreen> {
             : SystemUiOverlayStyle.dark,
       ),
       backgroundColor: context.lgBg,
-      body: const LovePage(
-        padding: EdgeInsets.zero,
-        child: PeriodTracker(),
+      body: RebuildPageBackground(
+        child: PeriodTracker(key: ValueKey(auth.userId)),
       ),
     );
   }

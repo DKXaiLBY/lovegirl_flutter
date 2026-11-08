@@ -3,6 +3,7 @@ import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 
@@ -18,25 +19,25 @@ extension PeriodStatusExt on PeriodStatus {
   String get label {
     switch (this) {
       case PeriodStatus.menstrual: return '经期中';
-      case PeriodStatus.safe: return '安全期';
-      case PeriodStatus.ovulation: return '易孕期';
-      case PeriodStatus.premenstrual: return '经前期';
+      case PeriodStatus.safe: return '周期记录';
+      case PeriodStatus.ovulation: return '预计易孕期';
+      case PeriodStatus.premenstrual: return '预计经前期';
       case PeriodStatus.unknown: return '暂无数据';
     }
   }
   String get subLabel {
     switch (this) {
       case PeriodStatus.menstrual: return '注意保暖，多喝热水';
-      case PeriodStatus.safe: return '放松享受每一天';
-      case PeriodStatus.ovulation: return '怀孕几率较高';
-      case PeriodStatus.premenstrual: return '经期即将到来';
+      case PeriodStatus.safe:
+      case PeriodStatus.ovulation:
+      case PeriodStatus.premenstrual: return '周期预测仅供记录参考';
       case PeriodStatus.unknown: return '记录经期开始获取预测';
     }
   }
   IconData get icon {
     switch (this) {
       case PeriodStatus.menstrual: return Icons.water_drop_rounded;
-      case PeriodStatus.safe: return Icons.shield_rounded;
+      case PeriodStatus.safe: return Icons.calendar_today_outlined;
       case PeriodStatus.ovulation: return Icons.auto_awesome_rounded;
       case PeriodStatus.premenstrual: return Icons.notifications_rounded;
       case PeriodStatus.unknown: return Icons.help_outline_rounded;
@@ -106,13 +107,14 @@ class PeriodAnalysis {
 }
 
 class PeriodTracker extends StatefulWidget {
-  const PeriodTracker({super.key});
+  final ApiService? api;
+  const PeriodTracker({super.key, this.api});
   @override
   State<PeriodTracker> createState() => _PeriodTrackerState();
 }
 
 class _PeriodTrackerState extends State<PeriodTracker> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   bool _isLoading = true;
   bool _isSaving = false;
   String? _error;
@@ -121,6 +123,8 @@ class _PeriodTrackerState extends State<PeriodTracker> {
   PeriodAnalysis? _analysis;
   int? _daysUntilNext;
   int? _cycleDay;
+  DateTime _selected = DateUtils.dateOnly(DateTime.now());
+  DateTime get _month => DateTime(_selected.year, _selected.month);
 
   @override
   void initState() { super.initState(); _loadData(); }
@@ -129,6 +133,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final results = await Future.wait([_api.getPeriodStatus(), _api.getPeriods(), _api.getPeriodAnalysis()]);
+      if (!mounted) return;
       final s = results[0].data?['data'];
       if (s is Map) {
         // 服务器返回 phase.phaseKey 或 status
@@ -150,6 +155,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
       _analysis = a is Map ? PeriodAnalysis.fromJson(Map<String, dynamic>.from(a)) : null;
       LogService().info('Period', '加载完成:状态=${_currentStatus.label},记录=${_periods.length}');
     } catch (e) {
+      if (!mounted) return;
       _error = '加载失败';
       LogService().error('Period', '加载失败: $e');
     }
@@ -169,11 +175,17 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         await _api.savePeriod({'start_date': now});
         LogService().userAction('经期:标记开始');
       }
+      if (!mounted) return;
       await _loadData();
     } catch (e) {
       LogService().error('Period', '操作失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('暂未确认保存结果，请刷新后再试')),
+        );
+      }
     }
-    setState(() => _isSaving = false);
+    if (mounted) setState(() => _isSaving = false);
   }
 
   @override
@@ -183,8 +195,10 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     return RefreshIndicator(
       onRefresh: _loadData,
       color: context.lgInk,
-      child: ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: [
-        _buildStatusRing(),
+      child: ListView(padding: const EdgeInsets.fromLTRB(12, 8, 12, 24), children: [
+        _buildCalendar(),
+        const SizedBox(height: 16),
+        _buildToday(),
         SizedBox(height: 16),
         _buildActionButton(),
         SizedBox(height: 20),
@@ -192,6 +206,122 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         SizedBox(height: 20),
         if (_periods.isNotEmpty) _buildHistory(),
       ]),
+    );
+  }
+
+  bool _recorded(DateTime date, DateTime today) => _periods.any((period) {
+    final start = DateUtils.dateOnly(period.startDate);
+    final end = period.endDate == null
+        ? (_currentStatus == PeriodStatus.menstrual && identical(period, _periods.first) ? today : start)
+        : DateUtils.dateOnly(period.endDate!);
+    return !date.isBefore(start) && !date.isAfter(end);
+  });
+
+  Widget _buildCalendar() {
+    final month = _month;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final days = DateUtils.getDaysInMonth(month.year, month.month);
+    final leading = month.weekday - DateTime.monday;
+    final weeks = (leading + days + 6) ~/ 7;
+    final remaining = _daysUntilNext;
+    final next = remaining == null || remaining < 0
+        ? null
+        : DateTime(today.year, today.month, today.day + remaining);
+    String status(DateTime date) => _recorded(date, today)
+        ? '已记录经期'
+        : DateUtils.isSameDay(date, next) ? '预计下次经期开始' : '当天暂无记录';
+    return RebuildGlass(
+      radius: 20,
+      padding: const EdgeInsets.only(top: 4, bottom: 14),
+      child: Column(children: [
+        Row(children: [
+          IconButton(
+            tooltip: '上个月',
+            onPressed: () => setState(() =>
+                _selected = DateTime(month.year, month.month - 1)),
+            icon: const Icon(Icons.chevron_left),
+          ),
+          Expanded(
+            child: Text(DateFormat('yyyy年M月').format(month),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          IconButton(
+            tooltip: '下个月',
+            onPressed: () => setState(() =>
+                _selected = DateTime(month.year, month.month + 1)),
+            icon: const Icon(Icons.chevron_right),
+          ),
+        ]),
+        Row(children: [
+          for (final weekday in const ['一', '二', '三', '四', '五', '六', '日'])
+            Expanded(child: Text(weekday,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: context.lgTextSecondary))),
+        ]),
+        for (var week = 0; week < weeks; week++)
+          Row(children: [
+            for (var weekday = 0; weekday < 7; weekday++)
+              Expanded(child: _calendarDay(
+                  week * 7 + weekday - leading + 1, days, today, next)),
+          ]),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+              '${DateFormat('M月d日').format(_selected)} · ${status(_selected)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.lgTextSecondary)),
+        ),
+        if (next != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+            child: Text('周期预测仅供记录参考',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: context.lgTextSecondary)),
+          ),
+      ]),
+    );
+  }
+
+  Widget _calendarDay(int day, int days, DateTime today, DateTime? next) {
+    if (day < 1 || day > days) return const SizedBox(height: 48);
+    final date = DateTime(_month.year, _month.month, day);
+    final selected = DateUtils.isSameDay(date, _selected);
+    final recorded = _recorded(date, today);
+    final predicted = !recorded && DateUtils.isSameDay(date, next);
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: '${DateFormat('M月d日').format(date)}${recorded ? '，已记录经期' : predicted ? '，预计经期开始' : ''}',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => _selected = date);
+        },
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 3),
+              constraints: const BoxConstraints(minWidth: 30),
+              decoration: BoxDecoration(
+                color: recorded ? context.lgInk : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: selected || predicted
+                    ? Border.all(color: recorded ? context.lgTextSecondary : context.lgInk)
+                    : null,
+              ),
+              child: Text('$day',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: recorded ? context.lgPaper : context.lgInk,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                      decoration: predicted ? TextDecoration.underline : null)),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -208,31 +338,26 @@ class _PeriodTrackerState extends State<PeriodTracker> {
     ),
   ]));
 
-  Widget _buildStatusRing() {
+  Widget _buildToday() {
     final color = _currentStatus.color(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      decoration: BoxDecoration(
-        color: context.lgCard,
-        borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
-        // v4.0：立体感交给 1px 细线描边（cardBorder），去掉旧的彩色大阴影
-        border: Border.all(color: context.lgCardBorder),
-        boxShadow: LoveGirlTheme.cardShadow(),
-      ),
-      child: Column(children: [
-        Stack(alignment: Alignment.center, children: [
-          SizedBox(width: 140, height: 140, child: CircularProgressIndicator(value: _cycleDay != null ? (_cycleDay! / 28).clamp(0.0, 1.0) : 0, strokeWidth: 8, backgroundColor: color.withAlpha(20), valueColor: AlwaysStoppedAnimation(color))),
-          Column(children: [
-            Icon(_currentStatus.icon, size: 36, color: color),
-            SizedBox(height: 4),
-            Text(_currentStatus.label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-          ]),
+    return RebuildGlass(
+      radius: 20,
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('今天', style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
+        const SizedBox(height: 6),
+        Row(children: [
+          Icon(_currentStatus.icon, size: 22, color: color),
+          const SizedBox(width: 8),
+          Expanded(child: Text(_currentStatus.label,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
         ]),
-        SizedBox(height: 12),
-        Text(_currentStatus.subLabel, style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
+        const SizedBox(height: 6),
+        Text(_currentStatus.subLabel,
+            style: TextStyle(fontSize: 13, color: context.lgTextSecondary)),
         if (_cycleDay != null) ...[
-          SizedBox(height: 6),
-          Text('周期第 $_cycleDay 天${_daysUntilNext != null ? ' · 距下次 $_daysUntilNext 天' : ''}', style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
+          const SizedBox(height: 6),
+          Text('周期第 $_cycleDay 天${_daysUntilNext != null ? ' · 预计距下次 $_daysUntilNext 天' : ''}', style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
         ],
       ]),
     );
@@ -260,11 +385,9 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         border: Border.all(color: context.lgCardBorder),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
+        Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
           Icon(Icons.analytics_outlined, size: 18, color: context.lgInk),
-          SizedBox(width: 8),
           Text('周期分析', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          Spacer(),
           // v4.0：语义浅底徽章（LoveBadge getter 配对，深色安全）
           LoveBadge(text: a.regularityLabel, style: a.regularityBadgeStyle),
         ]),
@@ -333,9 +456,8 @@ class _PeriodTrackerState extends State<PeriodTracker> {
           Text('${df.format(r.startDate)} - ${r.endDate != null ? df.format(r.endDate!) : '进行中'}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
           if (r.periodLength != null || r.cycleLength != null) ...[
             const SizedBox(height: 4),
-            Row(children: [
+            Wrap(spacing: 6, runSpacing: 4, children: [
               if (r.periodLength != null) _tag('经期 ${r.periodLength}天'),
-              if (r.periodLength != null && r.cycleLength != null) const SizedBox(width: 6),
               if (r.cycleLength != null) _tag('周期 ${r.cycleLength}天'),
             ]),
           ],
