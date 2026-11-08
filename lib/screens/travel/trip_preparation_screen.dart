@@ -42,6 +42,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
   int _session = 0;
   int _day = 0;
   bool _shared = false;
+  String? _category;
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -59,6 +60,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
     _data = null;
     _day = 0;
     _shared = false;
+    _category = null;
     _saving = false;
     if (account != null) _load();
   }
@@ -389,63 +391,79 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
         .whereType<String>()
         .where((path) => path.isNotEmpty)
         .firstOrNull;
-    final total = data.mine.items.length + (data.shared?.items.length ?? 0);
-    final packed = data.mine.packed + (data.shared?.packed ?? 0);
+    final hasPhoto = cover != null && !data.archived;
     final start = data.start;
+    final date = DateFormat('M月d日');
+    final end = start?.add(Duration(days: data.days - 1));
+    final dates = start == null
+        ? null
+        : data.days == 1
+            ? date.format(start)
+            : '${date.format(start)} – ${date.format(end!)}';
+    final ink = hasPhoto ? Colors.white : context.lgInk;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(22),
       child: Stack(children: [
-        if (cover != null && !data.archived)
+        if (hasPhoto)
           Positioned.fill(child: _PreparationPhoto(cover, fit: BoxFit.cover)),
         Container(
-          constraints: const BoxConstraints(minHeight: 204),
-          padding: const EdgeInsets.all(18),
+          constraints: BoxConstraints(minHeight: hasPhoto ? 148 : 110),
+          padding: const EdgeInsets.fromLTRB(14, 36, 14, 14),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: cover == null || data.archived
-                  ? [
+              stops: const [.25, 1],
+              colors: hasPhoto
+                  ? const [Color(0x05112536), Color(0xcd172730)]
+                  : [
                       context.lgPaper,
                       context.lgIsDark ? context.lgBg : const Color(0xffd7edfa)
-                    ]
-                  : const [Color(0x33112536), Color(0xe6233441)],
+                    ],
             ),
           ),
-          child: Builder(builder: (context) {
-            final ink =
-                cover != null && !data.archived ? Colors.white : context.lgInk;
-            return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(Icons.luggage_outlined, color: ink),
-                  const SizedBox(height: 18),
-                  Text(data.title,
-                      style: TextStyle(
-                          fontSize: 27,
-                          fontWeight: FontWeight.w800,
-                          color: ink)),
-                  Text(
-                      [
-                        if (start != null) DateFormat('M月d日').format(start),
-                        '${data.days} 天',
-                        if (data.archived) '已归档 · 只读',
-                      ].join(' · '),
-                      style: TextStyle(color: ink)),
-                  const SizedBox(height: 16),
-                  Text('已装好 $packed / $total',
-                      style:
-                          TextStyle(color: ink, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  LinearProgressIndicator(
-                    value: total == 0 ? 0 : packed / total,
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(8),
-                    color: ink,
-                    backgroundColor: ink.withAlpha(58),
-                  ),
-                ]);
-          }),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(data.title,
+                  style: TextStyle(
+                      fontSize: 27, fontWeight: FontWeight.w800, color: ink)),
+              Text(
+                  [
+                    if (dates != null) dates,
+                    '${data.days} 天',
+                    if (data.archived) '已归档 · 只读',
+                  ].join(' · '),
+                  style: TextStyle(color: ink)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _progress(TripPreparation data) {
+    final total = data.mine.items.length + (data.shared?.items.length ?? 0);
+    final packed = data.mine.packed + (data.shared?.packed ?? 0);
+    final ink =
+        context.lgIsDark ? const Color(0xffb2c7df) : const Color(0xff526c91);
+    return RebuildGlass(
+      radius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(children: [
+        Text('已装好 $packed / $total',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: LinearProgressIndicator(
+            value: total == 0 ? 0 : packed / total,
+            minHeight: 5,
+            borderRadius: BorderRadius.circular(8),
+            color: ink,
+            backgroundColor: ink.withAlpha(44),
+          ),
         ),
       ]),
     );
@@ -460,154 +478,211 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
           .where((entry) => entry.day >= data.days)
           .map((entry) => entry.day),
     ];
-    return RebuildGlass(
-      padding: const EdgeInsets.all(15),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
         Text('每日搭配', style: Theme.of(context).textTheme.titleLarge),
-        const Text('仅自己可见'),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(children: [
-            for (final day in days)
-              Padding(
-                  padding: const EdgeInsets.only(right: 7),
-                  child: RebuildChoiceChip(
-                    label: Text(day >= data.days
-                        ? '第 ${day + 1} 天 · 已移出'
-                        : '第 ${day + 1} 天'),
-                    selected: _day == day,
-                    onSelected: (_) => setState(() => _day = day),
-                  )),
-          ]),
-        ),
-        if (selected == null)
-          const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('这天还没有搭配'))
-        else ...[
-          Text(selected.available ? selected.label : '${selected.label} · 已不可用',
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          if (selected.imageUrl != null)
-            SizedBox(height: 118, child: _PreparationPhoto(selected.imageUrl)),
-          if (selected.pieces.isNotEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child:
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                for (final piece in selected.pieces)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, right: 9),
-                    child: SizedBox(
-                      width: 94,
-                      child: Column(children: [
-                        SizedBox(
-                            height: 90,
-                            child: _PreparationPhoto(piece.imageUrl)),
-                        Text(
-                            piece.available
-                                ? piece.label
-                                : '${piece.label} · 已不可用',
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis),
-                      ]),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              for (final day in days)
+                Semantics(
+                  selected: _day == day,
+                  child: TextButton(
+                    style: rebuildTextStyle(context).copyWith(
+                      minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+                      padding: const WidgetStatePropertyAll(
+                          EdgeInsets.symmetric(horizontal: 8)),
+                    ),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _day = day);
+                    },
+                    child: Text(
+                      day >= data.days
+                          ? '第 ${day + 1} 天 · 已移出'
+                          : '第 ${day + 1} 天',
+                      style: TextStyle(
+                        color: _day == day
+                            ? context.lgInk
+                            : context.lgTextSecondary,
+                        fontWeight:
+                            _day == day ? FontWeight.w700 : FontWeight.w400,
+                        decoration: _day == day
+                            ? TextDecoration.underline
+                            : TextDecoration.none,
+                      ),
                     ),
                   ),
-              ]),
-            ),
-        ],
-        if (editable)
-          Wrap(spacing: 8, children: [
-            if (_day < data.days)
-              TextButton.icon(
-                onPressed: () => _chooseOutfit(selected),
-                icon: const Icon(Icons.checkroom_outlined),
-                label: Text(selected == null ? '从衣橱选择' : '更换搭配'),
-              ),
-            if (selected != null)
-              TextButton(
-                onPressed: () async => _notice(await _write(
-                    account: _account,
-                    shared: false,
-                    relationship: null,
-                    outfits: (list) => list.outfits
-                        .where((entry) => entry.day != selected.day)
-                        .toList())),
-                child: const Text('移除搭配关联'),
-              ),
-          ]),
+                ),
+            ]),
+          ),
+        ),
       ]),
-    );
+      if (selected == null)
+        const RebuildGlass(
+            radius: 16,
+            padding: EdgeInsets.all(12),
+            child: Text('这天还没有搭配 · 仅自己可见'))
+      else ...[
+        if (selected.imageUrl != null)
+          AspectRatio(
+              aspectRatio: 2,
+              child: _PreparationPhoto(selected.imageUrl, fit: BoxFit.cover)),
+        const SizedBox(height: 6),
+        Text(selected.available ? selected.label : '${selected.label} · 已不可用',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text('已关联这次行程 · 仅自己可见',
+            style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
+        if (selected.imageUrl == null ||
+            selected.pieces.any((piece) => !piece.available))
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final piece in selected.pieces)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 9),
+                  child: SizedBox(
+                    width: 94,
+                    child: Column(children: [
+                      SizedBox(
+                          height: 90, child: _PreparationPhoto(piece.imageUrl)),
+                      Text(
+                          piece.available
+                              ? piece.label
+                              : '${piece.label} · 已不可用',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis),
+                    ]),
+                  ),
+                ),
+            ]),
+          ),
+      ],
+      if (editable)
+        Wrap(spacing: 8, children: [
+          if (_day < data.days)
+            RebuildGlassButton(
+              onPressed: () => _chooseOutfit(selected),
+              icon: Icons.checkroom_outlined,
+              label: selected == null ? '从衣橱选择' : '更换搭配',
+              showLabel: true,
+            ),
+          if (selected != null)
+            TextButton(
+              onPressed: () async => _notice(await _write(
+                  account: _account,
+                  shared: false,
+                  relationship: null,
+                  outfits: (list) => list.outfits
+                      .where((entry) => entry.day != selected.day)
+                      .toList())),
+              child: const Text('移除搭配关联'),
+            ),
+        ]),
+    ]);
   }
 
   Widget _packing(PreparationList? list, bool editable) {
-    return RebuildGlass(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Wrap(spacing: 8, children: [
-          RebuildChoiceChip(
-            label: const Text('个人行李'),
-            selected: !_shared,
-            onSelected: (_) => setState(() => _shared = false),
-          ),
-          RebuildChoiceChip(
-            label: const Text('共同物品'),
-            selected: _shared,
-            onSelected: (_) => setState(() => _shared = true),
-          ),
-        ]),
-        if (list == null)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text('绑定伴侣后可以共用清单、分工和勾选。'),
-          )
-        else if (list.items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text('清单还是空的'),
-          )
-        else
-          for (final category in packingCategories.entries)
-            if (list.items.any((item) => item.category == category.key)) ...[
+    final items = list?.items
+            .where((item) => _category == null || item.category == _category)
+            .toList() ??
+        [];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(
+          spacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('行李清单', style: Theme.of(context).textTheme.titleLarge),
+            RebuildChoiceChip(
+              label: const Text('个人行李'),
+              selected: !_shared,
+              onSelected: (_) => setState(() {
+                _shared = false;
+                _category = null;
+              }),
+            ),
+            RebuildChoiceChip(
+              label: const Text('共同物品'),
+              selected: _shared,
+              onSelected: (_) => setState(() {
+                _shared = true;
+                _category = null;
+              }),
+            ),
+          ]),
+      if (list != null && list.items.isNotEmpty)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(children: [
+            for (final category
+                in <String?, String>{null: '全部', ...packingCategories}.entries)
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                child: Text(category.value,
-                    style: TextStyle(
-                        color: context.lgTextSecondary,
-                        fontWeight: FontWeight.w700)),
+                padding: const EdgeInsets.only(right: 6),
+                child: RebuildChoiceChip(
+                  label: Text(category.value),
+                  selected: _category == category.key,
+                  onSelected: (_) => setState(() => _category = category.key),
+                ),
               ),
-              for (final item
-                  in list.items.where((item) => item.category == category.key))
-                Row(children: [
-                  Expanded(
-                    child: CheckboxListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 6),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(item.label),
-                      subtitle: _shared ? Text(_person(item.assigneeId)) : null,
-                      value: item.packed,
-                      onChanged:
-                          editable ? (value) => _toggle(item, value) : null,
-                    ),
-                  ),
-                  if (editable)
-                    PopupMenuButton<String>(
-                      tooltip: '${item.label}的操作',
-                      onSelected: (action) {
-                        if (action == 'edit') {
-                          _editItem(item);
-                        } else {
-                          _removeItem(item);
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('编辑')),
-                        PopupMenuItem(value: 'remove', child: Text('移除')),
-                      ],
-                    ),
-                ]),
-            ],
-      ]),
-    );
+          ]),
+        ),
+      RebuildGlass(
+        radius: 18,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(list == null
+                  ? '绑定伴侣后可以共用清单、分工和勾选。'
+                  : _category == null
+                      ? '清单还是空的'
+                      : '这个分类还没有物品'),
+            ),
+          for (final (index, item) in items.indexed) ...[
+            if (index > 0)
+              Divider(
+                  height: 1,
+                  indent: 48,
+                  endIndent: 9,
+                  color: context.lgSeparator),
+            Row(children: [
+              Expanded(
+                child: CheckboxListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(item.label),
+                  subtitle: _shared ? Text(_person(item.assigneeId)) : null,
+                  secondary: Text(packingCategories[item.category] ?? '',
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextSecondary)),
+                  value: item.packed,
+                  onChanged: editable ? (value) => _toggle(item, value) : null,
+                ),
+              ),
+              if (editable)
+                PopupMenuButton<String>(
+                  tooltip: '${item.label}的操作',
+                  onSelected: (action) {
+                    if (action == 'edit') {
+                      _editItem(item);
+                    } else {
+                      _removeItem(item);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('编辑')),
+                    PopupMenuItem(value: 'remove', child: Text('移除')),
+                  ],
+                ),
+            ]),
+          ],
+        ]),
+      ),
+    ]);
   }
 
   @override
@@ -623,6 +698,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
       backgroundColor: context.lgBg,
       appBar: AppBar(
         title: const Text('旅行准备'),
+        centerTitle: true,
         actions: [
           IconButton(
               tooltip: '刷新清单',
@@ -647,6 +723,8 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
                         ),
                       if (data != null) ...[
                         _hero(data),
+                        const SizedBox(height: 8),
+                        _progress(data),
                         const SizedBox(height: 14),
                         _outfits(data, editable),
                         const SizedBox(height: 14),
