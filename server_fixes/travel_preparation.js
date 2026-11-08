@@ -44,6 +44,26 @@ async function stored(db, tripId, scope, scopeId, epoch) {
   return rows[0] || null;
 }
 
+async function tripCover(db, tripId, userId, relationship) {
+  const [places] = await db.query(
+    `SELECT s.photos, (
+       SELECT p.url FROM travel_photos p WHERE p.spot_id=s.id
+       ORDER BY p.created_at DESC,p.id DESC LIMIT 1
+     ) AS recent_photo
+     FROM travel_trip_spots l JOIN travel_spots s ON s.id=l.spot_id
+     WHERE l.trip_id=? AND s.user_id IN (?,?)
+     ORDER BY l.sort_order,l.id`,
+    [tripId, ...members(userId, relationship)]
+  );
+  for (const place of places) {
+    const photos = json(place.photos, []);
+    const cover = [place.recent_photo, ...(Array.isArray(photos) ? photos : [])]
+      .find(value => typeof value === 'string' && value.trim());
+    if (cover) return cover;
+  }
+  return null;
+}
+
 function itemsFrom(body, allowedAssignees) {
   if (!Array.isArray(body.items) || body.items.length > 120) fail('每份清单最多120项');
   const keys = new Set();
@@ -146,7 +166,9 @@ router.get('/:id', authRequired, async (req, res) => {
     const shared = relationship ? await stored(pool, tripId, 'shared', relationship.id, relationship.preparation_epoch) : null;
     const archived = own || shared;
     if (!current && !archived) fail('准备记录不可见或不存在', 404);
-    const info = current || { id: tripId, title: archived.trip_title, startDate: archived.startDate, days: archived.trip_days };
+    const info = current
+      ? { ...current, coverUrl: await tripCover(pool, tripId, userId, relationship) }
+      : { id: tripId, title: archived.trip_title, startDate: archived.startDate, days: archived.trip_days };
     const [people] = relationship ? await pool.query('SELECT id,nickname FROM users WHERE id IN (?,?)', members(userId, relationship)) : [[]];
     res.json({ code: 200, data: { trip: info, archived: !current, people,
       relationshipKey: relationship ? `${relationship.id}:${relationship.preparation_epoch}` : null,

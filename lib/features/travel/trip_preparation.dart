@@ -99,6 +99,7 @@ class PreparationList {
 
 class TripPreparation {
   final String title;
+  final String? coverUrl;
   final DateTime? start;
   final int days;
   final bool archived;
@@ -109,6 +110,7 @@ class TripPreparation {
 
   const TripPreparation({
     required this.title,
+    this.coverUrl,
     required this.start,
     required this.days,
     required this.archived,
@@ -122,6 +124,7 @@ class TripPreparation {
     final trip = data['trip'] as Map;
     return TripPreparation(
       title: trip['title'] as String,
+      coverUrl: trip['coverUrl'] as String?,
       start: DateTime.tryParse(trip['startDate']?.toString() ?? ''),
       days: trip['days'] as int,
       archived: data['archived'] == true,
@@ -140,6 +143,7 @@ class TripPreparation {
   TripPreparation update(PreparationList list, {required bool isShared}) =>
       TripPreparation(
         title: title,
+        coverUrl: coverUrl,
         start: start,
         days: days,
         archived: archived,

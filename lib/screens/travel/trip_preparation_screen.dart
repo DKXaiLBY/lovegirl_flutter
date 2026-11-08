@@ -386,11 +386,12 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
   }
 
   Widget _hero(TripPreparation data) {
-    final cover = widget.journey?.stops
-        .expand((stop) => [stop.place?.coverImage, ...?stop.place?.photos])
-        .whereType<String>()
-        .where((path) => path.isNotEmpty)
-        .firstOrNull;
+    final cover = data.coverUrl ??
+        widget.journey?.stops
+            .expand((stop) => [stop.place?.coverImage, ...?stop.place?.photos])
+            .whereType<String>()
+            .where((path) => path.isNotEmpty)
+            .firstOrNull;
     final hasPhoto = cover != null && !data.archived;
     final start = data.start;
     final date = DateFormat('M月d日');

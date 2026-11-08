@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,6 +41,7 @@ class _Api implements ApiService {
   Map<String, dynamic> mine = _list();
   Map<String, dynamic>? shared = _list();
   String? relationship = '9:1';
+  String? cover;
   bool archived = false;
   void Function()? conflict;
   Completer<Response>? initial;
@@ -54,7 +56,8 @@ class _Api implements ApiService {
           'id': 24,
           'title': '海边三天',
           'startDate': '2026-12-01',
-          'days': 3
+          'days': 3,
+          if (cover != null) 'coverUrl': cover,
         },
         'archived': archived,
         'relationshipKey': relationship,
@@ -245,6 +248,19 @@ void main() {
       'itemIds': [55]
     });
     expect(find.text('自选衣物'), findsOneWidget);
+  });
+
+  testWidgets('a newly uploaded journey photo leads the cover', (tester) async {
+    const cover = 'https://example.invalid/qa-new-journey-photo.png';
+    final api = _Api()..cover = cover;
+    await show(tester, api, _Auth());
+    expect(
+        tester
+            .widget<CachedNetworkImage>(find.byType(CachedNetworkImage))
+            .imageUrl,
+        cover);
+    expect(find.text('12月1日 – 12月3日 · 3 天'), findsOneWidget);
+    expect(find.text('已装好 0 / 0'), findsOneWidget);
   });
 
   testWidgets('archived content remains readable at 1.6x in dark mode',
