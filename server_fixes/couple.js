@@ -202,7 +202,7 @@ router.post('/accept', authRequired, async (req, res) => {
       const user2 = Math.max(invite.creator_id, userId);
 
       await conn.query(
-        'INSERT INTO couples (user1_id, user2_id) VALUES (?, ?)',
+        'INSERT INTO couples (user1_id, user2_id, status) VALUES (?, ?, "active") ON DUPLICATE KEY UPDATE status = "active", broken_at = NULL',
         [user1, user2]
       );
 
@@ -255,7 +255,7 @@ router.delete('/', authRequired, async (req, res) => {
     }
 
     await pool.query(
-      "UPDATE couples SET status = 'broken', broken_at = NOW() WHERE id = ?",
+      "UPDATE couples SET status = 'broken', broken_at = NOW(), preparation_epoch = preparation_epoch + 1 WHERE id = ? AND status = 'active'",
       [rows[0].id]
     );
 
