@@ -278,6 +278,7 @@ class JourneyPanel extends StatelessWidget {
   final bool expanded;
   final ValueChanged<JourneyStop> onSelect;
   final VoidCallback onAdd;
+  final VoidCallback? onToggleExpanded;
   final ValueChanged<TravelSpot> onStory;
   const JourneyPanel(
       {super.key,
@@ -287,6 +288,7 @@ class JourneyPanel extends StatelessWidget {
       required this.expanded,
       required this.onSelect,
       required this.onAdd,
+      this.onToggleExpanded,
       required this.onStory});
 
   Future<void> _stopMenu(BuildContext context, JourneyStop stop) async {
@@ -492,11 +494,6 @@ class JourneyPanel extends StatelessWidget {
                     fontSize: 13, fontWeight: FontWeight.w600))),
       ]);
 
-  String _dateLabel(String start, int day) {
-    final date = DateTime.parse(start).add(Duration(days: day));
-    return '${date.month}.${date.day}';
-  }
-
   IconData _icon(String mode) => switch (mode) {
         'walking' => Icons.directions_walk,
         'bicycling' => Icons.pedal_bike,
@@ -508,6 +505,11 @@ class JourneyPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final j = controller.current!;
     final stops = controller.visible;
+    final start = DateTime.tryParse(j.startDate ?? '');
+    final activeDay = controller.day;
+    final date = start == null || activeDay == null || controller.overview
+        ? null
+        : start.add(Duration(days: activeDay));
     return AbsorbPointer(
         absorbing: controller.busy,
         child: CustomScrollView(controller: scrollController, slivers: [
@@ -527,11 +529,20 @@ class JourneyPanel extends StatelessWidget {
                       child: InkWell(
                           onTap: () =>
                               journeyDetails(context, controller, edit: true),
-                          child: Text(j.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.w800)))),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(j.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 20, fontWeight: FontWeight.w800)),
+                                if (date != null)
+                                  Text('${date.month}月${date.day}日',
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: context.lgTextSecondary)),
+                              ]))),
                   if (controller.dirty)
                     FilledButton(
                         style: rebuildFilledStyle(context),
@@ -544,6 +555,13 @@ class JourneyPanel extends StatelessWidget {
                           }
                         },
                         child: const Text('保存')),
+                  if (onToggleExpanded != null)
+                    IconButton(
+                        tooltip: expanded ? '收起行程面板' : '展开行程面板',
+                        onPressed: onToggleExpanded,
+                        icon: Icon(expanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_up)),
                   PopupMenuButton<String>(
                       tooltip: '行程更多',
                       onSelected: (action) async {
@@ -652,28 +670,21 @@ class JourneyPanel extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Row(children: [
-                  Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: RebuildChoiceChip(
-                          label: const Text('总览'),
-                          selected: controller.overview,
-                          onSelected: (_) =>
-                              controller.setDay(null, all: true))),
+                  _dayTab(context, '总览', controller.overview,
+                      () => controller.setDay(null, all: true)),
                   for (var d = 0; d < j.days; d++)
-                    Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: RebuildChoiceChip(
-                            label: Text(j.startDate == null
-                                ? '第 ${d + 1} 天'
-                                : _dateLabel(j.startDate!, d)),
-                            selected:
-                                !controller.overview && controller.day == d,
-                            onSelected: (_) => controller.setDay(d))),
-                  RebuildChoiceChip(
-                      label: Text('待计划 ${j.dayStops(null).length}'),
-                      selected: !controller.overview && controller.day == null,
-                      onSelected: (_) => controller.setDay(null)),
+                    _dayTab(
+                        context,
+                        '第 ${d + 1} 天',
+                        !controller.overview && controller.day == d,
+                        () => controller.setDay(d)),
+                  _dayTab(
+                      context,
+                      '待安排 ${j.dayStops(null).length}',
+                      !controller.overview && controller.day == null,
+                      () => controller.setDay(null)),
                 ])),
+            const Divider(height: 1, indent: 18, endIndent: 18),
           ])),
           if (stops.isEmpty)
             SliverToBoxAdapter(
@@ -752,6 +763,36 @@ class JourneyPanel extends StatelessWidget {
         ]));
   }
 
+  Widget _dayTab(
+      BuildContext context, String label, bool selected, VoidCallback select) {
+    final ink = selected ? context.lgInk : context.lgTextSecondary;
+    return Semantics(
+      selected: selected,
+      child: TextButton(
+        style: rebuildTextStyle(context).copyWith(
+          minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+          padding:
+              const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 9)),
+        ),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          select();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(
+                      color: selected ? ink : Colors.transparent, width: 2))),
+          child: Text(label,
+              style: TextStyle(
+                  color: ink,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+        ),
+      ),
+    );
+  }
+
   Widget _card(BuildContext context, JourneyStop stop, int index,
       {bool compact = false}) {
     final selected = controller.selectedKey == stop.key;
@@ -766,19 +807,33 @@ class JourneyPanel extends StatelessWidget {
             ? stop.place!.photos.first
             : null);
     final leg = controller.legs.where((l) => l.toKey == stop.key);
-    final detailIndent = (photo != null ? (compact ? 54.0 : 70.0) : 0.0) +
-        (compact ? 34.0 : 0.0);
+    final photoWidth = compact
+        ? 44.0
+        : MediaQuery.textScalerOf(context).scale(14) > 19
+            ? 64.0
+            : 86.0;
+    final detailIndent =
+        (photo != null ? photoWidth + 10 : 0.0) + (compact ? 34.0 : 0.0);
     return AnimatedContainer(
         duration: rebuildReduceMotion(context)
             ? Duration.zero
             : const Duration(milliseconds: 160),
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-                color:
-                    selected ? const Color(0xff6396a6) : context.lgSeparator)),
+            border: compact
+                ? Border.all(
+                    color: selected
+                        ? const Color(0xff78a9ec)
+                        : context.lgSeparator)
+                : null),
         child: Material(
-            color: selected ? context.lgPrimarySoft : context.lgCard,
+            color: selected
+                ? (context.lgIsDark
+                    ? const Color(0xff243247)
+                    : const Color(0xffeef5ff))
+                : compact
+                    ? context.lgCard
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(18),
             child: InkWell(
                 borderRadius: BorderRadius.circular(18),
@@ -794,8 +849,8 @@ class JourneyPanel extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(10),
                                   child: CachedNetworkImage(
                                       imageUrl: creationUrl(photo),
-                                      width: compact ? 44 : 60,
-                                      height: compact ? 44 : 60,
+                                      width: photoWidth,
+                                      height: compact ? 44 : 54,
                                       memCacheWidth: 180,
                                       fit: BoxFit.cover,
                                       errorWidget: (_, __, ___) => Container(
@@ -810,7 +865,7 @@ class JourneyPanel extends StatelessWidget {
                                   radius: 13,
                                   backgroundColor: selected
                                       ? context.lgInk
-                                      : const Color(0xff24798e),
+                                      : const Color(0xff216bce),
                                   foregroundColor:
                                       selected ? context.lgPaper : Colors.white,
                                   child: Text('${index + 1}',
@@ -820,7 +875,7 @@ class JourneyPanel extends StatelessWidget {
                             if (compact) const SizedBox(width: 8),
                             Expanded(
                                 child: Text(stop.place?.name ?? '地点已不可用',
-                                    maxLines: 1,
+                                    maxLines: compact ? 1 : 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700))),
@@ -838,7 +893,11 @@ class JourneyPanel extends StatelessWidget {
                                 constraints: const BoxConstraints(
                                     minWidth: 48, minHeight: 48),
                                 onPressed: () => _stopMenu(context, stop),
-                                icon: const Icon(Icons.more_horiz, size: 20)),
+                                icon: Icon(
+                                    compact
+                                        ? Icons.more_horiz
+                                        : Icons.more_vert,
+                                    size: 20)),
                           ]),
                           if (city.isNotEmpty)
                             Padding(
@@ -903,8 +962,8 @@ class JourneyPanel extends StatelessWidget {
     bool hasPhoto(JourneyStop s) =>
         s.place?.coverImage?.isNotEmpty == true ||
         s.place?.photos.isNotEmpty == true;
-    final circleTop = hasPhoto(stop) ? 28.0 : 22.0;
-    final nextCircleTop = connects && hasPhoto(stops[index + 1]) ? 28.0 : 22.0;
+    final circleTop = hasPhoto(stop) ? 23.0 : 20.0;
+    final nextCircleTop = connects && hasPhoto(stops[index + 1]) ? 23.0 : 20.0;
     return Padding(
         key: ValueKey(stop.key),
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -936,7 +995,7 @@ class JourneyPanel extends StatelessWidget {
                 child: CircleAvatar(
                     radius: 13,
                     backgroundColor:
-                        selected ? context.lgInk : const Color(0xff24798e),
+                        selected ? context.lgInk : const Color(0xff216bce),
                     foregroundColor: selected ? context.lgPaper : Colors.white,
                     child: Text('${index + 1}',
                         style: const TextStyle(

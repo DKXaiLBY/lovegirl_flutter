@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/travel.dart' show TravelSpot;
 import '../../providers/auth_provider.dart';
+import '../../providers/map_prefs_provider.dart';
 import '../../screens/travel/china_memory_map_screen.dart';
 import '../../screens/travel/travel_memory_screen.dart';
 import '../../utils/constants.dart';
@@ -119,11 +120,7 @@ class _TravelScreenState extends State<TravelScreen> {
     if (j == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || view != _lastJourneyView) return;
-      if (_sheet.isAttached) {
-        _sheet.animateTo(.42,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic);
-      }
+      if (_extent.value < .42) _setJourneyExtent(.42);
       if (_cards.hasClients) _cards.jumpTo(0);
       if (_workspace.loaded) _journeys.syncPlaces(_workspace.places);
       final points = _journeys.visible
@@ -170,17 +167,27 @@ class _TravelScreenState extends State<TravelScreen> {
     });
   }
 
-  Future<void> _selectStop(JourneyStop stop) async {
+  bool get _reduceMotion =>
+      MediaQuery.disableAnimationsOf(context) ||
+      context.read<MapPrefsProvider?>()?.motionLevel == 'off';
+
+  void _setJourneyExtent(double extent) {
+    if (!_sheet.isAttached) return;
+    if (_reduceMotion) {
+      _sheet.jumpTo(extent);
+    } else {
+      unawaited(_sheet.animateTo(extent,
+          duration: const Duration(milliseconds: 230),
+          curve: Curves.easeOutCubic));
+    }
+  }
+
+  void _selectStop(JourneyStop stop) {
     _journeys.selectedKey = stop.key;
     if (mounted) setState(() {});
     final place = stop.place;
     if (place != null && hasMapPosition(place)) {
       _map.currentState?.focus(place.lat, place.lng);
-    }
-    if (_sheet.isAttached && _extent.value > .52) {
-      await _sheet.animateTo(.42,
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _journeys.selectedKey != stop.key || !_cards.hasClients) {
@@ -188,10 +195,15 @@ class _TravelScreenState extends State<TravelScreen> {
       }
       final index = _journeys.visible.indexWhere((s) => s.key == stop.key);
       if (index >= 0) {
-        _cards.animateTo(
-            (index * 260.0).clamp(0, _cards.position.maxScrollExtent),
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic);
+        final target =
+            (index * 260.0).clamp(0.0, _cards.position.maxScrollExtent);
+        if (_reduceMotion) {
+          _cards.jumpTo(target);
+        } else {
+          unawaited(_cards.animateTo(target,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic));
+        }
       }
     });
   }
@@ -762,6 +774,12 @@ class _TravelScreenState extends State<TravelScreen> {
                                                     scrollController,
                                                 cardsController: _cards,
                                                 expanded: extent > .52,
+                                                onToggleExpanded: () {
+                                                  HapticFeedback
+                                                      .selectionClick();
+                                                  _setJourneyExtent(
+                                                      extent > .52 ? .42 : .62);
+                                                },
                                                 onSelect: _selectStop,
                                                 onAdd: _addJourneyPlace,
                                                 onStory: _story))
