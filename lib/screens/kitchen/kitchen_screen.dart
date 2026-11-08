@@ -13,7 +13,11 @@ import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../cooking/cooking_log_screen.dart';
 import 'kitchen_menu_grid.dart';
+import 'kitchen_meal_fields.dart';
+import 'kitchen_meal_editor.dart';
+import 'kitchen_photo.dart';
 
 /// 情侣厨房：照片菜单 / 这一餐 / 开饭记录
 class KitchenScreen extends StatelessWidget {
@@ -110,7 +114,7 @@ class _KitchenViewState extends State<_KitchenView>
                   ])),
             Expanded(
                 child: TabBarView(controller: _tab, children: [
-              _MenuTab(kitchen: kitchen),
+              _MenuTab(kitchen: kitchen, onOrdered: () => _tab.animateTo(1)),
               _CurrentMealTab(
                   kitchen: kitchen, onMenu: () => _tab.animateTo(0)),
               _RecordsTab(kitchen: kitchen),
@@ -285,7 +289,8 @@ const List<String> _presetCategories = [
 
 class _MenuTab extends StatelessWidget {
   final KitchenProvider kitchen;
-  const _MenuTab({required this.kitchen});
+  final VoidCallback onOrdered;
+  const _MenuTab({required this.kitchen, required this.onOrdered});
   @override
   Widget build(BuildContext context) {
     if (!kitchen.menuLoaded && kitchen.menuError == null) {
@@ -305,12 +310,13 @@ class _MenuTab extends StatelessWidget {
     if (!kitchen.bound) return _UnboundView(kitchen: kitchen);
     return KitchenMenuGrid(
         kitchen: kitchen,
-        onOpenCart: () {
-          showModalBottomSheet(
+        onOpenCart: () async {
+          final saved = await showModalBottomSheet<bool>(
               context: context,
               backgroundColor: Colors.transparent,
               isScrollControlled: true,
               builder: (_) => const _CartSheet());
+          if (context.mounted && saved == true) onOrdered();
         });
   }
 }
@@ -355,6 +361,8 @@ class _CartSheet extends StatefulWidget {
 
 class _CartSheetState extends State<_CartSheet> {
   final TextEditingController _noteCtrl = TextEditingController();
+  String? _mealDate;
+  String? _mealSlot;
 
   @override
   void dispose() {
@@ -369,7 +377,7 @@ class _CartSheetState extends State<_CartSheet> {
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
-      child: _KitchenGlassSheet(
+      child: SingleChildScrollView(child: _KitchenGlassSheet(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,12 +392,14 @@ class _CartSheetState extends State<_CartSheet> {
               ),
             ),
             SizedBox(height: 14),
-            Text('确认订单',
+            Text('确认这一餐',
                 style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: context.lgTextPrimary)),
             SizedBox(height: 12),
+            Text(kitchen.cookMyself ? '我来掌勺' : '${kitchen.partnerName ?? 'TA'}来掌勺'),
+            const SizedBox(height: 8),
             ...kitchen.cartDishes.map((d) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
@@ -404,15 +414,21 @@ class _CartSheetState extends State<_CartSheet> {
                           style:
                               TextStyle(color: context.lgTextMuted)),
                       SizedBox(width: 12),
-                      Text('¥${d.price * (kitchen.cart[d.id] ?? 0)}',
+                      if (d.price > 0) Text('参考 ¥${d.price * (kitchen.cart[d.id] ?? 0)}',
                           style: const TextStyle(fontWeight: FontWeight.w800)),
                     ],
                   ),
                 )),
             Divider(height: 24, color: context.lgSeparator),
+            KitchenMealFields(date: _mealDate, slot: _mealSlot,
+              enabled: !kitchen.placingOrder,
+              onDate: (value) => setState(() => _mealDate = value),
+              onSlot: (value) => setState(() => _mealSlot = value)),
+            const SizedBox(height: 12),
             TextField(
               controller: _noteCtrl,
-              maxLength: 60,
+              maxLength: 300,
+              enabled: !kitchen.placingOrder,
               decoration: InputDecoration(
                 hintText: '给主厨留言，比如：周五晚上想吃～',
                 hintStyle:
@@ -429,14 +445,14 @@ class _CartSheetState extends State<_CartSheet> {
             SizedBox(
               width: double.infinity,
               child: LovePrimaryButton(
-                text: kitchen.placingOrder ? '提交中…' : '下单 · 等主厨开火',
-                onPressed: kitchen.placingOrder ? null : () async {
-                  final err = await kitchen.placeOrder(_noteCtrl.text.trim());
+                text: kitchen.placingOrder ? '提交中…' : '提交这一餐',
+                onPressed: kitchen.placingOrder || kitchen.cart.isEmpty ? null : () async {
+                  final err = await kitchen.placeOrder(_noteCtrl.text.trim(), mealDate: _mealDate, mealSlot: _mealSlot);
                   if (!context.mounted) return;
-                  if (err == null) Navigator.of(context).pop();
+                  if (err == null) Navigator.of(context).pop(true);
                   if (err == null) HapticFeedback.mediumImpact();
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text(err ?? '下单成功！等 TA 开火啦 🔥'),
+                    content: Text(err ?? '这一餐已安排，等待主厨确认'),
                     behavior: SnackBarBehavior.floating,
                   ));
                 },
@@ -444,7 +460,7 @@ class _CartSheetState extends State<_CartSheet> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 }
@@ -644,6 +660,8 @@ class _DishEditSheetState extends State<_DishEditSheet> {
           : '');
   late final TextEditingController _desc =
       TextEditingController(text: widget.existing?.description ?? '');
+  late final TextEditingController _ingredients = TextEditingController(text: widget.existing?.ingredients ?? '');
+  late final TextEditingController _recipe = TextEditingController(text: widget.existing?.recipe ?? '');
   late String _category = widget.existing?.category ?? '家常菜';
   late String? _photoUrl = widget.existing?.photoUrl;
   bool _saving = false;
@@ -656,14 +674,17 @@ class _DishEditSheetState extends State<_DishEditSheet> {
     _emoji.dispose();
     _price.dispose();
     _desc.dispose();
+    _ingredients.dispose();
+    _recipe.dispose();
     super.dispose();
   }
 
   Future<void> _pickPhoto() async {
+    if (_saving || _uploading) return;
     final kitchen = context.read<KitchenProvider>();
     final xFile = await _picker.pickImage(
         source: ImageSource.gallery, maxWidth: 1200, imageQuality: 82);
-    if (xFile == null) return;
+    if (!mounted || xFile == null) return;
     setState(() => _uploading = true);
     final (url, err) = await kitchen.uploadPhoto(xFile.path);
     if (!mounted) return;
@@ -802,12 +823,18 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                     fillColor: context.lgPaper,
                     counterText: ''),
               ),
+              const SizedBox(height: 12),
+              TextField(controller: _ingredients, minLines: 2, maxLines: 4, maxLength: 2000,
+                decoration: const InputDecoration(labelText: '食材（可选）', counterText: '')),
+              const SizedBox(height: 12),
+              TextField(controller: _recipe, minLines: 2, maxLines: 4, maxLength: 3000,
+                decoration: const InputDecoration(labelText: '做法（可选）', counterText: '')),
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
               child: LovePrimaryButton(
                 text: widget.existing == null ? '挂上菜单' : '保存修改',
-                  onPressed: _saving ? null : _save,
+                  onPressed: _saving || _uploading ? null : _save,
                 ),
               ),
             ],
@@ -832,6 +859,8 @@ class _DishEditSheetState extends State<_DishEditSheet> {
       'emoji': _emoji.text.trim().isEmpty ? '🍳' : _emoji.text.trim(),
       'price': int.tryParse(_price.text.trim()) ?? 0,
       'description': _desc.text.trim(),
+      'ingredients': _ingredients.text.trim(),
+      'recipe': _recipe.text.trim(),
       if (_photoUrl != null) 'photo_url': _photoUrl,
     };
     final err = widget.existing == null
@@ -962,13 +991,7 @@ class _ReceiptCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   child: AspectRatio(
                       aspectRatio: 1.8,
-                      child: Image.network(
-                          kitchenPhotoUrl(
-                              order.photoUrl!, AppConstants.baseUrl),
-                          fit: BoxFit.cover,
-                          cacheWidth: 800,
-                          errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.broken_image_outlined))))),
+                      child: KitchenPhoto(path: order.photoUrl, cacheWidth: 800))),
             ],
             const SizedBox(height: 12),
             LoveTicketDivider(
@@ -992,7 +1015,91 @@ class _ReceiptCard extends StatelessWidget {
                   child: Text('菜单参考价 ¥${order.totalPrice}',
                       style:
                           TextStyle(fontSize: 11, color: context.lgTextMuted))),
+            TextButton(onPressed: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => KitchenMealScreen(orderId: order.id)));
+              if (context.mounted) await context.read<KitchenProvider>().loadOrders(silent: true);
+            }, child: const Text('查看这一餐')),
           ]),
+    );
+  }
+}
+
+/// A meal can be opened from a notification, its receipt, or the food journal.
+class KitchenMealScreen extends StatefulWidget {
+  final int orderId;
+  const KitchenMealScreen({super.key, required this.orderId});
+  @override
+  State<KitchenMealScreen> createState() => _KitchenMealScreenState();
+}
+
+class _KitchenMealScreenState extends State<KitchenMealScreen> {
+  KitchenOrder? _order;
+  String? _error;
+  bool _loading = true;
+  int _request = 0;
+  int? _actor;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final actor = context.watch<KitchenProvider>().accountId;
+    if (_request == 0 || _actor != actor) {
+      _actor = actor; _request++; _order = null; _error = null; _loading = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
+    }
+  }
+
+  Future<void> _load() async {
+    final kitchen = context.read<KitchenProvider>();
+    final request = ++_request;
+    setState(() { _loading = true; _error = null; });
+    final (order, error) = await kitchen.getOrder(widget.orderId);
+    if (!mounted || request != _request) return;
+    if (order?.isActive == true && (!kitchen.menuLoaded || kitchen.menuError != null)) {
+      await kitchen.loadMenu(silent: true);
+    }
+    if (!mounted || request != _request) return;
+    setState(() { _loading = false; _error = error; _order = order; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kitchen = context.watch<KitchenProvider>();
+    final order = _order;
+    return Scaffold(backgroundColor: context.lgBg, body: RebuildPageBackground(child: SafeArea(child: Column(children: [
+      const _KitchenHeader(title: '这一餐', subtitle: '菜品与餐桌回忆'),
+      Expanded(child: _loading ? const Center(child: CircularProgressIndicator()) : order == null
+        ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error ?? '餐次不可见或已删除', textAlign: TextAlign.center),
+          TextButton(onPressed: _load, child: const Text('重试')),
+        ])))
+        : RefreshIndicator(onRefresh: _load, child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(12), children: [
+            if (order.photoUrl?.isNotEmpty == true) ...[
+              ClipRRect(borderRadius: BorderRadius.circular(20), child: AspectRatio(aspectRatio: 1.6,
+                child: KitchenPhoto(path: order.photoUrl, cacheWidth: 800))), const SizedBox(height: 12),
+            ],
+            _OrderCard(order: order, isIncoming: order.cookId == kitchen.accountId, onChanged: _load),
+            for (final item in order.items)
+              if (item.ingredients?.isNotEmpty == true || item.recipe?.isNotEmpty == true)
+                Padding(padding: const EdgeInsets.only(top: 12), child: LovePaper(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(item.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    if (item.ingredients?.isNotEmpty == true) ...[const SizedBox(height: 8), const Text('食材'), Text(item.ingredients!)],
+                    if (item.recipe?.isNotEmpty == true) ...[const SizedBox(height: 8), const Text('做法'), Text(item.recipe!)],
+                  ],
+                ))),
+            if (order.cookingLogId != null) Padding(padding: const EdgeInsets.only(top: 14), child: FilledButton.icon(
+              style: rebuildFilledStyle(context), icon: const Icon(Icons.auto_stories_outlined), label: const Text('查看餐桌回忆'),
+              onPressed: () async {
+                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => CookingLogScreen(logId: order.cookingLogId)));
+                if (mounted) await _load();
+              },
+            )),
+          ],
+        )),
+      ),
+    ]))),
     );
   }
 }
@@ -1068,8 +1175,9 @@ class _OrdersList extends StatelessWidget {
 class _OrderCard extends StatelessWidget {
   final KitchenOrder order;
   final bool isIncoming;
+  final VoidCallback? onChanged;
 
-  const _OrderCard({required this.order, required this.isIncoming});
+  const _OrderCard({required this.order, required this.isIncoming, this.onChanged});
 
   String get _statusLabel {
     switch (order.status) {
@@ -1102,6 +1210,8 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kitchen = context.watch<KitchenProvider>();
+    final canAdjust = canAdjustKitchenMeal(kitchen, order);
+    final canCook = isIncoming && (!kitchen.menuLoaded || canAdjust);
     // v4.0 白卡=大圆角+1px 细线（LovePaper），阴影交给描边
     return LovePaper(
       padding: const EdgeInsets.all(14),
@@ -1118,7 +1228,7 @@ class _OrderCard extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  isIncoming ? 'TA 想吃：' : '你点的：',
+                  isIncoming ? '我掌勺' : 'TA掌勺',
                   style: TextStyle(
                       fontSize: 12, color: context.lgTextMuted),
                 ),
@@ -1131,6 +1241,8 @@ class _OrderCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 8),
+          if (kitchenMealPlanLabel(order.mealDate, order.mealSlot).isNotEmpty)
+            Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(kitchenMealPlanLabel(order.mealDate, order.mealSlot))),
           ...order.items.map((it) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
@@ -1160,18 +1272,23 @@ class _OrderCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       color: context.lgTextPrimary)),
-              if (isIncoming && order.status == 'placed')
-                _MealStatusButton(orderId: order.id, status: 'accepted', text: '接下这一餐'),
-              if (isIncoming && order.status == 'accepted')
+              if (canCook && order.status == 'placed')
+                _MealStatusButton(order: order, status: 'accepted', text: '接下这一餐', onChanged: onChanged),
+              if (canCook && order.status == 'accepted')
                 Wrap(children: [
-                  _MealStatusButton(orderId: order.id, status: 'placed', text: '撤销接单'),
+                  _MealStatusButton(order: order, status: 'placed', text: '撤销接单', onChanged: onChanged),
                   TextButton(
                     style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-                    onPressed: kitchen.isOrderBusy(order.id) ? null : () => _showFulfillSheet(context, order.id),
+                    onPressed: kitchen.isOrderBusy(order.id) ? null : () => _showFulfillSheet(context),
                     child: const Text('开饭了'),
                   ),
                 ]),
-              if (!isIncoming && order.isActive)
+              if (canAdjust)
+                TextButton(onPressed: kitchen.isOrderBusy(order.id) ? null : () async {
+                  final saved = await showKitchenMealEditor(context, order.id);
+                  if (context.mounted && saved == true) onChanged?.call();
+                }, child: const Text('调整餐次')),
+              if (kitchen.accountId == order.ordererId && order.isActive)
                 GestureDetector(
                   onTap: kitchen.isOrderBusy(order.id) ? null : () async {
                     final confirm = await showDialog<bool>(
@@ -1198,11 +1315,12 @@ class _OrderCard extends StatelessWidget {
                     );
                     if (confirm == true && context.mounted) {
                       final err = await kitchen
-                          .updateOrderStatus(order.id, 'cancelled');
+                          .updateOrderStatus(order.id, 'cancelled', extra: order.expectedState);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content: Text(err ?? '订单已取消'),
                             behavior: SnackBarBehavior.floating));
+                        if (err == null) onChanged?.call();
                       }
                     }
                   },
@@ -1222,21 +1340,22 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  void _showFulfillSheet(BuildContext context, int orderId) {
-    showModalBottomSheet(
+  Future<void> _showFulfillSheet(BuildContext context) async {
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _FulfillSheet(orderId: orderId),
+      builder: (_) => _FulfillSheet(order: order),
     );
+    if (context.mounted && saved == true) onChanged?.call();
   }
 }
 
 // ================= 完成订单（拍成品照） =================
 
 class _FulfillSheet extends StatefulWidget {
-  final int orderId;
-  const _FulfillSheet({required this.orderId});
+  final KitchenOrder order;
+  const _FulfillSheet({required this.order});
 
   @override
   State<_FulfillSheet> createState() => _FulfillSheetState();
@@ -1273,10 +1392,10 @@ class _FulfillSheetState extends State<_FulfillSheet> {
       _uploadedUrl = url;
     }
     final err = await kitchen
-        .updateOrderStatus(widget.orderId, 'done', extra: {'photo_url': _uploadedUrl});
+        .updateOrderStatus(widget.order.id, 'done', extra: {...widget.order.expectedState, 'photo_url': _uploadedUrl});
     if (!mounted) return;
     setState(() => _working = false);
-    if (err == null) Navigator.of(context).pop();
+    if (err == null) Navigator.of(context).pop(true);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(err ?? '已经开饭，记录已保存'),
         behavior: SnackBarBehavior.floating));
@@ -1362,26 +1481,28 @@ class _FulfillSheetState extends State<_FulfillSheet> {
 
 /// One explicit action per state; the accepted row keeps its undo action visible.
 class _MealStatusButton extends StatelessWidget {
-  final int orderId;
+  final KitchenOrder order;
   final String status;
   final String text;
-  const _MealStatusButton({required this.orderId, required this.status, required this.text});
+  final VoidCallback? onChanged;
+  const _MealStatusButton({required this.order, required this.status, required this.text, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final kitchen = context.watch<KitchenProvider>();
     return TextButton(
       style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
-      onPressed: kitchen.isOrderBusy(orderId) ? null : () async {
-        final error = await kitchen.updateOrderStatus(orderId, status);
+      onPressed: kitchen.isOrderBusy(order.id) ? null : () async {
+        final error = await kitchen.updateOrderStatus(order.id, status, extra: order.expectedState);
         if (!context.mounted) return;
         if (error == null) HapticFeedback.selectionClick();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(error ?? (status == 'accepted' ? '已接下这一餐' : '已撤销接单，可以重新商量')),
           behavior: SnackBarBehavior.floating,
         ));
+        if (error == null) onChanged?.call();
       },
-      child: Text(kitchen.isOrderBusy(orderId) ? '处理中…' : text),
+      child: Text(kitchen.isOrderBusy(order.id) ? '处理中…' : text),
     );
   }
 }

@@ -422,6 +422,9 @@ class ApiService {
       put('/api/kitchen/dishes/$id', data: data);
   Future deleteKitchenDish(int id) => delete('/api/kitchen/dishes/$id');
   Future getKitchenOrders() => get('/api/kitchen/orders');
+  Future getKitchenOrder(int id) => get('/api/kitchen/orders/$id');
+  Future updateKitchenOrder(int id, Map data) =>
+      put('/api/kitchen/orders/$id', data: data);
   Future createKitchenOrder(Map data) => post('/api/kitchen/orders', data: data);
   Future updateKitchenOrderStatus(int id, String status, {Map? extra}) =>
       put('/api/kitchen/orders/$id/status',
@@ -477,6 +480,7 @@ class ApiService {
 
   // ========== 美食手账 ==========
   Future getCookingList() => get('/api/cooking/list');
+  Future getCookingLog(int id) => get('/api/cooking/$id');
   Future createCookingLog(Map data) => post('/api/cooking', data: data);
   Future tasteCookingLog(int id, int rating, String? comment) =>
       put('/api/cooking/$id/taste', data: {'rating': rating, 'comment': comment});

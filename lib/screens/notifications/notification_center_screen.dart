@@ -157,6 +157,10 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
     final payload = item.payload;
     switch (item.type) {
       case 'kitchen_order':
+        final orderId = int.tryParse('${payload['order_id'] ?? ''}');
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) =>
+          orderId != null && orderId > 0 ? KitchenMealScreen(orderId: orderId) : const KitchenScreen(initialTab: 1)));
+        break;
       case 'feeding_order':
       case 'feeding_status':
       case 'feeding_urge':
@@ -177,8 +181,9 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
         break;
       case 'cooking':
       case 'cooking_taste':
+        final logId = int.tryParse('${payload['cooking_id'] ?? ''}');
         Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const CookingLogScreen()));
+            .push(MaterialPageRoute(builder: (_) => CookingLogScreen(logId: logId != null && logId > 0 ? logId : null)));
         break;
       default:
         if (payload['order_id'] != null) {

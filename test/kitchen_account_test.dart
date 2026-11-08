@@ -5,6 +5,7 @@ import 'package:lovegirl_flutter/providers/kitchen_provider.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 
 class _Api implements ApiService {
+  int actor = 71;
   final menus = <Completer<Response>>[];
   final orders = <Completer<Response>>[];
   final writes = <Completer<Response>>[];
@@ -15,9 +16,9 @@ class _Api implements ApiService {
       requestOptions: RequestOptions(), data: {'code': 200, 'data': value});
   Map<String, dynamic> menu(String name) => {
         'bound': true,
-        'partner': {'nickname': name},
+        'partner': {'id': actor == 71 ? 72 : 71, 'nickname': name},
         'mine': [
-          {'id': 1, 'user_id': 71, 'name': name}
+          {'id': 1, 'user_id': actor, 'name': name}
         ],
         'partner_dishes': [],
       };
@@ -118,9 +119,16 @@ void main() {
     api.writes.addAll([first, second]);
     final kitchen = KitchenProvider(api: api)
       ..setAccount(71)
+      ..bound = true
+      ..partnerId = 72
+      ..menuLoaded = true
       ..cart[1] = 1;
     final old = kitchen.placeOrder('old note');
     kitchen.setAccount(72);
+    api.actor = 72;
+    kitchen.bound = true;
+    kitchen.partnerId = 71;
+    kitchen.menuLoaded = true;
     kitchen.cart[2] = 1;
     final current = kitchen.placeOrder('new note');
     first.complete(api.response({'id': 8}));

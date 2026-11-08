@@ -14,6 +14,11 @@ import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 
 class _Api implements ApiService {
   int orderCalls = 0;
+  final checkouts = <Map<String, dynamic>>[];
+  Map<String, dynamic>? adjusted;
+  Map<String, dynamic>? orderDetail;
+  bool adjustmentFails = false;
+  int peer = 2;
   Object? orderFailure;
   bool dishFails = false;
   int statusCalls = 0;
@@ -24,6 +29,7 @@ class _Api implements ApiService {
   List<Map<String, dynamic>> incoming = [];
   bool menuBound = true;
   bool menuFails = false;
+  List<Map<String, dynamic>> mine = [];
   List<Map<String, dynamic>> dishes = [
     {'id': 1, 'user_id': 2, 'name': '番茄炒蛋', 'price': 0, 'category': '家常菜'}
   ];
@@ -41,7 +47,8 @@ class _Api implements ApiService {
       ? Future.error(rejected())
       : response({
           'bound': menuBound,
-          'mine': [],
+          'partner': menuBound ? {'id': peer, 'nickname': 'QA partner'} : null,
+          'mine': mine,
           'partner_dishes': dishes,
         });
   @override
@@ -52,8 +59,19 @@ class _Api implements ApiService {
   @override
   Future<Response> createKitchenOrder(Map data) {
     orderCalls++;
+    checkouts.add(Map<String, dynamic>.from(data));
     if (orderFailure != null) return Future.error(orderFailure!);
     return pending?.future ?? response({'id': 11});
+  }
+
+  @override
+  Future<Response> getKitchenOrder(int id) => response(orderDetail);
+
+  @override
+  Future<Response> updateKitchenOrder(int id, Map data) {
+    adjusted = Map<String, dynamic>.from(data);
+    if (adjustmentFails) return Future.error(rejected());
+    return response({'id': id});
   }
 
   @override
@@ -92,7 +110,12 @@ void main() {
             (_) async => null);
   });
 
-  KitchenProvider provider(_Api api) => KitchenProvider(api: api)..cart[1] = 1;
+  KitchenProvider provider(_Api api) => KitchenProvider(api: api)
+    ..setAccount(1)
+    ..bound = true
+    ..partnerId = 2
+    ..menuLoaded = true
+    ..cart[1] = 1;
 
   KitchenProvider acceptedMeal(_Api api) {
     api.incoming = [
@@ -107,6 +130,7 @@ void main() {
       }
     ];
     return KitchenProvider(api: api)
+      ..setAccount(1)
       ..incoming = api.incoming.map(KitchenOrder.fromJson).toList();
   }
 
@@ -206,6 +230,7 @@ void main() {
     final kitchen = provider(api);
     expect(await kitchen.placeOrder('少辣'), '下单失败，请稍后再试');
     expect(kitchen.cart, {1: 1});
+    expect(api.orderCalls, 1);
   });
 
   test('one pending checkout produces one request even when tapped twice',
@@ -231,6 +256,100 @@ void main() {
     expect(await kitchen.placeOrder('少辣'), isNull);
     expect(api.orderCalls, 2);
     expect(kitchen.cart, isEmpty);
+  });
+
+  test(
+      'checkout retries the same intent with one key and uses a new key for a changed plan',
+      () async {
+    final api = _Api()..orderFailure = StateError('response lost');
+    final kitchen = provider(api);
+    await kitchen.placeOrder('少辣', mealDate: '2026-11-07', mealSlot: 'dinner');
+    await kitchen.placeOrder('少辣', mealDate: '2026-11-07', mealSlot: 'dinner');
+    await kitchen.placeOrder('少辣', mealDate: '2026-11-08', mealSlot: 'dinner');
+    expect(api.checkouts[0]['request_key'], isNotEmpty);
+    expect(api.checkouts[0]['request_key'], api.checkouts[1]['request_key']);
+    expect(api.checkouts[2]['request_key'],
+        isNot(api.checkouts[1]['request_key']));
+    expect(api.checkouts[2]['meal_date'], '2026-11-08');
+    expect(kitchen.cart, {1: 1});
+    kitchen.dispose();
+  });
+
+  test(
+      'choosing myself clears the previous menu selection and keeps the partner as a participant',
+      () async {
+    final api = _Api()..orderFailure = StateError('response lost');
+    final kitchen = provider(api);
+    kitchen.selectChef(true);
+    expect(kitchen.cart, isEmpty);
+    kitchen.addToCart(7);
+    await kitchen.placeOrder('一起开饭', mealSlot: 'lunch');
+    expect(api.checkouts.single['cook_id'], 1);
+    expect(api.checkouts.single['partner_id'], 2);
+    expect(api.checkouts.single['meal_slot'], 'lunch');
+    expect(api.checkouts.single['items'], [
+      {'dish_id': 7, 'quantity': 1}
+    ]);
+    kitchen.dispose();
+  });
+
+  test('old checkout response cannot clear a new relationship cart', () async {
+    final api = _Api()..pending = Completer<Response>();
+    final kitchen = provider(api);
+    final previous = kitchen.placeOrder('old note');
+    api.peer = 3;
+    api.dishes = [
+      {'id': 9, 'user_id': 3, 'name': '新菜单'}
+    ];
+    await kitchen.loadMenu();
+    expect(kitchen.cart, isEmpty);
+    expect(kitchen.placingOrder, isFalse);
+    kitchen.addToCart(9);
+    api.pending!.complete(await api.response({'id': 11}));
+    expect(await previous, contains('绑定关系已变化'));
+    expect(kitchen.cart, {9: 1});
+    kitchen.dispose();
+  });
+
+  test(
+      'detail keeps the viewed version, recipes and the journal link; a rejected adjustment stays retryable',
+      () async {
+    final api = _Api()
+      ..adjustmentFails = true
+      ..orderDetail = {
+        'id': 8,
+        'orderer_id': 1,
+        'partner_id': 2,
+        'cook_id': 2,
+        'revision': '3',
+        'meal_date': '2026-11-07',
+        'meal_slot': 'lunch',
+        'cooking_log_id': 20,
+        'items': [
+          {
+            'dish_id': 1,
+            'name': '番茄炒蛋',
+            'quantity': 2,
+            'ingredients': '番茄、鸡蛋',
+            'recipe': '先炒鸡蛋'
+          }
+        ],
+      };
+    final kitchen = provider(api);
+    final (order, error) = await kitchen.getOrder(8);
+    expect(error, isNull);
+    expect(order!.items.single.recipe, '先炒鸡蛋');
+    expect(order.cookingLogId, 20);
+    final draft = {
+      'revision': order.revision,
+      'note': '少辣',
+      'meal_date': order.mealDate,
+      'items': order.items.map((item) => item.toMap()).toList()
+    };
+    expect(await kitchen.updateOrder(8, draft), '测试：暂时不能保存');
+    expect(api.adjusted, draft);
+    expect(kitchen.isOrderBusy(8), isFalse);
+    kitchen.dispose();
   });
 
   Future<void> show(WidgetTester tester, KitchenProvider kitchen,
@@ -265,9 +384,9 @@ void main() {
         find.byWidgetPredicate((w) =>
             w is TextField && w.decoration?.hintText == '给主厨留言，比如：周五晚上想吃～'),
         'QA note');
-    await tester.tap(find.text('下单 · 等主厨开火'));
+    await tester.tap(find.text('提交这一餐'));
     await tester.pumpAndSettle();
-    expect(find.text('确认订单'), findsOneWidget);
+    expect(find.text('确认这一餐'), findsOneWidget);
     expect(find.text('QA note'), findsOneWidget);
     expect(kitchen.cart, {1: 1});
   });
@@ -276,6 +395,132 @@ void main() {
       (tester) async {
     await show(tester, provider(_Api()));
     expect(find.text('番茄炒蛋'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'changing chef needs confirmation and checkout carries the new menu and meal plan',
+      (tester) async {
+    final api = _Api()
+      ..mine = [
+        {'id': 7, 'user_id': 1, 'name': '我的青菜'}
+      ];
+    final kitchen = provider(api);
+    await show(tester, kitchen);
+    Future<void> chooseMine() async {
+      await tester.tap(find.widgetWithText(TextButton, 'TA掌勺'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('我来掌勺'));
+      await tester.pumpAndSettle();
+    }
+
+    await chooseMine();
+    await tester.tap(find.text('保留选菜'));
+    await tester.pumpAndSettle();
+    expect(kitchen.cart, {1: 1});
+    await chooseMine();
+    await tester.tap(find.widgetWithText(FilledButton, '更换主厨'));
+    await tester.pumpAndSettle();
+    expect(kitchen.cart, isEmpty);
+    expect(find.text('我的青菜'), findsOneWidget);
+    expect(find.text('番茄炒蛋'), findsNothing);
+    await tester.tap(find.byTooltip('增加我的青菜'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认这餐'));
+    await tester.pumpAndSettle();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    await tester.ensureVisible(find.text('选择用餐日期'));
+    await tester.tap(find.text('选择用餐日期'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('时段未定'));
+    await tester.tap(find.text('时段未定'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('午餐').last);
+    await tester.pumpAndSettle();
+    api.incoming = [
+      {
+        'id': 11,
+        'orderer_id': 1,
+        'partner_id': 2,
+        'cook_id': 1,
+        'status': 'placed',
+        'items': [
+          {'dish_id': 7, 'name': '我的青菜', 'quantity': 1}
+        ]
+      }
+    ];
+    await tester.ensureVisible(find.text('提交这一餐'));
+    await tester.tap(find.text('提交这一餐'));
+    await tester.pumpAndSettle();
+    expect(api.checkouts.single['cook_id'], 1);
+    expect(api.checkouts.single['partner_id'], 2);
+    expect(api.checkouts.single['meal_date'], today);
+    expect(api.checkouts.single['meal_slot'], 'lunch');
+    expect(find.text('接下这一餐'), findsOneWidget);
+  });
+
+  testWidgets(
+      'a long checkout is scrollable above the keyboard and keeps the failed note',
+      (tester) async {
+    final api = _Api()
+      ..dishes = List.generate(
+          12, (i) => {'id': i + 1, 'user_id': 2, 'name': '小菜${i + 1}'});
+    api.orderFailure = api.rejected();
+    final kitchen = provider(api);
+    for (var i = 2; i <= 12; i++) {
+      kitchen.cart[i] = 1;
+    }
+    await show(tester, kitchen, large: true);
+    await tester.tap(find.text('确认这餐'));
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
+    await tester.pumpAndSettle();
+    final note = find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.hintText == '给主厨留言，比如：周五晚上想吃～');
+    await tester.ensureVisible(note);
+    await tester.enterText(note, 'keyboard note');
+    await tester.ensureVisible(find.text('提交这一餐'));
+    await tester.tap(find.text('提交这一餐'));
+    await tester.pumpAndSettle();
+    expect(find.text('keyboard note'), findsOneWidget);
+    expect(api.checkouts.single['note'], 'keyboard note');
+    expect(kitchen.cart.length, 12);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'rejected meal adjustment keeps the viewed version and the edited fields',
+      (tester) async {
+    final api = _Api()
+      ..adjustmentFails = true
+      ..mine = [
+        {'id': 1, 'user_id': 1, 'name': '番茄炒蛋'}
+      ];
+    final kitchen = acceptedMeal(api);
+    api.orderDetail = {
+      ...api.incoming.single,
+      'revision': 3,
+      'meal_date': '2026-11-07',
+      'meal_slot': 'dinner',
+      'note': '旧备注'
+    };
+    await show(tester, kitchen, tab: 1);
+    await tester.tap(find.text('调整餐次'));
+    await tester.pumpAndSettle();
+    final note = find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.labelText == '口味与备注');
+    await tester.ensureVisible(note);
+    await tester.enterText(note, '少辣，晚点开饭');
+    await tester.ensureVisible(find.text('保存调整'));
+    await tester.tap(find.text('保存调整'));
+    await tester.pumpAndSettle();
+    expect(find.text('少辣，晚点开饭'), findsOneWidget);
+    expect(find.text('读取最新餐次'), findsOneWidget);
+    expect(api.adjusted?['revision'], 3);
+    expect(api.adjusted?['meal_date'], '2026-11-07');
+    expect(api.adjusted?['meal_slot'], 'dinner');
     expect(tester.takeException(), isNull);
   });
 

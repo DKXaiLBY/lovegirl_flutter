@@ -11,43 +11,65 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/polaroid_card.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/illus_image.dart';
+import '../../widgets/rebuild_controls.dart';
+import '../kitchen/kitchen_screen.dart';
 
 /// 美食手账：两个人的餐桌相册。
 /// 记一道菜（照片/菜名/新做复刻/食谱/故事）→ TA 品尝打分 → 新菜可挂上点单菜单。
 class CookingLogScreen extends StatefulWidget {
-  const CookingLogScreen({super.key});
+  final int? logId;
+  final ApiService? api;
+  const CookingLogScreen({super.key, this.logId, this.api});
 
   @override
   State<CookingLogScreen> createState() => _CookingLogScreenState();
 }
 
 class _CookingLogScreenState extends State<CookingLogScreen> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
 
   List<Map<String, dynamic>> _logs = [];
   List<Map<String, dynamic>> _gallery = [];
   Map<String, dynamic>? _stats;
   bool _loading = true;
+  String? _error;
+  int? _actor;
+  int _request = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final actor = context.watch<AuthProvider>().userId;
+    if (_request == 0 || _actor != actor) {
+      _actor = actor; _request++; _logs = []; _gallery = []; _stats = null;
+      _loading = true; _error = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
+    }
   }
 
   Future<void> _load() async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    final request = ++_request;
+    setState(() { _loading = true; _error = null; });
     try {
-      final res = await _api.getCookingList();
+      final id = widget.logId;
+      final res = await (id == null ? _api.getCookingList() : _api.getCookingLog(id));
+      if (!mounted || request != _request) return;
       final d = res.data?['data'];
-      if (d is Map) {
+      if (d is! Map) throw const FormatException('Invalid cooking record');
+      if (id != null) {
+        _logs = [Map<String, dynamic>.from(d)];
+      } else {
         _logs = _mapList(d['logs']);
         _gallery = _mapList(d['gallery']);
         _stats = d['stats'] is Map ? (d['stats'] as Map).cast<String, dynamic>() : null;
       }
-    } catch (_) {} finally {
-      if (mounted) setState(() => _loading = false);
+    } catch (error) {
+      if (!mounted || request != _request) return;
+      _error = extractServerMessage(error, fallback: '餐桌回忆暂未加载，请重试');
+      if (widget.logId != null) _logs = [];
+    } finally {
+      if (mounted && request == _request) setState(() => _loading = false);
     }
   }
 
@@ -176,6 +198,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.logId != null) return _focusedLog(context);
     final monthNew = _stats?['monthNew'] as num? ?? 0;
     final totalNew = _stats?['newTotal'] as num? ?? 0;
 
@@ -315,7 +338,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
               child: _loading
                   ? const Center(
                       child: CircularProgressIndicator(color: LoveGirlTheme.primary))
-                  : RefreshIndicator(
+                  : _error != null && _logs.isEmpty ? _readError() : RefreshIndicator(
                       color: LoveGirlTheme.primary,
                       onRefresh: _load,
                       child: _logs.isEmpty
@@ -386,6 +409,24 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
     );
   }
 
+  Widget _readError() => Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(
+    mainAxisSize: MainAxisSize.min, children: [
+      Text(_error ?? '记录不可见或已删除', textAlign: TextAlign.center),
+      TextButton(onPressed: _load, child: const Text('重试')),
+    ],
+  )));
+
+  Widget _focusedLog(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('餐桌回忆')),
+    body: RebuildPageBackground(child: _loading ? const Center(child: CircularProgressIndicator())
+      : _logs.isEmpty ? _readError() : RefreshIndicator(onRefresh: _load, child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16),
+        children: [_CookingCard(log: _logs.single, myId: _actor ?? -1, rotation: 0,
+          tapeAsset: 'assets/images/deco/tape_frost.png', api: _api,
+          onTaste: () => _taste(_logs.single), onDeleted: _load)],
+      ))),
+  );
+
   Widget _buildGroupedList(BuildContext context) {
     final myId = context.watch<AuthProvider>().userId ?? -1;
     // 按月分组
@@ -443,6 +484,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                 myId: myId,
                 rotation: rotations[seq % 4],
                 tapeAsset: tapes[seq % 4],
+                api: _api,
                 onTaste: () => _taste(e.value),
                 onDeleted: _load,
               );
@@ -464,6 +506,7 @@ class _CookingCard extends StatelessWidget {
   final String tapeAsset;
   final VoidCallback onTaste;
   final VoidCallback onDeleted;
+  final ApiService api;
 
   const _CookingCard({
     required this.log,
@@ -472,6 +515,7 @@ class _CookingCard extends StatelessWidget {
     required this.tapeAsset,
     required this.onTaste,
     required this.onDeleted,
+    required this.api,
   });
 
   Future<void> _delete(BuildContext context) async {
@@ -479,7 +523,7 @@ class _CookingCard extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除这条记录？', style: TextStyle(fontSize: 16)),
-        content: const Text('删除后不可恢复', style: TextStyle(fontSize: 13)),
+        content: const Text('删除这条回忆后不可恢复，菜单与餐次会保留。', style: TextStyle(fontSize: 13)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -491,9 +535,9 @@ class _CookingCard extends StatelessWidget {
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true || !context.mounted) return;
     try {
-      await ApiService().deleteCookingLog((log['id'] as num).toInt());
+      await api.deleteCookingLog((log['id'] as num).toInt());
       onDeleted();
     } catch (_) {
       if (!context.mounted) return;
@@ -508,6 +552,7 @@ class _CookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photo = log['photoUrl']?.toString();
+    final mealId = int.tryParse('${log['kitchenOrderId'] ?? ''}');
     final isNew = log['isNew'] == true;
     final chefRating = (log['chefRating'] as num?)?.toInt() ?? 0;
     final eaterRating = (log['eaterRating'] as num?)?.toInt() ?? 0;
@@ -688,6 +733,10 @@ class _CookingCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                  if (mealId != null && mealId > 0)
+                    TextButton.icon(onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => KitchenMealScreen(orderId: mealId))),
+                      icon: const Icon(Icons.restaurant_outlined), label: const Text('查看这一餐')),
                   if (needsTaste) ...[
                     const SizedBox(height: 12),
                     SizedBox(

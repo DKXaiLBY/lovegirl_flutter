@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../providers/kitchen_provider.dart';
-import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
+import 'kitchen_photo.dart';
 
 /// A photo menu made only from the selected kitchen's actual dishes.
 class KitchenMenuGrid extends StatefulWidget {
@@ -24,16 +24,62 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
     super.dispose();
   }
 
+  Future<void> _chooseChef() async {
+    final kitchen = widget.kitchen;
+    final myself = await showModalBottomSheet<bool>(
+        context: context,
+        builder: (sheet) => SafeArea(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('这一餐谁来掌勺',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700))),
+                ListTile(
+                    title: const Text('我来掌勺'),
+                    selected: kitchen.cookMyself,
+                    onTap: () => Navigator.pop(sheet, true)),
+                ListTile(
+                    title: Text('${kitchen.partnerName ?? 'TA'}来掌勺'),
+                    selected: !kitchen.cookMyself,
+                    onTap: () => Navigator.pop(sheet, false)),
+              ]),
+            ));
+    if (!mounted || myself == null || myself == kitchen.cookMyself) return;
+    if (kitchen.cart.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+                title: const Text('更换主厨'),
+                content: const Text('更换后需要从新主厨的菜单重新选菜。'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(dialog, false),
+                      child: const Text('保留选菜')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(dialog, true),
+                      child: const Text('更换主厨'))
+                ],
+              ));
+      if (!mounted || confirmed != true) return;
+    }
+    kitchen.selectChef(myself);
+    setState(() {
+      _category = '全部';
+      _search.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final kitchen = widget.kitchen;
     final categories = [
       '全部',
-      ...kitchen.partnerDishes.map((d) => d.category).toSet()
+      ...kitchen.menuDishes.map((d) => d.category).toSet()
     ];
     final selected = categories.contains(_category) ? _category : '全部';
     final query = _search.text.trim().toLowerCase();
-    final dishes = kitchen.partnerDishes
+    final dishes = kitchen.menuDishes
         .where((dish) =>
             (selected == '全部' || dish.category == selected) &&
             '${dish.name} ${dish.description ?? ''} ${dish.category}'
@@ -56,12 +102,24 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
                   hintStyle: TextStyle(
                       fontSize: 14, height: 1.2, color: context.lgTextMuted),
                   prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
+                  suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (query.isNotEmpty)
+                      IconButton(
                           tooltip: '清除搜索',
                           onPressed: () => setState(_search.clear),
                           icon: const Icon(Icons.close_rounded)),
+                    TextButton(
+                        style: TextButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 10)),
+                        onPressed: kitchen.accountId == null ||
+                                kitchen.partnerId == null ||
+                                kitchen.placingOrder
+                            ? null
+                            : _chooseChef,
+                        child: Text(kitchen.cookMyself ? '我掌勺' : 'TA掌勺')),
+                  ]),
                   filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
@@ -111,7 +169,12 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
                             Icon(Icons.restaurant_menu_outlined,
                                 size: 40, color: context.lgTextMuted),
                             const SizedBox(height: 12),
-                            Text(query.isEmpty ? 'TA 还没有添加这类菜' : '没有找到这道菜',
+                            Text(
+                                query.isEmpty
+                                    ? (kitchen.cookMyself
+                                        ? '可从右上角添加自己的拿手菜'
+                                        : 'TA 还没有添加这类菜')
+                                    : '没有找到这道菜',
                                 textAlign: TextAlign.center),
                             if (query.isNotEmpty || selected != '全部')
                               TextButton(
@@ -198,22 +261,6 @@ class _MenuPhotoCard extends StatelessWidget {
   final KitchenProvider kitchen;
   const _MenuPhotoCard({required this.dish, required this.kitchen});
 
-  Widget _photo(BuildContext context) => dish.photoUrl?.isNotEmpty == true
-      ? Image.network(kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl),
-          fit: BoxFit.cover,
-          cacheWidth: 600,
-          errorBuilder: (_, __, ___) => _missing(context))
-      : _missing(context);
-  Widget _missing(BuildContext context) => ColoredBox(
-      color: context.lgPrimarySoft,
-      child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.restaurant_outlined, color: context.lgTextMuted, size: 32),
-        const SizedBox(height: 6),
-        Text('还没有照片',
-            style: TextStyle(fontSize: 11, color: context.lgTextMuted)),
-      ])));
-
   void _details(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -231,8 +278,9 @@ class _MenuPhotoCard extends StatelessWidget {
               children: [
                 ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child:
-                        AspectRatio(aspectRatio: 1.2, child: _photo(context))),
+                    child: AspectRatio(
+                        aspectRatio: 1.2,
+                        child: KitchenPhoto(path: dish.photoUrl))),
                 const SizedBox(height: 16),
                 Text(dish.name,
                     style: const TextStyle(
@@ -242,8 +290,23 @@ class _MenuPhotoCard extends StatelessWidget {
                     ? dish.description!
                     : dish.category),
                 const SizedBox(height: 20),
-                Text('这道菜还没有记录食材与做法',
-                    style: TextStyle(color: context.lgTextMuted)),
+                if (dish.ingredients?.isNotEmpty == true) ...[
+                  const Text('食材',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(dish.ingredients!),
+                  const SizedBox(height: 16),
+                ],
+                if (dish.recipe?.isNotEmpty == true) ...[
+                  const Text('做法',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(dish.recipe!),
+                ],
+                if (dish.ingredients?.isNotEmpty != true &&
+                    dish.recipe?.isNotEmpty != true)
+                  Text('这道菜还没有记录食材与做法',
+                      style: TextStyle(color: context.lgTextMuted)),
                 const SizedBox(height: 12),
                 TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -267,9 +330,12 @@ class _MenuPhotoCard extends StatelessWidget {
             onTap: () => _details(context),
             child: Semantics(
                 button: true,
-                excludeSemantics: true,
+                explicitChildNodes: true,
+                onTap: () => _details(context),
                 label: '查看${dish.name}详情',
-                child: AspectRatio(aspectRatio: 1.1, child: _photo(context)))),
+                child: AspectRatio(
+                    aspectRatio: 1.1,
+                    child: KitchenPhoto(path: dish.photoUrl)))),
         Padding(
             padding: const EdgeInsets.fromLTRB(10, 9, 10, 3),
             child:

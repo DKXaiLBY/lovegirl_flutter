@@ -1,11 +1,18 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:uuid/uuid.dart';
 
 import '../services/api_service.dart';
 
 /// 拼接厨房图片完整地址
 String kitchenPhotoUrl(String path, String baseUrl) =>
     path.startsWith('http') ? path : '$baseUrl$path';
+
+int _readInt(dynamic value, [int fallback = 0]) => value is num
+    ? value.toInt()
+    : int.tryParse(value?.toString() ?? '') ?? fallback;
 
 /// 情侣厨房菜品
 class KitchenDish {
@@ -17,6 +24,8 @@ class KitchenDish {
   final String? photoUrl;
   final int price;
   final String? description;
+  final String? ingredients;
+  final String? recipe;
 
   const KitchenDish({
     required this.id,
@@ -27,17 +36,21 @@ class KitchenDish {
     this.photoUrl,
     required this.price,
     this.description,
+    this.ingredients,
+    this.recipe,
   });
 
   factory KitchenDish.fromJson(Map<String, dynamic> json) => KitchenDish(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        userId: (json['user_id'] as num?)?.toInt() ?? 0,
+        id: _readInt(json['id']),
+        userId: _readInt(json['user_id']),
         name: (json['name'] ?? '').toString(),
         category: (json['category'] ?? '家常菜').toString(),
         emoji: (json['emoji'] ?? '🍳').toString(),
         photoUrl: json['photo_url']?.toString(),
-        price: (json['price'] as num?)?.toInt() ?? 0,
+        price: _readInt(json['price']),
         description: json['description']?.toString(),
+        ingredients: json['ingredients']?.toString(),
+        recipe: json['recipe']?.toString(),
       );
 }
 
@@ -48,6 +61,9 @@ class KitchenOrderItem {
   final String emoji;
   final int price;
   final int quantity;
+  final String? photoUrl;
+  final String? ingredients;
+  final String? recipe;
 
   const KitchenOrderItem({
     required this.dishId,
@@ -55,15 +71,21 @@ class KitchenOrderItem {
     required this.emoji,
     required this.price,
     required this.quantity,
+    this.photoUrl,
+    this.ingredients,
+    this.recipe,
   });
 
   factory KitchenOrderItem.fromJson(Map<String, dynamic> json) =>
       KitchenOrderItem(
-        dishId: (json['dish_id'] as num?)?.toInt() ?? 0,
+        dishId: _readInt(json['dish_id']),
         name: (json['name'] ?? '').toString(),
         emoji: (json['emoji'] ?? '🍳').toString(),
-        price: (json['price'] as num?)?.toInt() ?? 0,
-        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        price: _readInt(json['price']),
+        quantity: _readInt(json['quantity'], 1),
+        photoUrl: json['photo_url']?.toString(),
+        ingredients: json['ingredients']?.toString(),
+        recipe: json['recipe']?.toString(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -77,6 +99,11 @@ class KitchenOrder {
   final int id;
   final int ordererId;
   final int cookId;
+  final int? partnerId;
+  final int revision;
+  final String? mealDate;
+  final String? mealSlot;
+  final int? cookingLogId;
   final List<KitchenOrderItem> items;
   final int totalPrice;
   final String? note;
@@ -90,6 +117,11 @@ class KitchenOrder {
     required this.id,
     required this.ordererId,
     required this.cookId,
+    this.partnerId,
+    this.revision = 1,
+    this.mealDate,
+    this.mealSlot,
+    this.cookingLogId,
     required this.items,
     required this.totalPrice,
     this.note,
@@ -101,18 +133,30 @@ class KitchenOrder {
   });
 
   bool get isActive => status == 'placed' || status == 'accepted';
+  Map<String, dynamic> get expectedState => {
+        'revision': revision,
+        'expected_status': status,
+      };
 
   factory KitchenOrder.fromJson(Map<String, dynamic> json) => KitchenOrder(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        ordererId: (json['orderer_id'] as num?)?.toInt() ?? 0,
-        cookId: (json['cook_id'] as num?)?.toInt() ?? 0,
+        id: _readInt(json['id']),
+        ordererId: _readInt(json['orderer_id']),
+        cookId: _readInt(json['cook_id']),
+        partnerId:
+            json['partner_id'] == null ? null : _readInt(json['partner_id']),
+        revision: _readInt(json['revision'], 1),
+        mealDate: json['meal_date']?.toString(),
+        mealSlot: json['meal_slot']?.toString(),
+        cookingLogId: json['cooking_log_id'] == null
+            ? null
+            : _readInt(json['cooking_log_id']),
         items: json['items'] is List
             ? (json['items'] as List)
                 .map((e) =>
                     KitchenOrderItem.fromJson(Map<String, dynamic>.from(e)))
                 .toList(growable: false)
             : const [],
-        totalPrice: (json['total_price'] as num?)?.toInt() ?? 0,
+        totalPrice: _readInt(json['total_price']),
         note: json['note']?.toString(),
         status: (json['status'] ?? 'placed').toString(),
         photoUrl: json['photo_url']?.toString(),
@@ -133,6 +177,7 @@ class KitchenProvider extends ChangeNotifier {
   int _menuRequest = 0;
   int _ordersRequest = 0;
   int _summaryRequest = 0;
+  int _orderContext = 0;
   bool _disposed = false;
   static const _accountChanged = '账号已切换，请在当前账号重新操作';
 
@@ -146,8 +191,12 @@ class KitchenProvider extends ChangeNotifier {
     _accountSet = true;
     _accountId = id;
     _session++;
+    _orderContext++;
     bound = false;
     partnerName = null;
+    partnerId = null;
+    cookMyself = false;
+    _orderRequestKey = _orderSignature = null;
     mine = [];
     partnerDishes = [];
     incoming = [];
@@ -170,6 +219,13 @@ class KitchenProvider extends ChangeNotifier {
 
   bool bound = false;
   String? partnerName;
+  int? partnerId;
+  bool cookMyself = false;
+  int? get accountId => _accountId;
+  int? get selectedCookId => cookMyself ? _accountId : partnerId;
+  List<KitchenDish> get menuDishes => cookMyself ? mine : partnerDishes;
+  String? _orderRequestKey;
+  String? _orderSignature;
   List<KitchenDish> mine = [];
   List<KitchenDish> partnerDishes = [];
   List<KitchenOrder> incoming = [];
@@ -188,11 +244,11 @@ class KitchenProvider extends ChangeNotifier {
   String? ordersError;
   String? get error => menuError ?? ordersError;
 
-  /// 购物车：dishId -> 数量（只针对对方菜品）
+  /// 购物车：dishId -> 数量，同一餐只从一位主厨的菜单选菜。
   final Map<int, int> cart = {};
 
   List<KitchenDish> get cartDishes => cart.keys
-      .map((id) => partnerDishes.firstWhere(
+      .map((id) => menuDishes.firstWhere(
             (d) => d.id == id,
             orElse: () => const KitchenDish(
                 id: -1,
@@ -232,6 +288,18 @@ class KitchenProvider extends ChangeNotifier {
       if (data is! Map) throw const FormatException('Invalid menu');
       bound = data['bound'] == true;
       final partner = data['partner'];
+      final nextPartner = partner is Map && partner['id'] != null
+          ? _readInt(partner['id'])
+          : null;
+      if (menuLoaded && nextPartner != partnerId) {
+        _orderContext++;
+        cart.clear();
+        _orderRequestKey = _orderSignature = null;
+        cookMyself = false;
+        placingOrder = false;
+        _updatingOrders.clear();
+      }
+      partnerId = nextPartner;
       partnerName = partner is Map ? partner['nickname']?.toString() : null;
       mine = data['mine'] is List
           ? (data['mine'] as List)
@@ -244,7 +312,7 @@ class KitchenProvider extends ChangeNotifier {
               .toList(growable: false)
           : [];
       // 清掉购物车里已下架的菜
-      cart.removeWhere((id, _) => partnerDishes.every((d) => d.id != id));
+      cart.removeWhere((id, _) => menuDishes.every((d) => d.id != id));
       menuError = null;
       menuLoaded = true;
     } catch (e) {
@@ -297,9 +365,8 @@ class KitchenProvider extends ChangeNotifier {
       if (!_current(session) || request != _summaryRequest) return;
       final data = res.data?['data'];
       if (data is Map) {
-        bound = data['bound'] == true;
-        incomingNew = (data['incoming_new'] as num?)?.toInt() ?? 0;
-        outgoingActive = (data['outgoing_active'] as num?)?.toInt() ?? 0;
+        incomingNew = _readInt(data['incoming_new']);
+        outgoingActive = _readInt(data['outgoing_active']);
         notifyListeners();
       }
     } catch (_) {
@@ -333,7 +400,16 @@ class KitchenProvider extends ChangeNotifier {
 
   void clearCart() {
     cart.clear();
+    _orderRequestKey = _orderSignature = null;
     notifyListeners();
+  }
+
+  void selectChef(bool myself) {
+    if (placingOrder || cookMyself == myself) return;
+    cookMyself = myself;
+    cart.clear();
+    _orderRequestKey = _orderSignature = null;
+    _changed();
   }
 
   // ---------- 菜品 ----------
@@ -378,28 +454,47 @@ class KitchenProvider extends ChangeNotifier {
   }
 
   // ---------- 订单 ----------
-  Future<String?> placeOrder(String? note) async {
+  Future<String?> placeOrder(String? note,
+      {String? mealDate, String? mealSlot}) async {
     if (placingOrder) return '正在提交，请稍候';
     if (cart.isEmpty) return '购物车是空的';
+    if (cart.length > 20) return '一餐最多选择20道菜，请删减后重试';
+    if (!bound || partnerId == null || selectedCookId == null) {
+      return '请先读取当前伴侣和主厨信息';
+    }
     final session = _session;
+    final orderContext = _orderContext;
+    final entries = cart.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final data = {
+      'items':
+          entries.map((e) => {'dish_id': e.key, 'quantity': e.value}).toList(),
+      'cook_id': selectedCookId,
+      'partner_id': partnerId,
+      'note': note?.trim().isNotEmpty == true ? note!.trim() : null,
+      'meal_date': mealDate,
+      'meal_slot': mealSlot,
+    };
+    final signature = jsonEncode(data);
+    if (_orderSignature != signature) {
+      _orderSignature = signature;
+      _orderRequestKey = const Uuid().v4();
+    }
     placingOrder = true;
     notifyListeners();
     try {
-      await _api.createKitchenOrder({
-        'items': cart.entries
-            .map((e) => {'dish_id': e.key, 'quantity': e.value})
-            .toList(),
-        if (note != null && note.isNotEmpty) 'note': note,
-      });
+      await _api.createKitchenOrder({...data, 'request_key': _orderRequestKey});
       if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
       clearCart();
       await refreshAll();
       return _current(session) ? null : _accountChanged;
     } catch (e) {
       if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
       return _serverMessage(e) ?? '下单失败，请稍后再试';
     } finally {
-      if (_current(session)) {
+      if (_current(session) && orderContext == _orderContext) {
         placingOrder = false;
         _changed();
       }
@@ -409,30 +504,74 @@ class KitchenProvider extends ChangeNotifier {
   Future<String?> updateOrderStatus(int id, String status, {Map? extra}) async {
     if (!_updatingOrders.add(id)) return '正在处理这一餐，请稍候';
     final session = _session;
+    final orderContext = _orderContext;
     notifyListeners();
     try {
-      String? previousStatus;
+      Map<String, dynamic> expected = {};
       for (final order in [...incoming, ...outgoing]) {
         if (order.id == id) {
-          previousStatus = order.status;
+          expected = order.expectedState;
           break;
         }
       }
       await _api.updateKitchenOrderStatus(id, status, extra: {
-        if (previousStatus != null) 'expected_status': previousStatus,
+        ...expected,
         ...?extra,
       });
       if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
       await refreshAll();
       return _current(session) ? null : _accountChanged;
     } catch (e) {
       if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
       if (e is DioException && e.response?.statusCode == 409) {
         await refreshAll();
       }
       return _serverMessage(e) ?? '操作失败，请稍后再试';
     } finally {
-      if (_current(session)) {
+      if (_current(session) && orderContext == _orderContext) {
+        _updatingOrders.remove(id);
+        _changed();
+      }
+    }
+  }
+
+  Future<(KitchenOrder? order, String? error)> getOrder(int id) async {
+    final session = _session;
+    try {
+      final response = await _api.getKitchenOrder(id);
+      if (!_current(session)) return (null, _accountChanged);
+      final data = response.data?['data'];
+      if (data is! Map) return (null, '这一餐暂时没能读取');
+      return (KitchenOrder.fromJson(Map<String, dynamic>.from(data)), null);
+    } catch (error) {
+      return (
+        null,
+        _current(session)
+            ? _serverMessage(error) ?? '这一餐暂时没能读取'
+            : _accountChanged
+      );
+    }
+  }
+
+  Future<String?> updateOrder(int id, Map<String, dynamic> data) async {
+    if (!_updatingOrders.add(id)) return '正在处理这一餐，请稍候';
+    final session = _session;
+    final orderContext = _orderContext;
+    _changed();
+    try {
+      await _api.updateKitchenOrder(id, data);
+      if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
+      await refreshAll();
+      return _current(session) ? null : _accountChanged;
+    } catch (error) {
+      if (!_current(session)) return _accountChanged;
+      if (orderContext != _orderContext) return '绑定关系已变化，请刷新厨房核对餐次';
+      return _serverMessage(error) ?? '调整失败，请保留输入并重试';
+    } finally {
+      if (_current(session) && orderContext == _orderContext) {
         _updatingOrders.remove(id);
         _changed();
       }
