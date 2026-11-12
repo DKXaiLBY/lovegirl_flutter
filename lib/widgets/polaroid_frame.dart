@@ -353,7 +353,13 @@ class _BottomBand extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          dateWidget,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: dateWidget,
+            ),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(

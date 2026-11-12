@@ -603,6 +603,10 @@ class CreationPainter extends CustomPainter {
 
   void _ticketDetails(Canvas c, Rect r, List<Rect> windows) {
     final d = document;
+    if (d.templateId == 'landscape') {
+      _landscapeTicketDetails(c, r.height);
+      return;
+    }
     final h = r.height;
     final dark = d.templateId == 'filmstrip';
     final color = dark ? Colors.white : const Color(0xff22252b);
@@ -663,6 +667,49 @@ class CreationPainter extends CustomPainter {
         }
       }
     }
+  }
+
+  void _landscapeTicketDetails(Canvas c, double height) {
+    final ink = const Color(0xff22252b);
+    final accent = document.accent;
+    const divider = 880 * .77;
+    _dash(c, const Offset(divider, 20), Offset(divider, height - 20), accent);
+    c.drawLine(const Offset(470, 145), const Offset(535, 145),
+        Paint()..color = accent.withAlpha(105));
+
+    final stamp = Paint()
+      ..color = accent.withAlpha(95)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    const seal = Offset(609, 289);
+    c.drawCircle(seal, 39, stamp);
+    c.drawCircle(seal, 32, stamp);
+    final sail = Path()
+      ..moveTo(610, 267)
+      ..lineTo(610, 296)
+      ..lineTo(594, 296)
+      ..close();
+    c.drawPath(sail, stamp);
+    c.drawLine(const Offset(593, 302), const Offset(625, 302), stamp);
+
+    final barcode = Paint()..color = ink.withAlpha(185);
+    final pattern = math.Random(47);
+    for (var y = 50.0; y < height - 48; y += 4.5) {
+      c.drawRect(
+          Rect.fromLTWH(730, y, 54, pattern.nextBool() ? 1.4 : 2.8), barcode);
+    }
+
+    _text(c, document.title.isEmpty ? '我们的纪念' : document.title,
+        const Rect.fromLTWH(470, 53, 189, 87), 34, ink);
+    final date = DateTime.tryParse(document.date ?? '');
+    if (date != null) {
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      _text(c, '$month.$day', const Rect.fromLTWH(470, 165, 183, 42), 29,
+          ink.withAlpha(200));
+    }
+    _text(c, document.note, const Rect.fromLTWH(470, 221, 183, 112), 20,
+        ink.withAlpha(205));
   }
 
   void _back(Canvas c, Rect r) {

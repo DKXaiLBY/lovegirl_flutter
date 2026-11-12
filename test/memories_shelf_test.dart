@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
+import 'package:lovegirl_flutter/features/creations/creation_gallery.dart';
 import 'package:lovegirl_flutter/screens/memories/memories_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/polaroid_frame.dart';
@@ -14,6 +15,7 @@ Response<dynamic> result(dynamic value) => Response(
 
 class ShelfApi implements ApiService {
   List<Map<String, dynamic>> photos = [];
+  List<Map<String, dynamic>> works = [];
   bool fail = false;
   int reads = 0;
   Completer<Response<dynamic>>? first;
@@ -28,7 +30,7 @@ class ShelfApi implements ApiService {
   @override
   Future<Response<dynamic>> getCreations() async {
     if (fail) throw StateError('offline');
-    return result([]);
+    return result(works);
   }
 
   @override
@@ -61,7 +63,8 @@ void main() {
     final size = tester.getSize(find.byKey(image));
     expect(size.width, closeTo(size.height, .1));
   });
-  Future<void> show(WidgetTester tester, ShelfApi api, ShelfAuth auth) async {
+  Future<void> show(WidgetTester tester, ShelfApi api, ShelfAuth auth,
+      {double scale = 1.0}) async {
     tester.view.physicalSize = const Size(720, 1600);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -69,7 +72,9 @@ void main() {
         value: auth,
         child: MaterialApp(
             builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(context).copyWith(disableAnimations: true),
+                data: MediaQuery.of(context).copyWith(
+                    disableAnimations: true,
+                    textScaler: TextScaler.linear(scale)),
                 child: child!),
             home: MemoriesScreen(api: api))));
     await tester.pump();
@@ -80,6 +85,64 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
   }
+
+  testWidgets('touching the exposed paper changes page and keeps flip state',
+      (tester) async {
+    final api = ShelfApi()
+      ..photos = [
+        for (var i = 1; i <= 3; i++)
+          {
+            'id': i,
+            'url': '/uploads/paper_$i.jpg',
+            'frame_note': '相纸 $i',
+            'description': '背面故事 $i',
+          },
+      ];
+    await show(tester, api, ShelfAuth(), scale: 1.6);
+    final page = find.byType(PageView);
+    final bounds = tester.getRect(page);
+    await tester.tapAt(Offset(bounds.right - 10, bounds.top + 120));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2/3'), findsOneWidget);
+    await tester.tapAt(tester.getCenter(page));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('背面故事 2'), findsOneWidget);
+    await tester.tapAt(Offset(bounds.left + 10, bounds.top + 120));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1/3'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
+
+  testWidgets('the landscape ticket spans most of the shelf with its own ratio',
+      (tester) async {
+    final api = ShelfApi()
+      ..works = [
+        {
+          'id': 9,
+          'clientId': 'qa_ticket',
+          'ownerId': 7,
+          'revision': 1,
+          'previewUrl': '/uploads/ticket.png',
+          'sourceUrls': ['/uploads/coast.jpg'],
+          'updatedAt': '2026-10-24',
+          'document': {
+            'kind': 'ticket',
+            'templateId': 'landscape',
+            'title': '海边散步',
+            'date': '2026-10-24',
+          },
+        },
+      ];
+    await show(tester, api, ShelfAuth(), scale: 1.6);
+    final ticket = find.byType(CreationFlip);
+    await tester.ensureVisible(ticket);
+    final size = tester.getSize(ticket);
+    expect(size.width, greaterThanOrEqualTo(300));
+    expect(size.width / size.height, closeTo(2.35, .005));
+    expect(tester.takeException(), isNull);
+    await finish(tester);
+  });
 
   testWidgets(
       'legacy saved ink and reverse story remain present on the real paper renderer',

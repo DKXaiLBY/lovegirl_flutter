@@ -1225,6 +1225,7 @@ class _PolaroidTileState extends State<_PolaroidTile>
         photo: CachedNetworkImage(
           imageUrl: fullUrl,
           fit: BoxFit.cover,
+          memCacheWidth: widget.fillAvailable ? 640 : null,
           placeholder: (_, __) => Container(color: context.lgBg),
           errorWidget: (_, __, ___) => Container(
             color: context.lgBg,

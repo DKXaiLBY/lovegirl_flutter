@@ -11,6 +11,7 @@ import '../../widgets/rebuild_controls.dart';
 import '../../features/creations/creation_gallery.dart';
 import '../../features/creations/creation_document.dart';
 import '../../features/creations/creation_files.dart';
+import '../../features/creations/creation_material.dart';
 import '../../features/creations/creation_preview.dart';
 import '../photo/legacy_photo_screen.dart';
 import '../cooking/cooking_log_screen.dart';
@@ -28,7 +29,7 @@ class MemoriesScreen extends StatefulWidget {
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
   late final _api = widget.api ?? ApiService();
-  final _pager = PageController(viewportFraction: .82);
+  final _pager = PageController(keepPage: false);
   List<CreationWork> _works = [];
   List<Map<String, dynamic>> _photos = [];
   bool _loading = true;
@@ -49,6 +50,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       _works = [];
       _photos = [];
       _backs.clear();
+      _errors.clear();
       _month = null;
       _page = 0;
       _loading = true;
@@ -238,29 +240,112 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             _open(const CreationGallery(createOnOpen: true))),
                   ]))));
     }
-    return Column(children: [
-      SizedBox(
-          height: (MediaQuery.sizeOf(context).width * .82 - 16) * 107 / 88 + 16,
+    Widget paper(int index) => index < works.length
+        ? _published(works[index])
+        : legacyMemoryPolaroid(originals[index - works.length],
+            onEdit: () => _open(const LegacyPhotoScreen()),
+            onInspect: () => _open(const LegacyPhotoScreen()));
+    Widget adjacent(int index) {
+      if (index >= works.length) return paper(index);
+      final work = works[index];
+      return CreationMaterial(
+        document: work.document,
+        child: CachedNetworkImage(
+          imageUrl: creationUrl(work.previewUrl),
+          fit: BoxFit.contain,
+          memCacheWidth: 520,
+          errorWidget: (_, __, ___) =>
+              const Center(child: Icon(Icons.broken_image_outlined)),
+        ),
+      );
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth;
+      final face = math.min(width * .78, 400.0);
+      final flank = face * .78;
+      final inset = (width - face) / 2;
+      final still = rebuildReduceMotion(context);
+      final visiblePage = _page.clamp(0, count - 1);
+      return Column(children: [
+        SizedBox(
+          height: face * 107 / 88 + 28,
           child: PageView.builder(
-              controller: _pager,
-              itemCount: count,
-              onPageChanged: (p) => setState(() => _page = p),
-              itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-                  child: Transform.rotate(
-                      angle: rebuildReduceMotion(context)
-                          ? 0
-                          : (index - _page).clamp(-1, 1) * .06,
-                      child: index < works.length
-                          ? _published(works[index])
-                          : legacyMemoryPolaroid(
-                              originals[index - works.length],
-                              onEdit: () => _open(const LegacyPhotoScreen()),
-                              onInspect: () =>
-                                  _open(const LegacyPhotoScreen())))))),
-      Text('轻触翻面 · 左右滑动查看  ${_page + 1}/$count',
-          style: TextStyle(fontSize: 11, color: context.lgTextSecondary)),
-    ]);
+            controller: _pager,
+            itemCount: count,
+            onPageChanged: (p) => setState(() => _page = p),
+            itemBuilder: (context, index) => Stack(children: [
+              for (final side in [-1, 1])
+                if (index + side >= 0 && index + side < count)
+                  Positioned(
+                    left: side < 0
+                        ? inset + flank * .19 - flank
+                        : width - inset - flank * .19,
+                    top: 44,
+                    width: flank,
+                    height: flank * 107 / 88,
+                    child: Semantics(
+                      button: true,
+                      label: side < 0 ? '上一张相纸' : '下一张相纸',
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          final page = index + side;
+                          if (still) {
+                            _pager.jumpToPage(page);
+                          } else {
+                            unawaited(_pager.animateToPage(page,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOutCubic));
+                          }
+                        },
+                        child: IgnorePointer(
+                          child: ExcludeSemantics(
+                            child: Transform.rotate(
+                              angle: still ? 0 : side * .14,
+                              child: adjacent(index + side),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              Positioned(
+                left: inset,
+                top: 12,
+                width: face,
+                height: face * 107 / 88,
+                child: Transform.rotate(
+                  angle: still ? 0 : .055,
+                  child: paper(index),
+                ),
+              ),
+            ]),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            Expanded(
+              child: Text(
+                count == 1
+                    ? '轻触翻面  1/1'
+                    : '轻触翻面 · 左右滑动  ${visiblePage + 1}/$count',
+                style: TextStyle(fontSize: 11, color: context.lgTextSecondary),
+              ),
+            ),
+            TextButton.icon(
+              style: rebuildTextStyle(context),
+              onPressed: _album,
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.chevron_right, size: 17),
+              label: const Text('相册'),
+            ),
+          ]),
+        ),
+      ]);
+    });
   }
 
   Widget _ticketShelf() {
@@ -277,16 +362,31 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   onTap: () => _open(const CreationGallery(
                       kind: 'ticket', createOnOpen: true)))));
     }
-    return SizedBox(
-        height: 140,
+    return LayoutBuilder(builder: (context, constraints) {
+      const ticketHeight = 132.0;
+      return SizedBox(
+        height: ticketHeight + 20,
         child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            itemCount: tickets.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
-            itemBuilder: (context, index) => SizedBox(
-                width: math.min(290, 120 * tickets[index].document.aspectRatio),
-                child: _published(tickets[index]))));
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          itemCount: tickets.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, index) {
+            final ticket = tickets[index];
+            final ratio = ticket.document.aspectRatio;
+            return Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width:
+                    math.min(constraints.maxWidth * .84, ticketHeight * ratio),
+                child:
+                    AspectRatio(aspectRatio: ratio, child: _published(ticket)),
+              ),
+            );
+          },
+        ),
+      );
+    });
   }
 
   Widget _fragments() {
@@ -346,6 +446,22 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                 excludeFromSemantics: true)),
         if (context.lgIsDark)
           Positioned.fill(child: ColoredBox(color: const Color(0xe51a222b))),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  context.lgBg.withAlpha(0),
+                  context.lgBg.withAlpha(54),
+                  context.lgBg,
+                ],
+                stops: const [.36, .57, .91],
+              ),
+            ),
+          ),
+        ),
         SafeArea(
             bottom: false,
             child: RefreshIndicator(
@@ -388,7 +504,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                   onPressed: _load,
                                   child: const Text('重试'))
                             ])),
-                      _title('相册', _album),
+                      if (_polaroids.isEmpty && _originals.isEmpty)
+                        _title('相册', _album),
                       _shelf(),
                       _title(
                           '票根收藏',
