@@ -440,10 +440,14 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       backgroundColor: context.lgBg,
       body: Stack(children: [
         Positioned.fill(
-            child: Image.asset('assets/images/clear_app/memories_linen.png',
-                fit: BoxFit.cover,
-                cacheWidth: 720,
-                excludeFromSemantics: true)),
+            child: AnnotatedRegion<SystemUiOverlayStyle>(
+                value: context.lgIsDark
+                    ? SystemUiOverlayStyle.light
+                    : SystemUiOverlayStyle.dark,
+                child: Image.asset('assets/images/clear_app/memories_linen.png',
+                    fit: BoxFit.cover,
+                    cacheWidth: 720,
+                    excludeFromSemantics: true))),
         if (context.lgIsDark)
           Positioned.fill(child: ColoredBox(color: const Color(0xe51a222b))),
         Positioned.fill(
