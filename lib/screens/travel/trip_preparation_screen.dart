@@ -531,11 +531,6 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
           AspectRatio(
               aspectRatio: 2,
               child: _PreparationPhoto(selected.imageUrl, fit: BoxFit.cover)),
-        const SizedBox(height: 6),
-        Text(selected.available ? selected.label : '${selected.label} · 已不可用',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        Text('已关联这次行程 · 仅自己可见',
-            style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
         if (selected.imageUrl == null ||
             selected.pieces.any((piece) => !piece.available))
           SingleChildScrollView(
@@ -561,27 +556,55 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
             ]),
           ),
       ],
-      if (editable)
-        Wrap(spacing: 8, children: [
-          if (_day < data.days)
-            RebuildGlassButton(
-              onPressed: () => _chooseOutfit(selected),
-              icon: Icons.checkroom_outlined,
-              label: selected == null ? '从衣橱选择' : '更换搭配',
-              showLabel: true,
-            ),
-          if (selected != null)
-            TextButton(
-              onPressed: () async => _notice(await _write(
-                  account: _account,
-                  shared: false,
-                  relationship: null,
-                  outfits: (list) => list.outfits
-                      .where((entry) => entry.day != selected.day)
-                      .toList())),
-              child: const Text('移除搭配关联'),
-            ),
-        ]),
+      if (selected != null || editable)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Row(children: [
+            if (selected != null)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.available
+                            ? selected.label
+                            : '${selected.label} · 已不可用',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text('仅自己可见',
+                          style: TextStyle(
+                              fontSize: 12, color: context.lgTextSecondary)),
+                    ],
+                  ),
+                ),
+              ),
+            if (editable && _day < data.days)
+              RebuildGlassButton(
+                onPressed: () => _chooseOutfit(selected),
+                icon: Icons.checkroom_outlined,
+                label: selected == null ? '从衣橱选择' : '更换搭配',
+                showLabel: true,
+              ),
+            if (editable && selected != null)
+              PopupMenuButton<String>(
+                tooltip: '搭配操作',
+                onSelected: (_) async => _notice(await _write(
+                    account: _account,
+                    shared: false,
+                    relationship: null,
+                    outfits: (list) => list.outfits
+                        .where((entry) => entry.day != selected.day)
+                        .toList())),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'remove', child: Text('移除搭配关联')),
+                ],
+              ),
+          ]),
+        ),
     ]);
   }
 
@@ -700,6 +723,12 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
       appBar: AppBar(
         title: const Text('旅行准备'),
         centerTitle: true,
+        backgroundColor:
+            context.lgIsDark ? context.lgBg : const Color(0xffeaf6fd),
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: context.lgIsDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         actions: [
           IconButton(
               tooltip: '刷新清单',
