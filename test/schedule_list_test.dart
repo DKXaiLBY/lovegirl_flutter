@@ -62,6 +62,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('本周课表'), findsOneWidget);
     expect(find.text('查看单日'), findsOneWidget);
+    expect(find.text('没有课程安排'), findsNothing);
+    expect(find.text('摄影'), findsOneWidget);
     final refresh =
         tester.widget<RefreshIndicator>(find.byType(RefreshIndicator));
     api.offline = true;

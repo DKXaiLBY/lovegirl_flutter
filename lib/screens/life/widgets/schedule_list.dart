@@ -686,22 +686,19 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     ]),
               ),
               const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: [
+              Wrap(
+                spacing: 5,
+                children: [
                   for (var i = 0; i < 7; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 5),
-                      child: RebuildChoiceChip(
-                        label: Text(_weekDays[i]),
-                        selected: !_showWeek && _selectedDay == i + 1,
-                        onSelected: (_) => setState(() {
-                          _selectedDay = i + 1;
-                          _showWeek = false;
-                        }),
-                      ),
+                    RebuildChoiceChip(
+                      label: Text(_weekDays[i]),
+                      selected: !_showWeek && _selectedDay == i + 1,
+                      onSelected: (_) => setState(() {
+                        _selectedDay = i + 1;
+                        _showWeek = false;
+                      }),
                     ),
-                ]),
+                ],
               ),
               Row(children: [
                 Expanded(
@@ -715,10 +712,14 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   child: Text(_showWeek ? '查看单日' : '查看整周'),
                 ),
               ]),
-              if (_showWeek)
-                for (var day = 1; day <= 7; day++)
-                  _dayCourses(day, heading: true)
-              else
+              if (_showWeek) ...[
+                if (_courses.isEmpty)
+                  _emptyDay('这周没有课程安排')
+                else
+                  for (var day = 1; day <= 7; day++)
+                    if (_getCoursesForDay(day).isNotEmpty)
+                      _dayCourses(day, heading: true),
+              ] else
                 _dayCourses(_selectedDay),
             ],
           ],
@@ -750,17 +751,18 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
         if (courses.isEmpty)
-          RebuildGlass(
-            radius: 16,
-            padding: const EdgeInsets.all(14),
-            child: Text('没有课程安排',
-                style: TextStyle(color: context.lgTextSecondary)),
-          )
+          _emptyDay('没有课程安排')
         else
           for (final course in courses) _buildCourseCard(course),
       ]),
     );
   }
+
+  Widget _emptyDay(String message) => RebuildGlass(
+        radius: 16,
+        padding: const EdgeInsets.all(14),
+        child: Text(message, style: TextStyle(color: context.lgTextSecondary)),
+      );
 
   Widget _buildCourseCard(dynamic course) {
     final name = course['courseName'] ?? course['name'] ?? '';
