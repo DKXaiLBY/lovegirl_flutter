@@ -392,10 +392,14 @@ class _LifeScreenState extends State<LifeScreen> {
                                 i++) ...[
                               if (i > 0) const SizedBox(width: 8),
                               Expanded(
-                                  child: SizedBox.expand(
-                                      child: _image(
-                                          _photo(_clothes, 'image_url', i),
-                                          'assets/images/clear_app/wardrobe_cover.png'))),
+                                  child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: SizedBox.expand(
+                                  child: _image(
+                                      _photo(_clothes, 'image_url', i),
+                                      'assets/images/clear_app/wardrobe_cover.png'),
+                                ),
+                              )),
                             ]
                           ])))),
         const SizedBox(height: 5),
@@ -471,10 +475,7 @@ class _LifeScreenState extends State<LifeScreen> {
                         const SizedBox(height: 10),
                         _wardrobe(),
                         const SizedBox(height: 12),
-                        _shortcut(
-                            '旅行准备',
-                            '搭配与行李清单',
-                            Icons.luggage_outlined,
+                        _shortcut('旅行准备', '搭配与行李清单', Icons.luggage_outlined,
                             TripPreparationListScreen(api: _api)),
                         const SizedBox(height: 10),
                         _shortcut(

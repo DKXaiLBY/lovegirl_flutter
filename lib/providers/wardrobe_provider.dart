@@ -51,6 +51,7 @@ class WardrobeProvider extends ChangeNotifier {
   List<WardrobeAvatar> avatars = [];
   bool loading = false;
   String? error;
+  String? outfitsError;
   final WardrobeFilter filter = WardrobeFilter();
 
   /// 「今天」胶囊数据（天气取不到则两者皆 null → 隐藏，决策 Q6）
@@ -76,8 +77,10 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> loadAll() async {
+    if (loading) return;
     loading = true;
     error = null;
+    outfitsError = null;
     notifyListeners();
     await _loadPrefs();
     await Future.wait(
@@ -118,7 +121,9 @@ class WardrobeProvider extends ChangeNotifier {
               .map((e) => WardrobeOutfit.fromJson(e.cast<String, dynamic>()))
               .toList()
           : [];
-    } catch (_) {}
+    } catch (_) {
+      outfitsError = '穿搭加载失败，可以重试';
+    }
   }
 
   Future<void> _loadBg() async {

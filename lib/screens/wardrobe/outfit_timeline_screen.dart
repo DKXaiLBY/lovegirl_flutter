@@ -6,6 +6,7 @@ import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/rebuild_controls.dart';
 import 'outfit_capture_screen.dart';
 import 'outfit_detail_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
@@ -21,34 +22,44 @@ class OutfitTimelineScreen extends StatelessWidget {
     if (p.loading && p.outfits.isEmpty) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
-    if (p.outfits.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          EmptyState(
-            icon: Icons.photo_camera_rounded,
-            illustration: kOutfitEmptyIllus,
-            title: '还没有穿搭记录',
-            subtitle: '拍下今天穿了什么，或从衣橱组一套',
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: LovePrimaryButton(
-              text: '记录今天穿了什么',
-              icon: Icons.photo_camera_rounded,
-              onPressed: () => _capture(context),
-            ),
-          ),
-        ],
-      );
+    if (p.outfits.isEmpty && p.outfitsError == null) {
+      return RefreshIndicator(
+          onRefresh: p.loadAll,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              const SizedBox(height: 80),
+              EmptyState(
+                icon: Icons.photo_camera_rounded,
+                illustration: kOutfitEmptyIllus,
+                title: '还没有穿搭记录',
+                subtitle: '拍下今天穿了什么，或从衣橱组一套',
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: LovePrimaryButton(
+                  text: '记录今天穿了什么',
+                  icon: Icons.photo_camera_rounded,
+                  onPressed: () => _capture(context),
+                ),
+              ),
+            ],
+          ));
     }
 
     final groups = p.timeline;
     return RefreshIndicator(
       onRefresh: () => p.loadAll(),
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
+          if (p.outfitsError != null)
+            ListTile(
+              title: Text(p.outfitsError!),
+              trailing:
+                  TextButton(onPressed: p.loadAll, child: const Text('重试')),
+            ),
           for (final g in groups) ...[
             Padding(
               padding: const EdgeInsets.only(top: 12, bottom: 8),
@@ -80,9 +91,10 @@ class OutfitTimelineScreen extends StatelessWidget {
   Widget _card(BuildContext context, WardrobeProvider p, WardrobeOutfit o) {
     return GestureDetector(
       onTap: () => Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(builder: (_) => OutfitDetailScreen(outfitId: o.id))),
+          MaterialPageRoute(
+              builder: (_) => OutfitDetailScreen(outfitId: o.id))),
       onLongPress: () => _menu(context, p, o),
-      child: LovePaper(
+      child: RebuildGlass(
         padding: const EdgeInsets.all(10),
         radius: LoveGirlTheme.radius,
         child: Row(
@@ -99,21 +111,23 @@ class OutfitTimelineScreen extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color: context.lgTextPrimary)),
                   const SizedBox(height: 5),
-                  Row(children: [
-                    wnSourceBadge(o, size: 16),
-                    const SizedBox(width: 6),
-                    wnStatusBadge(o, p.todayStr, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      o.isPlanned(p.todayStr)
-                          ? '计划'
-                          : o.approved
-                              ? '已通过'
-                              : '待确认',
-                      style: TextStyle(
-                          fontSize: 11.5, color: context.lgTextSecondary),
-                    ),
-                  ]),
+                  Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        wnSourceBadge(o, size: 16),
+                        wnStatusBadge(o, p.todayStr, size: 16),
+                        Text(
+                          o.isPlanned(p.todayStr)
+                              ? '计划'
+                              : o.approved
+                                  ? '已通过'
+                                  : '待确认',
+                          style: TextStyle(
+                              fontSize: 11.5, color: context.lgTextSecondary),
+                        ),
+                      ]),
                   if (o.note?.isNotEmpty == true) ...[
                     const SizedBox(height: 4),
                     Text(o.note!,
@@ -169,9 +183,7 @@ class OutfitTimelineScreen extends StatelessWidget {
               for (final (label, icon, action) in items)
                 ListTile(
                   leading: Icon(icon,
-                      color: label == '删除'
-                          ? LoveGirlTheme.red
-                          : context.lgInk),
+                      color: label == '删除' ? LoveGirlTheme.red : context.lgInk),
                   title: Text(label,
                       style: TextStyle(
                           fontWeight: FontWeight.w700,

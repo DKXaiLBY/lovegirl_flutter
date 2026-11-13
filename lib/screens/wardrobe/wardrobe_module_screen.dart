@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/lovegirl_ui.dart' show LoveStickerIcon;
+import '../../widgets/rebuild_controls.dart';
 import 'outfit_capture_screen.dart';
 import 'outfit_compose_screen.dart';
 import 'outfit_timeline_screen.dart';
@@ -50,7 +51,8 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.lgBg,
-      body: SafeArea(
+      body: RebuildPageBackground(
+          child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -67,7 +69,9 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
             const SizedBox(height: 10),
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
+                duration: rebuildReduceMotion(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180),
                 child: _seg == 0
                     ? const WardrobeHomeScreen(key: ValueKey('closet'))
                     : const OutfitTimelineScreen(key: ValueKey('outfit')),
@@ -75,58 +79,39 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
   Widget _buildSegmented() {
-    return LovePaper(
-      padding: const EdgeInsets.all(4),
-      radius: LoveGirlTheme.radius,
-      elevated: false,
-      child: Row(
-        children: [
-          for (var i = 0; i < 2; i++)
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _seg = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _seg == i ? context.lgInk : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    i == 0 ? '衣橱' : '穿搭',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: _seg == i ? Colors.white : context.lgTextSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
+    return SegmentedButton<int>(
+      segments: const [
+        ButtonSegment(value: 0, label: Text('衣橱')),
+        ButtonSegment(value: 1, label: Text('穿搭')),
+      ],
+      showSelectedIcon: false,
+      selected: {_seg},
+      onSelectionChanged: (values) => setState(() => _seg = values.single),
+      style: ButtonStyle(
+        minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
+        foregroundColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? context.lgPaper
+                : context.lgInk),
+        backgroundColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? context.lgInk
+                : context.lgPaper.withAlpha(165)),
+        side: WidgetStatePropertyAll(BorderSide(color: context.lgSeparator)),
       ),
     );
   }
 
   Widget _buildAddButton() {
-    return GestureDetector(
-      onTap: _onAdd,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: context.lgInk,
-          borderRadius: BorderRadius.circular(13),
-          boxShadow: LoveGirlTheme.cardShadow(),
-        ),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
-      ),
+    return RebuildGlassButton(
+      label: _seg == 0 ? '添加衣物或搭配' : '添加穿搭',
+      icon: Icons.add,
+      onPressed: _onAdd,
     );
   }
 
