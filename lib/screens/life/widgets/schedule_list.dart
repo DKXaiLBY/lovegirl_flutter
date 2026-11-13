@@ -1,23 +1,27 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-import '../../../widgets/app_icon.dart';
+import '../../../widgets/rebuild_controls.dart';
 
 /// ===== 课程表 =====
 class ScheduleListWidget extends StatefulWidget {
-  const ScheduleListWidget({super.key});
+  final ApiService? api;
+  const ScheduleListWidget({super.key, this.api});
 
   @override
   State<ScheduleListWidget> createState() => _ScheduleListWidgetState();
 }
 
 class _ScheduleListWidgetState extends State<ScheduleListWidget> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   List<dynamic> _courses = [];
   bool _loading = true;
   String? _error;
+  int _request = 0;
+  late int _selectedDay = DateTime.now().weekday;
+  bool _showWeek = false;
+  final _deleting = <int>{};
 
   static const _weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   // ignore: unused_field
@@ -115,14 +119,19 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   }
 
   Future<void> _loadCourses() async {
+    if (!mounted) return;
+    final request = ++_request;
     setState(() => _loading = true);
     try {
       final res = await _api.getCourses(_currentTerm);
+      if (!mounted || request != _request) return;
       setState(() {
         _courses = res.data['data'] ?? [];
         _loading = false;
+        _error = null;
       });
     } catch (e) {
+      if (!mounted || request != _request) return;
       setState(() {
         _error = '加载失败，下拉重试';
         _loading = false;
@@ -134,10 +143,11 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     final nameCtrl = TextEditingController();
     final teacherCtrl = TextEditingController();
     final roomCtrl = TextEditingController();
-    int dayOfWeek = 1;
+    int dayOfWeek = _selectedDay;
     int startSection = 1;
     int endSection = 2;
     int colorIndex = 0;
+    var saving = false;
 
     showModalBottomSheet(
       context: context,
@@ -165,9 +175,10 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                   top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                shrinkWrap: true,
+                primary: false,
+                padding: EdgeInsets.zero,
                 children: [
                   Center(
                     child: Container(
@@ -347,7 +358,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                                   value: endSection,
                                   isExpanded: true,
                                   items: List.generate(
-                                    8 - startSection,
+                                    _sectionEndTimes.length - startSection + 1,
                                     (i) => DropdownMenuItem(
                                       value: startSection + i,
                                       child: Text('第${startSection + i}节'),
@@ -425,38 +436,50 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (nameCtrl.text.trim().isEmpty) return;
-                        try {
-                          final startTime =
-                              _sectionStartTimes[startSection - 1];
-                          final endTime = _sectionEndTimes[endSection - 1];
-                          await _api.createCourse({
-                            'courseName': nameCtrl.text.trim(),
-                            'teacher': teacherCtrl.text.trim(),
-                            'classroom': roomCtrl.text.trim(),
-                            'dayOfWeek': dayOfWeek,
-                            'startTime': startTime,
-                            'endTime': endTime,
-                            'weekType': 'every',
-                            'startWeek': 1,
-                            'endWeek': 20,
-                            'color': _colorHex[colorIndex],
-                          });
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-                          await _loadCourses();
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                  content: Text('添加失败: $e'),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2)),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              if (saving || nameCtrl.text.trim().isEmpty) {
+                                return;
+                              }
+                              setSheetState(() => saving = true);
+                              try {
+                                final startTime =
+                                    _sectionStartTimes[startSection - 1];
+                                final endTime =
+                                    _sectionEndTimes[endSection - 1];
+                                await _api.createCourse({
+                                  'courseName': nameCtrl.text.trim(),
+                                  'teacher': teacherCtrl.text.trim(),
+                                  'classroom': roomCtrl.text.trim(),
+                                  'dayOfWeek': dayOfWeek,
+                                  'startTime': startTime,
+                                  'endTime': endTime,
+                                  'weekType': 'every',
+                                  'startWeek': 1,
+                                  'endWeek': 20,
+                                  'color': _colorHex[colorIndex],
+                                });
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                await _loadCourses();
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                        content: Text(extractServerMessage(e,
+                                            fallback: '添加失败，输入已保留')),
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 2)),
+                                  );
+                                }
+                              } finally {
+                                if (ctx.mounted &&
+                                    ModalRoute.of(ctx)?.isCurrent == true) {
+                                  setSheetState(() => saving = false);
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.lgInk,
                         foregroundColor:
@@ -466,9 +489,9 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        '确定添加',
-                        style: TextStyle(
+                      child: Text(
+                        saving ? '正在添加' : '确定添加',
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
                         ),
@@ -485,6 +508,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
   }
 
   Future<void> _deleteCourse(int id, String name) async {
+    if (_deleting.contains(id)) return;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -511,7 +535,8 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
         ],
       ),
     );
-    if (result == true) {
+    if (result == true && mounted && _deleting.add(id)) {
+      setState(() {});
       try {
         await _api.deleteCourse(id);
         await _loadCourses();
@@ -519,21 +544,38 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('删除失败: $e'),
+                content: Text(extractServerMessage(e, fallback: '删除失败，课程仍然保留')),
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 2)),
           );
         }
-        await _loadCourses(); // 恢复原状态
+      } finally {
+        if (mounted) setState(() => _deleting.remove(id));
       }
     }
   }
 
   List<dynamic> _getCoursesForDay(int day) {
-    return _courses.where((c) {
-      final d = _getDayOfWeek(c);
-      return d == day;
-    }).toList();
+    return _courses.where((course) => _getDayOfWeek(course) == day).toList()
+      ..sort((a, b) =>
+          (_startMinute(a) ?? 1440).compareTo(_startMinute(b) ?? 1440));
+  }
+
+  int? _startMinute(dynamic course) {
+    final time = course['startTime']?.toString() ?? '';
+    final parts = time.split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null ||
+        minute == null ||
+        hour < 0 ||
+        hour > 23 ||
+        minute < 0 ||
+        minute > 59) {
+      return null;
+    }
+    return hour * 60 + minute;
   }
 
   Color _getCourseColor(dynamic course) {
@@ -556,13 +598,13 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     // 服务器返回 startTime，尝试解析时间得到节次
     final time = course['startTime']?.toString() ?? '';
     final idx = _sectionStartTimes.indexOf(time);
-    return idx >= 0 ? idx + 1 : 1;
+    return idx >= 0 ? idx + 1 : 0;
   }
 
   int _getEndSection(dynamic course) {
     final time = course['endTime']?.toString() ?? '';
     final idx = _sectionEndTimes.indexOf(time);
-    return idx >= 0 ? idx + 1 : 2;
+    return idx >= 0 ? idx + 1 : 0;
   }
 
   /// 获取课程时间字符串（如 "08:00-08:45"）
@@ -578,17 +620,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       return '$start-$end';
     }
 
-    // 如果没有时间，根据节次推算
-    final startSec = _getStartSection(course);
-    final endSec = _getEndSection(course);
-    if (startSec - 1 < _sectionStartTimes.length &&
-        endSec - 1 < _sectionEndTimes.length) {
-      final start = _sectionStartTimes[startSec - 1].substring(0, 5);
-      final end = _sectionEndTimes[endSec - 1].substring(0, 5);
-      return '$start-$end';
-    }
-
-    return '';
+    return startTime.isNotEmpty ? startTime : endTime;
   }
 
   int _getDayOfWeek(dynamic course) {
@@ -597,300 +629,136 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     return int.tryParse(d?.toString() ?? '1') ?? 1;
   }
 
-  bool _isToday(int dayOfWeek) {
-    return DateTime.now().weekday == dayOfWeek;
-  }
-
-  // ---------- build ----------
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: LovePaper(
-        padding: EdgeInsets.zero,
-        child: _buildBody(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => RebuildPageBackground(
+        child: _loading && _courses.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : _buildBody(),
+      );
 
   Widget _buildBody() {
-    if (_loading) {
-      return Center(
-        child: CircularProgressIndicator(color: context.lgInk),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    final now = DateTime.now();
+    final today = now.weekday;
+    final monday = DateTime(now.year, now.month, now.day - today + 1);
+    final sunday = DateTime(monday.year, monday.month, monday.day + 6);
+    final todayCourses = _getCoursesForDay(today);
+    final minute = now.hour * 60 + now.minute;
+    final next = todayCourses
+        .where((course) => (_startMinute(course) ?? -1) >= minute)
+        .firstOrNull;
+    return Stack(children: [
+      RefreshIndicator(
+        onRefresh: _loadCourses,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 100),
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 48,
-              color: context.lgTextMuted.withAlpha(100),
-            ),
-            SizedBox(height: 12),
-            Text(
-              _error!,
-              style: TextStyle(color: context.lgTextMuted),
-            ),
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _loadCourses,
-              icon: AppIcon('refresh'),
-              label: const Text('重试'),
-            ),
+            if (_error != null)
+              ListTile(
+                title: Text(_courses.isEmpty ? _error! : '暂未更新，仍显示上次读取的课程'),
+                trailing: TextButton(
+                    onPressed: _loadCourses, child: const Text('重试')),
+              ),
+            if (_loading) const LinearProgressIndicator(),
+            if (_error == null || _courses.isNotEmpty) ...[
+              RebuildGlass(
+                radius: 22,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          '${monday.month}月${monday.day}日 – ${sunday.month}月${sunday.day}日',
+                          style: TextStyle(color: context.lgTextSecondary)),
+                      const SizedBox(height: 8),
+                      Text(
+                          todayCourses.isEmpty
+                              ? '今天没有课程安排'
+                              : '今天课表有 ${todayCourses.length} 门课',
+                          style: const TextStyle(
+                              fontSize: 21, fontWeight: FontWeight.w700)),
+                      if (next != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                            '课表下一节 · ${next['courseName'] ?? next['name'] ?? ''} · ${_getCourseTime(next)}',
+                            style: TextStyle(color: context.lgTextSecondary)),
+                      ],
+                    ]),
+              ),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  for (var i = 0; i < 7; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 5),
+                      child: RebuildChoiceChip(
+                        label: Text(_weekDays[i]),
+                        selected: !_showWeek && _selectedDay == i + 1,
+                        onSelected: (_) => setState(() {
+                          _selectedDay = i + 1;
+                          _showWeek = false;
+                        }),
+                      ),
+                    ),
+                ]),
+              ),
+              Row(children: [
+                Expanded(
+                    child: Text(
+                        _showWeek ? '本周课表' : _weekDays[_selectedDay - 1],
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700))),
+                TextButton(
+                  style: rebuildTextStyle(context),
+                  onPressed: () => setState(() => _showWeek = !_showWeek),
+                  child: Text(_showWeek ? '查看单日' : '查看整周'),
+                ),
+              ]),
+              if (_showWeek)
+                for (var day = 1; day <= 7; day++)
+                  _dayCourses(day, heading: true)
+              else
+                _dayCourses(_selectedDay),
+            ],
           ],
         ),
-      );
-    }
+      ),
+      Positioned(
+        right: 16,
+        bottom: 20,
+        child: RebuildGlassButton(
+          label: '添加课程',
+          icon: Icons.add,
+          showLabel: true,
+          selected: true,
+          onPressed: _showAddDialog,
+        ),
+      ),
+    ]);
+  }
 
-    return Stack(
-      children: [
-        RefreshIndicator(
-          onRefresh: _loadCourses,
-          color: context.lgInk,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-            children: [
-              // ---- 学期标题 ----
-              LovePaper(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: context.lgInk.withAlpha(15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.school_rounded,
-                        color: context.lgInk,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '本学期课程表',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: context.lgTextPrimary,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.lgInk.withAlpha(15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        '${_courses.length}门课',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: context.lgInk,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ---- 星期行（有机圆形标签） ----
-              LovePaper(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 8,
-                ),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: List.generate(7, (i) {
-                    final day = i + 1;
-                    final today = _isToday(day);
-                    return Expanded(
-                      child: Column(
-                        children: [
-                          // 圆形日期标签（v4.0：去有机裁剪，圆块选中=lgInk）
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: today ? context.lgInk : Colors.transparent,
-                            ),
-                            child: Center(
-                              child: Text(
-                                _weekDays[i].substring(0, 1),
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight:
-                                      today ? FontWeight.w700 : FontWeight.w500,
-                                  // lgInk 深色态近白，选中字随底反转
-                                  color: today
-                                      ? (context.lgIsDark
-                                          ? context.lgBg
-                                          : Colors.white)
-                                      : context.lgTextSecondary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // 日期数字（本周实际日期）
-                          Text(
-                            '${DateTime.now().add(Duration(days: i - DateTime.now().weekday + 1)).day}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color:
-                                  today ? context.lgInk : context.lgTextMuted,
-                              fontWeight:
-                                  today ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-              ),
-
-              // ---- 每日课程 ----
-              ...List.generate(7, (dayIndex) {
-                final day = dayIndex + 1;
-                final dayCourses = _getCoursesForDay(day);
-                final today = _isToday(day);
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: LovePaper(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 日期头部
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: today ? context.lgPrimarySoft : null,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: context.lgSeparator,
-                                width: 1,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 4,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: today
-                                      ? context.lgInk
-                                      : context.lgTextMuted.withAlpha(80),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                _weekDays[dayIndex],
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: today
-                                      ? context.lgInk
-                                      : context.lgTextPrimary,
-                                ),
-                              ),
-                              if (today) ...[
-                                SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: context.lgInk,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    '今天',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      // lgInk 深色态近白，标签字随底反转
-                                      color: context.lgIsDark
-                                          ? context.lgBg
-                                          : Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              Spacer(),
-                              if (dayCourses.isNotEmpty)
-                                Text(
-                                  '${dayCourses.length}节',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: context.lgTextMuted,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        // 课程卡片
-                        if (dayCourses.isEmpty)
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 20,
-                            ),
-                            child: Text(
-                              '没有课程安排',
-                              style: TextStyle(
-                                color: context.lgTextMuted,
-                                fontSize: 13,
-                              ),
-                            ),
-                          )
-                        else
-                          ...dayCourses.map(
-                            (course) => _buildCourseCard(course),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ],
+  Widget _dayCourses(int day, {bool heading = false}) {
+    final courses = _getCoursesForDay(day);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (heading)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 6, 0, 8),
+            child: Text(_weekDays[day - 1],
+                style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
-        ),
-
-        // ---- FAB ----
-        Positioned(
-          right: 16,
-          bottom: 20,
-          child: _buildFab(),
-        ),
-      ],
+        if (courses.isEmpty)
+          RebuildGlass(
+            radius: 16,
+            padding: const EdgeInsets.all(14),
+            child: Text('没有课程安排',
+                style: TextStyle(color: context.lgTextSecondary)),
+          )
+        else
+          for (final course in courses) _buildCourseCard(course),
+      ]),
     );
   }
 
@@ -905,162 +773,57 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
         course['id'] is int ? course['id'] : int.parse(course['id'].toString());
     final timeStr = _getCourseTime(course);
 
-    return GestureDetector(
-      onLongPress: () => _deleteCourse(id, name),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        child: LovePaper(
-          padding: const EdgeInsets.all(12),
-          // v4.0 参考图⑧：课程卡=粉彩浅底（低饱和色 4% 着色）
-          color: color.withValues(alpha: 0.04),
-          child: Row(
-            children: [
-              // 节次信息色块（去有机裁剪，圆角同体系）
-              Container(
-                width: 52,
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '$startSec-$endSec',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                      ),
-                    ),
-                    Text(
-                      '节',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color.withAlpha(180),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 12),
-              // 课程信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: context.lgTextPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // 时间显示
-                    if (timeStr.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: context.lgTextMuted.withAlpha(160),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            timeStr,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted.withAlpha(160),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                    ],
-                    Row(
-                      children: [
-                        if (teacher.isNotEmpty) ...[
-                          Icon(
-                            Icons.person_outline_rounded,
-                            size: 12,
-                            color: context.lgTextMuted.withAlpha(160),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            teacher,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted.withAlpha(160),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (room.isNotEmpty) ...[
-                          Icon(
-                            Icons.meeting_room_outlined,
-                            size: 12,
-                            color: context.lgTextMuted.withAlpha(160),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            room,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted.withAlpha(160),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // 删除（红=删除语义保留：功能性红浅底+红字）
-              GestureDetector(
-                onTap: () => _deleteCourse(id, name),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
+    final weekType = course['weekType']?.toString();
+    final weekStart = course['startWeek'];
+    final weekEnd = course['endWeek'];
+    final weekLabel = switch (weekType) {
+      'odd' => '单周',
+      'even' => '双周',
+      _ => '',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: RebuildGlass(
+        radius: 16,
+        child: ListTile(
+          contentPadding: const EdgeInsets.only(left: 12, right: 6),
+          leading: startSec <= 0 || endSec < startSec
+              ? null
+              : Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
                   decoration: BoxDecoration(
-                    color: LoveGirlTheme.red.withAlpha(18),
-                    borderRadius: BorderRadius.circular(8),
+                    color: color.withAlpha(42),
+                    borderRadius: BorderRadius.circular(9),
                   ),
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    size: 16,
-                    color: LoveGirlTheme.red,
+                  child: Text(
+                    startSec == endSec ? '$startSec 节' : '$startSec–$endSec 节',
+                    style: TextStyle(
+                      color: context.lgTextPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFab() {
-    // v4.0 主行动黑底白字：去有机裁剪/渐变/双层重阴影，回归圆角黑块
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: context.lgInk,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: LoveGirlTheme.cardShadowElevated(),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showAddDialog,
-          borderRadius: BorderRadius.circular(18),
-          child: Icon(
-            Icons.add,
-            color: context.lgIsDark ? context.lgBg : Colors.white,
-            size: 28,
+          title:
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(
+              [
+                if (timeStr.isNotEmpty) timeStr,
+                if (teacher.isNotEmpty) teacher,
+                if (room.isNotEmpty) room,
+                if (weekLabel.isNotEmpty) weekLabel,
+                if (weekStart != null && weekEnd != null)
+                  '第 $weekStart–$weekEnd 周',
+              ].join(' · '),
+              style: TextStyle(color: context.lgTextSecondary)),
+          onLongPress:
+              _deleting.contains(id) ? null : () => _deleteCourse(id, name),
+          trailing: IconButton(
+            tooltip: '删除 $name',
+            icon: const Icon(Icons.more_horiz),
+            onPressed:
+                _deleting.contains(id) ? null : () => _deleteCourse(id, name),
           ),
         ),
       ),
