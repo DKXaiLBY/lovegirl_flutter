@@ -728,7 +728,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '月度趋势',
+                    '近六个月趋势',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -897,32 +897,6 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               ),
             ),
           ],
-
-          // ---- 账单明细标题 ----
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: context.lgInk.withAlpha(100),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '账单明细',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
