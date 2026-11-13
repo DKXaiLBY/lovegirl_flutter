@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
+import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../utils/constants.dart';
 import 'creation_document.dart';
@@ -8,6 +10,24 @@ import 'creation_drafts.dart';
 
 String creationUrl(String path) =>
     path.startsWith('http') ? path : '${AppConstants.baseUrl}$path';
+
+Future<void> saveCreationPng(Uint8List bytes, String name) async {
+  if (Platform.isAndroid) {
+    final saved = await const MethodChannel('lovegirl/device')
+        .invokeMethod<bool>('saveCreationPng', {'bytes': bytes, 'name': name});
+    if (saved == true) return;
+  }
+  final directory = await (await getTemporaryDirectory())
+      .createTemp('lovegirl_export_');
+  final file = File('${directory.path}/$name.png');
+  try {
+    await file.writeAsBytes(bytes, flush: true);
+    await Gal.putImage(file.path);
+  } finally {
+    await file.delete().catchError((Object _) => file);
+    await directory.delete().catchError((Object _) => directory);
+  }
+}
 
 Future<List<ui.Image>> decodeCreationImages(List<String> paths) async {
   final images = <ui.Image>[];

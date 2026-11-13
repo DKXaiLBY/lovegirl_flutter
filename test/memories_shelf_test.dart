@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' show SemanticsAction;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,6 +100,17 @@ void main() {
           },
       ];
     await show(tester, api, ShelfAuth(), scale: 1.6);
+    final semantics = tester.ensureSemantics();
+    try {
+      for (final label in ['新增回忆', '下一张相纸']) {
+        final button = tester.getSemantics(find.bySemanticsLabel(label));
+        expect(button.rect.width, lessThan(60));
+        expect(
+            button.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      }
+    } finally {
+      semantics.dispose();
+    }
     final page = find.byType(PageView);
     final bounds = tester.getRect(page);
     await tester.tapAt(Offset(bounds.right - 10, bounds.top + 120));

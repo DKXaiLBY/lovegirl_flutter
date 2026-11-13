@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -386,7 +385,8 @@ class _CreationEditorState extends State<CreationEditor> {
           '${(await getApplicationDocumentsDirectory()).path}/lovegirl_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes, flush: true);
       try {
-        await Gal.putImage(file.path);
+        final name = file.uri.pathSegments.last;
+        await saveCreationPng(bytes, name.substring(0, name.length - 4));
         _message('已保存到系统相册');
       } catch (_) {
         if (!mounted) return;

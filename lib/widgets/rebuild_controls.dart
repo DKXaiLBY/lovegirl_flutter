@@ -204,6 +204,12 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
         : enabled
             ? context.lgInk
             : context.lgTextSecondary;
+    final VoidCallback? press = enabled
+        ? () {
+            HapticFeedback.selectionClick();
+            widget.onPressed!();
+          }
+        : null;
     return Tooltip(
         message: widget.label,
         excludeFromSemantics: true,
@@ -215,25 +221,25 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
             curve: Curves.easeOutCubic,
             child: RebuildGlass(
                 radius: 30,
-                child: Material(
-                    color: widget.selected ? context.lgInk : Colors.transparent,
-                    borderRadius: BorderRadius.circular(30),
-                    child: InkWell(
+                child: Semantics(
+                    container: true,
+                    button: true,
+                    enabled: enabled,
+                    selected: widget.selected,
+                    label: widget.label,
+                    onTap: press,
+                    excludeSemantics: true,
+                    child: Material(
+                        color: widget.selected
+                            ? context.lgInk
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(30),
-                        onHighlightChanged: (value) =>
-                            setState(() => _pressed = value),
-                        onTap: !enabled
-                            ? null
-                            : () {
-                                HapticFeedback.selectionClick();
-                                widget.onPressed!();
-                              },
-                        child: Semantics(
-                            button: true,
-                            enabled: enabled,
-                            selected: widget.selected,
-                            label: widget.label,
-                            excludeSemantics: true,
+                        child: InkWell(
+                            borderRadius: BorderRadius.circular(30),
+                            onHighlightChanged: (value) =>
+                                setState(() => _pressed = value),
+                            onTap: press,
+                            excludeFromSemantics: true,
                             child: ConstrainedBox(
                                 constraints: const BoxConstraints(
                                     minWidth: 48, minHeight: 48),

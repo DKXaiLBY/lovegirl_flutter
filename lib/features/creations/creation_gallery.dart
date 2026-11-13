@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gal/gal.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -392,8 +391,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                   creationUrl(work.previewUrl),
                   options: Options(responseType: ResponseType.bytes)))
               .data!);
-      await Gal.putImageBytes(bytes,
-          name: 'LoveGirl_${work.id}_${back ? 'back' : 'front'}');
+      await saveCreationPng(bytes, 'LoveGirl_${work.id}_${back ? 'back' : 'front'}');
       _message('已保存到相册');
     } catch (_) {
       _message('未能写入系统相册，请检查相册权限后重试');

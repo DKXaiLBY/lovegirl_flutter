@@ -1,7 +1,10 @@
 package com.lovegirl.lovegirl_flutter
 
+import android.content.ContentValues
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.CoordinateConverter
@@ -29,6 +32,27 @@ class MainActivity: FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSupportedAbis" -> result.success(Build.SUPPORTED_ABIS.toList())
+                "saveCreationPng" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val name = call.argument<String>("name")
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        result.success(false)
+                    } else if (bytes == null || bytes.isEmpty() || name == null ||
+                        !name.matches(Regex("[A-Za-z0-9_-]{1,100}"))) {
+                        result.error("INVALID_CREATION_EXPORT", "图片导出参数无效", null)
+                    } else {
+                        Thread {
+                            try {
+                                saveCreationPng(name, bytes)
+                                runOnUiThread { result.success(true) }
+                            } catch (_: Exception) {
+                                runOnUiThread {
+                                    result.error("CREATION_EXPORT_FAILED", "相册写入失败", null)
+                                }
+                            }
+                        }.start()
+                    }
+                }
                 "gpsToAmap" -> {
                     val lat = call.argument<Double>("lat")
                     val lng = call.argument<Double>("lng")
@@ -48,6 +72,29 @@ class MainActivity: FlutterActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    @android.annotation.TargetApi(Build.VERSION_CODES.Q)
+    private fun saveCreationPng(name: String, bytes: ByteArray) {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+        val images = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val uri = contentResolver.insert(images, values) ?: error("Cannot create image")
+        try {
+            val output = contentResolver.openOutputStream(uri) ?: error("Cannot open image")
+            output.use { it.write(bytes) }
+            val published = ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }
+            if (contentResolver.update(uri, published, null, null) != 1) {
+                error("Cannot publish image")
+            }
+        } catch (failure: Exception) {
+            runCatching { contentResolver.delete(uri, null, null) }
+            throw failure
         }
     }
 }

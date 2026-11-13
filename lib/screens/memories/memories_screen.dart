@@ -187,18 +187,19 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if (_pager.hasClients) _pager.jumpToPage(0);
   }
 
-  Widget _title(String name, VoidCallback onAll) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 10, 4),
-      child: Row(children: [
-        Expanded(
-            child: Text(name,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700))),
-        TextButton(
-            style: rebuildTextStyle(context),
-            onPressed: onAll,
-            child: const Text('查看全部 ›'))
-      ]));
+  Widget _title(String name, VoidCallback onAll, {String action = '查看全部 ›'}) =>
+      Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 10, 4),
+          child: Row(children: [
+            Expanded(
+                child: Text(name,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700))),
+            TextButton(
+                style: rebuildTextStyle(context),
+                onPressed: onAll,
+                child: Text(action))
+          ]));
   Widget _published(CreationWork work) => CreationFlip(
       work: work,
       back: _backs.contains(work.id),
@@ -274,9 +275,24 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             controller: _pager,
             itemCount: count,
             onPageChanged: (p) => setState(() => _page = p),
-            itemBuilder: (context, index) => Stack(children: [
-              for (final side in [-1, 1])
-                if (index + side >= 0 && index + side < count)
+            itemBuilder: (context, index) {
+              final sides = [
+                if (index > 0) -1,
+                if (index + 1 < count) 1,
+              ];
+              void showAdjacent(int side) {
+                HapticFeedback.selectionClick();
+                if (still) {
+                  _pager.jumpToPage(index + side);
+                } else {
+                  unawaited(_pager.animateToPage(index + side,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic));
+                }
+              }
+
+              return Stack(children: [
+                for (final side in sides)
                   Positioned(
                     left: side < 0
                         ? inset + flank * .19 - flank
@@ -284,65 +300,55 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     top: 44,
                     width: flank,
                     height: flank * 107 / 88,
-                    child: Semantics(
-                      button: true,
-                      label: side < 0 ? '上一张相纸' : '下一张相纸',
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          final page = index + side;
-                          if (still) {
-                            _pager.jumpToPage(page);
-                          } else {
-                            unawaited(_pager.animateToPage(page,
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeOutCubic));
-                          }
-                        },
-                        child: IgnorePointer(
-                          child: ExcludeSemantics(
-                            child: Transform.rotate(
-                              angle: still ? 0 : side * .14,
-                              child: adjacent(index + side),
-                            ),
-                          ),
+                    child: IgnorePointer(
+                      child: ExcludeSemantics(
+                        child: Transform.rotate(
+                          angle: still ? 0 : side * .14,
+                          child: adjacent(index + side),
                         ),
                       ),
                     ),
                   ),
-              Positioned(
-                left: inset,
-                top: 12,
-                width: face,
-                height: face * 107 / 88,
-                child: Transform.rotate(
-                  angle: still ? 0 : .055,
-                  child: paper(index),
+                Positioned(
+                  left: inset,
+                  top: 12,
+                  width: face,
+                  height: face * 107 / 88,
+                  child: Transform.rotate(
+                    angle: still ? 0 : .055,
+                    child: paper(index),
+                  ),
                 ),
-              ),
-            ]),
+                for (final side in sides)
+                  Positioned(
+                    left: side < 0 ? 0 : null,
+                    right: side > 0 ? 0 : null,
+                    top: 44,
+                    width: math.max(0.0, inset - (still ? 0 : 8)),
+                    height: flank * 107 / 88,
+                    child: Semantics(
+                      container: true,
+                      button: true,
+                      label: side < 0 ? '上一张相纸' : '下一张相纸',
+                      onTap: () => showAdjacent(side),
+                      child: GestureDetector(
+                        excludeFromSemantics: true,
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => showAdjacent(side),
+                      ),
+                    ),
+                  ),
+              ]);
+            },
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(children: [
-            Expanded(
-              child: Text(
-                count == 1
-                    ? '轻触翻面  1/1'
-                    : '轻触翻面 · 左右滑动  ${visiblePage + 1}/$count',
-                style: TextStyle(fontSize: 11, color: context.lgTextSecondary),
-              ),
-            ),
-            TextButton.icon(
-              style: rebuildTextStyle(context),
-              onPressed: _album,
-              iconAlignment: IconAlignment.end,
-              icon: const Icon(Icons.chevron_right, size: 17),
-              label: const Text('相册'),
-            ),
-          ]),
+          padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+          child: Text(
+            count == 1 ? '轻触翻面  1/1' : '轻触翻面 · 左右滑动  ${visiblePage + 1}/$count',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: context.lgTextSecondary),
+          ),
         ),
       ]);
     });
@@ -516,7 +522,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           () => _open(CreationGallery(
                               kind: 'ticket', initialMonth: _month))),
                       _ticketShelf(),
-                      _title(_month == null ? '照片片段' : '这个月的片段', _album),
+                      _title(_month == null ? '照片片段' : '这个月的片段', _album,
+                          action: '相册 ›'),
                       _fragments(),
                       const SizedBox(height: 16),
                       Padding(
