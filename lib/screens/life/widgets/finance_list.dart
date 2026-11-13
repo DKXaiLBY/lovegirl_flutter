@@ -2,104 +2,31 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
-import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-import '../../../widgets/app_icon.dart';
+import '../../../widgets/rebuild_controls.dart';
 
-/// ===== 波浪分割线绘制器 =====
-class WaveDividerPainter extends CustomPainter {
-  final Color color;
-  final double amplitude;
-
-  WaveDividerPainter({
-    this.color = const Color(0xFFECEEF1), // LoveGirlTheme.separator 同值默认兜底
-    this.amplitude = 4.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    final h = size.height / 2;
-    path.moveTo(0, h);
-    final seg = 6;
-    final sw = size.width / seg;
-    for (int i = 0; i < seg; i++) {
-      final x1 = sw * (i + 0.25);
-      final y1 = h + (i.isEven ? -amplitude : amplitude);
-      final x2 = sw * (i + 0.75);
-      final y2 = h + (i.isEven ? amplitude : -amplitude);
-      final x3 = sw * (i + 1);
-      path.cubicTo(x1, y1, x2, y2, x3, h);
-    }
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant WaveDividerPainter oldDelegate) =>
-      oldDelegate.color != color;
-}
-
-/// ===== 有机形状箭头按钮 =====
-class OrganicArrowButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const OrganicArrowButton({
-    super.key,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: OrganicClipper(borderRadius: 10),
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: context.lgInk.withAlpha(15),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            child: Icon(
-              icon,
-              color: context.lgInk,
-              size: 22,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// ===== 记账列表 =====
 class FinanceListWidget extends StatefulWidget {
   final bool createOnOpen;
-  const FinanceListWidget({super.key, this.createOnOpen = false});
+  final ApiService? api;
+  const FinanceListWidget({super.key, this.createOnOpen = false, this.api});
 
   @override
   State<FinanceListWidget> createState() => _FinanceListWidgetState();
 }
 
 class _FinanceListWidgetState extends State<FinanceListWidget> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   late DateTime _currentMonth;
   List<dynamic> _records = [];
   Map<String, dynamic> _stats = {};
   bool _loading = true;
   String? _error;
-  String? _sourceFilter; // null=全部, 'travel'=旅行花费, ''=日常记账
+  String? _sourceFilter;
+  String? _loadedMonth;
+  int _request = 0;
+  int _trendRequest = 0;
+  final _deleting = <int>{};
 
   // 趋势图数据
   List<Map<String, dynamic>> _trendData = [];
@@ -121,23 +48,52 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       '${_currentMonth.year}-${_currentMonth.month.toString().padLeft(2, '0')}';
 
   Future<void> _loadData() async {
-    setState(() => _loading = true);
+    if (!mounted) return;
+    final request = ++_request;
+    final month = _monthStr;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final results = await Future.wait([
-        _api.getFinanceRecords(_monthStr, source: _sourceFilter),
-        _api.getFinanceStats(_monthStr, source: _sourceFilter),
+        _api.getFinanceRecords(month),
+        _api.getFinanceStats(month),
       ]);
+      if (!mounted || request != _request) return;
       setState(() {
         _records = results[0].data['data'] ?? [];
         _stats = results[1].data['data'] ?? {};
-        _loading = false;
+        _loadedMonth = month;
+        if (!_hasSources) _sourceFilter = null;
       });
     } catch (e) {
-      setState(() {
-        _error = '加载失败，下拉重试';
-        _loading = false;
-      });
+      if (!mounted || request != _request) return;
+      setState(() => _error = extractServerMessage(e, fallback: '账单加载失败，可以重试'));
+    } finally {
+      if (mounted && request == _request) setState(() => _loading = false);
     }
+  }
+
+  bool get _hasSources => _records.any((record) => _isTravel(record));
+
+  bool _isTravel(Map record) =>
+      record['source'] == 'travel' ||
+      record['sourceModule'] == 'travel' ||
+      record['source_module'] == 'travel' ||
+      record['category'] == 'travel';
+
+  bool _isExpense(Map record) =>
+      record['type'] == 'expense' || record['type'] == '支出';
+
+  String _dateOf(Map record) => (record['recordDate'] ?? record['date'] ?? '')
+      .toString()
+      .split(RegExp('[T ]'))
+      .first;
+
+  double? _amountOf(dynamic value) {
+    final amount = double.tryParse(value?.toString() ?? '');
+    return amount?.isFinite == true ? amount : null;
   }
 
   void _prevMonth() {
@@ -154,55 +110,50 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     _loadData();
   }
 
-  /// 加载近6个月趋势数据
   Future<void> _loadTrendData() async {
-    try {
-      final now = DateTime.now();
-      final List<Map<String, dynamic>> trend = [];
-
-      for (int i = 5; i >= 0; i--) {
-        final month = DateTime(now.year, now.month - i);
-        final monthStr =
-            '${month.year}-${month.month.toString().padLeft(2, '0')}';
-        try {
-          final res = await _api.getFinanceStats(monthStr);
-          final data = res.data?['data'] ?? {};
-          trend.add({
-            'month': month.month,
-            'income':
-                num.tryParse('${data['totalIncome'] ?? data['income'] ?? 0}')
-                        ?.toDouble() ??
-                    0,
-            'expense':
-                num.tryParse('${data['totalExpense'] ?? data['expense'] ?? 0}')
-                        ?.toDouble() ??
-                    0,
-          });
-        } catch (_) {
-          trend.add({
-            'month': month.month,
-            'income': 0.0,
-            'expense': 0.0,
-          });
-        }
+    final request = ++_trendRequest;
+    final now = DateTime.now();
+    final trend = await Future.wait(List.generate(6, (i) async {
+      final month = DateTime(now.year, now.month - 5 + i);
+      final key = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+      try {
+        final response = await _api.getFinanceStats(key);
+        final data = response.data['data'] as Map;
+        final income = _amountOf(data['totalIncome'] ?? data['income']);
+        final expense = _amountOf(data['totalExpense'] ?? data['expense']);
+        if (income == null || expense == null) return null;
+        return <String, dynamic>{
+          'month': month.month,
+          'income': income,
+          'expense': expense
+        };
+      } catch (_) {
+        return null;
       }
-
-      setState(() {
-        _trendData = trend;
-      });
-    } catch (_) {}
+    }));
+    if (!mounted || request != _trendRequest) return;
+    setState(() => _trendData = trend.any((point) => point == null)
+        ? []
+        : trend.whereType<Map<String, dynamic>>().toList());
   }
 
-  // ignore: unused_element
-  void _showAddDialog() {
-    final amountCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    String type = '支出';
-    String category = '餐饮';
+  void _showAddDialog([Map? record]) {
+    final amountCtrl = TextEditingController(
+        text: _amountOf(record?['amount']) == null
+            ? null
+            : record!['amount'].toString());
+    final noteCtrl = TextEditingController(
+        text: (record?['description'] ?? record?['note'])?.toString());
+    String type = record == null || _isExpense(record) ? '支出' : '收入';
+    String category = record?['category']?.toString() ?? '餐饮';
+    final now = DateTime.now();
     final dateCtrl = TextEditingController(
-      text:
-          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}',
+      text: record == null
+          ? now.toIso8601String().substring(0, 10)
+          : _dateOf(record),
     );
+    var saving = false;
+    String? error;
 
     final expenseCategories = [
       '餐饮',
@@ -250,9 +201,10 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                shrinkWrap: true,
+                primary: false,
+                padding: EdgeInsets.zero,
                 children: [
                   Center(
                     child: Container(
@@ -266,7 +218,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    '添加账单',
+                    record == null ? '添加账单' : '编辑账单',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -458,9 +410,9 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                     onTap: () async {
                       final picked = await showDatePicker(
                         context: ctx,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2035),
+                        initialDate: DateTime.tryParse(dateCtrl.text) ?? now,
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(2100),
                         // 深浅两态：色板跟随当前亮度
                         builder: (context, child) => Theme(
                           data: Theme.of(context).copyWith(
@@ -471,7 +423,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                           child: child!,
                         ),
                       );
-                      if (picked != null) {
+                      if (picked != null && ctx.mounted) {
                         setSheetState(() {
                           dateCtrl.text =
                               '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
@@ -499,54 +451,69 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final amount = double.tryParse(amountCtrl.text);
-                        if (amount == null || amount <= 0) return;
-                        try {
-                          // 字段名映射：前端 -> 后端
-                          await _api.addFinanceRecord({
-                            'type': type == '支出' ? 'expense' : 'income',
-                            'category': category,
-                            'amount': amount,
-                            'recordDate': dateCtrl.text,
-                            'description': noteCtrl.text.trim(),
-                          });
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-                          await _loadData();
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                  content: Text('添加失败: $e'),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2)),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.lgInk,
-                        foregroundColor:
-                            context.lgIsDark ? context.lgBg : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        '确定添加',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(error!,
+                          style: TextStyle(
+                              color: Theme.of(ctx).colorScheme.error)),
                     ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    style: rebuildFilledStyle(ctx),
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            if (saving) return;
+                            final raw = amountCtrl.text.trim();
+                            final amount = _amountOf(raw);
+                            final hidden = record != null &&
+                                _amountOf(record['amount']) == null;
+                            if ((!hidden || raw.isNotEmpty) &&
+                                (amount == null || amount <= 0)) {
+                              setSheetState(() => error = '请填写有效的正数金额');
+                              return;
+                            }
+                            if (DateTime.tryParse(dateCtrl.text) == null) {
+                              setSheetState(() => error = '请选择账单日期');
+                              return;
+                            }
+                            setSheetState(() {
+                              saving = true;
+                              error = null;
+                            });
+                            try {
+                              final data = {
+                                'type': type == '支出' ? 'expense' : 'income',
+                                'category': category,
+                                if (amount != null) 'amount': amount,
+                                'recordDate': dateCtrl.text,
+                                'description': noteCtrl.text.trim(),
+                              };
+                              if (record == null) {
+                                await _api.addFinanceRecord(data);
+                              } else {
+                                await _api.put('/api/finance/${record['id']}',
+                                    data: data);
+                              }
+                              if (!mounted || !ctx.mounted) return;
+                              final date = DateTime.parse(dateCtrl.text);
+                              setState(() => _currentMonth =
+                                  DateTime(date.year, date.month));
+                              Navigator.pop(ctx);
+                              await _loadData();
+                              if (mounted) _loadTrendData();
+                            } catch (e) {
+                              if (ctx.mounted) {
+                                setSheetState(() {
+                                  saving = false;
+                                  error = extractServerMessage(e,
+                                      fallback: '保存失败，输入已保留');
+                                });
+                              }
+                            }
+                          },
+                    child: Text(saving ? '正在保存' : '保存账单'),
                   ),
                 ],
               ),
@@ -561,7 +528,8 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     final map = <String, List<dynamic>>{};
     for (final r in records) {
       // 后端返回 recordDate，前端兼容 date
-      final date = (r['recordDate'] ?? r['date'])?.toString() ?? '未知日期';
+      final day = _dateOf(r);
+      final date = day.isEmpty ? '未知日期' : day;
       map.putIfAbsent(date, () => []).add(r);
     }
     final sortedKeys = map.keys.toList()..sort((a, b) => b.compareTo(a));
@@ -620,252 +588,130 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
   // ---------- build ----------
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: LovePaper(
-        padding: EdgeInsets.zero,
-        child: _buildBody(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      RebuildPageBackground(child: _buildBody());
 
   Widget _buildBody() {
-    if (_loading) {
-      return Center(
-        child: CircularProgressIndicator(color: context.lgInk),
-      );
+    final hasMonth = _loadedMonth == _monthStr;
+    final filtered = hasMonth
+        ? _records
+            .where((record) =>
+                _sourceFilter == null ||
+                (_sourceFilter == 'travel') == _isTravel(record))
+            .toList()
+        : <dynamic>[];
+    final grouped = _groupByDate(filtered);
+
+    double? total({required bool expense}) {
+      if (!hasMonth) return null;
+      if (_sourceFilter == null) {
+        return _amountOf(expense
+            ? _stats['totalExpense'] ?? _stats['expense']
+            : _stats['totalIncome'] ?? _stats['income']);
+      }
+      double sum = 0;
+      for (final record in filtered.where((r) => _isExpense(r) == expense)) {
+        final amount = _amountOf(record['amount']);
+        if (amount == null) return null;
+        sum += amount;
+      }
+      return sum;
     }
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 48,
-              color: context.lgTextMuted.withAlpha(100),
-            ),
-            SizedBox(height: 12),
-            Text(
-              _error!,
-              style: TextStyle(color: context.lgTextMuted),
-            ),
-            SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _loadData,
-              icon: AppIcon('refresh'),
-              label: const Text('重试'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final income =
-        num.tryParse('${_stats['totalIncome'] ?? _stats['income'] ?? 0}')
-                ?.toDouble() ??
-            0;
-    final expense =
-        num.tryParse('${_stats['totalExpense'] ?? _stats['expense'] ?? 0}')
-                ?.toDouble() ??
-            0;
-    final balance = income - expense;
-    final grouped = _groupByDate(_records);
-    final monthNames = [
-      '',
-      '一月',
-      '二月',
-      '三月',
-      '四月',
-      '五月',
-      '六月',
-      '七月',
-      '八月',
-      '九月',
-      '十月',
-      '十一月',
-      '十二月',
-    ];
-
+    final income = total(expense: false);
+    final expense = total(expense: true);
+    final balance = income != null && expense != null ? income - expense : null;
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: context.lgInk,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
         children: [
-          // ---- 月份切换 ----
-          LovePaper(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                OrganicArrowButton(
-                  icon: Icons.chevron_left_rounded,
-                  onPressed: _prevMonth,
-                ),
-                Flexible(
-                  child: Text(
-                    '${_currentMonth.year}年 ${monthNames[_currentMonth.month]}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      fontStyle: FontStyle.italic,
-                      letterSpacing: 0.5,
-                      color: context.lgTextPrimary,
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    OrganicArrowButton(
-                      icon: Icons.chevron_right_rounded,
-                      onPressed: _nextMonth,
-                    ),
-                    const SizedBox(width: 10),
-                    // 记一笔（_showAddDialog 此前无任何入口，属于死代码，这里接上）
-                    GestureDetector(
-                      onTap: _showAddDialog,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: context.lgInk,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.add_rounded,
-                                size: 16,
-                                color: context.lgIsDark
-                                    ? context.lgBg
-                                    : Colors.white),
-                            const SizedBox(width: 4),
-                            Text('记一笔',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: context.lgIsDark
-                                      ? context.lgBg
-                                      : Colors.white,
-                                )),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // ---- 来源筛选 ----
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              children: [
-                _buildSourceChip(null, '全部'),
-                SizedBox(width: 8),
-                _buildSourceChip('', '日常记账'),
-                SizedBox(width: 8),
-                _buildSourceChip('travel', '旅行花费'),
-              ],
-            ),
-          ),
-
-          // ---- 概览卡片（v4.0：脱票根形态，LovePaper 细线白卡） ----
-          LovePaper(
-            padding: EdgeInsets.zero,
-            margin: const EdgeInsets.only(bottom: 16),
+          Row(children: [
+            RebuildGlassButton(
+                label: '上个月', icon: Icons.chevron_left, onPressed: _prevMonth),
+            Expanded(
+                child: Text('${_currentMonth.year}年${_currentMonth.month}月',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge)),
+            RebuildGlassButton(
+                label: '下个月', icon: Icons.chevron_right, onPressed: _nextMonth),
+          ]),
+          const SizedBox(height: 12),
+          RebuildGlass(
+            radius: 22,
+            padding: const EdgeInsets.all(14),
             child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(children: [
+                    Expanded(
+                        child: _buildStatItem(label: '支出', amount: expense)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: _buildStatItem(label: '收入', amount: income)),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
                         child: _buildStatItem(
-                          icon: Icons.trending_down_rounded,
-                          label: '支出',
-                          amount: expense,
-                        ),
-                      ),
-                      // 有机波浪分割
-                      SizedBox(
-                        width: 40,
-                        height: 60,
-                        child: CustomPaint(
-                          painter: WaveDividerPainter(
-                            color: context.lgSeparator,
-                            amplitude: 5,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildStatItem(
-                          icon: Icons.trending_up_rounded,
-                          label: '收入',
-                          amount: income,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 底部结余
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.lgPaperWarm,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(LoveGirlTheme.radiusLg),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        balance >= 0
-                            ? Icons.savings_rounded
-                            : Icons.warning_amber_rounded,
-                        size: 16,
-                        color: context.lgTextSecondary,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        balance >= 0 ? '本月结余  ' : '本月超支  ',
-                        style: TextStyle(
-                          color: context.lgTextSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        '¥${balance.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: context.lgTextPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                            label: '本月结余', amount: balance, compact: true)),
+                    RebuildGlassButton(
+                        label: '记一笔',
+                        icon: Icons.add,
+                        showLabel: true,
+                        selected: true,
+                        onPressed: _showAddDialog),
+                  ]),
+                ]),
           ),
-
+          if (hasMonth && _hasSources)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(spacing: 8, children: [
+                _buildSourceChip(null, '全部'),
+                _buildSourceChip('', '日常记账'),
+                _buildSourceChip('travel', '旅行花费'),
+              ]),
+            ),
+          if (_loading) const LinearProgressIndicator(),
+          if (_error != null)
+            ListTile(
+              title: Text(hasMonth ? '暂未更新，仍显示上次读取的账单' : _error!),
+              trailing:
+                  TextButton(onPressed: _loadData, child: const Text('重试')),
+            ),
+          if (hasMonth) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Text('账单明细',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            ),
+            if (filtered.isEmpty)
+              const RebuildGlass(
+                radius: 16,
+                padding: EdgeInsets.all(16),
+                child: Text('本月暂无账单'),
+              ),
+            for (final entry in grouped.entries) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+                child: Text(_formatDate(entry.key),
+                    style: TextStyle(color: context.lgTextSecondary)),
+              ),
+              RebuildGlass(
+                radius: 18,
+                child: Column(children: [
+                  for (final (index, row) in entry.value.indexed) ...[
+                    if (index > 0)
+                      const Divider(height: 1, indent: 44, endIndent: 12),
+                    _buildRecordItem(row),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
           // ---- 月度趋势图 ----
           if (_trendData.isNotEmpty) ...[
             Padding(
@@ -1077,310 +923,101 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
               ],
             ),
           ),
-
-          // ---- 账单列表 ----
-          if (_records.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              alignment: Alignment.center,
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.receipt_long_rounded,
-                    size: 48,
-                    color: context.lgTextMuted.withAlpha(60),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    '本月暂无账单',
-                    style: TextStyle(color: context.lgTextMuted),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...grouped.entries.map(
-              (entry) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 4,
-                    ),
-                    child: Text(
-                      _formatDate(entry.key),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: context.lgTextSecondary.withAlpha(180),
-                      ),
-                    ),
-                  ),
-                  LovePaper(
-                    padding: EdgeInsets.zero,
-                    margin: const EdgeInsets.only(bottom: 6),
-                    child: Column(
-                      children: entry.value
-                          .map((r) => _buildRecordItem(
-                                r,
-                                isLast: r == entry.value.last,
-                              ))
-                          .toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String label,
-    required double amount,
-  }) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: context.lgInk),
-            SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: context.lgTextSecondary,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 6),
-        Text(
-          '¥${amount.toStringAsFixed(2)}',
-          style: TextStyle(
-            color: context.lgTextPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildStatItem(
+          {required String label,
+          required double? amount,
+          bool compact = false}) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(color: context.lgTextSecondary)),
+        Text(amount == null ? '—' : '¥${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+                fontSize: compact ? 17 : 23, fontWeight: FontWeight.w700)),
+      ]);
 
-  Widget _buildSourceChip(String? value, String label) {
-    final active = _sourceFilter == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _sourceFilter = active ? null : value);
-        _loadData();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: active ? context.lgPrimarySoft : context.lgBadgeBg,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: active ? context.lgInk.withAlpha(80) : context.lgCardBorder,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-            color: active ? context.lgInk : context.lgTextSecondary,
-          ),
-        ),
+  Widget _buildSourceChip(String? value, String label) => RebuildChoiceChip(
+        label: Text(label),
+        selected: _sourceFilter == value,
+        onSelected: (_) => setState(() => _sourceFilter = value),
+      );
+
+  Future<void> _deleteRecord(Map record) async {
+    final id = int.parse(record['id'].toString());
+    if (_deleting.contains(id)) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('删除账单'),
+        content: const Text('确定删除这笔账单吗？'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('删除')),
+        ],
       ),
     );
+    if (accepted != true || !mounted || !_deleting.add(id)) return;
+    setState(() {});
+    try {
+      await _api.deleteFinanceRecord(id);
+      if (!mounted) return;
+      await _loadData();
+      if (mounted) _loadTrendData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(extractServerMessage(e, fallback: '删除失败，账单仍然保留')),
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _deleting.remove(id));
+    }
   }
 
-  Widget _buildRecordItem(dynamic r, {bool isLast = true}) {
-    final id = r['id'] is int ? r['id'] : int.parse(r['id'].toString());
-    // 后端返回 'expense'/'income'，前端兼容 '支出'/'收入'
-    final typeStr = r['type']?.toString() ?? '';
-    final isExpense = typeStr == 'expense' || typeStr == '支出';
-    final amountStr = r['amount']?.toString() ?? '0';
-    final amount = double.tryParse(amountStr) ?? 0;
-    final category = r['category'] ?? '其他';
-    // 后端返回 description，前端兼容 note
-    final note = (r['description'] ?? r['note'])?.toString() ?? '';
-    final source = r['source']?.toString() ?? '';
-    final icon = _getCategoryIcon(category);
-
-    return Dismissible(
-      key: Key('finance_$id'),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) async {
-        final result = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            title: const Text('删除账单'),
-            content: Text(
-              '确定删除这笔${isExpense ? '支出' : '收入'}吗？',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text(
-                  '取消',
-                  style: TextStyle(color: context.lgTextSecondary),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text(
-                  '删除',
-                  style: TextStyle(color: context.lgInk),
-                ),
-              ),
-            ],
-          ),
-        );
-        if (result == true) {
-          try {
-            await _api.deleteFinanceRecord(id);
-            await _loadData();
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('删除失败: $e'),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2)),
-              );
-            }
-            await _loadData(); // 恢复原状态
+  Widget _buildRecordItem(Map record) {
+    final id = int.parse(record['id'].toString());
+    final amount = _amountOf(record['amount']);
+    final category = record['category'] == 'travel'
+        ? '旅行花费'
+        : record['category']?.toString() ?? '其他';
+    final note = (record['description'] ?? record['note'])?.toString() ?? '';
+    final disabled = _deleting.contains(id);
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 12, right: 4),
+      leading: Icon(_getCategoryIcon(category), color: context.lgInk),
+      title:
+          Text(category, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+          [
+            amount == null
+                ? '金额不可见'
+                : '${_isExpense(record) ? '−' : '+'}¥${amount.toStringAsFixed(2)}',
+            if (_isTravel(record) && category != '旅行花费') '旅行花费',
+            if (note.isNotEmpty) note,
+          ].join(' · '),
+          style: TextStyle(color: context.lgTextSecondary)),
+      onTap: disabled ? null : () => _showAddDialog(record),
+      trailing: PopupMenuButton<String>(
+        tooltip: '账单操作',
+        enabled: !disabled,
+        onSelected: (action) {
+          if (action == 'edit') {
+            _showAddDialog(record);
+          } else {
+            _deleteRecord(record);
           }
-        }
-        return false;
-      },
-      // v4.0：删除手势底改功能性红（红=删除语义保留），不再墨色渐变
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        decoration: BoxDecoration(
-          color: LoveGirlTheme.red,
-          borderRadius: BorderRadius.circular(LoveGirlTheme.radius),
-        ),
-        child: const Icon(
-          Icons.delete_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : Border(
-                  bottom: BorderSide(
-                    color: context.lgSeparator,
-                    width: 1,
-                  ),
-                ),
-        ),
-        child: Row(
-          children: [
-            // 分类图标（收入=蜜桃文字档 lgPeachText，深色态 6.62:1）
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: (isExpense ? context.lgInk : context.lgPeachText)
-                    .withAlpha(18),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: isExpense ? context.lgInk : context.lgPeachText,
-              ),
-            ),
-            SizedBox(width: 12),
-            // 分类 & 备注
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    category,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: context.lgTextPrimary,
-                    ),
-                  ),
-                  if (source == 'travel')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.lgSoftOrangeBg,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '旅行花费',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: context.lgSoftOrangeText,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (note.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      note,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.lgTextMuted.withAlpha(160),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // 金额（收入=蜜桃文字档 lgPeachText：方案步骤 5 点名，深色态用 peachTextDark）
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: (isExpense ? context.lgInk : context.lgPeachText)
-                    .withAlpha(12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${isExpense ? '-' : '+'}¥${amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: isExpense ? context.lgInk : context.lgPeachText,
-                ),
-              ),
-            ),
-          ],
-        ),
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'edit', child: Text('编辑账单')),
+          PopupMenuItem(value: 'delete', child: Text('删除账单')),
+        ],
       ),
     );
   }
