@@ -66,36 +66,52 @@ class LoveGirlApp extends StatelessWidget {
           update: (_, auth, workspace) => workspace!..setAccount(auth.userId),
         ),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
-        ChangeNotifierProvider(create: (_) => WardrobeProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness:
-                themeProvider.isDark ? Brightness.light : Brightness.dark,
-          ));
-          return MaterialApp(
-            title: 'LoveGirl',
-            scrollBehavior: const MaterialScrollBehavior().copyWith(
-                physics: const BouncingScrollPhysics(
-                    decelerationRate: ScrollDecelerationRate.fast)),
-            debugShowCheckedModeBanner: false,
-            locale: const Locale('zh'),
-            supportedLocales: const [Locale('zh'), Locale('en')],
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            theme: LoveGirlTheme.lightTheme,
-            darkTheme: LoveGirlTheme.darkTheme,
-            themeMode: themeProvider.mode,
-            home: const AppShell(),
-          );
-        },
+      child: Selector<AuthProvider, int?>(
+        selector: (_, auth) => auth.userId,
+        builder: (_, account, child) => ChangeNotifierProvider(
+          key: ValueKey(account),
+          create: (_) => WardrobeProvider(),
+          child: child,
+        ),
+        child: const _ThemedLoveGirlApp(),
       ),
+    );
+  }
+}
+
+class _ThemedLoveGirlApp extends StatelessWidget {
+  const _ThemedLoveGirlApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness:
+              themeProvider.isDark ? Brightness.light : Brightness.dark,
+        ));
+        return MaterialApp(
+          title: 'LoveGirl',
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+              physics: const BouncingScrollPhysics(
+                  decelerationRate: ScrollDecelerationRate.fast)),
+          debugShowCheckedModeBanner: false,
+          locale: const Locale('zh'),
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          theme: LoveGirlTheme.lightTheme,
+          darkTheme: LoveGirlTheme.darkTheme,
+          themeMode: themeProvider.mode,
+          home: const AppShell(),
+        );
+      },
     );
   }
 }

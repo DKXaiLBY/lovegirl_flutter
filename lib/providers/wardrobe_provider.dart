@@ -44,7 +44,21 @@ class WardrobeFilter {
 }
 
 class WardrobeProvider extends ChangeNotifier {
-  final ApiService _api = ApiService();
+  final ApiService _api;
+  WardrobeProvider({ApiService? api}) : _api = api ?? ApiService();
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _layoutPending.clear();
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
 
   List<WardrobeItem> items = [];
   List<WardrobeOutfit> outfits = [];
@@ -77,12 +91,13 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> loadAll() async {
-    if (loading) return;
+    if (loading || _disposed) return;
     loading = true;
     error = null;
     outfitsError = null;
     notifyListeners();
     await _loadPrefs();
+    if (_disposed) return;
     await Future.wait(
         [_loadItems(), _loadOutfits(), _loadAvatars(), _loadBg(), _loadWeather()]);
     loading = false;
@@ -97,8 +112,10 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> _loadItems() async {
+    if (_disposed) return;
     try {
       final res = await _api.getWardrobeItems();
+      if (_disposed) return;
       final data = res.data?['data'];
       items = (data is List)
           ? data
@@ -112,8 +129,10 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> _loadOutfits() async {
+    if (_disposed) return;
     try {
       final res = await _api.getWardrobeOutfits();
+      if (_disposed) return;
       final data = res.data?['data'];
       outfits = (data is List)
           ? data
@@ -141,8 +160,10 @@ class WardrobeProvider extends ChangeNotifier {
   }
 
   Future<void> _loadAvatars() async {
+    if (_disposed) return;
     try {
       final res = await _api.getWardrobeAvatars();
+      if (_disposed) return;
       final data = res.data?['data'];
       avatars = (data is List)
           ? data
@@ -175,6 +196,7 @@ class WardrobeProvider extends ChangeNotifier {
   Future<String?> cutoutAvatar(int id, String filePath) async {
     try {
       final res = await _api.removeWardrobeBg(filePath, 'person');
+      if (_disposed) return '账号已切换';
       final cutoutUrl = res.data?['data']?['cutoutUrl']?.toString();
       if (cutoutUrl != null && cutoutUrl.isNotEmpty) {
         await _api.saveWardrobeAvatarCutout(id, cutoutUrl);
@@ -219,6 +241,7 @@ class WardrobeProvider extends ChangeNotifier {
   /// 白板位置记忆（W1）：就地更新内存副本（P1-5 会话内立即对位），
   /// 在飞请求合并去重（同件只留最新，防旧覆盖新）；服务器 404/失败静默
   Future<void> saveItemLayout(int itemId, String layoutJson) async {
+    if (_disposed) return;
     final parsed = WardrobeItemLayout.parse(layoutJson);
     final i = items.indexWhere((e) => e.id == itemId);
     if (i >= 0) {
@@ -233,6 +256,7 @@ class WardrobeProvider extends ChangeNotifier {
         final batch = Map.of(_layoutPending);
         _layoutPending.clear();
         for (final e in batch.entries) {
+          if (_disposed) return;
           try {
             await _api.saveWardrobeItemLayout(e.key, e.value);
           } catch (_) {} // 静默：位置记忆是增强能力

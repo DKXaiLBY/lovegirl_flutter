@@ -1,11 +1,31 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lovegirl_flutter/models/wardrobe.dart';
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 import 'package:lovegirl_flutter/providers/wardrobe_provider.dart';
 import 'package:lovegirl_flutter/screens/wardrobe/wardrobe_module_screen.dart';
+import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _PendingWardrobeApi implements ApiService {
+  final requested = Completer<void>();
+  final items = Completer<Response<dynamic>>();
+
+  @override
+  Future<Response<dynamic>> getWardrobeItems() {
+    requested.complete();
+    return items.future;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) async =>
+      Response(requestOptions: RequestOptions(), data: {'data': []});
+}
 
 class _Wardrobe extends WardrobeProvider {
   int retries = 0;
@@ -26,6 +46,23 @@ class _Wardrobe extends WardrobeProvider {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('a disposed account cannot publish pending wardrobe data', () async {
+    SharedPreferences.setMockInitialValues({});
+    final api = _PendingWardrobeApi();
+    final wardrobe = WardrobeProvider(api: api);
+    final request = wardrobe.loadAll();
+    await api.requested.future;
+    wardrobe.dispose();
+    api.items.complete(Response(requestOptions: RequestOptions(), data: {
+      'data': [
+        {'id': 1, 'category': '外套', 'image_url': '/uploads/old.png'}
+      ],
+    }));
+    await request;
+    expect(wardrobe.items, isEmpty);
+  });
   testWidgets(
       'wardrobe and outfits show independent errors and searchable items',
       (tester) async {
