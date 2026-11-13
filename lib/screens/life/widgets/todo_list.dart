@@ -5,6 +5,7 @@ import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/app_icon.dart';
+import '../../../widgets/rebuild_controls.dart';
 
 /// ===== 手绘风格复选框 =====
 class HandDrawnCheckbox extends StatelessWidget {
@@ -120,17 +121,24 @@ class _HandDrawnCheckboxPainter extends CustomPainter {
 /// ===== 待办列表 =====
 class TodoListWidget extends StatefulWidget {
   final bool createOnOpen;
-  const TodoListWidget({super.key, this.createOnOpen = false});
+  final ApiService? api;
+  const TodoListWidget({super.key, this.createOnOpen = false, this.api});
 
   @override
   State<TodoListWidget> createState() => _TodoListWidgetState();
 }
 
+enum _TodoPeriod { all, today, week }
+
 class _TodoListWidgetState extends State<TodoListWidget> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   List<dynamic> _todos = [];
   bool _loading = true;
   String? _error;
+  int _loadRequest = 0;
+  _TodoPeriod _period = _TodoPeriod.all;
+  String? _category;
+  final _saving = <int>{};
 
   @override
   void initState() {
@@ -162,14 +170,23 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   };
 
   Future<void> _loadTodos() async {
+    if (!mounted) return;
+    final request = ++_loadRequest;
     setState(() => _loading = true);
     try {
       final res = await _api.getTodos();
+      if (!mounted || request != _loadRequest) return;
       setState(() {
         _todos = res.data['data'] ?? [];
+        if (_category != null &&
+            !_todos.any((todo) => _categoryFor(todo) == _category)) {
+          _category = null;
+        }
         _loading = false;
+        _error = null;
       });
     } catch (e) {
+      if (!mounted || request != _loadRequest) return;
       setState(() {
         _error = '加载失败，下拉重试';
         _loading = false;
@@ -178,6 +195,8 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   }
 
   Future<void> _toggleTodo(int id) async {
+    if (_saving.contains(id)) return;
+    setState(() => _saving.add(id));
     try {
       await _api.toggleTodo(id);
       await _loadTodos();
@@ -185,19 +204,22 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('操作失败: $e'),
+              content: Text(extractServerMessage(e, fallback: '暂未完成勾选，请重试')),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2)),
         );
       }
-      await _loadTodos(); // 即使失败也刷新，恢复UI状态
+    } finally {
+      if (mounted) setState(() => _saving.remove(id));
     }
   }
 
-  Future<void> _deleteTodo(int id) async {
+  Future<bool> _deleteTodo(int id) async {
+    if (_saving.contains(id)) return false;
+    setState(() => _saving.add(id));
     try {
       await _api.deleteTodo(id);
-      await _loadTodos();
+      return true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -207,7 +229,9 @@ class _TodoListWidgetState extends State<TodoListWidget> {
               duration: Duration(seconds: 2)),
         );
       }
-      await _loadTodos(); // 恢复原状态
+      return false;
+    } finally {
+      if (mounted) setState(() => _saving.remove(id));
     }
   }
 
@@ -215,6 +239,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
     final titleCtrl = TextEditingController();
     final dateCtrl = TextEditingController();
     String selectedCategory = '日常';
+    var adding = false;
 
     final categories = ['日常', '学习', '其他'];
     final dateFormat =
@@ -247,9 +272,10 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                   top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                shrinkWrap: true,
+                primary: false,
+                padding: EdgeInsets.zero,
                 children: [
                   // 拖拽指示条
                   Center(
@@ -304,7 +330,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                           child: child!,
                         ),
                       );
-                      if (picked != null) {
+                      if (picked != null && ctx.mounted) {
                         setSheetState(() {
                           dateCtrl.text =
                               '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
@@ -361,31 +387,42 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        if (titleCtrl.text.trim().isEmpty) return;
-                        try {
-                          // 将中文分类转换为英文
-                          final categoryEn =
-                              _categoryMap[selectedCategory] ?? 'daily';
-                          await _api.createTodo({
-                            'title': titleCtrl.text.trim(),
-                            'dueDate': dateCtrl.text,
-                            'category': categoryEn,
-                          });
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-                          await _loadTodos();
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(
-                                  content: Text('添加失败: $e'),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2)),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: adding
+                          ? null
+                          : () async {
+                              if (adding || titleCtrl.text.trim().isEmpty) {
+                                return;
+                              }
+                              setSheetState(() => adding = true);
+                              try {
+                                // 将中文分类转换为英文
+                                final categoryEn =
+                                    _categoryMap[selectedCategory] ?? 'daily';
+                                await _api.createTodo({
+                                  'title': titleCtrl.text.trim(),
+                                  'dueDate': dateCtrl.text,
+                                  'category': categoryEn,
+                                });
+                                if (!ctx.mounted) return;
+                                Navigator.pop(ctx);
+                                await _loadTodos();
+                              } catch (e) {
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                        content: Text(extractServerMessage(e,
+                                            fallback: '添加失败，输入已保留')),
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 2)),
+                                  );
+                                }
+                              } finally {
+                                if (ctx.mounted &&
+                                    ModalRoute.of(ctx)?.isCurrent == true) {
+                                  setSheetState(() => adding = false);
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.lgInk,
                         foregroundColor:
@@ -395,9 +432,9 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                         ),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        '确定添加',
-                        style: TextStyle(
+                      child: Text(
+                        adding ? '正在添加' : '确定添加',
+                        style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
                         ),
@@ -440,10 +477,45 @@ class _TodoListWidgetState extends State<TodoListWidget> {
         ],
       ),
     );
-    if (result == true) {
-      await _deleteTodo(id);
-    }
-    return result ?? false;
+    return result == true && mounted && await _deleteTodo(id);
+  }
+
+  void _forgetTodo(int id) {
+    if (!mounted) return;
+    setState(() => _todos = _todos.where((todo) => _id(todo) != id).toList());
+    _loadTodos();
+  }
+
+  int _id(dynamic todo) => int.parse(todo['id'].toString());
+
+  bool _completed(dynamic todo) =>
+      todo['completed'] == true || todo['completed'] == 1;
+
+  String _categoryFor(dynamic todo) {
+    final key = (todo['category'] ?? 'daily').toString();
+    return _categoryReverseMap[key] ?? key;
+  }
+
+  String _dateFor(dynamic todo) => (todo['due_date'] ?? todo['date'] ?? '')
+      .toString()
+      .split(RegExp('[T ]'))
+      .first;
+
+  List<dynamic> get _visibleTodos {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final monday =
+        DateTime(today.year, today.month, today.day - today.weekday + 1);
+    final nextMonday = DateTime(monday.year, monday.month, monday.day + 7);
+    return _todos.where((todo) {
+      if (_category != null && _categoryFor(todo) != _category) return false;
+      if (_period == _TodoPeriod.all) return true;
+      final due = DateTime.tryParse(_dateFor(todo));
+      if (due == null) return false;
+      final day = DateUtils.dateOnly(due);
+      return _period == _TodoPeriod.today
+          ? DateUtils.isSameDay(day, today)
+          : !day.isBefore(monday) && day.isBefore(nextMonday);
+    }).toList();
   }
 
   IconData _getCategoryIcon(String category) {
@@ -487,23 +559,17 @@ class _TodoListWidgetState extends State<TodoListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: LovePaper(
-        padding: EdgeInsets.zero,
-        child: _buildBody(),
-      ),
-    );
+    return RebuildPageBackground(child: _buildBody());
   }
 
   Widget _buildBody() {
-    if (_loading) {
+    if (_loading && _todos.isEmpty) {
       return Center(
         child: CircularProgressIndicator(color: context.lgInk),
       );
     }
 
-    if (_error != null) {
+    if (_error != null && _todos.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -529,26 +595,92 @@ class _TodoListWidgetState extends State<TodoListWidget> {
       );
     }
 
+    final visible = _visibleTodos;
+    final categories = _todos.map(_categoryFor).toSet();
+    final pending = visible.where((todo) => !_completed(todo)).length;
     return Stack(
       children: [
         RefreshIndicator(
           onRefresh: _loadTodos,
           color: context.lgInk,
-          child: _todos.isEmpty
-              ? ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    SizedBox(
-                      height: 320,
-                      child: _buildEmptyState(),
-                    ),
-                  ],
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-                  itemCount: _todos.length,
-                  itemBuilder: (ctx, index) => _buildTodoItem(_todos[index]),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RebuildGlass(
+                          radius: 22,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          child: Text(
+                            '待完成 $pending 件',
+                            style: const TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 8, children: [
+                          for (final entry in const {
+                            _TodoPeriod.all: '全部',
+                            _TodoPeriod.today: '今天',
+                            _TodoPeriod.week: '本周',
+                          }.entries)
+                            RebuildChoiceChip(
+                              label: Text(entry.value),
+                              selected: _period == entry.key,
+                              onSelected: (_) =>
+                                  setState(() => _period = entry.key),
+                            ),
+                        ]),
+                        if (categories.length > 1)
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(children: [
+                              for (final category in [null, ...categories])
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 7),
+                                  child: RebuildChoiceChip(
+                                    label: Text(category ?? '所有分类'),
+                                    selected: _category == category,
+                                    onSelected: (_) =>
+                                        setState(() => _category = category),
+                                  ),
+                                ),
+                            ]),
+                          ),
+                        if (_loading) const LinearProgressIndicator(),
+                        if (_error != null)
+                          ListTile(
+                            title: const Text('暂未更新，仍显示上次读取的待办'),
+                            trailing: TextButton(
+                                onPressed: _loadTodos, child: const Text('重试')),
+                          ),
+                      ]),
                 ),
+              ),
+              if (visible.isEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 260,
+                    child: _todos.isEmpty
+                        ? _buildEmptyState()
+                        : const Center(child: Text('这个范围没有待办')),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
+                  sliver: SliverList.builder(
+                    itemCount: visible.length,
+                    itemBuilder: (_, index) => _buildTodoItem(visible[index]),
+                  ),
+                ),
+            ],
+          ),
         ),
         // 有机形状 FAB
         Positioned(
@@ -592,21 +724,21 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   }
 
   Widget _buildTodoItem(dynamic todo) {
-    final id =
-        todo['id'] is int ? todo['id'] : int.parse(todo['id'].toString());
-    final title = todo['title'] ?? '';
-    final completed = todo['completed'] == true || todo['completed'] == 1;
-    final date = todo['due_date'] ?? todo['date'] ?? '';
-    final categoryRaw = todo['category'] ?? 'daily';
-    // 将英文分类转换为中文显示
-    final category = _categoryReverseMap[categoryRaw] ?? categoryRaw;
+    final id = _id(todo);
+    final title = (todo['title'] ?? '').toString();
+    final completed = _completed(todo);
+    final date = _dateFor(todo);
+    final category = _categoryFor(todo);
     final categoryColor = _getCategoryColor(category);
     final categoryIcon = _getCategoryIcon(category);
 
     return Dismissible(
       key: Key('todo_$id'),
-      direction: DismissDirection.endToStart,
+      direction: _saving.contains(id)
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       confirmDismiss: (_) => _confirmDelete(id, title),
+      onDismissed: (_) => _forgetTodo(id),
       // v4.0：删除手势底改功能性红（红=删除语义保留），不再墨色渐变
       background: Container(
         alignment: Alignment.centerRight,
@@ -630,11 +762,14 @@ class _TodoListWidgetState extends State<TodoListWidget> {
           child: Row(
             children: [
               // 手绘复选框（勾选色随分类低饱和色相）
-              GestureDetector(
-                onTap: () => _toggleTodo(id),
-                child: HandDrawnCheckbox(
-                  checked: completed,
-                  color: categoryColor,
+              Semantics(
+                label: title,
+                checked: completed,
+                child: IconButton(
+                  onPressed:
+                      _saving.contains(id) ? null : () => _toggleTodo(id),
+                  icon: HandDrawnCheckbox(
+                      checked: completed, color: categoryColor),
                 ),
               ),
               const SizedBox(width: 12),
@@ -665,11 +800,15 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                             color: context.lgTextMuted.withAlpha(120),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            date,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted.withAlpha(150),
+                          Flexible(
+                            child: Text(
+                              date,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.lgTextSecondary,
+                              ),
                             ),
                           ),
                         ],
@@ -704,10 +843,14 @@ class _TodoListWidgetState extends State<TodoListWidget> {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: context.lgTextMuted,
+              IconButton(
+                tooltip: '删除 $title',
+                icon: const Icon(Icons.more_horiz, size: 20),
+                onPressed: _saving.contains(id)
+                    ? null
+                    : () async {
+                        if (await _confirmDelete(id, title)) _forgetTodo(id);
+                      },
               ),
             ],
           ),
