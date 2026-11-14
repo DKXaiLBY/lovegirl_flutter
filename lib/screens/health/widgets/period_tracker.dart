@@ -202,7 +202,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
         SizedBox(height: 16),
         _buildActionButton(),
         SizedBox(height: 20),
-        if (_analysis != null) _buildAnalysis(),
+        if ((_analysis?.totalPeriods ?? 0) > 0) _buildAnalysis(),
         SizedBox(height: 20),
         if (_periods.isNotEmpty) _buildHistory(),
       ]),
