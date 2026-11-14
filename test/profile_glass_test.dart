@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/screens/profile/profile_screen.dart';
+import 'package:lovegirl_flutter/screens/couple/couple_binding_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 
@@ -13,6 +14,7 @@ Response<dynamic> response(dynamic data) => Response(
 
 class ProfileApi implements ApiService {
   bool fail = false;
+  bool coupled = true;
   Completer<Response<dynamic>>? pending;
   int reads = 0;
   List<Map<String, dynamic>> dates = [];
@@ -22,7 +24,7 @@ class ProfileApi implements ApiService {
     if (reads == 1 && pending != null) return pending!.future;
     if (fail) throw StateError('offline');
     return response({
-      'coupled': true,
+      'coupled': coupled,
       'partner': {'nickname': '伴侣'}
     });
   }
@@ -50,6 +52,22 @@ class ProfileAuth extends AuthProvider {
 }
 
 void main() {
+  testWidgets(
+      'binding lookup errors can recover without showing an unbound state',
+      (tester) async {
+    final api = ProfileApi()..fail = true;
+    await tester.pumpWidget(MaterialApp(home: CoupleBindingScreen(api: api)));
+    await tester.pumpAndSettle();
+    expect(find.text('绑定状态暂未读取'), findsOneWidget);
+    expect(find.text('未绑定'), findsNothing);
+    api.fail = false;
+    api.coupled = false;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(find.text('未绑定'), findsOneWidget);
+    expect(find.text('绑定状态暂未读取'), findsNothing);
+  });
+
   Future<void> show(WidgetTester tester, ProfileApi api, ProfileAuth auth,
       {bool dark = false, double scale = 1}) async {
     tester.view.physicalSize = const Size(720, 1600);
@@ -97,6 +115,22 @@ void main() {
     await show(tester, api, ProfileAuth());
     expect(find.text('在一起的第3天'), findsOneWidget);
     expect(find.text('设置属于你们的纪念日起点'), findsNothing);
+  });
+  testWidgets(
+      'important days can show a real event beyond the home reminder window',
+      (tester) async {
+    final api = ProfileApi()
+      ..dates = [
+        {
+          'title': '旅行纪念',
+          'repeat_type': 'once',
+          'eventDate':
+              DateTime.now().add(const Duration(days: 13)).toIso8601String(),
+        }
+      ];
+    await show(tester, api, ProfileAuth());
+    await tester.scrollUntilVisible(find.text('旅行纪念'), 120);
+    expect(find.text('13 天'), findsOneWidget);
   });
   testWidgets('old partner response is discarded after account switch',
       (tester) async {

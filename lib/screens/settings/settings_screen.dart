@@ -18,21 +18,26 @@ import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'log_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool openPrivacy;
+  const SettingsScreen({super.key, this.openPrivacy = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _privacySection = GlobalKey();
   late TextEditingController _nicknameController;
   bool _isEditing = false;
   bool _isSaving = false;
 
-  // 隐私开关（模拟后端状态）
+  // 已从服务器确认的隐私设置
   bool _photoVisible = true;
   bool _moodVisible = true;
   bool _travelVisible = true;
+  bool _privacyLoading = true;
+  bool _privacyUnavailable = false;
+  final _privacySaving = <String>{};
 
   // 推送开关
   bool _pushEnabled = true;
@@ -56,11 +61,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _loadPrivacySettings();
         _loadPushSettings();
         _calculateCacheSize();
+        if (widget.openPrivacy && _privacySection.currentContext != null) {
+          Scrollable.ensureVisible(_privacySection.currentContext!);
+        }
       }
     });
   }
 
   Future<void> _loadPrivacySettings() async {
+    setState(() => _privacyLoading = true);
     try {
       final api = ApiService();
       final res = await api.getPrivacy();
@@ -68,15 +77,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (data is Map) {
         if (mounted) {
           setState(() {
-            _photoVisible = data['photo_visible'] != false;
-            _moodVisible = data['mood_visible'] != false;
-            _travelVisible = data['travel_visible'] != false;
+            _photoVisible = _visible(data['photo_visible']);
+            _moodVisible = _visible(data['mood_visible']);
+            _travelVisible = _visible(data['travel_visible']);
+            _privacyUnavailable = false;
           });
         }
+      } else {
+        throw const FormatException('无效的隐私设置');
       }
       LogService().info('Settings', '隐私设置已加载');
     } catch (e) {
       LogService().error('Settings', '加载隐私设置失败: $e');
+      if (mounted) _privacyUnavailable = true;
+    } finally {
+      if (mounted) setState(() => _privacyLoading = false);
+    }
+  }
+
+  bool _visible(dynamic value) => value != false && value != 0 && value != '0';
+
+  Future<void> _savePrivacy(String key, bool value, ValueChanged<bool> apply) async {
+    if (_privacyLoading || _privacyUnavailable || !_privacySaving.add(key)) return;
+    setState(() {});
+    try {
+      await ApiService().updatePrivacy({key: value});
+      if (mounted) setState(() => apply(value));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(extractServerMessage(error, fallback: '保存失败，请重试'))));
+      }
+    } finally {
+      if (mounted) setState(() => _privacySaving.remove(key));
     }
   }
 
@@ -186,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildMotionCard(),
               const SizedBox(height: 24),
-              _buildSectionHeader('隐私安全'),
+              KeyedSubtree(key: _privacySection, child: _buildSectionHeader('隐私安全')),
               const SizedBox(height: 10),
               _buildPrivacyCard(),
               const SizedBox(height: 24),
@@ -478,58 +511,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ========== 隐私安全 ==========
   Widget _buildPrivacyCard() {
+    if (_privacyLoading) {
+      return const LinearProgressIndicator();
+    }
+    if (_privacyUnavailable) {
+      return ListTile(
+        title: const Text('隐私设置暂未读取'),
+        trailing: TextButton(onPressed: _loadPrivacySettings, child: const Text('重试')),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDeco(),
-      child: Column(
-        children: [
-          _buildSwitchRow(Icons.photo_library_outlined, context.lgInk, '相册可见',
-              _photoVisible, (v) {
-            setState(() => _photoVisible = v);
-            ApiService().updatePrivacy({'photo_visible': v}).catchError((e) {
-              LogService().error('Settings', '保存相册隐私失败: $e');
-              if (mounted) {
-                setState(() => _photoVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
-              }
-            });
-            LogService().userAction('隐私:相册可见=$v');
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(
-              Icons.mood_outlined, LoveGirlTheme.orange, '心情可见', _moodVisible,
-              (v) {
-            setState(() => _moodVisible = v);
-            ApiService().updatePrivacy({'mood_visible': v}).catchError((e) {
-              LogService().error('Settings', '保存心情隐私失败: $e');
-              if (mounted) {
-                setState(() => _moodVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
-              }
-            });
-            LogService().userAction('隐私:心情可见=$v');
-          }),
-          const Divider(height: 24, indent: 40),
-          _buildSwitchRow(
-              Icons.map_outlined, LoveGirlTheme.visited, '行程可见', _travelVisible,
-              (v) {
-            setState(() => _travelVisible = v);
-            ApiService().updatePrivacy({'travel_visible': v}).catchError((e) {
-              LogService().error('Settings', '保存行程隐私失败: $e');
-              if (mounted) {
-                setState(() => _travelVisible = !v);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('保存失败，请重试'), duration: Duration(seconds: 1)));
-              }
-            });
-            LogService().userAction('隐私:行程可见=$v');
-          }),
-        ],
-      ),
+      child: Column(children: [
+        _privacySwitch(Icons.photo_library_outlined, '相册可见', 'photo_visible',
+            _photoVisible, (value) => _photoVisible = value),
+        const Divider(height: 24, indent: 40),
+        _privacySwitch(Icons.mood_outlined, '心情可见', 'mood_visible',
+            _moodVisible, (value) => _moodVisible = value),
+        const Divider(height: 24, indent: 40),
+        _privacySwitch(Icons.map_outlined, '行程可见', 'travel_visible',
+            _travelVisible, (value) => _travelVisible = value),
+      ]),
     );
   }
+
+  Widget _privacySwitch(IconData icon, String label, String key, bool value,
+          ValueChanged<bool> apply) =>
+      _buildSwitchRow(icon, context.lgInk, label, value,
+          _privacySaving.contains(key) ? null : (next) => _savePrivacy(key, next, apply));
 
   // ========== 推送设置 ==========
   Widget _buildPushCard() {
@@ -782,7 +792,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSwitchRow(IconData icon, Color iconColor, String label,
-      bool value, ValueChanged<bool> onChanged) {
+      bool value, ValueChanged<bool>? onChanged) {
     return Row(
       children: [
         Container(

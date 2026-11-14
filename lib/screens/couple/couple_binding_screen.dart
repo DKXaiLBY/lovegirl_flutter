@@ -5,20 +5,24 @@ import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/rebuild_controls.dart';
 
 /// 伴侣绑定页面
 class CoupleBindingScreen extends StatefulWidget {
-  const CoupleBindingScreen({super.key});
+  final ApiService? api;
+  const CoupleBindingScreen({super.key, this.api});
 
   @override
   State<CoupleBindingScreen> createState() => _CoupleBindingScreenState();
 }
 
 class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
-  final ApiService _api = ApiService();
+  late final ApiService _api = widget.api ?? ApiService();
   final _codeController = TextEditingController();
 
   bool _loading = true;
+  String? _statusError;
+  bool _breaking = false;
   bool _coupled = false;
   Map<String, dynamic>? _partner;
   String? _coupledAt;
@@ -44,27 +48,39 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
   }
 
   Future<void> _loadStatus() async {
-    setState(() => _loading = true);
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _statusError = null;
+    });
     try {
       final res = await _api.getCoupleStatus();
       final data = res.data?['data'];
-      if (data is Map) {
+      if (!mounted) return;
+      if (data is Map && data['coupled'] is bool) {
         setState(() {
           _coupled = data['coupled'] == true;
           _partner = data['partner'];
           _coupledAt = data['coupled_at']?.toString();
         });
+      } else {
+        throw const FormatException('绑定状态暂不可用');
       }
     } catch (e) {
       LogService().error('Couple', '查询绑定状态失败: $e');
+      if (mounted) {
+        _statusError = extractServerMessage(e, fallback: '绑定状态暂未读取');
+      }
     }
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _generateInvite() async {
+    if (_generating || _accepting) return;
     setState(() => _generating = true);
     try {
       final res = await _api.createCoupleInvite();
+      if (!mounted) return;
       final data = res.data?['data'];
       if (data is Map) {
         setState(() {
@@ -83,7 +99,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
         );
       }
     }
-    setState(() => _generating = false);
+    if (mounted) setState(() => _generating = false);
   }
 
   void _startCountdown() {
@@ -99,6 +115,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
   }
 
   Future<void> _acceptInvite() async {
+    if (_accepting || _generating) return;
     final code = _codeController.text.trim();
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,16 +146,18 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
         );
       }
     }
-    setState(() => _accepting = false);
+    if (mounted) setState(() => _accepting = false);
   }
 
   Future<void> _breakCouple() async {
+    if (_breaking) return;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: const Text('解除绑定'),
-        content: const Text('确定要解除与TA的绑定关系吗？\n解除后，隐私设置和投喂站将受影响。'),
+        content: const Text('解除后会收回伴侣对共同清单和其他共享内容的访问。个人行李和已有记录会保留。'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -152,9 +171,11 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
       ),
     );
 
-    if (confirm == true) {
+    if (confirm == true && mounted && !_breaking) {
+      setState(() => _breaking = true);
       try {
         await _api.breakCouple();
+        if (!mounted) return;
         LogService().userAction('伴侣:解绑');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -169,6 +190,15 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
         });
       } catch (e) {
         LogService().error('Couple', '解绑失败: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text(extractServerMessage(e, fallback: '解除绑定失败，可以重试'))),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _breaking = false);
       }
     }
   }
@@ -183,7 +213,8 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.lgBg,
-      body: SafeArea(
+      body: RebuildPageBackground(
+          child: SafeArea(
         child: Column(
           children: [
             Padding(
@@ -193,18 +224,24 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : _coupled
-                      ? _buildCoupledView()
-                      : _buildUnboundView(),
+                  : _statusError != null
+                      ? ListTile(
+                          title: Text(_statusError!),
+                          trailing: TextButton(
+                              onPressed: _loadStatus, child: const Text('重试')),
+                        )
+                      : _coupled
+                          ? _buildCoupledView()
+                          : _buildUnboundView(),
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
   Widget _buildHeader() {
-    return LovePaper(
+    return RebuildGlass(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -250,10 +287,11 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
               ],
             ),
           ),
-          LovePill(
-            text: _coupled ? '已连接' : '未绑定',
-            color: _coupled ? LoveGirlTheme.secondary : context.lgInk,
-          ),
+          if (!_loading && _statusError == null)
+            LovePill(
+              text: _coupled ? '已连接' : '未绑定',
+              color: _coupled ? LoveGirlTheme.secondary : context.lgInk,
+            ),
         ],
       ),
     );
@@ -263,7 +301,8 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
   Widget _buildCoupledView() {
     final partner = _partner ?? {};
     final nickname = partner['nickname'] ?? 'TA';
-    final role = partner['role'] == 'girl' ? '👧 女友' : '👦 男友';
+    final role = partner['role'] == 'girl' ? '女友' : '男友';
+    final boundDate = DateTime.tryParse(_coupledAt ?? '');
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -296,9 +335,8 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                '已绑定${_coupledAt != null ? " · ${_coupledAt!.substring(0, 10)}" : ""}',
-                style: TextStyle(
-                    fontSize: 14, color: context.lgTextMuted),
+                '已绑定${boundDate == null ? '' : ' · ${boundDate.year}年${boundDate.month}月${boundDate.day}日'}',
+                style: TextStyle(fontSize: 14, color: context.lgTextMuted),
               ),
             ],
           ),
@@ -326,7 +364,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
 
         // 解绑按钮
         GestureDetector(
-          onTap: _breakCouple,
+          onTap: _breaking ? null : _breakCouple,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -393,8 +431,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
             children: [
               if (_inviteCode == null) ...[
                 Text('生成一个6位邀请码，发给TA输入即可',
-                    style: TextStyle(
-                        fontSize: 13, color: context.lgTextMuted)),
+                    style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -419,8 +456,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
                 ),
               ] else ...[
                 Text('请将此邀请码发给TA',
-                    style: TextStyle(
-                        fontSize: 13, color: context.lgTextMuted)),
+                    style: TextStyle(fontSize: 13, color: context.lgTextMuted)),
                 const SizedBox(height: 16),
                 // 邀请码展示
                 GestureDetector(
@@ -601,8 +637,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: TextStyle(
-                    fontSize: 13, color: context.lgTextSecondary),
+                style: TextStyle(fontSize: 13, color: context.lgTextSecondary),
                 children: [
                   TextSpan(
                       text: title,

@@ -163,7 +163,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             title: Text('${person?['nickname'] ?? '未填写昵称'}'),
                             subtitle:
                                 Text(identical(person, me) ? '我的资料' : '伴侣资料')),
-                      if (!_bound)
+                      if (_couple == null)
+                        const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Text('关系暂未读取')),
+                      if (_couple != null && !_bound)
                         const Padding(
                             padding: EdgeInsets.all(12),
                             child: Text('绑定后可以查看伴侣资料')),
@@ -289,7 +293,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       radius: 28,
                       child: InkWell(
                           borderRadius: BorderRadius.circular(28),
-                          onTap: () => _open(const AnniversaryScreen()),
+                          onTap: _couple == null
+                              ? _load
+                              : _bound
+                                  ? () => _open(const AnniversaryScreen())
+                                  : () => _open(const CoupleBindingScreen()),
                           child: Padding(
                               padding: const EdgeInsets.all(10),
                               child: Row(children: [
@@ -298,8 +306,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     height: 48,
                                     child: Stack(children: [
                                       Positioned(left: 0, child: _avatar(me)),
-                                      Positioned(
-                                          left: 32, child: _avatar(_partner)),
+                                      if (_bound)
+                                        Positioned(
+                                            left: 32, child: _avatar(_partner)),
                                     ])),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -315,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _importantDays() {
-    final next = upcomingAnniversary(_anniversaries ?? []);
+    final next = upcomingAnniversary(_anniversaries ?? [], maxDays: null);
     final nextDate = next == null
         ? null
         : DateTime.now().add(Duration(days: next['days'] as int));
@@ -414,7 +423,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         : _bound
                                             ? '已绑定 · ${_partner?['nickname'] ?? '伴侣'}'
                                             : '尚未绑定伴侣',
-                                () => _open(const CoupleBindingScreen())))),
+                                _bound
+                                    ? _people
+                                    : () =>
+                                        _open(const CoupleBindingScreen())))),
                     Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: _importantDays()),
@@ -424,9 +436,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: RebuildGlass(
                             child: Column(children: [
                           _row(Icons.person_outline, '双方资料', '', _people),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
                           _row(Icons.link_outlined, '伴侣绑定', '',
                               () => _open(const CoupleBindingScreen())),
-                          _row(Icons.settings_outlined, '设置与更新', '资料、隐私与通知',
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _row(
+                              Icons.notifications_outlined,
+                              '隐私与通知',
+                              '',
+                              () => _open(
+                                  const SettingsScreen(openPrivacy: true))),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _row(Icons.settings_outlined, '设置与更新', '',
                               () => _open(const SettingsScreen())),
                         ]))),
                   ]))));

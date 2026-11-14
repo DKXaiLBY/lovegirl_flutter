@@ -51,6 +51,7 @@ DateTime? _parseDate(dynamic value) {
 Map<String, dynamic>? upcomingAnniversary(
   Iterable<Map<String, dynamic>> items, {
   DateTime? now,
+  int? maxDays = 7,
 }) {
   final current = now ?? DateTime.now();
   final today = DateTime.utc(current.year, current.month, current.day);
@@ -72,7 +73,7 @@ Map<String, dynamic>? upcomingAnniversary(
       }
     }
     final days = next.difference(today).inDays;
-    if (days < 0 || days > 7) continue;
+    if (days < 0 || (maxDays != null && days > maxDays)) continue;
     if (result == null || days < (result['days'] as int)) {
       result = {'title': item['title'] ?? '纪念日', 'days': days};
     }
