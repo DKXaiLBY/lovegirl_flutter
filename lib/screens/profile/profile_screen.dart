@@ -165,8 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Text(identical(person, me) ? '我的资料' : '伴侣资料')),
                       if (_couple == null)
                         const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Text('关系暂未读取')),
+                            padding: EdgeInsets.all(12), child: Text('关系暂未读取')),
                       if (_couple != null && !_bound)
                         const Padding(
                             padding: EdgeInsets.all(12),
@@ -185,25 +184,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       InkWell(
           borderRadius: BorderRadius.circular(22),
           onTap: onTap,
-          child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(children: [
-                Icon(icon, size: 24, color: context.lgInk),
-                const SizedBox(width: 14),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(title, style: const TextStyle(fontSize: 15)),
-                      if (hint.isNotEmpty)
-                        Text(hint,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12, color: context.lgTextSecondary)),
-                    ])),
-                const Icon(Icons.chevron_right, size: 20),
-              ])));
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  child: Row(children: [
+                    Icon(icon, size: 24, color: context.lgInk),
+                    const SizedBox(width: 14),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text(title, style: const TextStyle(fontSize: 15)),
+                          if (hint.isNotEmpty)
+                            Text(hint,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: context.lgTextSecondary)),
+                        ])),
+                    const Icon(Icons.chevron_right, size: 20),
+                  ]))));
 
   Widget _hero(Map<String, dynamic>? me) {
     final start = resolveLoveStartDate(
@@ -330,12 +333,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         : DateTime.now().add(Duration(days: next['days'] as int));
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Text('重要日子',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
       if (_anniversaries == null)
         Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Text(_loading ? '正在读取纪念日…' : '纪念日暂未读取',
                 style: TextStyle(color: context.lgTextSecondary)))
       else if (next != null)
@@ -361,13 +364,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 fontSize: 12, color: context.lgTextSecondary)),
                       ])),
                   const SizedBox(width: 12),
+                  Container(width: 1, height: 36, color: context.lgSeparator),
+                  const SizedBox(width: 12),
                   Column(children: [
                     Text(next['days'] == 0 ? '就是' : '还有',
                         style: TextStyle(
                             fontSize: 11, color: context.lgTextSecondary)),
                     Text(next['days'] == 0 ? '今天' : '${next['days']} 天',
                         style: TextStyle(
-                            fontSize: 25,
+                            fontSize: 22,
                             fontWeight: FontWeight.w700,
                             color: context.lgIsDark
                                 ? const Color(0xff93beff)
@@ -411,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: const Text('重试')),
                           ])),
                     Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                         child: RebuildGlass(
                             child: _row(
                                 Icons.favorite_border,
@@ -423,14 +428,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         : _bound
                                             ? '已绑定 · ${_partner?['nickname'] ?? '伴侣'}'
                                             : '尚未绑定伴侣',
-                                _bound
-                                    ? _people
-                                    : () =>
-                                        _open(const CoupleBindingScreen())))),
+                                _couple == null
+                                    ? _load
+                                    : _bound
+                                        ? _people
+                                        : () => _open(
+                                            const CoupleBindingScreen())))),
                     Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: _importantDays()),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: RebuildGlass(

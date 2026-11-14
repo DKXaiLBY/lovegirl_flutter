@@ -201,6 +201,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      appBar: widget.openPrivacy
+          ? AppBar(title: const Text('隐私与通知'))
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
