@@ -79,7 +79,9 @@ class _TravelScreenState extends State<TravelScreen> {
 
   Future<void> _loadJourneys() async {
     await _journeys.load();
-    if (!mounted || widget.initialJourneyId == null || _journeys.current != null) {
+    if (!mounted ||
+        widget.initialJourneyId == null ||
+        _journeys.current != null) {
       return;
     }
     final journey = _journeys.library
@@ -123,20 +125,25 @@ class _TravelScreenState extends State<TravelScreen> {
       if (_extent.value < .42) _setJourneyExtent(.42);
       if (_cards.hasClients) _cards.jumpTo(0);
       if (_workspace.loaded) _journeys.syncPlaces(_workspace.places);
-      final points = _journeys.visible
-          .map((s) => s.place)
-          .whereType<TravelSpot>()
-          .where(hasMapPosition)
-          .toList();
-      if (points.isEmpty) return;
-      final minLat = points.map((p) => p.lat).reduce(math.min);
-      final maxLat = points.map((p) => p.lat).reduce(math.max);
-      final minLng = points.map((p) => p.lng).reduce(math.min);
-      final maxLng = points.map((p) => p.lng).reduce(math.max);
-      final span = math.max(maxLng - minLng, maxLat - minLat).clamp(.005, 180);
-      _map.currentState?.focus(minLat, (minLng + maxLng) / 2,
-          zoom: (math.log(360 / span) / math.ln2 - 1).clamp(3, 15));
+      _fitJourney(_sheet.isAttached ? _sheet.size : .42);
     });
+  }
+
+  void _fitJourney(double extent, {TravelSpot? selected}) {
+    final points = selected != null
+        ? [selected]
+        : _journeys.visible
+            .map((s) => s.place)
+            .whereType<TravelSpot>()
+            .where(hasMapPosition)
+            .toList();
+    final canvas = _map.currentState;
+    final height = canvas?.context.size?.height;
+    if (canvas == null || height == null) return;
+    unawaited(canvas.fitJourney(points,
+        top: MediaQuery.paddingOf(context).top + 132,
+        bottom: height * extent + 16,
+        animated: !_reduceMotion));
   }
 
   void _placesChanged() {
@@ -148,6 +155,7 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   void _fitInitialPlaces() {
+    if (_journeys.current != null) return;
     if (!_fitOnLoad || !_mapReady || !_workspace.loaded) return;
     final points = _workspace.places.where(hasMapPosition).toList();
     if (points.isEmpty) return;
@@ -187,7 +195,7 @@ class _TravelScreenState extends State<TravelScreen> {
     if (mounted) setState(() {});
     final place = stop.place;
     if (place != null && hasMapPosition(place)) {
-      _map.currentState?.focus(place.lat, place.lng);
+      _fitJourney(_extent.value, selected: place);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _journeys.selectedKey != stop.key || !_cards.hasClients) {
@@ -682,7 +690,12 @@ class _TravelScreenState extends State<TravelScreen> {
                                 onPick: _previewNew,
                                 onReady: () {
                                   if (mounted) setState(() => _mapReady = true);
-                                  _fitInitialPlaces();
+                                  if (_journeys.current == null) {
+                                    _fitInitialPlaces();
+                                  } else {
+                                    _fitJourney(
+                                        _sheet.isAttached ? _sheet.size : .42);
+                                  }
                                   widget.onMapReady?.call();
                                 }))),
                     Positioned(
@@ -777,8 +790,10 @@ class _TravelScreenState extends State<TravelScreen> {
                                                 onToggleExpanded: () {
                                                   HapticFeedback
                                                       .selectionClick();
-                                                  _setJourneyExtent(
-                                                      extent > .52 ? .42 : .62);
+                                                  final target =
+                                                      extent > .52 ? .42 : .62;
+                                                  _setJourneyExtent(target);
+                                                  _fitJourney(target);
                                                 },
                                                 onSelect: _selectStop,
                                                 onAdd: _addJourneyPlace,

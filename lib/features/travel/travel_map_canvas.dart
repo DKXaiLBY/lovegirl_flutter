@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -98,6 +99,38 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
         CameraUpdate.newLatLngZoom(LatLng(lat, lng), zoom),
         animated: true,
         duration: 350);
+  }
+
+  Future<void> fitJourney(List<TravelSpot> places,
+      {required double top,
+      required double bottom,
+      required bool animated}) async {
+    final controller = _controller;
+    if (!mounted || controller == null || places.isEmpty) return;
+    final south = places.map((place) => place.lat).reduce(math.min);
+    final north = places.map((place) => place.lat).reduce(math.max);
+    final west = places.map((place) => place.lng).reduce(math.min);
+    final east = places.map((place) => place.lng).reduce(math.max);
+    final viewport = LatLngBounds(
+      southwest: LatLng(
+          (south - .001).clamp(-89.999, 89.999),
+          (west - .001).clamp(-180.0, 180.0)),
+      northeast: LatLng(
+          (north + .001).clamp(-89.999, 89.999),
+          (east + .001).clamp(-180.0, 180.0)),
+    );
+    final height = context.size?.height ?? MediaQuery.sizeOf(context).height;
+    if (height - top - bottom < 48) return;
+    _intent++;
+    try {
+      await controller.moveCamera(
+          CameraUpdate.newLatLngBoundsRect(viewport,
+              left: 32, right: 72, top: top, bottom: bottom),
+          animated: animated,
+          duration: 350);
+    } catch (error) {
+      debugPrint('Travel journey bounds could not be applied: $error');
+    }
   }
 
   Future<void> locate() async {

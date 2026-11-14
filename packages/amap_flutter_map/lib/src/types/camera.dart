@@ -104,6 +104,18 @@ class CameraUpdate {
     ]);
   }
 
+  static CameraUpdate newLatLngBoundsRect(
+    LatLngBounds bounds, {
+    required double left,
+    required double right,
+    required double top,
+    required double bottom,
+  }) {
+    return CameraUpdate._(
+      <dynamic>['newLatLngBoundsRect', bounds.toJson(), left, right, top, bottom],
+    );
+  }
+
   /// 根据指定的新的位置[latLng]和缩放级别[zoom]创建一个CameraUpdate对象
   ///
   /// 主要用于同时改变中心点和缩放级别
