@@ -41,7 +41,8 @@ class _TravelScreenState extends State<TravelScreen> {
   final _map = GlobalKey<TravelMapCanvasState>();
   final _sheet = DraggableScrollableController();
   final _cards = ScrollController();
-  final _extent = ValueNotifier<double>(0.30);
+  static const _initialSheetExtent = .42;
+  final _extent = ValueNotifier<double>(_initialSheetExtent);
   late TravelWorkspace _workspace;
   late JourneyController _journeys;
   bool _locating = false;
@@ -119,13 +120,20 @@ class _TravelScreenState extends State<TravelScreen> {
     final view = _journeys.viewRevision;
     if (view == _lastJourneyView) return;
     _lastJourneyView = view;
-    if (j == null) return;
+    if (j == null) {
+      if (!_placesOpen) _extent.value = _initialSheetExtent;
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || view != _lastJourneyView) return;
-      if (_extent.value < .42) _setJourneyExtent(.42);
+      if (_sheet.isAttached && _sheet.size < _initialSheetExtent) {
+        _setJourneyExtent(_initialSheetExtent);
+      }
       if (_cards.hasClients) _cards.jumpTo(0);
       if (_workspace.loaded) _journeys.syncPlaces(_workspace.places);
-      _fitJourney(_sheet.isAttached ? _sheet.size : .42);
+      _fitJourney(_sheet.isAttached
+          ? math.max(_sheet.size, _initialSheetExtent)
+          : _initialSheetExtent);
     });
   }
 
@@ -766,7 +774,7 @@ class _TravelScreenState extends State<TravelScreen> {
                         },
                         child: DraggableScrollableSheet(
                             controller: _sheet,
-                            initialChildSize: .42,
+                            initialChildSize: _initialSheetExtent,
                             minChildSize: .16,
                             maxChildSize: .78,
                             snap: true,
