@@ -104,6 +104,28 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     workspace.dispose();
   });
+  testWidgets('saved-place refresh failure preserves results and offers retry',
+      (tester) async {
+    final api = PlacesApi()..rows = [place(1)];
+    final workspace = TravelWorkspace(api: api);
+    await workspace.load();
+    api.fail = true;
+    await tester.pumpWidget(
+        MaterialApp(home: TravelPlaceSearch(workspace: workspace)));
+    await tester.pumpAndSettle();
+    expect(find.text('地点 1'), findsOneWidget);
+    expect(find.text('暂未刷新，仍显示上次读取的地点'), findsOneWidget);
+    api.fail = false;
+    api.rows = [place(2)];
+    await tester.tap(find.text('重试地点'));
+    await tester.pumpAndSettle();
+    expect(find.text('地点 1'), findsNothing);
+    expect(find.text('地点 2'), findsOneWidget);
+    expect(find.text('重试地点'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    workspace.dispose();
+  });
+
   test('concurrent loads share one request and loaded data is reused',
       () async {
     final api = PlacesApi()..readGate = Completer();

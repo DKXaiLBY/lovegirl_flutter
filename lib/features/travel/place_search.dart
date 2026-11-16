@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../widgets/rebuild_controls.dart';
 import 'travel_workspace.dart';
 
 class PlaceSearchController extends ChangeNotifier {
@@ -112,16 +113,36 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
               ? SystemUiOverlayStyle.light
               : SystemUiOverlayStyle.dark,
           title: const Text('搜索地点')),
-      body: Column(children: [
+      body: RebuildPageBackground(
+          child: Column(children: [
         Padding(
             padding: const EdgeInsets.all(16),
-            child: TextField(
-                controller: _text,
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                onChanged: _search.search,
-                decoration: const InputDecoration(
-                    hintText: '搜索名称、城市或地址', prefixIcon: Icon(Icons.search)))),
+            child: RebuildGlass(
+                radius: 24,
+                child: TextField(
+                    controller: _text,
+                    autofocus: true,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _search.search,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    decoration: InputDecoration(
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        labelText: '搜索名称、城市或地址',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _text,
+                            builder: (context, value, _) => value.text.isEmpty
+                                ? const SizedBox.shrink()
+                                : IconButton(
+                                    tooltip: '清除搜索',
+                                    onPressed: () {
+                                      _text.clear();
+                                      _search.search('');
+                                    },
+                                    icon: const Icon(Icons.close))))))),
         Expanded(
             child: AnimatedBuilder(
                 animation: Listenable.merge([_search, widget.workspace]),
@@ -137,7 +158,21 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
                           .toList();
                   return ListView(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       children: [
+                        if (widget.workspace.error != null)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(widget.workspace.places.isEmpty
+                                ? '已记录的地点暂未读取'
+                                : '暂未刷新，仍显示上次读取的地点'),
+                            trailing: TextButton(
+                              onPressed: () =>
+                                  widget.workspace.load(refresh: true),
+                              child: const Text('重试地点'),
+                            ),
+                          ),
                         if (saved.isNotEmpty) ...[
                           const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
@@ -151,7 +186,10 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
                                 onTap: () => Navigator.pop(
                                     context, PlaceChoice.fromSpot(place))),
                         ],
-                        if (query.isEmpty && saved.isEmpty)
+                        if (query.isEmpty &&
+                            saved.isEmpty &&
+                            widget.workspace.error == null &&
+                            !widget.workspace.loading)
                           const Padding(
                               padding: EdgeInsets.all(24),
                               child: Text('输入想找的地方，找到后可以记下来')),
@@ -193,7 +231,7 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
                               child: Text('没有找到，试试城市名加地点名')),
                       ]);
                 })),
-      ]),
+      ])),
     );
   }
 }
