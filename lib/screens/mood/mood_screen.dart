@@ -213,6 +213,7 @@ class _MoodScreenState extends State<MoodScreen> {
 
   void _showAddDialog() {
     bool saving = false;
+    String? saveError;
     int selectedIdx = 0;
     final noteCtrl = TextEditingController();
     _showGlassSheet(
@@ -274,6 +275,16 @@ class _MoodScreenState extends State<MoodScreen> {
                   decoration: const InputDecoration(
                       hintText: '写点什么吧...', prefixIcon: Icon(Icons.edit_note))),
               SizedBox(height: 20),
+              if (saveError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(saveError!,
+                        style:
+                            TextStyle(color: Theme.of(ctx).colorScheme.error)),
+                  ),
+                ),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -288,7 +299,10 @@ class _MoodScreenState extends State<MoodScreen> {
                   onPressed: saving
                       ? null
                       : () async {
-                          setSheetState(() => saving = true);
+                          setSheetState(() {
+                            saving = true;
+                            saveError = null;
+                          });
                           try {
                             final now = DateTime.now();
                             final label = _labels[selectedIdx];
@@ -305,13 +319,12 @@ class _MoodScreenState extends State<MoodScreen> {
                             await _loadData();
                           } catch (e) {
                             LogService().error('Mood', '记录失败: $e');
-                            if (ctx.mounted) {
-                              setSheetState(() => saving = false);
-                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                                content: Text(extractServerMessage(e,
-                                    fallback: '记录失败，输入已保留')),
-                              ));
-                            }
+                            if (!ctx.mounted) return;
+                            setSheetState(() {
+                              saving = false;
+                              saveError = extractServerMessage(e,
+                                  fallback: '记录失败，输入已保留');
+                            });
                           }
                         },
                   child: Text(saving ? '正在记录' : '记录'),

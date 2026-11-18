@@ -25,6 +25,11 @@ class _TimelineApi implements ApiService {
   }
 
   @override
+  Future<Response<dynamic>> createTimeline(Map data) async {
+    throw StateError('offline');
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -58,6 +63,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('雨后的海边'), findsOneWidget);
     expect(find.text('海边散步'), findsNothing);
-    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('添加时刻'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '新的时刻');
+    await tester.ensureVisible(find.text('保存'));
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(find.text('新的时刻'), findsOneWidget);
+    expect(find.text('保存失败，输入已保留'), findsOneWidget);
   });
 }

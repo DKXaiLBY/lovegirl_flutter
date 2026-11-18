@@ -148,6 +148,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final descCtrl = TextEditingController();
     String eventType = 'default';
     bool saving = false;
+    String? saveError;
     DateTime selectedDate = DateTime.now();
 
     final types = [
@@ -270,16 +271,28 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         Icon(Icons.calendar_today,
                             size: 16, color: context.lgInk),
                         SizedBox(width: 10),
-                        Text(
-                          DateFormat('yyyy年M月d日').format(selectedDate),
-                          style: TextStyle(
-                              fontSize: 15, color: context.lgTextPrimary),
+                        Expanded(
+                          child: Text(
+                            DateFormat('yyyy年M月d日').format(selectedDate),
+                            style: TextStyle(
+                                fontSize: 15, color: context.lgTextPrimary),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 SizedBox(height: 20),
+                if (saveError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(saveError!,
+                          style: TextStyle(
+                              color: Theme.of(ctx).colorScheme.error)),
+                    ),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -287,8 +300,14 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     onPressed: saving
                         ? null
                         : () async {
-                            if (titleCtrl.text.trim().isEmpty) return;
-                            setSheetState(() => saving = true);
+                            if (titleCtrl.text.trim().isEmpty) {
+                              setSheetState(() => saveError = '请填写标题');
+                              return;
+                            }
+                            setSheetState(() {
+                              saving = true;
+                              saveError = null;
+                            });
                             try {
                               await _api.createTimeline({
                                 'title': titleCtrl.text.trim(),
@@ -301,16 +320,12 @@ class _TimelineScreenState extends State<TimelineScreen> {
                               Navigator.pop(ctx);
                               await _loadTimeline();
                             } catch (e) {
-                              if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(
-                                      content: Text(extractServerMessage(e,
-                                          fallback: '保存失败，输入已保留')),
-                                      behavior: SnackBarBehavior.floating,
-                                      duration: const Duration(seconds: 2)),
-                                );
-                                setSheetState(() => saving = false);
-                              }
+                              if (!ctx.mounted) return;
+                              setSheetState(() {
+                                saving = false;
+                                saveError = extractServerMessage(e,
+                                    fallback: '保存失败，输入已保留');
+                              });
                             }
                           },
                     style: rebuildFilledStyle(ctx),

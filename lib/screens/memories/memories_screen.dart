@@ -189,7 +189,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
   Widget _title(String name, VoidCallback onAll, {String action = '查看全部 ›'}) =>
       Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 10, 4),
+          padding: const EdgeInsets.fromLTRB(16, 4, 10, 2),
           child: Row(children: [
             Expanded(
                 child: Text(name,
@@ -263,14 +263,14 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final face = math.min(width * .78, 400.0);
+      final face = math.min(width * .725, 400.0);
       final flank = face * .78;
       final inset = (width - face) / 2;
       final still = rebuildReduceMotion(context);
       final visiblePage = _page.clamp(0, count - 1);
       return Column(children: [
         SizedBox(
-          height: face * 107 / 88 + 28,
+          height: face * 107 / 88 + 22,
           child: PageView.builder(
             controller: _pager,
             itemCount: count,
@@ -311,7 +311,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   ),
                 Positioned(
                   left: inset,
-                  top: 12,
+                  top: 9,
                   width: face,
                   height: face * 107 / 88,
                   child: Transform.rotate(
@@ -324,7 +324,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     left: side < 0 ? 0 : null,
                     right: side > 0 ? 0 : null,
                     top: 44,
-                    width: math.max(0.0, inset - (still ? 0 : 8)),
+                    width: math.max(48.0, inset - (still ? 0 : 8)),
                     height: flank * 107 / 88,
                     child: Semantics(
                       container: true,
@@ -371,10 +371,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     return LayoutBuilder(builder: (context, constraints) {
       const ticketHeight = 132.0;
       return SizedBox(
-        height: ticketHeight + 20,
+        height: ticketHeight + 12,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
           itemCount: tickets.length,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (context, index) {
