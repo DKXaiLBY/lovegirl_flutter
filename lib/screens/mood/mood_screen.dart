@@ -9,20 +9,25 @@ import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/rebuild_controls.dart';
 
 class MoodScreen extends StatefulWidget {
-  const MoodScreen({super.key});
+  final ApiService? api;
+  const MoodScreen({super.key, this.api});
   @override
   State<MoodScreen> createState() => _MoodScreenState();
 }
 
 class _MoodScreenState extends State<MoodScreen> {
-  final ApiService _api = ApiService();
-  Map<String, List<Map<String, dynamic>>> _moodsByDay = {}; // date -> 该日全部心情（W5）
+  late final ApiService _api = widget.api ?? ApiService();
+  Map<String, List<Map<String, dynamic>>> _moodsByDay =
+      {}; // date -> 该日全部心情（W5）
   List<Map<String, dynamic>> _moods = [];
   bool _loading = true;
   String? _error;
   late DateTime _currentMonth;
+  DateTime? _loadedMonth;
+  int _request = 0;
 
   static const _moodIcons = [
     Icons.sentiment_satisfied_rounded,
@@ -70,23 +75,26 @@ class _MoodScreenState extends State<MoodScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+    final request = ++_request;
+    final month = _currentMonth;
     setState(() {
       _loading = true;
       _error = null;
     });
-    final monthStr = DateFormat('yyyy-MM').format(_currentMonth);
+    final monthStr = DateFormat('yyyy-MM').format(month);
     try {
-      final results = await Future.wait([
-        _api.getMoods(monthStr),
-        _api.getMoodStats(monthStr),
-      ]);
-      final data1 = results[0].data?['data'];
-      List raw = data1 is List ? data1 : [];
-      _moods = raw.map((e) => Map<String, dynamic>.from(e)).toList();
+      final response = await _api.getMoods(monthStr);
+      if (!mounted || request != _request) return;
+      final rows = response.data?['data'];
+      if (rows is! List) throw const FormatException('无效的心情记录');
+      _moods = rows.whereType<Map>().map(Map<String, dynamic>.from).toList();
       _moodsByDay = groupMoodsByDate(_moods);
+      _loadedMonth = month;
       LogService().info('Mood', '加载${_moods.length}条记录');
     } catch (e) {
-      _error = '加载失败';
+      if (!mounted || request != _request) return;
+      _error = extractServerMessage(e, fallback: '心情记录暂未读取，可以重试');
       LogService().error('Mood', '加载失败: $e');
     }
     setState(() => _loading = false);
@@ -141,16 +149,15 @@ class _MoodScreenState extends State<MoodScreen> {
       ctx: context,
       builder: (ctx) => ConstrainedBox(
         // 多条记录时弹层限高（对抗审查 P2-4），单条布局与旧版一致
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildSheetGrabber(),
             SizedBox(height: 20),
             Text(DateFormat('M月d日 EEEE', 'zh_CN').format(day),
-                style: TextStyle(
-                    fontSize: 14, color: context.lgTextMuted)),
+                style: TextStyle(fontSize: 14, color: context.lgTextMuted)),
             SizedBox(height: 16),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
@@ -179,8 +186,8 @@ class _MoodScreenState extends State<MoodScreen> {
                                   style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
-                                      color: mood.color ??
-                                          context.lgTextMuted)),
+                                      color:
+                                          mood.color ?? context.lgTextMuted)),
                               if (mood.note.isNotEmpty) ...[
                                 SizedBox(height: 4),
                                 Text(mood.note,
@@ -205,13 +212,14 @@ class _MoodScreenState extends State<MoodScreen> {
   }
 
   void _showAddDialog() {
+    bool saving = false;
     int selectedIdx = 0;
     final noteCtrl = TextEditingController();
     _showGlassSheet(
       ctx: context,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
+        builder: (ctx, setSheetState) => SingleChildScrollView(
           // 键盘避让在外层 _showGlassSheet 已处理；这里只留输入区与按钮的呼吸位
           padding: const EdgeInsets.only(bottom: 4, top: 12),
           child: Column(
@@ -240,9 +248,7 @@ class _MoodScreenState extends State<MoodScreen> {
                             : Colors.transparent,
                         // v4.1 选中态统一：选中=黑描边加重+粉彩浅底，未选=细线（消除第三种彩色描边语言）
                         border: Border.all(
-                            color: sel
-                                ? context.lgInk
-                                : context.lgCardBorder,
+                            color: sel ? context.lgInk : context.lgCardBorder,
                             width: sel ? 2 : 1),
                       ),
                       child: Column(
@@ -279,27 +285,36 @@ class _MoodScreenState extends State<MoodScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(999)),
                   ),
-                  onPressed: () async {
-                    try {
-                      final now =
-                          DateFormat('yyyy-MM-dd').format(DateTime.now());
-                      await _api.recordMood({
-                        'date': now,
-                        'emoji': selectedIdx.toString(),
-                        'label': _labels[selectedIdx],
-                        'note': noteCtrl.text.trim()
-                      });
-                      LogService().userAction('记录心情:${_labels[selectedIdx]}');
-                      if (!ctx.mounted) return;
-                      Navigator.pop(ctx);
-                      await _loadData();
-                    } catch (e) {
-                      LogService().error('Mood', '记录失败: $e');
-                    }
-                  },
-                  child: const Text('记录',
-                      style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setSheetState(() => saving = true);
+                          try {
+                            final now = DateTime.now();
+                            final label = _labels[selectedIdx];
+                            await _api.recordMood({
+                              'date': DateFormat('yyyy-MM-dd').format(now),
+                              'emoji': selectedIdx.toString(),
+                              'label': label,
+                              'note': noteCtrl.text.trim()
+                            });
+                            LogService().userAction('记录心情:$label');
+                            if (!ctx.mounted) return;
+                            Navigator.pop(ctx);
+                            _currentMonth = DateTime(now.year, now.month);
+                            await _loadData();
+                          } catch (e) {
+                            LogService().error('Mood', '记录失败: $e');
+                            if (ctx.mounted) {
+                              setSheetState(() => saving = false);
+                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                                content: Text(extractServerMessage(e,
+                                    fallback: '记录失败，输入已保留')),
+                              ));
+                            }
+                          }
+                        },
+                  child: Text(saving ? '正在记录' : '记录'),
                 ),
               ),
             ],
@@ -361,8 +376,6 @@ class _MoodScreenState extends State<MoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // v4.0：纯色 bgLight/bgDark 兜底，实际底色由 LovePage 135° 浅灰渐变承担
-      //（v4-ui-token-plan §4 LovePage；转场/键盘露出的裸 Scaffold 不破）
       backgroundColor: context.lgBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -374,36 +387,36 @@ class _MoodScreenState extends State<MoodScreen> {
           fontWeight: FontWeight.w800,
           color: context.lgTextPrimary,
         ),
-        // 本页是生活 tab 的嵌入子页（IndexedStack），无可返回路由；
-        // 仅当作为独立页面推入时才显示返回键，否则点了会把根路由 pop 成黑屏
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: AppIcon('back'),
-                onPressed: () => Navigator.pop(context))
+                icon: AppIcon('back'), onPressed: () => Navigator.pop(context))
             : null,
         automaticallyImplyLeading: false,
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildError()
-              : _buildContent(),
-      floatingActionButton: FloatingActionButton(
+      body: RebuildPageBackground(
+        child: _loadedMonth == _currentMonth
+            ? _buildContent()
+            : _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildError(),
+      ),
+      floatingActionButton: RebuildGlassButton(
+        label: '记录心情',
+        icon: Icons.add,
+        selected: true,
+        showLabel: true,
         onPressed: _showAddDialog,
-        // 黑底白字主行动（浅色）/米白底深字（深色，lgInk 深色态为近白，图标不能恒白）
-        backgroundColor: context.lgInk,
-        child: Icon(Icons.add,
-            color: context.lgIsDark ? context.lgBg : Colors.white),
       ),
     );
   }
 
   Widget _buildError() => Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          _buildMonthSwitcher(),
+          const SizedBox(height: 16),
           Icon(Icons.cloud_off, size: 48, color: context.lgTextMuted),
           SizedBox(height: 12),
-          Text(_error!,
-              style: TextStyle(color: context.lgTextSecondary)),
+          Text(_error!, style: TextStyle(color: context.lgTextSecondary)),
           const SizedBox(height: 16),
           TextButton.icon(
               onPressed: _loadData,
@@ -413,26 +426,30 @@ class _MoodScreenState extends State<MoodScreen> {
       );
 
   Widget _buildContent() {
-    // v4.0：底色=LovePage 135° surfaceGradient（浅灰光感），深色自动回落纯色 bgDark
-    return LovePage(
-      // ListView 自身滚动+下拉刷新；LovePage 默认上下 padding 收敛为 0
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-      child: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
-            padding: const EdgeInsets.only(top: 8),
-            children: [
-              _buildMonthSwitcher(),
-              const SizedBox(height: 16),
-              _buildHeatmap(),
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            _buildMonthSwitcher(),
+            if (_loading) const LinearProgressIndicator(),
+            if (_error != null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('暂未刷新，仍显示上次读取的记录'),
+                trailing:
+                    TextButton(onPressed: _loadData, child: const Text('重试')),
+              ),
+            const SizedBox(height: 16),
+            _buildHeatmap(),
+            const SizedBox(height: 24),
+            if (_moods.length >= 2) ...[
+              _buildTrendChart(),
               const SizedBox(height: 24),
-              if (_moods.length >= 2) ...[
-                _buildTrendChart(),
-                const SizedBox(height: 24),
-              ],
-              _buildRecentList(),
-            ]),
-      ),
+            ],
+            _buildRecentList(),
+          ]),
     );
   }
 
@@ -501,8 +518,7 @@ class _MoodScreenState extends State<MoodScreen> {
                 color: context.lgTextPrimary)),
         SizedBox(height: 4),
         Text('${_moods.length} 天有记录',
-            style:
-                TextStyle(fontSize: 12, color: context.lgTextMuted)),
+            style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
         SizedBox(height: 12),
         // Weekday headers
         Row(
@@ -534,12 +550,10 @@ class _MoodScreenState extends State<MoodScreen> {
                         // W5 弹药库 6.1：一日多心情 → SweepGradient 扇形（star_book 手法）
                         // v4.0 参考图⑧：格色降为粉彩浅底（色相语义不动，v3.42 消同色成果保留），
                         // 数字字色由白转墨；真机验收预留 alpha 0.11-0.22 档重调
-                        final dayColors = dayGradientColors(
-                            _getDayMoods(day)
-                                .map((m) =>
-                                    _moodColors[_moodIndexOf(m)]
-                                        .withValues(alpha: 0.11))
-                                .toList());
+                        final dayColors = dayGradientColors(_getDayMoods(day)
+                            .map((m) => _moodColors[_moodIndexOf(m)]
+                                .withValues(alpha: 0.11))
+                            .toList());
                         final multi = dayColors.length >= 2;
                         return Container(
                           width: 32,
@@ -560,8 +574,7 @@ class _MoodScreenState extends State<MoodScreen> {
                                 : context.lgPrimarySoft,
                             borderRadius: BorderRadius.circular(8),
                             border: today
-                                ? Border.all(
-                                    color: context.lgInk, width: 2)
+                                ? Border.all(color: context.lgInk, width: 2)
                                 : Border.all(color: context.lgCardBorder),
                           ),
                           child: Center(
@@ -610,13 +623,11 @@ class _MoodScreenState extends State<MoodScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                  gradient: SweepGradient(
-                      colors: [
-                        _moodColors[1].withValues(alpha: 0.11),
-                        _moodColors[4].withValues(alpha: 0.11),
-                        _moodColors[6].withValues(alpha: 0.11),
-                      ],
-                      startAngle: -math.pi / 2),
+                  gradient: SweepGradient(colors: [
+                    _moodColors[1].withValues(alpha: 0.11),
+                    _moodColors[4].withValues(alpha: 0.11),
+                    _moodColors[6].withValues(alpha: 0.11),
+                  ], startAngle: -math.pi / 2),
                   borderRadius: BorderRadius.circular(8))),
         ]),
       ]),
@@ -648,8 +659,7 @@ class _MoodScreenState extends State<MoodScreen> {
                 color: context.lgTextPrimary)),
         SizedBox(height: 4),
         Text('共 ${_moods.length} 天，纵轴越高越开心',
-            style:
-                TextStyle(fontSize: 12, color: context.lgTextMuted)),
+            style: TextStyle(fontSize: 12, color: context.lgTextMuted)),
         SizedBox(height: 16),
         SizedBox(
           height: 200,
@@ -705,12 +715,9 @@ class _MoodScreenState extends State<MoodScreen> {
                   dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
-                          radius: 3,
-                          color: context.lgInk,
-                          strokeWidth: 0)),
-                      belowBarData: BarAreaData(
-                          show: true,
-                          color: context.lgInk.withValues(alpha: 0.10)),
+                          radius: 3, color: context.lgInk, strokeWidth: 0)),
+                  belowBarData: BarAreaData(
+                      show: true, color: context.lgInk.withValues(alpha: 0.10)),
                 ),
               ],
             ),
@@ -725,7 +732,8 @@ class _MoodScreenState extends State<MoodScreen> {
     if (_moods.isEmpty) return _buildEmpty();
     final recent = List<Map<String, dynamic>>.from(_moods);
     recent.sort((a, b) {
-      final c = (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString());
+      final c =
+          (b['date'] ?? '').toString().compareTo((a['date'] ?? '').toString());
       if (c != 0) return c;
       return _moodIndexOf(a).compareTo(_moodIndexOf(b));
     });
@@ -743,7 +751,8 @@ class _MoodScreenState extends State<MoodScreen> {
       ...List.generate(display.length, (i) {
         final m = display[i];
         final color = _moodItemColor(m);
-        final nextColor = i + 1 < display.length ? _moodItemColor(display[i + 1]) : null;
+        final nextColor =
+            i + 1 < display.length ? _moodItemColor(display[i + 1]) : null;
         return IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -756,7 +765,8 @@ class _MoodScreenState extends State<MoodScreen> {
                     Container(
                       width: 10,
                       height: 10,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                      decoration:
+                          BoxDecoration(shape: BoxShape.circle, color: color),
                     ),
                     if (nextColor != null)
                       Expanded(
@@ -798,11 +808,9 @@ class _MoodScreenState extends State<MoodScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Center(
           child: Column(children: [
-            Icon(Icons.mood_outlined,
-                size: 48, color: context.lgTextMuted),
+            Icon(Icons.mood_outlined, size: 48, color: context.lgTextMuted),
             SizedBox(height: 8),
-            Text('本月还没有记录',
-                style: TextStyle(color: context.lgTextSecondary)),
+            Text('本月还没有记录', style: TextStyle(color: context.lgTextSecondary)),
           ]),
         ),
       );
@@ -848,8 +856,7 @@ class _MoodScreenState extends State<MoodScreen> {
           if (note.isNotEmpty) ...[
             SizedBox(height: 4),
             Text(note,
-                style: TextStyle(
-                    fontSize: 13, color: context.lgTextSecondary),
+                style: TextStyle(fontSize: 13, color: context.lgTextSecondary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis)
           ],
