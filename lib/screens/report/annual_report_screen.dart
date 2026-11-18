@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
+import '../../widgets/rebuild_controls.dart';
 
 /// 年度恋爱报告：把这一年的数据讲成一个故事（截图友好）
 class AnnualReportScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
   Map<String, dynamic>? _report;
   bool _loading = true;
   String? _error;
+  int _request = 0;
 
   @override
   void initState() {
@@ -27,20 +29,22 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
   }
 
   Future<void> _load() async {
+    final request = ++_request;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final res = await (widget.api ?? ApiService()).getLoveReport(year: _year);
+      if (!mounted || request != _request) return;
       final d = res.data?['data'];
-      if (d is Map) {
-        _report = d.cast<String, dynamic>();
-      }
+      if (d is! Map) throw const FormatException('无效的年度报告');
+      _report = Map<String, dynamic>.from(d);
     } catch (_) {
+      if (!mounted || request != _request) return;
       _error = '报告加载失败';
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && request == _request) setState(() => _loading = false);
     }
   }
 
@@ -48,7 +52,8 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.lgBg,
-      body: SafeArea(
+      body: RebuildPageBackground(
+          child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -61,14 +66,15 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    '年度报告',
-                    style: TextStyle(
-                      fontSize: 25,
-                      fontWeight: FontWeight.w800,
+                  const Expanded(
+                    child: Text(
+                      '年度报告',
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   PopupMenuButton<int>(
                     initialValue: _year,
                     onSelected: (y) {
@@ -119,7 +125,7 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -220,19 +226,16 @@ class _AnnualReportScreenState extends State<AnnualReportScreen> {
               ),
               const SizedBox(height: 10),
               if (topDish != null)
-                _HighlightRow(Icons.restaurant_menu_rounded,
-                    '最常点的菜是「$topDish」'),
+                _HighlightRow(
+                    Icons.restaurant_menu_rounded, '最常点的菜是「$topDish」'),
               if (busiestMonth != null)
-                _HighlightRow(Icons.calendar_month_rounded,
-                    '$busiestMonth 是你们最热闹的一个月'),
+                _HighlightRow(
+                    Icons.calendar_month_rounded, '$busiestMonth 是你们最热闹的一个月'),
               if (fedMe > 0)
-                _HighlightRow(Icons.soup_kitchen_rounded,
-                    'TA 给你做了 $fedMe 次饭，都记在这里'),
-              if (topDish == null &&
-                  busiestMonth == null &&
-                  fedMe == 0)
-                _HighlightRow(Icons.auto_awesome_rounded,
-                    '新的一年，多留下一些两个人的痕迹吧'),
+                _HighlightRow(
+                    Icons.soup_kitchen_rounded, 'TA 给你做了 $fedMe 次饭，都记在这里'),
+              if (topDish == null && busiestMonth == null && fedMe == 0)
+                _HighlightRow(Icons.auto_awesome_rounded, '新的一年，多留下一些两个人的痕迹吧'),
             ],
           ),
         ),

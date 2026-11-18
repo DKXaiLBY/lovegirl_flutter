@@ -1,16 +1,15 @@
-import 'dart:io';
 import 'dart:ui' show ImageByteFormat;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
-import 'package:path_provider/path_provider.dart';
 
 import '../../services/api_service.dart';
+import '../../features/creations/creation_files.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/lovegirl_ui.dart';
-import 'package:gal/gal.dart';
+import '../../widgets/rebuild_controls.dart';
 
 /// 月度小报：当月两人小日子的聚合卡（照片/旅行/厨房/时光轴）。
 /// 卡片整体可保存为图片（RepaintBoundary 截图）。
@@ -32,6 +31,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   bool _saving = false;
   String? _error;
   Map<String, dynamic>? _data;
+  int _request = 0;
 
   @override
   void initState() {
@@ -43,6 +43,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   }
 
   Future<void> _load() async {
+    final request = ++_request;
     setState(() {
       _loading = true;
       _error = null;
@@ -50,13 +51,14 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
     try {
       final res = await _api.getMonthlyReport(_year, _month);
       final raw = res.data?['data'];
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
+      if (raw is! Map) throw const FormatException('无效的月度小报');
       setState(() {
-        _data = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        _data = Map<String, dynamic>.from(raw);
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _error = '小报没取回来，稍后再试试';
         _loading = false;
@@ -105,19 +107,14 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
       final data = await image.toByteData(format: ImageByteFormat.png);
       image.dispose();
       if (data == null) throw Exception('capture failed');
-      final dir = await getExternalStorageDirectory() ??
-          await getApplicationDocumentsDirectory();
       final mm = snapMonth.toString().padLeft(2, '0');
-      final name = 'LoveGirl_monthly_$snapYear$mm.png';
-      final file = File('${dir.path}/$name');
-      await file.writeAsBytes(data.buffer.asUint8List());
-        // 写入系统相册（MediaStore/Photos）；失败不阻断，文件已留存
-        try {
-          await Gal.putImage(file.path, album: 'LoveGirl');
-        } catch (_) {}
+      final name = 'LoveGirl_monthly_$snapYear$mm';
+      await saveCreationPng(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+          name);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('小报已保存：$name'),
+        content: Text('小报已保存到相册：$name.png'),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ));
@@ -155,7 +152,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         actions: [
           IconButton(
             tooltip: '保存小报',
-            onPressed: _loading || _error != null ? null : _saveCard,
+            onPressed: _loading || _saving || _error != null ? null : _saveCard,
             icon: _saving
                 ? const SizedBox(
                     width: 18,
@@ -165,7 +162,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: RebuildPageBackground(
+          child: Column(
         children: [
           // 月份切换
           Padding(
@@ -216,7 +214,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
                       ),
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -244,45 +242,43 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IllusImg('ui_report', height: 76),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$_month 月的小报',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w900,
-                        color: context.lgTextPrimary,
+              children: [
+                IllusImg('ui_report', height: 76),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$_month 月的小报',
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                          color: context.lgTextPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      (d['hasPartner'] as bool?) ?? false
-                          ? '两个人的小日子，都收在这里'
-                          : '一个人的日子，也在好好过',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.lgTextSecondary,
+                      const SizedBox(height: 4),
+                      Text(
+                        (d['hasPartner'] as bool?) ?? false
+                            ? '两个人的小日子，都收在这里'
+                            : '一个人的日子，也在好好过',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.lgTextSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           _statRow(Icons.photo_camera_outlined, '相册留影',
               '${(d['photos'] as num?)?.toInt() ?? 0} 张'),
           _statRow(Icons.luggage_rounded, '旅行打卡',
               '${(d['travelSpots'] as num?)?.toInt() ?? 0} 个地点 · ${(d['travelCities'] as num?)?.toInt() ?? 0} 座城'),
-          _statRow(
-              Icons.restaurant_rounded,
-              '厨房开火',
+          _statRow(Icons.restaurant_rounded, '厨房开火',
               '${(d['kitchenDone'] as num?)?.toInt() ?? 0} 单${topDish.isEmpty ? '' : ' · 最常点 $topDish'}'),
           _statRow(Icons.timeline_rounded, '时光轴',
               '${(d['timelineEvents'] as num?)?.toInt() ?? 0} 件小事'),
