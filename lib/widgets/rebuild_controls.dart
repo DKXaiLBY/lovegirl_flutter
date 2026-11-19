@@ -29,7 +29,13 @@ class RebuildGlassHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const RebuildPageBackground(
-        child: RebuildGlass(radius: 0, child: SizedBox.expand()),
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(4, 2, 4, 3),
+            child: RebuildGlass(radius: 22, child: SizedBox.expand()),
+          ),
+        ),
       );
 }
 
