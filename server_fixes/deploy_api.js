@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
+const { randomUUID } = require('crypto');
 const pool = require('../config/database');
 
 const TOKEN = process.env.DEPLOY_TOKEN;
@@ -21,11 +22,15 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+function pendingApkName() {
+  return '.pending-' + randomUUID() + '.apk';
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) { cb(null, uploadDir); },
-  filename: function (req, file, cb) { cb(null, 'LoveGirl-latest.apk'); }
+  filename: function (req, file, cb) { cb(null, pendingApkName()); }
 });
-const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } });
+const upload = multer({ storage: storage, limits: { fileSize: 160 * 1024 * 1024 } });
 
 // Token 验证
 router.use(function (req, res, next) {
@@ -55,6 +60,7 @@ function downloadFile(url, dest) {
 
 // POST /api/deploy/publish
 router.post('/publish', upload.single('apk'), async function (req, res) {
+  var apkPath = req.file ? req.file.path : null;
   try {
     var vname = req.body.v || req.body.version_name || '';
     var vcode = parseInt(req.body.c || req.body.version_code || 0);
@@ -67,15 +73,12 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
       return res.status(400).json({ code: 400, message: '缺少版本信息' });
     }
 
-    var apkPath = req.file ? req.file.path : null;
-
     // 如果有 URL，从 URL 下载
     if (!apkPath && url) {
       console.log('[Deploy] 从 URL 下载 APK: ' + url);
-      var destFile = path.join(uploadDir, 'LoveGirl-latest.apk');
+      apkPath = path.join(uploadDir, pendingApkName());
       try {
-        await downloadFile(url, destFile);
-        apkPath = destFile;
+        await downloadFile(url, apkPath);
       } catch (e) {
         return res.status(400).json({ code: 400, message: '下载 APK 失败: ' + e.message });
       }
@@ -98,11 +101,23 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
 
     await pool.query('UPDATE app_versions SET is_active = 0 WHERE version_code != ?', [vcode]);
 
+    // Replace the public file only after the full upload and version writes.
+    fs.renameSync(apkPath, path.join(uploadDir, 'LoveGirl-latest.apk'));
+    apkPath = null;
+
     console.log('[Deploy] v' + vname + ' (build ' + vcode + ') OK!');
     res.json({ code: 200, message: 'v' + vname + ' 发布成功!', data: { url: apkUrl } });
   } catch (err) {
     console.error('[Deploy] 失败:', err);
     res.status(500).json({ code: 500, message: '发布失败: ' + err.message });
+  } finally {
+    if (apkPath) {
+      try {
+        fs.unlinkSync(apkPath);
+      } catch (err) {
+        if (err.code !== 'ENOENT') console.error('[Deploy] 临时 APK 清理失败:', err.code);
+      }
+    }
   }
 });
 
