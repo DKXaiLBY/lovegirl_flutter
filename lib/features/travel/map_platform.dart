@@ -7,7 +7,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 class TravelMapPlatform {
   static const channel = MethodChannel('lovegirl/device');
-  static const androidKey = '2209d350da6804c16673f5c36d52f64b';
 
   static Future<bool> isSupported() async {
     if (!Platform.isAndroid) return false;

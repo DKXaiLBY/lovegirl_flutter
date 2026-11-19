@@ -5,6 +5,15 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def localBuildProperties = new Properties()
+def localBuildFile = rootProject.file('local.properties')
+if (localBuildFile.exists()) {
+    localBuildFile.withInputStream { localBuildProperties.load(it) }
+}
+def amapAndroidKey = providers.environmentVariable('AMAP_ANDROID_KEY')
+        .orElse(localBuildProperties.getProperty('amap.android.key', ''))
+        .get().trim()
+
 android {
     namespace = "com.lovegirl.lovegirl_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -25,6 +34,7 @@ android {
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders.amapAndroidKey = amapAndroidKey
     }
 
     buildTypes {

@@ -24,10 +24,16 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
+    private val amapSdkKey by lazy {
+        @Suppress("DEPRECATION")
+        packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+            .metaData?.getString("com.amap.api.v2.apikey").orEmpty()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         MapsInitializer.updatePrivacyShow(applicationContext, true, true)
         MapsInitializer.updatePrivacyAgree(applicationContext, true)
-        MapsInitializer.setApiKey("2209d350da6804c16673f5c36d52f64b")
+        if (amapSdkKey.isNotBlank()) MapsInitializer.setApiKey(amapSdkKey)
         AMapLocationClient.updatePrivacyShow(applicationContext, true, true)
         AMapLocationClient.updatePrivacyAgree(applicationContext, true)
         super.onCreate(savedInstanceState)
@@ -80,16 +86,11 @@ class MainActivity: FlutterActivity() {
                         result.error("INVALID_ORIGIN", "暂未取得有效的当前位置", null)
                     } else {
                         try {
-                            @Suppress("DEPRECATION")
-                            val metadata = packageManager.getApplicationInfo(
-                                packageName, PackageManager.GET_META_DATA
-                            ).metaData
-                            val navigationKey = metadata.getString("com.amap.api.v2.apikey")
-                            if (navigationKey.isNullOrBlank()) {
+                            if (amapSdkKey.isBlank()) {
                                 result.error("NAVIGATION_KEY_MISSING", "应用内导航暂不可用", null)
                                 return@setMethodCallHandler
                             }
-                            AMapNavi.setApiKey(applicationContext, navigationKey)
+                            AMapNavi.setApiKey(applicationContext, amapSdkKey)
                             val start = Poi("当前位置", LatLng(startLat, startLng), "")
                             val end = Poi(name, LatLng(lat, lng), "")
                             val params = AmapNaviParams(

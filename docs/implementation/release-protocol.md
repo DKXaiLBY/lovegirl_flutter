@@ -9,6 +9,7 @@
 - DEPLOY_TOKEN 只能由服务器上的发布进程从 lovegirl-server 容器环境读取，并直接进入请求头。
 - 禁止把令牌输出到聊天、命令输出、日志、临时文件或仓库；禁止输出容器全部环境变量。
 - 客户端构建不带测试自动登录参数；不嵌入账号密码。
+- Android 构建读取本机 `android/local.properties` 中的 `amap.android.key` 或环境变量 `AMAP_ANDROID_KEY`。发布前核对其为与应用包名、签名绑定的 Android 平台 Key。
 
 ## 流程
 

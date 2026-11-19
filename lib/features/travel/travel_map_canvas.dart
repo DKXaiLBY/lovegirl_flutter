@@ -550,7 +550,6 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
         }
         return AMapWidget(
           key: const ValueKey('travel_native_surface'),
-          apiKey: const AMapApiKey(androidKey: TravelMapPlatform.androidKey),
           privacyStatement: const AMapPrivacyStatement(
               hasContains: true, hasShow: true, hasAgree: true),
           initialCameraPosition: CameraPosition(

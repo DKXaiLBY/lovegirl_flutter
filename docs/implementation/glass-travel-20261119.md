@@ -38,4 +38,12 @@
 
 候选 05 收圆三级页玻璃标题栏，静态检查无问题，Flutter 260 项通过。APK 与荣耀上的已安装包散列一致。拍立得预览的转动中间帧显示纸边、透视缩短和背面，见本轮备份目录下的 `glass05-preview-turn-1.png` 和 `glass05-preview-turn-2.png`。
 
-应用内导航的实际转向、语音、锁屏与偏航需完成真实路线后核验。当前正式 188 包已保留，本轮尚未发布。完整导航 SDK 使内部包超过 100 MB，正式发布还要处理当前接口的上传限制。
+### 高德 Key 复核
+
+2026-11-19，用户提供控制台截图后，核对了 Android 平台、包名和安装包签名。逐一比对控制台与候选 APK 内嵌 Key 的指纹，确认旧候选误用了天气调用的 Web 服务 Key。旅行地图的 Android Key 对应同一包名和签名，并列出 Android 导航 SDK。
+
+Android 地图、定位与导航现在共用构建注入的 Android 平台 Key。Gradle 从本机 `android/local.properties` 的 `amap.android.key` 读取，也接受环境变量 `AMAP_ANDROID_KEY`。新 APK 的清单已核对为 Android Key，包内清单、Dex 和 Flutter 二进制已确认没有旧 Web 服务 Key。气象和后端配置保持原有的 Web 服务调用。
+
+荣耀在 LoveGirl 内成功规划了 754 米的步行路线，页面显示 12 分钟和首个转向。系统音频日志记录了高德导航启动音轨，锁屏后导航前台服务保持，亮屏后回到同一路线。旧候选的 `10009` 未再出现。截图为 `glass-key-walk.png` 和 `glass-key-walk-unlocked.png`。静态检查无问题，Flutter 260 项测试通过。
+
+实地行走中的转向、锁屏语音与偏航重算仍待验收。当前正式 188 包已保留，本轮尚未发布。完整导航 SDK 使内部包超过 100 MB，正式发布还要处理当前接口的上传限制。
