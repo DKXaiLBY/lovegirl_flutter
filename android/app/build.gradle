@@ -47,5 +47,6 @@ flutter {
 }
 
 dependencies {
-    implementation 'com.amap.api:3dmap:10.0.600'
+    // The navigation SDK contains its matching map, location and search SDKs.
+    implementation 'com.amap.api:navi-3dmap-location-search:11.3.100_3dmap11.3.100_loc11.3.000_sea9.8.1'
 }

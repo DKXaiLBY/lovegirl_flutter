@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/travel.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import 'journey.dart';
 import 'travel_workspace.dart';
 
@@ -58,6 +59,87 @@ class JourneyController extends ChangeNotifier {
   Future<void> _writes = Future.value();
   String get _prefix => 'lovegirl_journey_${ownerId}_';
   String _key(Journey j) => '$_prefix${j.id ?? j.clientId}';
+  final _notifications = NotificationService();
+  String get _reminderPrefix => 'trip-reminder/$ownerId/';
+  String _stopReminderKey(Journey journey, JourneyStop stop) =>
+      '$_reminderPrefix${journey.id}/${Uri.encodeComponent(stop.key)}/';
+
+  Future<DateTime?> reminderFor(Journey journey, JourneyStop stop) async {
+    final requests = await _notifications
+        .pendingTripReminders(_stopReminderKey(journey, stop));
+    final stamp =
+        int.tryParse(requests.firstOrNull?.payload?.split('/').last ?? '');
+    return stamp == null ? null : DateTime.fromMillisecondsSinceEpoch(stamp);
+  }
+
+  Future<void> setReminder(
+      Journey journey, JourneyStop stop, DateTime? time) async {
+    if (_disposed || current?.id != journey.id || dirty || busy) {
+      throw StateError('请保存当前行程后再设置提醒');
+    }
+    final date = journey.dateFor(stop);
+    if (journey.id == null ||
+        date == null ||
+        (time != null &&
+            (date.year != time.year ||
+                date.month != time.month ||
+                date.day != time.day))) {
+      throw StateError('请先为这个站次安排日期');
+    }
+    final prefix = _stopReminderKey(journey, stop);
+    final requests =
+        await _notifications.pendingTripReminders('trip-reminder/');
+    final existing =
+        requests.where((r) => r.payload!.startsWith(prefix)).firstOrNull;
+    if (time == null) {
+      if (existing != null) await _notifications.cancel(existing.id);
+      return;
+    }
+    var id = existing?.id ?? 1200000000;
+    if (existing == null) {
+      final ids = requests.map((r) => r.id).toSet();
+      while (ids.contains(id)) {
+        id++;
+      }
+    }
+    if (_disposed || current?.id != journey.id || dirty || busy) {
+      throw StateError('行程已变更，请重新打开站次设置提醒');
+    }
+    await _notifications.scheduleTripReminder(
+        id, time, '$prefix${time.millisecondsSinceEpoch}');
+  }
+
+  Future<void> _syncReminders(Iterable<Journey> journeys,
+      {int? onlyJourney}) async {
+    try {
+      final prefix = onlyJourney == null
+          ? _reminderPrefix
+          : '$_reminderPrefix$onlyJourney/';
+      final requests = await _notifications.pendingTripReminders(prefix);
+      final dates = {
+        for (final journey in journeys)
+          for (final stop in journey.stops)
+            if (journey.dateFor(stop) != null)
+              _stopReminderKey(journey, stop): journey.dateFor(stop)!
+      };
+      for (final request in requests) {
+        final payload = request.payload!;
+        final split = payload.lastIndexOf('/');
+        final stamp = int.tryParse(payload.substring(split + 1));
+        final date = dates[payload.substring(0, split + 1)];
+        final time =
+            stamp == null ? null : DateTime.fromMillisecondsSinceEpoch(stamp);
+        if (date == null ||
+            time == null ||
+            DateTime(time.year, time.month, time.day) != date) {
+          await _notifications.cancel(request.id);
+        }
+      }
+    } catch (_) {
+      // Reminder reconciliation can retry on the next successful sync.
+    }
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -82,6 +164,7 @@ class JourneyController extends ChangeNotifier {
       library = (response.data['data'] as List)
           .map((e) => Journey.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+      await _syncReminders(library);
     } catch (e) {
       error = extractServerMessage(e, fallback: '行程加载失败，可以重试');
     }
@@ -93,6 +176,14 @@ class JourneyController extends ChangeNotifier {
     _generation++;
     current = journey;
     day = 0;
+    final start = DateTime.tryParse(journey?.startDate ?? '');
+    if (start != null && journey != null) {
+      final now = DateTime.now();
+      final today = DateTime.utc(now.year, now.month, now.day);
+      final first = DateTime.utc(start.year, start.month, start.day);
+      final index = today.difference(first).inDays;
+      if (index >= 0 && index < journey.days) day = index;
+    }
     overview = false;
     selectedKey = null;
     dirty = draft;
@@ -211,6 +302,7 @@ class JourneyController extends ChangeNotifier {
         key: const Uuid().v4(),
         spotId: place.id,
         place: place,
+        mode: 'walking',
         day: overview ? null : day);
     update(current!.copyWith(stops: [...current!.stops, stop]));
     selectedKey = stop.key;
@@ -237,6 +329,7 @@ class JourneyController extends ChangeNotifier {
       localDrafts.removeWhere((j) => _key(j) == _key(snapshot));
       library.removeWhere((j) => j.id == saved.id);
       library.insert(0, saved);
+      await _syncReminders([saved], onlyJourney: saved.id);
       return true;
     } catch (e) {
       conflict = e is DioException && e.response?.statusCode == 409;
@@ -292,6 +385,7 @@ class JourneyController extends ChangeNotifier {
     _notify();
     try {
       if (j.id != null) await api.deleteJourney(j.id!, j.revision);
+      if (j.id != null) await _syncReminders([], onlyJourney: j.id);
       await discardDraft(j);
       library.removeWhere((v) => v.id == j.id);
       select(null);

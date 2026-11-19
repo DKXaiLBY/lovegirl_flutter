@@ -391,7 +391,8 @@ class _CreationGalleryState extends State<CreationGallery> {
                   creationUrl(work.previewUrl),
                   options: Options(responseType: ResponseType.bytes)))
               .data!);
-      await saveCreationPng(bytes, 'LoveGirl_${work.id}_${back ? 'back' : 'front'}');
+      await saveCreationPng(
+          bytes, 'LoveGirl_${work.id}_${back ? 'back' : 'front'}');
       _message('已保存到相册');
     } catch (_) {
       _message('未能写入系统相册，请检查相册权限后重试');
@@ -1087,38 +1088,19 @@ class CreationFlip extends StatelessWidget {
       child: GestureDetector(
         onTap: onFlip,
         onLongPress: onInspect,
-        child: TweenAnimationBuilder<double>(
-            tween: Tween(end: back ? math.pi : 0),
-            duration: rebuildReduceMotion(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 420),
-            curve: Curves.easeInOutCubic,
-            builder: (_, angle, __) {
-              final back = angle > math.pi / 2;
-              return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, .0015)
-                    ..rotateY(back ? angle - math.pi : angle),
-                  child: CreationMaterial(
-                      document: work.document,
-                      glossy: !back,
-                      lightShift: rebuildReduceMotion(context)
-                          ? 0
-                          : lightShift + math.sin(angle) * .7,
-                      lift: 1 + math.sin(angle).abs() * .2,
-                      child: back
-                          ? CustomPaint(
-                              painter: CreationPainter(work.document, const [],
-                                  back: true))
-                          : CachedNetworkImage(
-                              imageUrl: creationUrl(work.previewUrl),
-                              fit: BoxFit.contain,
-                              memCacheWidth: 1200,
-                              placeholder: (_, __) => const Center(
-                                  child: CircularProgressIndicator()),
-                              errorWidget: (_, __, ___) => const Center(
-                                  child: Icon(Icons.broken_image_outlined)))));
-            }),
+        child: CreationPaperTurn(
+          document: work.document,
+          back: back,
+          lightShift: lightShift,
+          front: CachedNetworkImage(
+            imageUrl: creationUrl(work.previewUrl),
+            fit: BoxFit.contain,
+            memCacheWidth: 960,
+            placeholder: (_, __) =>
+                const Center(child: CircularProgressIndicator()),
+            errorWidget: (_, __, ___) =>
+                const Center(child: Icon(Icons.broken_image_outlined)),
+          ),
+        ),
       ));
 }

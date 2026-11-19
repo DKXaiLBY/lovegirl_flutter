@@ -933,7 +933,10 @@ class _OutfitPickerState extends State<_OutfitPicker> {
     final sameAccount = context.watch<AuthProvider>().userId == widget.account;
     return Scaffold(
       backgroundColor: context.lgBg,
-      appBar: AppBar(title: Text('第 ${widget.day + 1} 天搭配')),
+      appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
+        title: Text('第 ${widget.day + 1} 天搭配'),
+      ),
       body: RebuildPageBackground(
         child: !sameAccount
             ? const Center(child: Text('账号已切换，请返回'))

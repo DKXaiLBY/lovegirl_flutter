@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
-import 'creation_canvas.dart';
 import 'creation_document.dart';
 import 'creation_material.dart';
 
@@ -29,10 +28,16 @@ class _CreationPreviewState extends State<CreationPreview> {
     super.dispose();
   }
 
+  void _turn() {
+    _transform.value = Matrix4.identity();
+    setState(() => _back = !_back);
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: context.lgBg,
         appBar: AppBar(
+            flexibleSpace: const RebuildGlassHeader(),
             systemOverlayStyle: context.lgIsDark
                 ? SystemUiOverlayStyle.light
                 : SystemUiOverlayStyle.dark,
@@ -43,10 +48,7 @@ class _CreationPreviewState extends State<CreationPreview> {
                   child: RebuildGlassButton(
                       label: _back ? '翻到正面' : '翻到背面',
                       icon: Icons.flip,
-                      onPressed: () {
-                        _transform.value = Matrix4.identity();
-                        setState(() => _back = !_back);
-                      }))
+                      onPressed: _turn))
             ]),
         body: Stack(children: [
           const Positioned.fill(child: CreationBackdrop()),
@@ -64,33 +66,14 @@ class _CreationPreviewState extends State<CreationPreview> {
                       child: SizedBox(
                           width: width,
                           height: width / widget.document.aspectRatio,
-                          child: TweenAnimationBuilder<double>(
-                              tween: Tween(end: _back ? math.pi : 0),
-                              duration: rebuildReduceMotion(context)
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 420),
-                              curve: Curves.easeInOutCubic,
-                              builder: (context, angle, _) => Transform(
-                                  alignment: Alignment.center,
-                                  transform: Matrix4.identity()
-                                    ..setEntry(3, 2, .0015)
-                                    ..rotateY(angle > math.pi / 2
-                                        ? angle - math.pi
-                                        : angle),
-                                  child: CreationMaterial(
-                                      document: widget.document,
-                                      glossy: angle < math.pi / 2,
-                                      lightShift:
-                                          MediaQuery.disableAnimationsOf(
-                                                  context)
-                                              ? 0
-                                              : math.sin(angle) * .7,
-                                      child: angle > math.pi / 2
-                                          ? CustomPaint(
-                                              painter: CreationPainter(
-                                                  widget.document, const [],
-                                                  back: true))
-                                          : widget.front))))));
+                          child: GestureDetector(
+                            onTap: _turn,
+                            child: CreationPaperTurn(
+                              document: widget.document,
+                              back: _back,
+                              front: widget.front,
+                            ),
+                          ))));
             })),
             Padding(
                 padding: const EdgeInsets.all(16),

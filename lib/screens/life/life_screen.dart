@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../health/health_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../travel/trip_preparation_list_screen.dart';
@@ -339,7 +340,7 @@ class _LifeScreenState extends State<LifeScreen> {
                                   iconColor: Colors.white,
                                   minimumSize: const Size(48, 50)),
                               onPressed: () => _open(const KitchenScreen()),
-                              icon: const Icon(Icons.restaurant_outlined),
+                              icon: const GlassFeatureIcon(GlassFeature.kitchen, size: 26),
                               label: const Text('去点菜'))),
                       Container(
                           width: 1,
@@ -407,14 +408,18 @@ class _LifeScreenState extends State<LifeScreen> {
             style: TextStyle(fontSize: 12, color: context.lgTextSecondary)),
       ]);
 
-  Widget _shortcut(String title, String hint, IconData icon, Widget page) =>
+  Widget _shortcut(String title, String hint, IconData icon, Widget page,
+          {GlassFeature? feature}) =>
       InkWell(
           onTap: () => _open(page),
           borderRadius: BorderRadius.circular(22),
           child: _surface(SizedBox(
               height: 32,
               child: Row(children: [
-                Icon(icon, size: 22),
+                if (feature == null)
+                  Icon(icon, size: 22)
+                else
+                  GlassFeatureIcon(feature, size: 28),
                 const SizedBox(width: 12),
                 Text(title,
                     style: const TextStyle(
@@ -476,7 +481,8 @@ class _LifeScreenState extends State<LifeScreen> {
                         _wardrobe(),
                         const SizedBox(height: 12),
                         _shortcut('旅行准备', '搭配与行李清单', Icons.luggage_outlined,
-                            TripPreparationListScreen(api: _api)),
+                            TripPreparationListScreen(api: _api),
+                            feature: GlassFeature.packing),
                         const SizedBox(height: 10),
                         _shortcut(
                             '课程表',

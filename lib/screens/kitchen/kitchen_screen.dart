@@ -13,6 +13,7 @@ import '../../widgets/lovegirl_ui.dart';
 import '../couple/couple_binding_screen.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../cooking/cooking_log_screen.dart';
 import 'kitchen_menu_grid.dart';
 import 'kitchen_meal_fields.dart';
@@ -404,7 +405,7 @@ class _CartSheetState extends State<_CartSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     children: [
-                      Text(d.emoji, style: const TextStyle(fontSize: 20)),
+                      const Icon(Icons.restaurant_outlined, size: 20),
                       SizedBox(width: 10),
                       Expanded(
                           child: Text(d.name,
@@ -635,7 +636,7 @@ class _MyDishCard extends StatelessWidget {
   Widget _emojiBox(context) => Container(
         color: context.lgSecondarySoft,
         alignment: Alignment.center,
-        child: Text(dish.emoji, style: const TextStyle(fontSize: 25)),
+        child: const GlassFeatureIcon(GlassFeature.kitchen, size: 38),
       );
 }
 
@@ -652,8 +653,6 @@ class _DishEditSheet extends StatefulWidget {
 class _DishEditSheetState extends State<_DishEditSheet> {
   late final TextEditingController _name =
       TextEditingController(text: widget.existing?.name ?? '');
-  late final TextEditingController _emoji =
-      TextEditingController(text: widget.existing?.emoji ?? '🍳');
   late final TextEditingController _price = TextEditingController(
       text: widget.existing != null && widget.existing!.price > 0
           ? '${widget.existing!.price}'
@@ -671,7 +670,6 @@ class _DishEditSheetState extends State<_DishEditSheet> {
   @override
   void dispose() {
     _name.dispose();
-    _emoji.dispose();
     _price.dispose();
     _desc.dispose();
     _ingredients.dispose();
@@ -766,16 +764,7 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                     ),
                   ),
                   SizedBox(width: 12),
-                  SizedBox(
-                    width: 64,
-                    child: TextField(
-                      controller: _emoji,
-                      textAlign: TextAlign.center,
-                      maxLength: 2,
-                      decoration: InputDecoration(
-                          counterText: '', filled: true, fillColor: context.lgPaper),
-                    ),
-                  ),
+                  const GlassFeatureIcon(GlassFeature.kitchen, size: 42),
                 ],
               ),
               SizedBox(height: 14),
@@ -856,7 +845,7 @@ class _DishEditSheetState extends State<_DishEditSheet> {
     final data = {
       'name': name,
       'category': _category,
-      'emoji': _emoji.text.trim().isEmpty ? '🍳' : _emoji.text.trim(),
+        'emoji': widget.existing?.emoji ?? '🍳',
       'price': int.tryParse(_price.text.trim()) ?? 0,
       'description': _desc.text.trim(),
       'ingredients': _ingredients.text.trim(),
@@ -1247,7 +1236,7 @@ class _OrderCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
                   children: [
-                    Text(it.emoji, style: const TextStyle(fontSize: 15)),
+                    const Icon(Icons.restaurant_outlined, size: 15),
                     SizedBox(width: 8),
                     Expanded(
                         child: Text('${it.name} x${it.quantity}',

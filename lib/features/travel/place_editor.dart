@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../models/travel.dart' show TravelSpot;
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../widgets/rebuild_controls.dart';
 import 'map_platform.dart';
 import 'place_picker.dart';
 import 'travel_workspace.dart';
@@ -252,6 +253,7 @@ class _TravelPlaceEditorState extends State<TravelPlaceEditor> {
         child: Scaffold(
           backgroundColor: context.lgBg,
           appBar: AppBar(
+              flexibleSpace: const RebuildGlassHeader(),
               systemOverlayStyle: context.lgIsDark
                   ? SystemUiOverlayStyle.light
                   : SystemUiOverlayStyle.dark,

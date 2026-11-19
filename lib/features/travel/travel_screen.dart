@@ -8,7 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/travel.dart' show TravelSpot;
 import '../../providers/auth_provider.dart';
 import '../../providers/map_prefs_provider.dart';
-import '../../screens/travel/china_memory_map_screen.dart';
+import '../../screens/travel/footprint_globe_screen.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../../screens/travel/travel_memory_screen.dart';
 import '../../utils/constants.dart';
 import '../../widgets/rebuild_controls.dart';
@@ -21,6 +22,7 @@ import 'travel_workspace.dart';
 import 'journey_controller.dart';
 import 'journey.dart';
 import 'journey_panel.dart';
+import 'map_platform.dart';
 
 class TravelScreen extends StatefulWidget {
   final TravelSpot? initialSpot;
@@ -38,6 +40,7 @@ class TravelScreen extends StatefulWidget {
 }
 
 class _TravelScreenState extends State<TravelScreen> {
+  bool _openingWalk = false;
   final _map = GlobalKey<TravelMapCanvasState>();
   final _sheet = DraggableScrollableController();
   final _cards = ScrollController();
@@ -123,6 +126,9 @@ class _TravelScreenState extends State<TravelScreen> {
     if (j == null) {
       if (!_placesOpen) _extent.value = _initialSheetExtent;
       return;
+    }
+    if (j.stops.any((stop) => stop.place == null)) {
+      unawaited(_workspace.load(refresh: true));
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || view != _lastJourneyView) return;
@@ -349,6 +355,27 @@ class _TravelScreenState extends State<TravelScreen> {
     }
   }
 
+  Future<void> _walkTo(TravelSpot place) async {
+    if (_openingWalk || !hasMapPosition(place)) return;
+    setState(() => _openingWalk = true);
+    try {
+      await TravelMapPlatform.startWalkingNavigation(
+        latitude: place.lat,
+        longitude: place.lng,
+        name: place.name,
+        dark: context.lgIsDark,
+      );
+    } on StateError catch (error) {
+      _message(error.message);
+    } on PlatformException catch (error) {
+      _message(error.message ?? '步行导航暂时无法启动');
+    } catch (_) {
+      _message('步行导航暂时无法启动');
+    } finally {
+      if (mounted) setState(() => _openingWalk = false);
+    }
+  }
+
   void _showOnMap(TravelSpot place) {
     final route = ModalRoute.of(context);
     Navigator.of(context).popUntil((value) => value == route);
@@ -357,7 +384,7 @@ class _TravelScreenState extends State<TravelScreen> {
 
   Future<void> _overview() async {
     await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ChinaMemoryMapScreen(
+        builder: (_) => FootprintGlobeScreen(
             spots: _workspace.places,
             onChanged: _workspace.upsert,
             onShowOnMap: _showOnMap)));
@@ -426,8 +453,8 @@ class _TravelScreenState extends State<TravelScreen> {
         builder: (sheet) => SafeArea(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
               ListTile(
-                  leading: const Icon(Icons.public_outlined),
-                  title: const Text('省市足迹'),
+                  leading: const GlassFeatureIcon(GlassFeature.footprint),
+                  title: const Text('足迹地球'),
                   subtitle: const Text('查看去过的地方与照片故事'),
                   onTap: () => Navigator.pop(sheet, 'overview')),
               ListTile(
@@ -804,6 +831,7 @@ class _TravelScreenState extends State<TravelScreen> {
                                                   _fitJourney(target);
                                                 },
                                                 onSelect: _selectStop,
+                                                onWalk: _openingWalk ? null : _walkTo,
                                                 onAdd: _addJourneyPlace,
                                                 onStory: _story))
                                     : AnimatedBuilder(

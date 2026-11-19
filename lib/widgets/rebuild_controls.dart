@@ -24,6 +24,15 @@ class RebuildPageBackground extends StatelessWidget {
       child: child);
 }
 
+class RebuildGlassHeader extends StatelessWidget {
+  const RebuildGlassHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) => const RebuildPageBackground(
+        child: RebuildGlass(radius: 0, child: SizedBox.expand()),
+      );
+}
+
 bool rebuildReduceMotion(BuildContext context) =>
     MediaQuery.disableAnimationsOf(context) ||
     context.watch<MapPrefsProvider?>()?.motionLevel == 'off';
@@ -180,6 +189,7 @@ class _GlassRim extends CustomPainter {
 class RebuildGlassButton extends StatefulWidget {
   final String label;
   final IconData icon;
+  final Widget? iconImage;
   final VoidCallback? onPressed;
   final bool selected;
   final bool showLabel;
@@ -187,6 +197,7 @@ class RebuildGlassButton extends StatefulWidget {
       {super.key,
       required this.label,
       required this.icon,
+      this.iconImage,
       required this.onPressed,
       this.selected = false,
       this.showLabel = false});
@@ -252,8 +263,9 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          Icon(widget.icon,
-                                              color: ink, size: 22),
+                                          widget.iconImage ??
+                                              Icon(widget.icon,
+                                                  color: ink, size: 22),
                                           if (widget.showLabel) ...[
                                             const SizedBox(width: 8),
                                             Text(widget.label,

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show SemanticsAction;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,7 +86,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   }
 
-  testWidgets('touching the exposed paper changes page and keeps flip state',
+  testWidgets('a slow drag rests between distinct papers, then a tap flips one',
       (tester) async {
     final api = ShelfApi()
       ..photos = [
@@ -100,29 +99,29 @@ void main() {
           },
       ];
     await show(tester, api, ShelfAuth(), scale: 1.6);
-    final semantics = tester.ensureSemantics();
-    try {
-      for (final label in ['新增回忆', '下一张相纸']) {
-        final button = tester.getSemantics(find.bySemanticsLabel(label));
-        expect(button.rect.width, lessThan(60));
-        expect(
-            button.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-      }
-    } finally {
-      semantics.dispose();
-    }
-    final page = find.byType(PageView);
-    final bounds = tester.getRect(page);
-    await tester.tapAt(Offset(bounds.right - 10, bounds.top + 120));
+    final strip = find.byKey(const ValueKey('memory_paper_strip:7:'));
+    final position = tester
+        .state<ScrollableState>(
+            find.descendant(of: strip, matching: find.byType(Scrollable)))
+        .position;
+    final drag = await tester.startGesture(tester.getCenter(strip));
+    await drag.moveBy(const Offset(-20, 0));
+    await tester.pump(const Duration(milliseconds: 100));
+    await drag.moveBy(const Offset(-125, 0));
+    await tester.pump(const Duration(milliseconds: 300));
+    final offset = position.pixels;
+    expect(offset, inInclusiveRange(100.0, 160.0));
+    await drag.up();
     await tester.pumpAndSettle();
-    expect(find.textContaining('2/3'), findsOneWidget);
-    await tester.tapAt(tester.getCenter(page));
+    expect(position.pixels, closeTo(offset, 1));
+    expect(find.byKey(const ValueKey('photo_1')), findsOneWidget);
+    final second = find.byKey(const ValueKey('photo_2'));
+    expect(second, findsOneWidget);
+    await tester.tap(second);
     await tester.pumpAndSettle();
     expect(find.textContaining('背面故事 2'), findsOneWidget);
-    await tester.tapAt(Offset(bounds.left + 10, bounds.top + 120));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('1/3'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.textContaining('背面故事 1'), findsNothing);
+    expect(position.pixels, closeTo(offset, 1));
     await finish(tester);
   });
 
@@ -219,7 +218,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('2025年11月'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('1/1'), findsOneWidget);
+    expect(find.text('轻触翻面'), findsOneWidget);
     expect(find.text('去年的照片'), findsOneWidget);
     expect(find.text('十月照片'), findsNothing);
     await finish(tester);

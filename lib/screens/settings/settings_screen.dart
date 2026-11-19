@@ -15,6 +15,7 @@ import 'package:lovegirl_flutter/services/log_service.dart';
 import 'package:lovegirl_flutter/services/notification_service.dart';
 import 'package:lovegirl_flutter/screens/version/update_dialog.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 import 'log_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -202,9 +203,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: widget.openPrivacy
-          ? AppBar(title: const Text('隐私与通知'))
+          ? AppBar(flexibleSpace: const RebuildGlassHeader(), title: const Text('隐私与通知'))
           : null,
-      body: SafeArea(
+      body: RebuildPageBackground(child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -247,12 +248,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
   Widget _buildHeader() {
-    return LovePaper(
+    return RebuildGlass(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
@@ -617,7 +618,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(2)),
               ),
               const SizedBox(width: 8),
-              const Text('🔧 开发者模式',
+              const Text('开发者模式',
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -678,7 +679,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '当前视角: ${auth.isGirl ? "👧 女友端" : "👦 男友端"}${auth.isDevRoleOverridden ? " (已覆盖)" : ""}',
+            '当前视角: ${auth.isGirl ? "女友端" : "男友端"}${auth.isDevRoleOverridden ? " (已覆盖)" : ""}',
             style: TextStyle(
                 fontSize: 13,
                 color: auth.isDevRoleOverridden
@@ -713,7 +714,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🔧 开发者模式已开启'),
+          content: Text('开发者模式已开启'),
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 1),
         ),
@@ -751,7 +752,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             manualCheckVersion(context);
           }),
           Divider(height: 24, indent: 40),
-          _buildInfoRow(Icons.favorite_outline, '用心打造', '给最爱的你 💕'),
+          _buildInfoRow(Icons.favorite_outline, '用心打造', '给最爱的你'),
         ],
       ),
     );

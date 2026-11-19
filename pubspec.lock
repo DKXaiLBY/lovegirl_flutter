@@ -292,6 +292,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.1"
+  flutter_globe:
+    dependency: "direct main"
+    description:
+      name: flutter_globe
+      sha256: a1c7e27c5e3544a8bd6e850e0756c5957cc5320489bb9fe60e0e68543d389cd3
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   flutter_image_compress:
     dependency: "direct main"
     description:
@@ -1033,7 +1041,7 @@ packages:
     source: hosted
     version: "0.7.3"
   timezone:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: timezone
       sha256: dd14a3b83cfd7cb19e7888f1cbc20f258b8d71b54c06f79ac585f14093a287d1

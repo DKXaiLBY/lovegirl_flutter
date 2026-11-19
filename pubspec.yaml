@@ -27,6 +27,7 @@ dependencies:
   intl: ^0.19.0
   fl_chart: ^0.69.2
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.1
   permission_handler: ^11.3.1
   web_socket_channel: ^3.0.1
   crypto: ^3.0.6
@@ -35,6 +36,7 @@ dependencies:
   url_launcher: ^6.3.1
   open_filex: ^4.5.0
   geolocator: ^11.0.0
+  flutter_globe: 1.0.2
   book_page_flip: ^0.1.0
   image_cropper: 8.0.2
   flutter_image_compress: ^2.1.0
@@ -61,6 +63,7 @@ flutter:
     - assets/images/deco/
     - assets/images/illus/
     - assets/images/clear_app/
+    - assets/images/glass_features/
     - assets/geo/
   fonts:
     - family: Caveat

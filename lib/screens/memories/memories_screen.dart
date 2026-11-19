@@ -8,10 +8,10 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../../features/creations/creation_gallery.dart';
 import '../../features/creations/creation_document.dart';
 import '../../features/creations/creation_files.dart';
-import '../../features/creations/creation_material.dart';
 import '../../features/creations/creation_preview.dart';
 import '../photo/legacy_photo_screen.dart';
 import '../cooking/cooking_log_screen.dart';
@@ -29,7 +29,6 @@ class MemoriesScreen extends StatefulWidget {
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
   late final _api = widget.api ?? ApiService();
-  final _pager = PageController(keepPage: false);
   List<CreationWork> _works = [];
   List<Map<String, dynamic>> _photos = [];
   bool _loading = true;
@@ -38,7 +37,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   int? _account;
   int _request = 0;
   String? _month;
-  int _page = 0;
 
   @override
   void didChangeDependencies() {
@@ -52,18 +50,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       _backs.clear();
       _errors.clear();
       _month = null;
-      _page = 0;
       _loading = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && account == _account) unawaited(_load());
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _pager.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -105,9 +96,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         ..clear()
         ..addAll(errors);
       _loading = false;
-      _page = 0;
     });
-    if (_pager.hasClients) _pager.jumpToPage(0);
   }
 
   String? _key(dynamic raw) {
@@ -142,11 +131,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           minimum: const EdgeInsets.only(bottom: 24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             for (final kind in [
-              ('polaroid', '制作拍立得', Icons.photo_outlined),
-              ('ticket', '制作票根', Icons.confirmation_number_outlined)
+              ('polaroid', '制作拍立得', GlassFeature.polaroid),
+              ('ticket', '制作票根', GlassFeature.ticket)
             ])
               ListTile(
-                  leading: Icon(kind.$3),
+                  leading: GlassFeatureIcon(kind.$3),
                   title: Text(kind.$2),
                   onTap: () {
                     Navigator.pop(sheet);
@@ -181,10 +170,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if (result == null || !mounted) return;
     setState(() {
       _month = result.isEmpty ? null : result;
-      _page = 0;
       _backs.clear();
     });
-    if (_pager.hasClients) _pager.jumpToPage(0);
   }
 
   Widget _title(String name, VoidCallback onAll, {String action = '查看全部 ›'}) =>
@@ -241,111 +228,40 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             _open(const CreationGallery(createOnOpen: true))),
                   ]))));
     }
-    Widget paper(int index) => index < works.length
-        ? _published(works[index])
-        : legacyMemoryPolaroid(originals[index - works.length],
-            onEdit: () => _open(const LegacyPhotoScreen()),
-            onInspect: () => _open(const LegacyPhotoScreen()));
-    Widget adjacent(int index) {
-      if (index >= works.length) return paper(index);
-      final work = works[index];
-      return CreationMaterial(
-        document: work.document,
-        child: CachedNetworkImage(
-          imageUrl: creationUrl(work.previewUrl),
-          fit: BoxFit.contain,
-          memCacheWidth: 520,
-          errorWidget: (_, __, ___) =>
-              const Center(child: Icon(Icons.broken_image_outlined)),
-        ),
-      );
-    }
-
     return LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final face = math.min(width * .725, 400.0);
-      final flank = face * .78;
-      final inset = (width - face) / 2;
-      final still = rebuildReduceMotion(context);
-      final visiblePage = _page.clamp(0, count - 1);
+      final width = math.min(constraints.maxWidth * .725, 400.0);
+      final height = width * 107 / 88;
       return Column(children: [
         SizedBox(
-          height: face * 107 / 88 + 22,
-          child: PageView.builder(
-            controller: _pager,
+          height: height + 24,
+          child: ListView.builder(
+            key: ValueKey('memory_paper_strip:$_account:${_month ?? ""}'),
+            scrollDirection: Axis.horizontal,
+            primary: false,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             itemCount: count,
-            onPageChanged: (p) => setState(() => _page = p),
+            itemExtent: width + 12,
             itemBuilder: (context, index) {
-              final sides = [
-                if (index > 0) -1,
-                if (index + 1 < count) 1,
-              ];
-              void showAdjacent(int side) {
-                HapticFeedback.selectionClick();
-                if (still) {
-                  _pager.jumpToPage(index + side);
-                } else {
-                  unawaited(_pager.animateToPage(index + side,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic));
-                }
-              }
-
-              return Stack(children: [
-                for (final side in sides)
-                  Positioned(
-                    left: side < 0
-                        ? inset + flank * .19 - flank
-                        : width - inset - flank * .19,
-                    top: 44,
-                    width: flank,
-                    height: flank * 107 / 88,
-                    child: IgnorePointer(
-                      child: ExcludeSemantics(
-                        child: Transform.rotate(
-                          angle: still ? 0 : side * .14,
-                          child: adjacent(index + side),
-                        ),
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  left: inset,
-                  top: 9,
-                  width: face,
-                  height: face * 107 / 88,
-                  child: Transform.rotate(
-                    angle: still ? 0 : .055,
-                    child: paper(index),
-                  ),
-                ),
-                for (final side in sides)
-                  Positioned(
-                    left: side < 0 ? 0 : null,
-                    right: side > 0 ? 0 : null,
-                    top: 44,
-                    width: math.max(48.0, inset - (still ? 0 : 8)),
-                    height: flank * 107 / 88,
-                    child: Semantics(
-                      container: true,
-                      button: true,
-                      label: side < 0 ? '上一张相纸' : '下一张相纸',
-                      onTap: () => showAdjacent(side),
-                      child: GestureDetector(
-                        excludeFromSemantics: true,
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => showAdjacent(side),
-                      ),
-                    ),
-                  ),
-              ]);
+              final work = index < works.length ? works[index] : null;
+              final photo =
+                  work == null ? originals[index - works.length] : null;
+              return Padding(
+                key: ValueKey(
+                    work != null ? 'work_${work.id}' : 'photo_${photo!['id']}'),
+                padding: const EdgeInsets.only(right: 12),
+                child: work != null
+                    ? _published(work)
+                    : legacyMemoryPolaroid(photo!,
+                        onEdit: () => _open(const LegacyPhotoScreen()),
+                        onInspect: () => _open(const LegacyPhotoScreen())),
+              );
             },
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
           child: Text(
-            count == 1 ? '轻触翻面  1/1' : '轻触翻面 · 左右滑动  ${visiblePage + 1}/$count',
+            count == 1 ? '轻触翻面' : '轻触翻面 · 左右滑动',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: context.lgTextSecondary),
           ),
@@ -361,7 +277,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: RebuildGlass(
               child: ListTile(
-                  leading: const Icon(Icons.confirmation_number_outlined),
+                  leading: const GlassFeatureIcon(GlassFeature.ticket),
                   title:
                       Text(_errors.contains('作品') ? '票根暂时没能读取' : '留一张属于你们的票根'),
                   trailing: const Icon(Icons.add),
@@ -446,30 +362,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       backgroundColor: context.lgBg,
       body: Stack(children: [
         Positioned.fill(
-            child: AnnotatedRegion<SystemUiOverlayStyle>(
-                value: context.lgIsDark
-                    ? SystemUiOverlayStyle.light
-                    : SystemUiOverlayStyle.dark,
-                child: Image.asset('assets/images/clear_app/memories_linen.png',
-                    fit: BoxFit.cover,
-                    cacheWidth: 720,
-                    excludeFromSemantics: true))),
-        if (context.lgIsDark)
-          Positioned.fill(child: ColoredBox(color: const Color(0xe51a222b))),
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  context.lgBg.withAlpha(0),
-                  context.lgBg.withAlpha(54),
-                  context.lgBg,
-                ],
-                stops: const [.36, .57, .91],
-              ),
-            ),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: context.lgIsDark
+                ? SystemUiOverlayStyle.light
+                : SystemUiOverlayStyle.dark,
+            child: const RebuildPageBackground(child: SizedBox.expand()),
           ),
         ),
         SafeArea(
@@ -541,7 +438,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                               OutlinedButton.icon(
                                   style: rebuildOutlinedStyle(context),
                                   onPressed: () => _open(item.$3),
-                                  icon: Icon(item.$1, size: 18),
+                                  icon: item.$1 == Icons.mood_outlined
+                                      ? const GlassFeatureIcon(
+                                          GlassFeature.mood,
+                                          size: 24)
+                                      : Icon(item.$1, size: 18),
                                   label: Text(item.$2)),
                             OutlinedButton.icon(
                                 style: rebuildOutlinedStyle(context),

@@ -77,6 +77,14 @@ class Journey {
 
   List<JourneyStop> dayStops(int? day) =>
       stops.where((stop) => stop.day == day).toList(growable: false);
+
+  DateTime? dateFor(JourneyStop stop) {
+    final start = DateTime.tryParse(startDate ?? '');
+    final day = stop.day;
+    if (start == null || day == null || day < 0 || day >= days) return null;
+    return DateTime(start.year, start.month, start.day + day);
+  }
+
   Journey copyWith(
           {String? title,
           String? city,

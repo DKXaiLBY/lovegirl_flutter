@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../models/travel.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/memory_controls.dart';
+import '../../widgets/rebuild_controls.dart';
 import '../../widgets/travel_photo_grid.dart';
 import '../../features/travel/place_editor.dart';
 import 'travel_ticket_screen.dart';
@@ -49,6 +50,7 @@ class _TravelMemoryScreenState extends State<TravelMemoryScreen> {
     return Scaffold(
       backgroundColor: context.lgPaper,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         systemOverlayStyle: context.lgIsDark
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,

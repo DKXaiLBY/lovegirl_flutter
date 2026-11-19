@@ -1,4 +1,5 @@
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,7 @@ import '../creations/creation_gallery.dart';
 import '../creations/creation_files.dart';
 import 'journey.dart';
 import 'journey_controller.dart';
+import 'travel_workspace.dart' show hasMapPosition;
 
 String journeyRouteDisplay(String value) =>
     value.replaceAll('RESULTS_ARE_EMPTY', '当前路段没有可用路线');
@@ -280,6 +282,7 @@ class JourneyPanel extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback? onToggleExpanded;
   final ValueChanged<TravelSpot> onStory;
+  final ValueChanged<TravelSpot>? onWalk;
   const JourneyPanel(
       {super.key,
       required this.controller,
@@ -289,6 +292,7 @@ class JourneyPanel extends StatelessWidget {
       required this.onSelect,
       required this.onAdd,
       this.onToggleExpanded,
+      this.onWalk,
       required this.onStory});
 
   Future<void> _stopMenu(BuildContext context, JourneyStop stop) async {
@@ -339,6 +343,13 @@ class JourneyPanel extends StatelessWidget {
                               context, day == -1 ? 'pending' : 'day_$day');
                         }
                       }),
+                  if (j.id != null &&
+                      !controller.dirty &&
+                      j.dateFor(stop) != null)
+                    ListTile(
+                        leading: const Icon(Icons.notifications_outlined),
+                        title: const Text('设置本站提醒'),
+                        onTap: () => Navigator.pop(context, 'reminder')),
                   ListTile(
                       leading: const Icon(Icons.remove_circle_outline),
                       title: const Text('从行程移除'),
@@ -349,7 +360,11 @@ class JourneyPanel extends StatelessWidget {
                         title: const Text('照片与故事'),
                         onTap: () => Navigator.pop(context, 'story')),
                 ])))));
-    if (action == null) return;
+    if (action == null || !context.mounted) return;
+    if (action == 'reminder') {
+      await _reminder(context, j, stop);
+      return;
+    }
     final edited = j.copyWith(
         stops: j.stops
             .map((s) => s.key == stop.key ? s.copyWith(note: note.trim()) : s)
@@ -364,6 +379,67 @@ class JourneyPanel extends StatelessWidget {
     if (action == 'story' && stop.place != null) {
       if (note.trim() != stop.note) controller.update(edited);
       onStory(stop.place!);
+    }
+  }
+
+  Future<void> _reminder(
+      BuildContext context, Journey journey, JourneyStop stop) async {
+    final date = journey.dateFor(stop);
+    if (date == null) return;
+    try {
+      final current = await controller.reminderFor(journey, stop);
+      if (!context.mounted) return;
+      if (current != null) {
+        final result = await showDialog<bool>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+            title: Text(
+                '本站提醒 · ${TimeOfDay.fromDateTime(current).format(context)}'),
+            content: const Text('提醒仅发送到这台设备，送达时间由系统调度。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog, false),
+                child: const Text('关闭提醒'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialog, true),
+                child: const Text('改时间'),
+              ),
+            ],
+          ),
+        );
+        if (result == null || !context.mounted) return;
+        if (!result) {
+          await controller.setReminder(journey, stop, null);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('已关闭本站提醒')));
+          }
+          return;
+        }
+      }
+      final picked = await showTimePicker(
+        context: context,
+        helpText: '${date.month}月${date.day}日的本站提醒',
+        initialTime: current == null
+            ? const TimeOfDay(hour: 9, minute: 0)
+            : TimeOfDay.fromDateTime(current),
+      );
+      if (picked == null || !context.mounted) return;
+      await controller.setReminder(
+          journey,
+          stop,
+          DateTime(
+              date.year, date.month, date.day, picked.hour, picked.minute));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('已安排本站提醒，仅在本机通知')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is StateError ? e.message : '提醒暂未设置，请重试')));
+      }
     }
   }
 
@@ -510,6 +586,12 @@ class JourneyPanel extends StatelessWidget {
     final date = start == null || activeDay == null || controller.overview
         ? null
         : start.add(Duration(days: activeDay));
+    final destinations = stops
+        .where((stop) => stop.place != null && hasMapPosition(stop.place!));
+    final next = destinations
+            .where((stop) => stop.key == controller.selectedKey)
+            .firstOrNull ??
+        destinations.firstOrNull;
     return AbsorbPointer(
         absorbing: controller.busy,
         child: CustomScrollView(controller: scrollController, slivers: [
@@ -536,7 +618,8 @@ class JourneyPanel extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                        fontSize: 20, fontWeight: FontWeight.w800)),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800)),
                                 if (date != null)
                                   Text('${date.month}月${date.day}日',
                                       style: TextStyle(
@@ -571,7 +654,9 @@ class JourneyPanel extends StatelessWidget {
                         if (action == 'edit' && context.mounted) {
                           await journeyDetails(context, controller, edit: true);
                         }
-                        if (action == 'preparation' && context.mounted && j.id != null) {
+                        if (action == 'preparation' &&
+                            context.mounted &&
+                            j.id != null) {
                           final navigator = Navigator.of(context);
                           await navigator.push<void>(MaterialPageRoute(
                               builder: (_) => TripPreparationScreen(
@@ -686,6 +771,43 @@ class JourneyPanel extends StatelessWidget {
                 ])),
             const Divider(height: 1, indent: 18, endIndent: 18),
           ])),
+          if (next != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: RebuildGlass(
+                  radius: 20,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('目的地 · ${next.place!.name}',
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          if (next.note.trim().isNotEmpty)
+                            Text(next.note,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: context.lgTextSecondary)),
+                        ],
+                      ),
+                    ),
+                    RebuildGlassButton(
+                      label: '步行导航',
+                      icon: Icons.directions_walk,
+                      iconImage:
+                          const GlassFeatureIcon(GlassFeature.walk, size: 26),
+                      showLabel: true,
+                      onPressed:
+                          onWalk == null ? null : () => onWalk!(next.place!),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
           if (stops.isEmpty)
             SliverToBoxAdapter(
                 child: Padding(

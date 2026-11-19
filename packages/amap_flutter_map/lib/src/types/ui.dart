@@ -107,6 +107,7 @@ enum MyLocationTrackingMode {
   show,
   follow,
   locationRotate,
+  locationRotateNoCenter,
 }
 
 class MyLocationStyleOptions {

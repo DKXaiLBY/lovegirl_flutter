@@ -211,7 +211,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
       daysText = '还有 $days 天';
       daysColor = context.lgInk;
     } else if (days == 0) {
-      daysText = '就是今天！🎉';
+      daysText = '就是今天！';
       daysColor = LoveGirlTheme.secondary;
     } else {
       daysText = '已过 ${-days} 天';

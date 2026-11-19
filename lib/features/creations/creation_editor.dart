@@ -550,6 +550,7 @@ class _CreationEditorState extends State<CreationEditor> {
           backgroundColor: context.lgBg,
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
+              flexibleSpace: const RebuildGlassHeader(),
               systemOverlayStyle: context.lgIsDark
                   ? SystemUiOverlayStyle.light
                   : SystemUiOverlayStyle.dark,

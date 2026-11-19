@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:amap_flutter_base/amap_flutter_base.dart';
 import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -62,9 +63,59 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
   final Set<String> _pendingPhotos = {};
   final Set<String> _failedPhotos = {};
   bool _locationVisible = false;
+  bool _nativeLocationSeen = false;
+  Marker? _systemMarker;
+  BitmapDescriptor? _systemMarkerIcon;
+  StreamSubscription<dynamic>? _systemHeading;
+  late final AppLifecycleListener _lifecycle;
   Completer<LatLng>? _fix;
   int _intent = 0;
   int? _logoInset;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onPause: _stopHeading,
+      onResume: _startHeading,
+    );
+  }
+
+  void _stopHeading() {
+    _systemHeading?.cancel();
+    _systemHeading = null;
+  }
+
+  Future<void> _startHeading() async {
+    final marker = _systemMarker;
+    if (marker == null ||
+        marker.infoWindow.title == '上次位置' ||
+        _systemHeading != null ||
+        !mounted) {
+      return;
+    }
+    final arrow = await _positionIcon(false, direction: true);
+    if (!mounted ||
+        !identical(marker, _systemMarker) ||
+        _systemHeading != null ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    const channel = EventChannel('lovegirl/travel_heading');
+    _systemHeading = channel.receiveBroadcastStream({
+      'latitude': marker.position.latitude,
+      'longitude': marker.position.longitude,
+    }).listen((value) {
+      if (!mounted || _systemMarker == null) return;
+      final heading = value is num && value.isFinite ? value.toDouble() : null;
+      setState(() => _systemMarker = _systemMarker!.copyWith(
+            iconParam: heading == null ? _systemMarkerIcon : arrow,
+            rotationParam: heading ?? 0,
+          ));
+    }, onError: (Object _) {
+      // The position dot remains available without a working compass.
+    });
+  }
 
   Future<void> setBottomOverlay(double height) async {
     final controller = _controller;
@@ -112,11 +163,9 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     final west = places.map((place) => place.lng).reduce(math.min);
     final east = places.map((place) => place.lng).reduce(math.max);
     final viewport = LatLngBounds(
-      southwest: LatLng(
-          (south - .001).clamp(-89.999, 89.999),
+      southwest: LatLng((south - .001).clamp(-89.999, 89.999),
           (west - .001).clamp(-180.0, 180.0)),
-      northeast: LatLng(
-          (north + .001).clamp(-89.999, 89.999),
+      northeast: LatLng((north + .001).clamp(-89.999, 89.999),
           (east + .001).clamp(-180.0, 180.0)),
     );
     final height = context.size?.height ?? MediaQuery.sizeOf(context).height;
@@ -138,21 +187,47 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     final operation = ++_intent;
     var permission = await Permission.locationWhenInUse.status;
     if (!permission.isGranted) {
+      _stopHeading();
       permission = await Permission.locationWhenInUse.request();
     }
     if (!mounted) return;
     if (!permission.isGranted) {
+      setState(() {
+        _locationVisible = false;
+        _nativeLocationSeen = false;
+        _systemMarker = null;
+      });
       throw StateError('需要定位权限；也可以搜索或长按地图选点');
     }
     final fix = Completer<LatLng>();
     _fix = fix;
     setState(() => _locationVisible = true);
-    unawaited(_systemFix().then((point) {
+    unawaited(_systemFix().then((result) async {
       if (mounted &&
           identical(_fix, fix) &&
           !fix.isCompleted &&
-          point != null) {
-        fix.complete(point);
+          result != null) {
+        final icon = await _positionIcon(result.stale);
+        if (!mounted || !identical(_fix, fix) || fix.isCompleted) return;
+        if (!_nativeLocationSeen) {
+          _stopHeading();
+          final marker = Marker(
+            position: result.point,
+            anchor: const Offset(.5, .5),
+            icon: icon,
+            infoWindow: InfoWindow(
+              title: result.stale ? '上次位置' : '我的位置',
+              snippet: '精度约 ${result.accuracy.round()} 米',
+            ),
+            zIndex: 100,
+          )..setIdForCopy('my_system_position');
+          setState(() {
+            _systemMarkerIcon = icon;
+            _systemMarker = marker;
+          });
+          if (!result.stale) unawaited(_startHeading());
+        }
+        fix.complete(result.point);
       }
     }));
     try {
@@ -167,26 +242,74 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     }
   }
 
-  Future<LatLng?> _systemFix() async {
+  Future<({LatLng point, double accuracy, bool stale})?> _systemFix() async {
     try {
-      var position = await Geolocator.getLastKnownPosition(
-          forceAndroidLocationManager: true);
-      if (position == null ||
-          DateTime.now().difference(position.timestamp).abs() >
-              const Duration(minutes: 15) ||
-          position.accuracy > 1000) {
+      var stale = false;
+      Position? position;
+      try {
         position = await Geolocator.getCurrentPosition(
-          forceAndroidLocationManager: true,
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 10),
-        );
+            forceAndroidLocationManager: true,
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 8));
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition(
+            forceAndroidLocationManager: true);
+        stale = true;
       }
-      if (!mounted) return null;
-      return await TravelMapPlatform.fromGps(
+      if (!mounted ||
+          position == null ||
+          !position.accuracy.isFinite ||
+          position.accuracy < 0 ||
+          (stale &&
+              DateTime.now().difference(position.timestamp).abs() >
+                  const Duration(minutes: 15))) {
+        return null;
+      }
+      final point = await TravelMapPlatform.fromGps(
           position.latitude, position.longitude);
+      return (point: point, accuracy: position.accuracy, stale: stale);
     } catch (_) {
       return null;
     }
+  }
+
+  Future<BitmapDescriptor> _positionIcon(bool stale,
+      {bool direction = false}) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    if (direction) {
+      final needle = Path()
+        ..moveTo(22, 1)
+        ..lineTo(31, 16)
+        ..lineTo(13, 16)
+        ..close();
+      canvas.drawPath(needle, Paint()..color = const Color(0xff2276ce));
+    }
+    canvas.drawCircle(
+        const Offset(22, 22), 18, Paint()..color = const Color(0x552276ce));
+    canvas.drawCircle(const Offset(22, 22), 12, Paint()..color = Colors.white);
+    canvas.drawCircle(
+        const Offset(22, 22),
+        9,
+        Paint()
+          ..color = stale ? const Color(0xff657581) : const Color(0xff2276ce));
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(44, 44);
+      try {
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (bytes != null) {
+          return BitmapDescriptor.fromBytes(bytes.buffer.asUint8List());
+        }
+      } finally {
+        image.dispose();
+      }
+    } catch (_) {
+      // Keep a visible marker if rendering the custom glyph fails.
+    } finally {
+      picture.dispose();
+    }
+    return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
   }
 
   Future<void> _prepareIcon(int count,
@@ -400,6 +523,8 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
 
   @override
   void dispose() {
+    _lifecycle.dispose();
+    _stopHeading();
     _intent++;
     _fix = null;
     super.dispose();
@@ -441,12 +566,16 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
             Factory<OneSequenceGestureRecognizer>(
                 () => EagerGestureRecognizer())
           },
-          markers: _markers(),
+          markers: {
+            ..._markers(),
+            if (_systemMarker != null) _systemMarker!,
+          },
           polylines: _lines(),
-          myLocationStyleOptions: _locationVisible
-              ? MyLocationStyleOptions(true,
-                  trackingMode: MyLocationTrackingMode.show)
-              : null,
+          myLocationStyleOptions: MyLocationStyleOptions(_locationVisible,
+              trackingMode: MyLocationTrackingMode.locationRotateNoCenter,
+              circleFillColor: const Color(0x252276ce),
+              circleStrokeColor: const Color(0x882276ce),
+              circleStrokeWidth: 1.5),
           onMapCreated: (controller) {
             _controller = controller;
             unawaited(setBottomOverlay(widget.bottomOverlay));
@@ -465,12 +594,16 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
           onLocationChanged: (location) {
             final fix = _fix;
             final point = location.latLng;
-            if (fix != null &&
-                !fix.isCompleted &&
+            if (_locationVisible &&
                 point.latitude.isFinite &&
                 point.longitude.isFinite &&
                 (point.latitude != 0 || point.longitude != 0)) {
-              fix.complete(point);
+              _nativeLocationSeen = true;
+              if (_systemMarker != null && mounted) {
+                _stopHeading();
+                setState(() => _systemMarker = null);
+              }
+              if (fix != null && !fix.isCompleted) fix.complete(point);
             }
           },
           onLongPress: (point) {

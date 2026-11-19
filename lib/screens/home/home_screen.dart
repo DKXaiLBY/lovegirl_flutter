@@ -14,6 +14,7 @@ import '../../utils/lovegirl_dates.dart';
 import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../../utils/constants.dart';
 import '../couple/couple_binding_screen.dart';
 import '../cooking/cooking_log_screen.dart';
@@ -24,6 +25,7 @@ import '../anniversary/anniversary_screen.dart';
 import '../life/life_screen.dart';
 import '../life/widgets/todo_list.dart';
 import '../../utils/app_section.dart';
+import 'today_weather.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<AppSection>? onNavigateToTab;
@@ -46,8 +48,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _memoryToday; // W5 弹药库 7.3/10.2：N 年前的今天
   Map<String, dynamic>? _heroPhoto;
   Map<String, dynamic>? _partner;
-  bool _coupleLoaded = false;
-  bool _coupleLoading = true;
   bool _photoLoading = true;
   bool _photoFailed = false;
   int? _account;
@@ -71,8 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _heroPhoto = _memoryToday = _partner = null;
       _photoLoading = true;
       _photoFailed = false;
-      _coupleLoaded = _partnerBound = false;
-      _coupleLoading = true;
+      _partnerBound = false;
       _partnerRecent = [];
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _accountRevision == accountRevision) _refresh();
@@ -303,9 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 .toList();
       }
       final couple = results[1];
-      _coupleLoading = false;
       if (couple is Map && couple['coupled'] is bool) {
-        _coupleLoaded = true;
         _partnerBound = couple['coupled'] == true;
         _partner = _partnerBound && couple['partner'] is Map
             ? Map<String, dynamic>.from(couple['partner'])
@@ -356,8 +353,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       explicitDate: start.toIso8601String()),
                               partner: _partner,
                               bound: _partnerBound,
-                              known: _coupleLoaded,
-                              loading: _coupleLoading,
+                              api: _api,
                               onRelationship: () =>
                                   _push(const CoupleBindingScreen()),
                               onNavigateToTab: widget.onNavigateToTab),
@@ -438,15 +434,15 @@ String _homeImageUrl(String path) =>
 class _HomeHeader extends StatelessWidget {
   final int? loveDays;
   final Map<String, dynamic>? partner;
-  final bool bound, known, loading;
+  final bool bound;
+  final ApiService api;
   final VoidCallback onRelationship;
   final ValueChanged<AppSection>? onNavigateToTab;
   const _HomeHeader(
       {required this.loveDays,
       required this.partner,
       required this.bound,
-      required this.known,
-      required this.loading,
+      required this.api,
       required this.onRelationship,
       this.onNavigateToTab});
   @override
@@ -467,66 +463,59 @@ class _HomeHeader extends StatelessWidget {
         const Expanded(
             child: Text('今天',
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800))),
-        Semantics(
-            button: true,
-            label: '查看你们的关系',
-            child: InkWell(
-                borderRadius: BorderRadius.circular(28),
-                onTap: onRelationship,
-                child: SizedBox(
-                    width: 72,
-                    height: 48,
-                    child: Stack(children: [
-                      Positioned(
-                          left: 0,
-                          top: 4,
-                          child: _HomeAvatar(
-                              path: user?['avatar']?.toString() ?? '')),
-                      Positioned(
-                          left: 28,
-                          top: 4,
-                          child: _HomeAvatar(
-                              path: (partner?['avatar'] ??
-                                      partner?['avatar_url'] ??
-                                      '')
-                                  .toString(),
-                              invite: !bound)),
-                    ])))),
+        if (bound)
+          Semantics(
+              button: true,
+              label: '查看你们的关系',
+              child: InkWell(
+                  borderRadius: BorderRadius.circular(28),
+                  onTap: onRelationship,
+                  child: SizedBox(
+                      width: 72,
+                      height: 48,
+                      child: Stack(children: [
+                        Positioned(
+                            left: 0,
+                            top: 4,
+                            child: _HomeAvatar(
+                                path: user?['avatar']?.toString() ?? '')),
+                        Positioned(
+                            left: 28,
+                            top: 4,
+                            child: _HomeAvatar(
+                                path: (partner?['avatar'] ??
+                                        partner?['avatar_url'] ??
+                                        '')
+                                    .toString())),
+                      ])))),
         const SizedBox(width: 8),
         _BellBadge(onNavigateToTab: onNavigateToTab),
       ]),
       const SizedBox(height: 4),
-      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
         Expanded(
             child: Text('${now.month}月${now.day}日 · $weekday',
                 maxLines: 2,
                 style:
                     TextStyle(fontSize: 12, color: context.lgTextSecondary))),
         const SizedBox(width: 8),
-        Expanded(
-            child: Text(
-                bound
-                    ? loveDays == null
-                        ? '设置属于你们的纪念日起点'
-                        : '在一起的第$loveDays天'
-                    : loading
-                        ? '正在读取双人信息…'
-                        : known
-                            ? '邀请Ta，一起记录日常'
-                            : '双人信息暂未读取',
-                textAlign: TextAlign.right,
-                maxLines: 2,
-                style:
-                    TextStyle(fontSize: 12, color: context.lgTextSecondary))),
+        TodayWeather(api: api),
       ]),
+      if (bound)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            loveDays == null ? '设置属于你们的纪念日起点' : '在一起的第$loveDays天',
+            style: TextStyle(fontSize: 12, color: context.lgTextSecondary),
+          ),
+        ),
     ]);
   }
 }
 
 class _HomeAvatar extends StatelessWidget {
   final String path;
-  final bool invite;
-  const _HomeAvatar({required this.path, this.invite = false});
+  const _HomeAvatar({required this.path});
   @override
   Widget build(BuildContext context) => Container(
       width: 40,
@@ -538,12 +527,8 @@ class _HomeAvatar extends StatelessWidget {
           child: path.isEmpty
               ? ColoredBox(
                   color: context.lgPrimarySoft,
-                  child: Icon(
-                      invite
-                          ? Icons.person_add_alt_outlined
-                          : Icons.person_outline,
-                      size: 22,
-                      color: context.lgTextSecondary))
+                  child: Icon(Icons.person_outline,
+                      size: 22, color: context.lgTextSecondary))
               : CachedNetworkImage(
                   imageUrl: _homeImageUrl(path),
                   fit: BoxFit.cover,
@@ -932,7 +917,6 @@ class _TodayCareSection extends StatelessWidget {
             Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: _CareEntry(
-                    emoji: '🍳',
                     title: '情侣厨房',
                     badge: feed['statusLabel']?.toString() ?? '这一餐',
                     badgeTone: _CareBadgeTone.neutral,
@@ -946,7 +930,6 @@ class _TodayCareSection extends StatelessWidget {
 enum _CareBadgeTone { ok, warn, neutral }
 
 class _CareEntry extends StatelessWidget {
-  final String? emoji;
   final String title;
   final String badge;
   final _CareBadgeTone badgeTone;
@@ -954,7 +937,6 @@ class _CareEntry extends StatelessWidget {
   final VoidCallback onTap;
 
   const _CareEntry({
-    this.emoji,
     required this.title,
     required this.badge,
     required this.badgeTone,
@@ -990,11 +972,8 @@ class _CareEntry extends StatelessWidget {
                   color: context.lgPrimarySoft,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Center(
-                  child: emoji != null
-                      ? Text(emoji!, style: const TextStyle(fontSize: 20))
-                      : Icon(Icons.star_rounded,
-                          size: 20, color: context.lgInk),
+                child: const Center(
+                  child: GlassFeatureIcon(GlassFeature.kitchen, size: 34),
                 ),
               ),
               SizedBox(width: 12),

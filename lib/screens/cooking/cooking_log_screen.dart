@@ -12,6 +12,7 @@ import '../../widgets/polaroid_card.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/rebuild_controls.dart';
+import '../../widgets/glass_feature_icon.dart';
 import '../kitchen/kitchen_screen.dart';
 
 /// 美食手账：两个人的餐桌相册。
@@ -315,8 +316,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(g['emoji']?.toString() ?? '🍳',
-                                        style: const TextStyle(fontSize: 14)),
+                                    const Icon(Icons.restaurant_outlined, size: 14),
                                     const SizedBox(width: 4),
                                     Text(
                                       g['title']?.toString() ?? '',
@@ -603,8 +603,7 @@ class _CookingCard extends StatelessWidget {
       children: [
                   Row(
                     children: [
-                      Text(log['emoji']?.toString() ?? '🍳',
-                          style: const TextStyle(fontSize: 18)),
+                      const Icon(Icons.restaurant_outlined, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -775,13 +774,12 @@ class _CookingCard extends StatelessWidget {
       );
   }
 
-  /// 照片缺失时的拍立得"相片区"：暖色底 + 大 emoji
+  /// 无照片时显示厨房入口的图标。
   Widget _photoFallback(BuildContext context) {
     return Container(
       color: LoveGirlTheme.primarySoft,
       alignment: Alignment.center,
-      child: Text(log['emoji']?.toString() ?? '🍳',
-          style: const TextStyle(fontSize: 58)),
+      child: const GlassFeatureIcon(GlassFeature.kitchen, size: 56),
     );
   }
 }
@@ -810,7 +808,16 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
   bool _uploading = false;
   bool _sending = false;
 
-  static const _emojiChoices = ['🍳', '🍅', '🥘', '🍰', '🍜', '🥟', '🍱', '🍵'];
+  static const _dishKinds = {
+    '🍳': '家常',
+    '🍅': '蔬菜',
+    '🥘': '炖煮',
+    '🍰': '甜品',
+    '🍜': '面食',
+    '🥟': '点心',
+    '🍱': '便当',
+    '🍵': '饮品',
+  };
 
   @override
   void dispose() {
@@ -1097,31 +1104,16 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              // emoji
               Wrap(
                 spacing: 8,
-                children: _emojiChoices
-                    .map((e) => GestureDetector(
-                          onTap: () => setState(() => _emoji = e),
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _emoji == e
-                                  ? LoveGirlTheme.primary.withAlpha(25)
-                                  : context.lgCard,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: _emoji == e
-                                      ? LoveGirlTheme.primary
-                                      : context.lgCardBorder),
-                            ),
-                            child:
-                                Text(e, style: const TextStyle(fontSize: 20)),
-                          ),
-                        ))
-                    .toList(),
+                children: [
+                  for (final entry in _dishKinds.entries)
+                    RebuildChoiceChip(
+                      label: Text(entry.value),
+                      selected: _emoji == entry.key,
+                      onSelected: (_) => setState(() => _emoji = entry.key),
+                    ),
+                ],
               ),
               const SizedBox(height: 14),
               SizedBox(

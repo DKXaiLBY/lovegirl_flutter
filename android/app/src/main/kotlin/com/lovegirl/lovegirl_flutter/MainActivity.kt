@@ -1,6 +1,7 @@
 package com.lovegirl.lovegirl_flutter
 
 import android.content.ContentValues
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -9,8 +10,17 @@ import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.maps.CoordinateConverter
 import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.Poi
+import com.amap.api.navi.AMapNavi
+import com.amap.api.navi.AmapNaviPage
+import com.amap.api.navi.AmapNaviParams
+import com.amap.api.navi.AmapNaviTheme
+import com.amap.api.navi.AmapNaviType
+import com.amap.api.navi.AmapPageType
+import com.amap.api.navi.enums.NaviType
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
@@ -25,6 +35,8 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "lovegirl/travel_heading")
+            .setStreamHandler(TravelHeading(applicationContext))
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -51,6 +63,54 @@ class MainActivity: FlutterActivity() {
                                 }
                             }
                         }.start()
+                    }
+                }
+                "startWalkingNavigation" -> {
+                    val lat = call.argument<Double>("lat")
+                    val lng = call.argument<Double>("lng")
+                    val startLat = call.argument<Double>("startLat")
+                    val startLng = call.argument<Double>("startLng")
+                    val name = call.argument<String>("name")
+                    if (lat == null || lng == null || lat !in -90.0..90.0 ||
+                        lng !in -180.0..180.0 || name.isNullOrBlank() ||
+                        (lat == 0.0 && lng == 0.0)) {
+                        result.error("INVALID_DESTINATION", "下一站缺少有效位置", null)
+                    } else if (startLat == null || startLng == null || startLat !in -90.0..90.0 ||
+                        startLng !in -180.0..180.0 || (startLat == 0.0 && startLng == 0.0)) {
+                        result.error("INVALID_ORIGIN", "暂未取得有效的当前位置", null)
+                    } else {
+                        try {
+                            @Suppress("DEPRECATION")
+                            val metadata = packageManager.getApplicationInfo(
+                                packageName, PackageManager.GET_META_DATA
+                            ).metaData
+                            val navigationKey = metadata.getString("com.amap.api.v2.apikey")
+                            if (navigationKey.isNullOrBlank()) {
+                                result.error("NAVIGATION_KEY_MISSING", "应用内导航暂不可用", null)
+                                return@setMethodCallHandler
+                            }
+                            AMapNavi.setApiKey(applicationContext, navigationKey)
+                            val start = Poi("当前位置", LatLng(startLat, startLng), "")
+                            val end = Poi(name, LatLng(lat, lng), "")
+                            val params = AmapNaviParams(
+                                start, null, end, AmapNaviType.WALK, AmapPageType.NAVI
+                            )
+                                .setNaviMode(NaviType.GPS)
+                                .setUseInnerVoice(true)
+                                .setShowExitNaviDialog(true)
+                                .setNeedDestroyDriveManagerInstanceWhenNaviExit(true)
+                                .setTheme(if (call.argument<Boolean>("dark") == true)
+                                    AmapNaviTheme.BLACK else AmapNaviTheme.WHITE)
+                            AmapNaviPage.getInstance().showRouteActivity(
+                                this,
+                                params,
+                                WalkingNavigationCallback(applicationContext),
+                                WalkingNavigationActivity::class.java
+                            )
+                            result.success(null)
+                        } catch (_: Exception) {
+                            result.error("NAVIGATION_START_FAILED", "步行导航暂时无法启动", null)
+                        }
                     }
                 }
                 "gpsToAmap" -> {

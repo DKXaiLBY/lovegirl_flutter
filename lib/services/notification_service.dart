@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 /// 本地通知服务 — 提醒推送管理
 class NotificationService {
@@ -8,7 +9,8 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._();
 
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
   // 存储key
@@ -23,7 +25,8 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -137,6 +140,44 @@ class NotificationService {
     );
   }
 
+  Future<List<PendingNotificationRequest>> pendingTripReminders(
+      String prefix) async {
+    await init();
+    final requests = await _plugin.pendingNotificationRequests();
+    return requests
+        .where((item) => item.payload?.startsWith(prefix) == true)
+        .toList();
+  }
+
+  Future<void> scheduleTripReminder(
+      int id, DateTime when, String payload) async {
+    if (!await isPushEnabled) {
+      throw StateError('请先在设置里启用推送通知');
+    }
+    await init();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (await android?.requestNotificationsPermission() == false) {
+      throw StateError('请在系统设置里允许 LoveGirl 发送通知');
+    }
+    if (!when.isAfter(DateTime.now())) {
+      throw StateError('请选择将来的时间');
+    }
+    await _plugin.zonedSchedule(
+      id,
+      '旅行站次提醒',
+      '打开 LoveGirl 查看今天的行程。',
+      tz.TZDateTime.from(when, tz.UTC),
+      const NotificationDetails(
+          android: AndroidNotificationDetails('lovegirl_trip', '旅行提醒'),
+          iOS: DarwinNotificationDetails()),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
+  }
+
   /// 取消所有通知
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
@@ -157,7 +198,7 @@ class NotificationService {
 
     await scheduleDailyNotification(
       id: 1001,
-      title: '💧 姨妈提醒',
+      title: '姨妈提醒',
       body: '预计姨妈还有 $daysBefore 天到来，提前做好准备哦~',
       payload: 'health_period',
     );
@@ -176,14 +217,14 @@ class NotificationService {
     if (daysUntil == 0) {
       await showNotification(
         id: 2000 + id,
-        title: '🎉 纪念日到了！',
+        title: '纪念日到了！',
         body: '今天是「$title」！祝你们幸福快乐~',
         payload: 'anniversary_$id',
       );
     } else if (daysUntil <= 3) {
       await showNotification(
         id: 3000 + id,
-        title: '💕 纪念日快到了',
+        title: '纪念日快到了',
         body: '还有$daysUntil天就是「$title」啦！准备惊喜了吗？',
         payload: 'anniversary_$id',
       );
@@ -201,7 +242,7 @@ class NotificationService {
 
     await showNotification(
       id: 4000 + id,
-      title: '📋 待办提醒',
+      title: '待办提醒',
       body: '「$title」今天到期哦~ 别忘了完成！',
       payload: 'todo_$id',
     );

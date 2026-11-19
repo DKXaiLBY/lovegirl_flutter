@@ -301,7 +301,12 @@ public class ConvertUtil {
         return customMapStyleOptions;
     }
 
-    private static final int[] LocationTypeMap = new int[]{MyLocationStyle.LOCATION_TYPE_SHOW, MyLocationStyle.LOCATION_TYPE_FOLLOW, MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE};
+    private static final int[] LocationTypeMap = new int[]{
+            MyLocationStyle.LOCATION_TYPE_SHOW,
+            MyLocationStyle.LOCATION_TYPE_FOLLOW,
+            MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE,
+            MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER
+    };
 
     private static MyLocationStyle toMyLocationStyle(Object o, float density) {
         final Map<?, ?> map = toMap(o);

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,7 +24,7 @@ import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
 import 'utils/app_section.dart';
 import 'widgets/illus_image.dart';
-import 'widgets/rebuild_controls.dart' show rebuildReduceMotion;
+import 'widgets/rebuild_controls.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -192,17 +191,13 @@ class _AppShellState extends State<AppShell> {
 
     return SafeArea(
       top: false,
-      child: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            height: 74,
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            decoration: BoxDecoration(
-              color: context.lgPaper.withAlpha(235),
-              border: Border(
-                  top: BorderSide(color: context.lgSeparator.withAlpha(100))),
-            ),
+      minimum: const EdgeInsets.fromLTRB(8, 3, 8, 4),
+      child: RebuildPageBackground(
+        child: RebuildGlass(
+          radius: 25,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: SizedBox(
+            height: 64,
             child: Row(
               children: [
                 for (var i = 0; i < items.length; i++)
