@@ -398,10 +398,12 @@ class JourneyPanel extends StatelessWidget {
             content: const Text('提醒仅发送到这台设备，送达时间由系统调度。'),
             actions: [
               TextButton(
+                style: rebuildTextStyle(dialog),
                 onPressed: () => Navigator.pop(dialog, false),
                 child: const Text('关闭提醒'),
               ),
               TextButton(
+                style: rebuildTextStyle(dialog),
                 onPressed: () => Navigator.pop(dialog, true),
                 child: const Text('改时间'),
               ),
@@ -421,6 +423,15 @@ class JourneyPanel extends StatelessWidget {
       final picked = await showTimePicker(
         context: context,
         helpText: '${date.month}月${date.day}日的本站提醒',
+        builder: (dialog, child) => TimePickerTheme(
+          data: TimePickerTheme.of(dialog).copyWith(
+            cancelButtonStyle: rebuildTextStyle(dialog),
+            confirmButtonStyle: rebuildTextStyle(dialog),
+            dialTextColor: dialog.lgInk,
+            hourMinuteTextColor: dialog.lgInk,
+          ),
+          child: child!,
+        ),
         initialTime: current == null
             ? const TimeOfDay(hour: 9, minute: 0)
             : TimeOfDay.fromDateTime(current),

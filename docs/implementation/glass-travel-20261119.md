@@ -68,3 +68,15 @@ Android 地图、定位与导航现在共用构建注入的 Android 平台 Key�
 同日收到 `mystyle_sdk_1795155533_0100.zip`，已备份原 ZIP 并导入 `style.data`（77,413 字节）与 `style_extra.data`（414 字节）。两份内容通过 ZIP 校验，原件与入库资源的散列见备份目录 `release-189-offline-style-import.json`。地图刷新时按开关和内容比较样式，不再把大段二进制转换成字符串；亮暗切换仍会发送样式更新。ZIP 内无导出版本说明，需上荣耀确认 SDK 实际采用了新样式，并对照参考图。
 
 含样式候选 `LoveGirl-4.5.1-189-offline-style-candidate.apk` 已构建并保存在本轮备份目录。152,803,171 字节，SHA-256 为 `e93f0a80396c726c89f2f8b71d73475f7c97e75bb592541cf345562421f70469`。两份资源已登记在 APK 的 Flutter 资源清单中，包内字节与 ZIP 原件一致；签名、版本、Android Key 绑定和四种架构均已复核。静态检查无问题，260 项 Flutter 测试通过。荣耀尚未接入，底图渲染、实走语音和站次提醒仍待实机验收；正式服复核仍为 4.5.0（188）。
+
+### 底图真机对照
+
+荣耀重新连接后，安装了只使用隔离后端、含相同高德资源的 189 真机包，ADB 上的 APK 散列与构建产物一致。白天以厦门演武大桥为中心、同一 200 米比例尺比较 `glass-style-before-xiamen.png` 和 `glass-style-after-xiamen.png`，确认 SDK 已实际采用样式：同一海面采样从 `#80DFFF` 变为 `#B2E4FF`，绿地从 `#A8EA93` 变为 `#CAE9D7`。沙坡尾照片标记和演武大桥地点卡都保留。比参考图更深的主干道与更显眼的地标文字仍可继续通过高德样式调整。深色模式使用高德夜间底图，见 `glass-style-night-xiamen.png`。
+
+在隔离测试行程打开当天两站，荣耀地图显示蓝色步行路线，面板返回站间 665 米、约 9 分钟，见 `glass-style-qa-journey.png`。这里验证的是路线与站次能在地图和行程面板上一起显示；实时转向播报、锁屏语音与偏航仍须实走。截图存于 `D:\Projects\codex\lovegirl-ui-backups\20261031-clear-app\honor`。
+
+同一隔离行程为演武大桥站次安排 18:50 的本机通知，荣耀系统在 18:50:00.062 入队，通知栏显示「旅行站次提醒」。只清除这条测试通知，保存证据 `honor-reminder-delivery.json`。验收中发现原深色时间选择器的动作与选中数字对比度不足，改用现有主题的可读文字色，不改变提醒调度逻辑。
+
+修正后的隔离测试包在荣耀验证了深色时间选择器的数字与按钮，截图 `glass-style-reminder-contrast-fixed.png`。App 已恢复原亮色（`glass-style-light-restored.png`）；临时行程 41 和本轮测试通知已清理，只保留原实走测试行程 40。该版本重新打开应用内步行导航，荣耀显示 401 米、7 分钟以及距下一步 57 米。此结果是原地算路与进入导航，不能替代实走验收。
+
+正式配置候选更新为 `LoveGirl-4.5.1-189-reminder-contrast-candidate.apk`，152,804,188 字节，SHA-256 `22cc908f16a5236506d58f45bb3902aba9df2a06888e47cca5429e457dedb4d0`。签名、Android 地图绑定和四种架构未变，两份底图资源仍与原 ZIP 一致，未嵌入隔离后端。静态检查无问题，260 项 Flutter 测试通过；本轮未发布。
