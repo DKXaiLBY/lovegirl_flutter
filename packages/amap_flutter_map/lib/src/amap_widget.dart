@@ -413,7 +413,15 @@ class _AMapOptions {
   }
 
   bool _checkChange(String key, dynamic preValue, dynamic newValue) {
-    if (key == 'myLocationStyle' || key == 'customStyleOptions') {
+    if (key == 'customStyleOptions') {
+      return preValue != null &&
+          preValue['enabled'] == newValue['enabled'] &&
+          listEquals(preValue['styleData'] as Uint8List?,
+              newValue['styleData'] as Uint8List?) &&
+          listEquals(preValue['styleExtraData'] as Uint8List?,
+              newValue['styleExtraData'] as Uint8List?);
+    }
+    if (key == 'myLocationStyle') {
       return preValue?.toString() == newValue?.toString();
     } else {
       return preValue == newValue;
