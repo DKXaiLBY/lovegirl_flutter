@@ -55,8 +55,7 @@ class TravelMapCanvas extends StatefulWidget {
 class TravelMapCanvasState extends State<TravelMapCanvas> {
   AMapController? _controller;
   late TravelCamera _camera = widget.initialCamera;
-  late final Future<bool> _supported =
-      TravelMapPlatform.isSupported().catchError((_) => false);
+  late final _map = _prepareMap();
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   final Set<int> _pendingIcons = {};
   final Map<String, BitmapDescriptor> _photoIcons = {};
@@ -71,6 +70,35 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
   Completer<LatLng>? _fix;
   int _intent = 0;
   int? _logoInset;
+
+  Future<({bool supported, CustomStyleOptions? lightStyle})>
+      _prepareMap() async {
+    final supported =
+        await TravelMapPlatform.isSupported().catchError((_) => false);
+    if (!supported) return (supported: false, lightStyle: null);
+
+    const stylePath = 'assets/data/amap_travel_style.data';
+    const extraPath = 'assets/data/amap_travel_style_extra.data';
+    try {
+      final assets =
+          (await AssetManifest.loadFromAssetBundle(rootBundle)).listAssets();
+      if (assets.contains(stylePath) && assets.contains(extraPath)) {
+        final files = await Future.wait(
+            [rootBundle.load(stylePath), rootBundle.load(extraPath)]);
+        if (files.every((file) => file.lengthInBytes > 0)) {
+          return (
+            supported: true,
+            lightStyle: CustomStyleOptions(true,
+                styleData: Uint8List.sublistView(files[0]),
+                styleExtraData: Uint8List.sublistView(files[1]))
+          );
+        }
+      }
+    } on FlutterError catch (error) {
+      debugPrint('Travel map style could not be loaded: $error');
+    }
+    return (supported: true, lightStyle: null);
+  }
 
   @override
   void initState() {
@@ -532,13 +560,14 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _supported,
+    return FutureBuilder<({bool supported, CustomStyleOptions? lightStyle})>(
+      future: _map,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        final map = snapshot.data;
+        if (map == null) {
           return const ColoredBox(color: Color(0xFFE8EBEE));
         }
-        if (!snapshot.data!) {
+        if (!map.supported) {
           return ColoredBox(
               color: context.lgBg,
               child: Center(
@@ -548,6 +577,7 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
                           textAlign: TextAlign.center,
                           style: TextStyle(color: context.lgTextSecondary)))));
         }
+        final dark = context.lgIsDark;
         return AMapWidget(
           key: const ValueKey('travel_native_surface'),
           privacyStatement: const AMapPrivacyStatement(
@@ -556,7 +586,10 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
               target:
                   LatLng(widget.initialCamera.lat, widget.initialCamera.lng),
               zoom: widget.initialCamera.zoom),
-          mapType: context.lgIsDark ? MapType.night : MapType.normal,
+          mapType: dark ? MapType.night : MapType.normal,
+          customStyleOptions: map.lightStyle == null
+              ? null
+              : (dark ? CustomStyleOptions(false) : map.lightStyle),
           compassEnabled: false,
           scaleEnabled: true,
           rotateGesturesEnabled: false,
