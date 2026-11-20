@@ -7,17 +7,155 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
+import com.amap.api.maps.AMap
+import com.amap.api.maps.CameraUpdateFactory
+import com.amap.api.maps.model.CameraPosition
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.LatLngBounds
+import com.amap.api.maps.model.Polyline
+import com.amap.api.maps.model.PolylineOptions
+import com.amap.api.navi.AMapNavi
+import com.amap.api.navi.AMapNaviView
 import com.amap.api.navi.AmapRouteActivity
 import com.amap.api.navi.INaviInfoCallback
+import com.amap.api.navi.enums.AMapNaviViewShowMode
+import com.amap.api.navi.model.AMapCalcRouteResult
 import com.amap.api.navi.model.AMapNaviLocation
 
 class WalkingNavigationActivity : AmapRouteActivity() {
+    private var navigationView: AMapNaviView? = null
+    private var routeLine: Polyline? = null
+    private var renderedPoints = emptyList<LatLng>()
+    private var overviewFitAttempts = 0
+    private val renderRoute = Runnable { updateRouteLine() }
+    private val fitRoute = Runnable { fitRouteOverview() }
+    private val overviewListener = object : AMap.OnCameraChangeListener {
+        override fun onCameraChange(position: CameraPosition?) = Unit
+        override fun onCameraChangeFinish(position: CameraPosition?) {
+            if (navigationView?.isRouteOverviewNow != true) {
+                overviewFitAttempts = 0
+            } else if (position != null && position.zoom < 12f) {
+                scheduleRouteOverview()
+            }
+        }
+    }
+
+    override fun onNaviViewLoaded() {
+        super.onNaviViewLoaded()
+        scheduleRouteLine()
+    }
+
+    override fun onStartNavi(type: Int) {
+        super.onStartNavi(type)
+        scheduleRouteLine()
+    }
+
+    override fun onNaviViewShowMode(showMode: Int) {
+        super.onNaviViewShowMode(showMode)
+        window.decorView.removeCallbacks(fitRoute)
+        if (showMode == AMapNaviViewShowMode.SHOW_MODE_DISPLAY_OVERVIEW) {
+            overviewFitAttempts = 0
+            scheduleRouteOverview()
+        }
+    }
+
+    override fun onCalculateRouteSuccess(routeIds: IntArray?) {
+        super.onCalculateRouteSuccess(routeIds)
+        scheduleRouteLine()
+    }
+
+    override fun onCalculateRouteSuccess(result: AMapCalcRouteResult?) {
+        super.onCalculateRouteSuccess(result)
+        scheduleRouteLine()
+    }
+
+    private fun scheduleRouteLine() {
+        window.decorView.removeCallbacks(renderRoute)
+        window.decorView.post(renderRoute)
+    }
+
+    private fun updateRouteLine() {
+        if (isFinishing || isDestroyed) return
+        val view = navigationView ?: findNavigationView(window.decorView) ?: return
+        val map = view.map ?: return
+        if (navigationView == null) {
+            view.viewOptions = view.viewOptions.apply {
+                setLeaderLineEnabled(Color.TRANSPARENT)
+                setTilt(0)
+                setAutoChangeZoom(false)
+                setAutoDisplayOverview(false)
+            }
+            map.showBuildings(false)
+            navigationView = view
+            map.addOnCameraChangeListener(overviewListener)
+        }
+
+        val points = AMapNavi.getInstance(applicationContext).naviPath?.coordList
+            .orEmpty()
+            .filter { it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0 &&
+                (it.latitude != 0.0 || it.longitude != 0.0) }
+            .map { LatLng(it.latitude, it.longitude) }
+        if (points.size < 2 || points.all { it == points.first() }) return
+        if (points != renderedPoints) {
+            if (routeLine == null) {
+                routeLine = map.addPolyline(PolylineOptions().addAll(points)
+                    .width(8 * resources.displayMetrics.density)
+                    .color(Color.rgb(22, 112, 232)).zIndex(25f))
+            } else {
+                routeLine?.points = points
+            }
+            renderedPoints = points
+            Log.i("WalkingNavigation", "Displayed SDK walking route (${points.size} points)")
+            if (view.isRouteOverviewNow) {
+                overviewFitAttempts = 0
+                scheduleRouteOverview()
+            }
+        }
+    }
+
+    private fun scheduleRouteOverview() {
+        if (overviewFitAttempts >= 2) return
+        window.decorView.removeCallbacks(fitRoute)
+        window.decorView.postDelayed(fitRoute, 160)
+    }
+
+    private fun fitRouteOverview() {
+        val view = navigationView ?: return
+        if (isFinishing || isDestroyed || !view.isRouteOverviewNow ||
+            renderedPoints.size < 2 || view.width == 0 || view.height == 0) return
+        val bounds = LatLngBounds.builder()
+        renderedPoints.forEach { bounds.include(it) }
+        val map = view.map ?: return
+        overviewFitAttempts++
+        map.stopAnimation()
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(
+            bounds.build(), view.width, view.height, view.width / 5
+        ))
+        Log.i("WalkingNavigation", "Fitted the walking route overview ($overviewFitAttempts)")
+    }
+
+    private fun findNavigationView(root: View): AMapNaviView? {
+        if (root is AMapNaviView) return root
+        if (root is ViewGroup) {
+            for (index in 0 until root.childCount) {
+                findNavigationView(root.getChildAt(index))?.let { return it }
+            }
+        }
+        return null
+    }
+
     override fun onDestroy() {
+        window.decorView.removeCallbacks(renderRoute)
+        window.decorView.removeCallbacks(fitRoute)
+        navigationView?.map?.removeOnCameraChangeListener(overviewListener)
+        routeLine?.remove()
         if (!isChangingConfigurations) {
             stopService(Intent(this, WalkingNavigationService::class.java))
         }
