@@ -80,3 +80,5 @@ Android 地图、定位与导航现在共用构建注入的 Android 平台 Key�
 修正后的隔离测试包在荣耀验证了深色时间选择器的数字与按钮，截图 `glass-style-reminder-contrast-fixed.png`。App 已恢复原亮色（`glass-style-light-restored.png`）；临时行程 41 和本轮测试通知已清理，只保留原实走测试行程 40。该版本重新打开应用内步行导航，荣耀显示 401 米、7 分钟以及距下一步 57 米。此结果是原地算路与进入导航，不能替代实走验收。
 
 正式配置候选更新为 `LoveGirl-4.5.1-189-reminder-contrast-candidate.apk`，152,804,188 字节，SHA-256 `22cc908f16a5236506d58f45bb3902aba9df2a06888e47cca5429e457dedb4d0`。签名、Android 地图绑定和四种架构未变，两份底图资源仍与原 ZIP 一致，未嵌入隔离后端。静态检查无问题，260 项 Flutter 测试通过；本轮未发布。
+
+20:14 补验退出：荣耀确认使用同一隔离测试包。退出前，系统存在步行导航前台服务和通知；通过导航页确认退出后，回到原「QA步行导航」行程，服务及通知均结束。证据见 `glass-style-walk-exit-confirmed.png` 和 `honor-walk-exit-verified.json`。实走转向、锁屏播报和偏航重算仍待验证。
