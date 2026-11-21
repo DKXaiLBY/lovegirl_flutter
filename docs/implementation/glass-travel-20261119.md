@@ -92,3 +92,5 @@ Android 地图、定位与导航现在共用构建注入的 Android 平台 Key�
 高德的原全览在本机测试中会跳到全球范围。改为在全览状态按实际路线边界调整相机，等待 SDK 的相机切换后再处理，最多校正两次。荣耀用 401 米路线确认全览内同时看得到当前位置、沿路蓝线与终点旗帜（`glass-walk-route-fit-complete.png`）。再次点击后回到跟随模式，蓝线仍可见（`glass-walk-route-recheck-return.png`）。真机安装包 SHA-256 `df9c472d8b6cf19f638471edf7be079ec94040212f596373dc17fbc080819237`。
 
 从导航页退出后，真机回到原行程，导航后台服务和系统通知结束。正式配置候选为 `LoveGirl-4.5.1-189-walk-route-candidate.apk`，152,806,645 字节，SHA-256 `d0dd6cdd37c46dabfb81004eebea32bf8fe61b67ef9582aa961cc1f42607f844`；签名、Android Key 绑定、架构、离线底图资源及生产后端均已复核。静态检查无问题、260 项 Flutter 测试通过。本轮仍未发布。
+
+2026-11-21 使用上述确切 APK 对 160 MiB 发布路由进行隔离演练，上传成功且下载散列一致；上传超限、缺少版本信息与模拟数据库写入失败均保住已有下载。正式环境的路由、4.5.0 下载和回滚 APK 散列复核一致，保留约 1.8 GiB 空间。证据见本轮备份目录 `release-189-upload-final.json`、`release-189-rollback-readiness.json`。荣耀仍安装同一隔离测试包；唤醒后系统显示防误触浮层，暂停手机输入。实走验收未进行，未上线。
