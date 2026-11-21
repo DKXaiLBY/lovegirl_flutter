@@ -8,6 +8,7 @@ import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/features/creations/creation_gallery.dart';
 import 'package:lovegirl_flutter/screens/memories/memories_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
+import 'package:lovegirl_flutter/widgets/paper_flip.dart';
 import 'package:lovegirl_flutter/widgets/polaroid_frame.dart';
 
 Response<dynamic> result(dynamic value) => Response(
@@ -64,7 +65,7 @@ void main() {
     expect(size.width, closeTo(size.height, .1));
   });
   Future<void> show(WidgetTester tester, ShelfApi api, ShelfAuth auth,
-      {double scale = 1.0}) async {
+      {double scale = 1.0, bool reduceMotion = true}) async {
     tester.view.physicalSize = const Size(720, 1600);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -73,7 +74,7 @@ void main() {
         child: MaterialApp(
             builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(context).copyWith(
-                    disableAnimations: true,
+                    disableAnimations: reduceMotion,
                     textScaler: TextScaler.linear(scale)),
                 child: child!),
             home: MemoriesScreen(api: api))));
@@ -84,6 +85,63 @@ void main() {
   Future<void> finish(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 1));
+  }
+
+  for (final original in [true, false]) {
+    testWidgets(
+        'top ${original ? 'original' : 'published'} paper has intermediate perspective frames',
+        (tester) async {
+      final api = ShelfApi();
+      if (original) {
+        api.photos = [
+          {'id': 3, 'url': '/uploads/paper.jpg', 'description': '相纸背面'}
+        ];
+      } else {
+        api.works = [
+          {
+            'id': 3,
+            'clientId': 'paper_3',
+            'ownerId': 7,
+            'revision': 1,
+            'previewUrl': '/uploads/paper.png',
+            'sourceUrls': [],
+            'updatedAt': '2026-11-21',
+            'document': {'kind': 'polaroid', 'title': '相纸', 'note': '相纸背面'},
+          }
+        ];
+      }
+      await show(tester, api, ShelfAuth(), reduceMotion: false);
+      final strip = find.byKey(const ValueKey('memory_paper_strip:7:'));
+      final flip = find.descendant(of: strip, matching: find.byType(PaperFlip));
+      final faces =
+          find.descendant(of: flip, matching: find.byType(IndexedStack));
+      final transform =
+          find.ancestor(of: faces, matching: find.byType(Transform)).first;
+      final size = tester.getSize(faces);
+      double apparentWidth() {
+        final m = tester.widget<Transform>(transform).transform;
+        return (MatrixUtils.transformPoint(m, Offset(size.width / 2, 0)).dx -
+                MatrixUtils.transformPoint(m, Offset(-size.width / 2, 0)).dx)
+            .abs();
+      }
+
+      final fullWidth = apparentWidth();
+      expect(tester.widget<IndexedStack>(faces).index, 0);
+      await tester.tap(flip);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(tester.widget<IndexedStack>(faces).index, 0);
+      expect(apparentWidth(), inInclusiveRange(fullWidth * .3, fullWidth * .7));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(apparentWidth(), lessThan(fullWidth * .05));
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(tester.widget<IndexedStack>(faces).index, 1);
+      expect(apparentWidth(), inInclusiveRange(fullWidth * .3, fullWidth * .8));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(apparentWidth(), closeTo(fullWidth, .01));
+      expect(tester.getSize(faces), size);
+      await finish(tester);
+    });
   }
 
   testWidgets('a slow drag rests between distinct papers, then a tap flips one',

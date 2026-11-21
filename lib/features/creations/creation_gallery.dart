@@ -564,15 +564,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                         ? works.isEmpty
                             ? _empty('还没有收藏的${_ticket ? '票根' : '拍立得'}',
                                 '拍摄或导入一张照片，制作第一份回忆')
-                            : PageView.builder(
-                                key: ValueKey(
-                                    '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}'),
-                                controller: _pager,
-                                onPageChanged: (value) =>
-                                    setState(() => _page = value),
-                                itemCount: works.length,
-                                itemBuilder: (_, index) =>
-                                    _workPage(works, index))
+                            : _publishedWorks(works)
                         : _section == 1
                             ? _drafts.isEmpty
                                 ? _empty('还没有草稿', '编辑过程中会自动保存在这台设备')
@@ -741,9 +733,44 @@ class _CreationGalleryState extends State<CreationGallery> {
         ]));
   }
 
-  Widget _workPage(List<CreationWork> works, int index) {
-    final work = works[index];
-    final behind = works[(index + 1) % works.length];
+  Widget _publishedWorks(List<CreationWork> works) {
+    final key = ValueKey(
+        '$_month:${works.map((w) => '${w.id}_${w.revision}').join(',')}');
+    if (_ticket) {
+      return PageView.builder(
+        key: key,
+        controller: _pager,
+        onPageChanged: (value) => setState(() => _page = value),
+        itemCount: works.length,
+        itemBuilder: (_, index) => _workPage(works[index], index, works.length),
+      );
+    }
+    return LayoutBuilder(builder: (context, box) {
+      final extent = box.maxWidth * (works.length == 1 ? 1 : .9);
+      return NotificationListener<ScrollEndNotification>(
+        onNotification: (event) {
+          if (event.depth != 0 || event.metrics.axis != Axis.horizontal) {
+            return false;
+          }
+          final index = (event.metrics.pixels / extent)
+              .round()
+              .clamp(0, works.length - 1);
+          if (index != _page) setState(() => _page = index);
+          return false;
+        },
+        child: ListView.builder(
+          key: key,
+          scrollDirection: Axis.horizontal,
+          itemExtent: extent,
+          itemCount: works.length,
+          itemBuilder: (_, index) =>
+              _workPage(works[index], index, works.length),
+        ),
+      );
+    });
+  }
+
+  Widget _workPage(CreationWork work, int index, int count) {
     final back = _backWorks.contains(work.id);
     void inspect() => Navigator.push(
         context,
@@ -771,76 +798,28 @@ class _CreationGalleryState extends State<CreationGallery> {
                     return SizedBox(
                         width: width,
                         height: width / work.document.aspectRatio,
-                        child: AnimatedBuilder(
-                            animation: _pager,
-                            builder: (context, _) {
-                              final delta = _pager.positions.length == 1 &&
-                                      _pager.position.haveDimensions
-                                  ? ((_pager.page ?? 0) - index)
-                                      .clamp(-1.0, 1.0)
-                                  : 0.0;
-                              final angle = rebuildReduceMotion(context)
-                                  ? 0.0
-                                  : (_ticket ? .045 : -.025) + delta * .035;
-                              return Stack(
-                                  clipBehavior: Clip.none,
-                                  fit: StackFit.expand,
-                                  children: [
-                                    if (!_ticket && works.length > 1)
-                                      IgnorePointer(
-                                          child: Transform.translate(
-                                              offset: const Offset(-10, 5),
-                                              child: Transform.rotate(
-                                                  angle: -.075,
-                                                  child: CreationMaterial(
-                                                      document: behind.document,
-                                                      child: CachedNetworkImage(
-                                                          imageUrl: creationUrl(
-                                                              behind
-                                                                  .previewUrl),
-                                                          memCacheWidth: 650,
-                                                          fit: BoxFit.contain,
-                                                          errorWidget: (_, __,
-                                                                  ___) =>
-                                                              const SizedBox()))))),
-                                    Transform(
-                                        alignment: Alignment.center,
-                                        transform: Matrix4.identity()
-                                          ..setEntry(3, 2, .0008)
-                                          ..rotateY(
-                                              MediaQuery.disableAnimationsOf(
-                                                      context)
-                                                  ? 0
-                                                  : delta * .1)
-                                          ..rotateZ(angle),
-                                        child: Padding(
-                                            padding: EdgeInsets.only(
-                                                right: _ticket ? 0 : 14,
-                                                bottom: _ticket
-                                                    ? 0
-                                                    : 14 /
-                                                        work.document
-                                                            .aspectRatio),
-                                            child: CreationFlip(
-                                                work: work,
-                                                lightShift: MediaQuery
-                                                        .disableAnimationsOf(
-                                                            context)
-                                                    ? 0
-                                                    : delta,
-                                                back: back,
-                                                onInspect: inspect,
-                                                onFlip: () => _flip(work.id)))),
-                                    if (!_ticket)
-                                      Positioned(
-                                          right: 0,
-                                          bottom: 0,
-                                          child: RebuildGlassButton(
-                                              label: back ? '翻到正面' : '翻到背面',
-                                              icon: Icons.flip,
-                                              onPressed: () => _flip(work.id))),
-                                  ]);
-                            }));
+                        child: Stack(
+                          fit: StackFit.expand,
+                          clipBehavior: Clip.none,
+                          children: [
+                            CreationFlip(
+                              work: work,
+                              back: back,
+                              onInspect: inspect,
+                              onFlip: () => _flip(work.id),
+                            ),
+                            if (!_ticket)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: RebuildGlassButton(
+                                  label: back ? '翻到正面' : '翻到背面',
+                                  icon: Icons.flip,
+                                  onPressed: () => _flip(work.id),
+                                ),
+                              ),
+                          ],
+                        ));
                   }))),
           if (_ticket)
             Padding(
@@ -898,7 +877,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                 ])),
           Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Text('${index + 1} / ${works.length}  ·  左右滑动  ·  长按放大',
+              child: Text('${index + 1} / $count  ·  左右滑动  ·  长按放大',
                   style: TextStyle(fontSize: 11, color: context.lgInk))),
         ]));
   }

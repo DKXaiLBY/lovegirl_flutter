@@ -198,6 +198,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       },
       onInspect: () => _open(CreationPreview(
           document: work.document,
+          initialBack: _backs.contains(work.id),
           front: CachedNetworkImage(
               imageUrl: creationUrl(work.previewUrl), fit: BoxFit.contain))));
 
@@ -230,6 +231,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     }
     return LayoutBuilder(builder: (context, constraints) {
       final width = math.min(constraints.maxWidth * .725, 400.0);
+      final side = (constraints.maxWidth - width - 12) / 2;
       final height = width * 107 / 88;
       return Column(children: [
         SizedBox(
@@ -238,7 +240,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
             key: ValueKey('memory_paper_strip:$_account:${_month ?? ""}'),
             scrollDirection: Axis.horizontal,
             primary: false,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: EdgeInsets.fromLTRB(side, 8, side, 16),
             itemCount: count,
             itemExtent: width + 12,
             itemBuilder: (context, index) {

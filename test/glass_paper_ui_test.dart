@@ -353,7 +353,23 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byTooltip('翻到正面').hitTestable(), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.drag(find.byType(PageView), const Offset(-335, 0));
+      if (kind == 'ticket') {
+        await tester.drag(find.byType(PageView), const Offset(-335, 0));
+      } else {
+        final shelf = find.byWidgetPredicate((widget) =>
+            widget is ListView && widget.scrollDirection == Axis.horizontal);
+        final scrollable =
+            find.descendant(of: shelf, matching: find.byType(Scrollable));
+        final position = tester.state<ScrollableState>(scrollable).position;
+        await tester.timedDrag(
+            shelf, const Offset(-135, 0), const Duration(milliseconds: 800));
+        final offset = position.pixels;
+        await tester.pump(const Duration(milliseconds: 800));
+        expect(offset, inExclusiveRange(100, 170));
+        expect(position.pixels, closeTo(offset, 1));
+        await tester.timedDrag(
+            shelf, const Offset(-175, 0), const Duration(milliseconds: 800));
+      }
       await tester.pump(const Duration(milliseconds: 600));
       expect(
           tester
