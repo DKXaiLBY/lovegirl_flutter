@@ -160,21 +160,23 @@ class _LifeScreenState extends State<LifeScreen> {
     return index < photos.length ? photos[index] : null;
   }
 
-  Widget _image(String? path, String fallback, {double? height}) {
-    final placeholder =
-        Image.asset(fallback, fit: BoxFit.cover, height: height);
+  Widget _image(String? path, String fallback,
+      {bool showCoverWhileLoading = false}) {
+    final placeholder = Image.asset(fallback, fit: BoxFit.cover);
     if (path == null) return placeholder;
     final url = path.startsWith('http') ? path : '${AppConstants.baseUrl}$path';
     return CachedNetworkImage(
         imageUrl: url,
         fit: BoxFit.cover,
-        height: height,
         memCacheWidth: 900,
-        errorWidget: (_, __, ___) => ColoredBox(
-            color: context.lgPrimarySoft,
-            child: Center(
-                child: Icon(Icons.image_not_supported_outlined,
-                    color: context.lgTextSecondary))));
+        placeholder: showCoverWhileLoading ? (_, __) => placeholder : null,
+        errorWidget: (_, __, ___) => showCoverWhileLoading
+            ? placeholder
+            : ColoredBox(
+                color: context.lgPrimarySoft,
+                child: Center(
+                    child: Icon(Icons.image_not_supported_outlined,
+                        color: context.lgTextSecondary))));
   }
 
   Widget _surface(Widget child) => Container(
@@ -299,13 +301,23 @@ class _LifeScreenState extends State<LifeScreen> {
           aspectRatio: 1.28,
           child: Stack(fit: StackFit.expand, children: [
             _image(_photo(_dishes, 'photo_url'),
-                'assets/images/clear_app/kitchen_cover.png'),
+                'assets/images/clear_app/kitchen_cover.png',
+                showCoverWhileLoading: true),
             const DecoratedBox(
                 decoration: BoxDecoration(
                     gradient: LinearGradient(
                         begin: Alignment.topCenter,
-                        end: Alignment.center,
-                        colors: [Color(0x65000000), Colors.transparent]))),
+                        end: Alignment.bottomCenter,
+                        colors: [
+                  Color(0x99000000),
+                  Color(0x99000000),
+                  Colors.transparent
+                ],
+                        stops: [
+                  0,
+                  .31,
+                  .66
+                ]))),
             Positioned(
                 top: 16,
                 left: 16,
@@ -332,31 +344,35 @@ class _LifeScreenState extends State<LifeScreen> {
                 bottom: 10,
                 child: RebuildGlass(
                     radius: 22,
-                    child: Row(children: [
-                      Expanded(
-                          child: TextButton.icon(
-                              style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  iconColor: Colors.white,
-                                  minimumSize: const Size(48, 50)),
-                              onPressed: () => _open(const KitchenScreen()),
-                              icon: const GlassFeatureIcon(GlassFeature.kitchen, size: 26),
-                              label: const Text('去点菜'))),
-                      Container(
-                          width: 1,
-                          height: 22,
-                          color: Colors.white.withAlpha(150)),
-                      Expanded(
-                          child: TextButton.icon(
-                              style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  iconColor: Colors.white,
-                                  minimumSize: const Size(48, 50)),
-                              onPressed: () =>
-                                  _open(const KitchenMenuManagementScreen()),
-                              icon: const Icon(Icons.menu_book_outlined),
-                              label: const Text('我的菜单'))),
-                    ]))),
+                    child: ColoredBox(
+                        color: const Color(0x99000000),
+                        child: Row(children: [
+                          Expanded(
+                              child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      iconColor: Colors.white,
+                                      minimumSize: const Size(48, 50)),
+                                  onPressed: () => _open(const KitchenScreen()),
+                                  icon: const GlassFeatureIcon(
+                                      GlassFeature.kitchen,
+                                      size: 26),
+                                  label: const Text('去点菜'))),
+                          Container(
+                              width: 1,
+                              height: 22,
+                              color: Colors.white.withAlpha(150)),
+                          Expanded(
+                              child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      iconColor: Colors.white,
+                                      minimumSize: const Size(48, 50)),
+                                  onPressed: () => _open(
+                                      const KitchenMenuManagementScreen()),
+                                  icon: const Icon(Icons.menu_book_outlined),
+                                  label: const Text('我的菜单'))),
+                        ])))),
           ])));
 
   Widget _wardrobe() =>

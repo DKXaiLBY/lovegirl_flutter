@@ -33,6 +33,7 @@ class _Api implements ApiService {
   List<Map<String, dynamic>> todos = [
     {'id': 17, 'title': '整理相机', 'completed': 0}
   ];
+  List<Map<String, dynamic>> dishes = [];
   Future<Response> response(dynamic value) async => Response(
       requestOptions: RequestOptions(), data: {'code': 200, 'data': value});
   @override
@@ -51,7 +52,7 @@ class _Api implements ApiService {
 
   @override
   Future<Response> getKitchenMenu() =>
-      response({'mine': [], 'partner_dishes': []});
+      response({'mine': dishes, 'partner_dishes': []});
   @override
   Future<Response> getWardrobeItems() => response([]);
   @override
@@ -114,6 +115,22 @@ void main() {
     expect(find.text('暂未读取'), findsOneWidget);
     expect(find.text('账本暂未加载'), findsOneWidget);
     expect(find.text('¥0'), findsNothing);
+  });
+
+  testWidgets('kitchen actions remain available while a dish photo is pending',
+      (tester) async {
+    final api = _Api()
+      ..dishes = [
+        {'id': 1, 'photo_url': 'https://example.invalid/dish.png'}
+      ];
+    await show(tester, api, _Auth());
+    final cover = find.byWidgetPredicate((widget) =>
+        widget is Image &&
+        widget.image is AssetImage &&
+        (widget.image as AssetImage).assetName.endsWith('/kitchen_cover.png'));
+    expect(cover, findsOneWidget);
+    expect(find.text('去点菜').hitTestable(), findsOneWidget);
+    expect(find.text('我的菜单').hitTestable(), findsOneWidget);
   });
 
   testWidgets('legacy expense field remains readable during rollout',
