@@ -41,7 +41,7 @@ class RebuildGlassHeader extends StatelessWidget {
 
 bool rebuildReduceMotion(BuildContext context) =>
     MediaQuery.disableAnimationsOf(context) ||
-    context.watch<MapPrefsProvider?>()?.motionLevel == 'off';
+    context.watch<MapPrefsProvider?>()?.motionEnabled == false;
 
 ButtonStyle rebuildFilledStyle(BuildContext context) => FilledButton.styleFrom(
     backgroundColor: context.lgInk,

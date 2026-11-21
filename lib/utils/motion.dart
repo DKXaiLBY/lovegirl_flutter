@@ -6,9 +6,6 @@ import 'package:provider/provider.dart';
 
 import 'package:lovegirl_flutter/providers/map_prefs_provider.dart';
 
-/// 动效强度：'off' | 'standard' | 'rich'
-/// 由 MapPrefsProvider.motionLevel 持久化，设置页可切换。
-
 /// 列表卡片错峰浮现：按 index 依次上移+淡入
 class StaggerIn extends StatefulWidget {
   final int index;
@@ -35,12 +32,11 @@ class _StaggerInState extends State<StaggerIn>
   @override
   void initState() {
     super.initState();
-    final level = context.read<MapPrefsProvider>().motionLevel;
-    if (level == 'off') {
+    final enabled = context.read<MapPrefsProvider>().motionEnabled;
+    if (!enabled) {
       _ctrl.value = 1;
     } else {
-      final step = level == 'rich' ? 85 : 50;
-      final delay = min(widget.index * step, 480);
+      final delay = min(widget.index * 50, 480);
       _timer = Timer(Duration(milliseconds: delay), () {
         if (mounted) _ctrl.forward();
       });
@@ -81,16 +77,15 @@ class RollingNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final level = context.watch<MapPrefsProvider>().motionLevel;
-    if (level == 'off') {
+    final enabled = context.watch<MapPrefsProvider>().motionEnabled;
+    if (!enabled || MediaQuery.disableAnimationsOf(context)) {
       return Text(value.toString(), style: style);
     }
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: value.toDouble()),
       duration: const Duration(milliseconds: 950),
       curve: Curves.easeOutCubic,
-      builder: (context, v, _) =>
-          Text(v.round().toString(), style: style),
+      builder: (context, v, _) => Text(v.round().toString(), style: style),
     );
   }
 }
@@ -110,9 +105,8 @@ class _PressableScaleState extends State<PressableScale> {
 
   @override
   Widget build(BuildContext context) {
-    final level = context.watch<MapPrefsProvider>().motionLevel;
     final enabled = widget.enabled &&
-        level != 'off' &&
+        context.watch<MapPrefsProvider>().motionEnabled &&
         !MediaQuery.disableAnimationsOf(context);
     return Listener(
       onPointerDown: (_) {

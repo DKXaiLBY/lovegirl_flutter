@@ -5,19 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 class MapPrefsProvider extends ChangeNotifier {
   static const _keyMotion = 'motion_level';
 
-  /// 动效强度：off / standard / rich
-  String motionLevel = 'standard';
+  bool _motionEnabled = true;
+  bool get motionEnabled => _motionEnabled;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    motionLevel = prefs.getString(_keyMotion) ?? 'standard';
+    // The former standard and rich levels both map to enabled.
+    _motionEnabled = prefs.getString(_keyMotion) != 'off';
     notifyListeners();
   }
 
-  Future<void> setMotionLevel(String value) async {
-    motionLevel = value;
+  Future<void> setMotionEnabled(bool value) async {
+    _motionEnabled = value;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyMotion, value);
+    // Keep the old storage format so rolling back preserves the setting.
+    await prefs.setString(_keyMotion, value ? 'standard' : 'off');
   }
 }

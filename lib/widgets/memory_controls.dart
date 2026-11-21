@@ -69,7 +69,7 @@ class _MemoryActionState extends State<MemoryAction> {
   @override
   Widget build(BuildContext context) {
     final enabled = !_busy && widget.onPressed != null;
-    final motionOff = context.watch<MapPrefsProvider?>()?.motionLevel == 'off';
+    final motionOff = context.watch<MapPrefsProvider?>()?.motionEnabled == false;
     return AnimatedScale(
       scale: _pressed &&
               enabled &&

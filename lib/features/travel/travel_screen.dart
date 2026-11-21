@@ -191,7 +191,7 @@ class _TravelScreenState extends State<TravelScreen> {
 
   bool get _reduceMotion =>
       MediaQuery.disableAnimationsOf(context) ||
-      context.read<MapPrefsProvider?>()?.motionLevel == 'off';
+      context.read<MapPrefsProvider?>()?.motionEnabled == false;
 
   void _setJourneyExtent(double extent) {
     if (!_sheet.isAttached) return;

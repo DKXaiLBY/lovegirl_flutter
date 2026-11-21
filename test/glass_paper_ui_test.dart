@@ -98,10 +98,31 @@ class _GalleryApi implements ApiService {
 }
 
 void main() {
+  test('motion switch preserves old settings and remembers changes', () async {
+    for (final level in [null, 'standard', 'rich', 'off']) {
+      SharedPreferences.setMockInitialValues(
+          {if (level != null) 'motion_level': level});
+      final prefs = MapPrefsProvider();
+      await prefs.load();
+      expect(prefs.motionEnabled, level != 'off');
+      await prefs.setMotionEnabled(false);
+      final afterRestart = MapPrefsProvider();
+      await afterRestart.load();
+      expect(afterRestart.motionEnabled, isFalse);
+      await afterRestart.setMotionEnabled(true);
+      await prefs.load();
+      expect(prefs.motionEnabled, isTrue);
+      prefs.dispose();
+      afterRestart.dispose();
+    }
+  });
+
   testWidgets(
       'app motion-off preference suppresses glass movement without changing taps',
       (tester) async {
-    final prefs = MapPrefsProvider()..motionLevel = 'off';
+    SharedPreferences.setMockInitialValues({'motion_level': 'off'});
+    final prefs = MapPrefsProvider();
+    await prefs.load();
     var taps = 0;
     await tester.pumpWidget(ChangeNotifierProvider<MapPrefsProvider>.value(
         value: prefs,
@@ -120,7 +141,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(taps, 1);
-    await prefs.setMotionLevel('standard');
+    await prefs.setMotionEnabled(true);
     await tester.pumpAndSettle();
     gesture = await tester
         .startGesture(tester.getCenter(find.byType(RebuildGlassButton)));
