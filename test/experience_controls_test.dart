@@ -2,12 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:lovegirl_flutter/features/creations/creation_document.dart';
 import 'package:lovegirl_flutter/features/travel/journey.dart';
 import 'package:lovegirl_flutter/models/travel.dart';
+import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/screens/memories/memory_search_screen.dart';
+import 'package:lovegirl_flutter/screens/memories/memories_screen.dart';
 import 'package:lovegirl_flutter/screens/travel/journey_recap_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/app_haptics.dart';
@@ -40,6 +43,9 @@ class _Records implements ApiService {
   @override
   Future getCreations() async => _response([_ticket]);
 
+  @override
+  Future getPhotos() async => _response([]);
+
   Response _response(Object value) => Response(
       requestOptions: RequestOptions(), data: {'code': 200, 'data': value});
 
@@ -63,15 +69,52 @@ final _ticket = {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('dark glass actions and highlighted dates keep sufficient contrast', () {
+  test('dark dialog actions and highlighted dates keep sufficient contrast',
+      () {
     final theme = glassNavigationTheme(LoveGirlTheme.darkTheme);
     final scheme = theme.colorScheme;
-    final glass = Color.alphaBlend(
-        theme.dialogTheme.backgroundColor!, LoveGirlTheme.bgDark);
     double contrast(Color light, Color dark) =>
         (light.computeLuminance() + .05) / (dark.computeLuminance() + .05);
-    expect(contrast(scheme.primary, glass), greaterThan(7));
+    expect(contrast(scheme.primary, theme.dialogTheme.backgroundColor!),
+        greaterThan(7));
     expect(contrast(scheme.primary, scheme.onPrimary), greaterThan(7));
+  });
+
+  testWidgets('memory month and its picker use solid surfaces at large text',
+      (tester) async {
+    tester.view.physicalSize = const Size(640, 1440);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final theme = glassNavigationTheme(LoveGirlTheme.darkTheme);
+    await tester.pumpWidget(ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: MaterialApp(
+        theme: theme,
+        builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.45),
+            ),
+            child: child!),
+        home: MemoriesScreen(api: _Records()),
+      ),
+    ));
+    await tester.pump();
+    final filter = find.widgetWithText(FilledButton, '全部月份 ▾');
+    expect(
+        tester.widget<FilledButton>(filter).style!.backgroundColor!.resolve({}),
+        LoveGirlTheme.cardDark);
+    await tester.tap(filter);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    final sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+    expect(sheet.backgroundColor!.a, 1);
+    await tester.tap(find.text('2026年11月'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('2026年11月 ▾'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   test(

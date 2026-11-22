@@ -1,5 +1,4 @@
 import '../../widgets/rebuild_controls.dart';
-import '../../widgets/glass_feature_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
@@ -801,8 +800,12 @@ class JourneyPanel extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: RebuildGlass(
-                  radius: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.lgPrimarySoft,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: context.lgCardBorder),
+                  ),
                   padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                   child: Row(children: [
                     Expanded(
@@ -821,14 +824,16 @@ class JourneyPanel extends StatelessWidget {
                         ],
                       ),
                     ),
-                    RebuildGlassButton(
-                      label: '步行导航',
-                      icon: Icons.directions_walk,
-                      iconImage:
-                          const GlassFeatureIcon(GlassFeature.walk, size: 26),
-                      showLabel: true,
-                      onPressed:
-                          onWalk == null ? null : () => onWalk!(next.place!),
+                    FilledButton.icon(
+                      style: rebuildFilledStyle(context),
+                      icon: const Icon(Icons.directions_walk),
+                      label: const Text('步行导航'),
+                      onPressed: onWalk == null
+                          ? null
+                          : () {
+                              AppHaptics.instance.selectionClick();
+                              onWalk!(next.place!);
+                            },
                     ),
                   ]),
                 ),

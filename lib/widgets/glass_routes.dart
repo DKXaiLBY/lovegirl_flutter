@@ -3,11 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../providers/map_prefs_provider.dart';
 import '../utils/lovegirl_theme.dart';
-import 'rebuild_controls.dart';
 
 ThemeData glassNavigationTheme(ThemeData base) {
   final dark = base.brightness == Brightness.dark;
-  final surface = dark ? const Color(0xf124303b) : const Color(0xf1f7fcff);
+  final surface = dark ? const Color(0xff242e38) : const Color(0xfff7fcff);
   final border = dark ? const Color(0x536e94ad) : const Color(0xffd8e9f1);
   final shape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(24),
@@ -70,14 +69,15 @@ Future<T?> showGlassSheet<T>({
     context: context,
     isScrollControlled: isScrollControlled,
     showDragHandle: showDragHandle,
-    backgroundColor: Colors.transparent,
+    backgroundColor: Theme.of(context).bottomSheetTheme.modalBackgroundColor ??
+        context.lgCard,
     sheetAnimationStyle: reduce
         ? AnimationStyle.noAnimation
         : AnimationStyle(
             duration: const Duration(milliseconds: 230),
             reverseDuration: const Duration(milliseconds: 180),
           ),
-    builder: (sheet) => RebuildGlass(radius: 24, child: builder(sheet)),
+    builder: builder,
   );
 }
 
@@ -100,26 +100,4 @@ class GlassAlertDialog extends AlertDialog {
     super.insetPadding,
     super.scrollable,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    final alert = super.build(context);
-    if (alert is! Dialog || alert.child == null) return alert;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final tint = backgroundColor ??
-        (dark ? const Color(0xff242e38) : const Color(0xfff7fcff));
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: alert.insetPadding,
-      alignment: alert.alignment,
-      child: RebuildGlass(
-          radius: 24,
-          child: ColoredBox(
-            color: tint.withAlpha(178),
-            child: alert.child!,
-          )),
-    );
-  }
 }

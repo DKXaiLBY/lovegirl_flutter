@@ -386,19 +386,34 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                       Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(children: [
-                            const Expanded(
-                                child: Text('回忆',
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w800))),
-                            RebuildGlass(
-                                child: TextButton(
-                                    style: rebuildTextStyle(context),
-                                    onPressed: _chooseMonth,
-                                    child: Text(_month == null
+                            const Text('回忆',
+                                maxLines: 1,
+                                style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: FilledButton.tonal(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: context.lgCard,
+                                    foregroundColor: context.lgInk,
+                                    side: BorderSide(color: context.lgCardBorder),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    minimumSize: const Size(0, 48),
+                                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  onPressed: _chooseMonth,
+                                  child: Text(
+                                    _month == null
                                         ? '全部月份 ▾'
-                                        : '${_month!.substring(0, 4)}年${int.parse(_month!.substring(5))}月 ▾'))),
+                                        : '${_month!.substring(0, 4)}年${int.parse(_month!.substring(5))}月 ▾',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             RebuildGlassButton(
                                 label: '查找回忆',
