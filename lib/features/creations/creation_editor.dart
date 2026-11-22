@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,7 +20,7 @@ import 'creation_drafts.dart';
 import 'creation_files.dart';
 import 'creation_material.dart';
 import 'creation_preview.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class CreationEditor extends StatefulWidget {
   final CreationDraft draft;
   final CreationDrafts store;
@@ -247,7 +248,7 @@ class _CreationEditorState extends State<CreationEditor> {
     final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => StatefulBuilder(
-            builder: (context, setDialog) => AlertDialog(
+            builder: (context, setDialog) => GlassAlertDialog(
                   title: const Text('记录这一刻'),
                   content: SingleChildScrollView(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -309,7 +310,7 @@ class _CreationEditorState extends State<CreationEditor> {
           .map((e) => Journey.fromJson(Map<String, dynamic>.from(e)))
           .toList();
       if (!mounted) return;
-      final result = await showModalBottomSheet<int>(
+      final result = await showGlassSheet<int>(
           context: context,
           showDragHandle: true,
           builder: (context) => SafeArea(
@@ -392,7 +393,7 @@ class _CreationEditorState extends State<CreationEditor> {
         if (!mounted) return;
         final open = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
+            builder: (context) => GlassAlertDialog(
                     title: const Text('图片已生成'),
                     content: const Text('系统相册未能写入，文件已保存在 App 内，可以打开图片后另存。'),
                     actions: [
@@ -521,7 +522,7 @@ class _CreationEditorState extends State<CreationEditor> {
       if (!mounted) return false;
       return await showDialog<bool>(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (context) => GlassAlertDialog(
                       title: const Text('草稿未能写入'),
                       content: const Text('存储空间可能不足，离开会失去本次未保存修改。'),
                       actions: [
@@ -787,7 +788,7 @@ class _CreationEditorState extends State<CreationEditor> {
                             onPressed: _busy
                                 ? null
                                 : () {
-                                    HapticFeedback.selectionClick();
+                                    AppHaptics.instance.selectionClick();
                                     setState(() {
                                       _back = !_back;
                                       _active = null;
@@ -928,7 +929,7 @@ class _CreationEditorState extends State<CreationEditor> {
     final options = _d.kind == 'ticket'
         ? ticketTemplates.map((t) => (t.id, t.label, t.minimumPhotos)).toList()
         : paperTemplates.map((p) => (p.id, p.label, 1)).toList();
-    final id = await showModalBottomSheet<String>(
+    final id = await showGlassSheet<String>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
@@ -1010,7 +1011,7 @@ class _CreationEditorState extends State<CreationEditor> {
                           })),
                 ]))));
     if (id == null || !mounted) return;
-    HapticFeedback.selectionClick();
+    AppHaptics.instance.selectionClick();
     _change(_d.copyWith(templateId: id));
     if (_cropIndex >= CreationPainter.photoWindows(_d).length) {
       setState(() => _cropIndex = 0);
@@ -1132,7 +1133,7 @@ class _CreationEditorState extends State<CreationEditor> {
                                 _message('这个版式需要 ${option.$3} 张照片，请新建时选择多张照片');
                                 return;
                               }
-                              HapticFeedback.selectionClick();
+                              AppHaptics.instance.selectionClick();
                               _change(preview);
                               if (_cropIndex >=
                                   CreationPainter.photoWindows(preview)
@@ -1189,7 +1190,7 @@ class _CreationEditorState extends State<CreationEditor> {
                     child: InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () {
-                          HapticFeedback.selectionClick();
+                          AppHaptics.instance.selectionClick();
                           _change(_d.copyWith(lookId: creationLooks[i].id));
                         },
                         child: Column(children: [
@@ -1268,7 +1269,7 @@ class _CreationEditorState extends State<CreationEditor> {
                     selected: _penColor == color && !_eraser,
                     child: InkWell(
                         onTap: () {
-                          HapticFeedback.selectionClick();
+                          AppHaptics.instance.selectionClick();
                           setState(() {
                             _penColor = color;
                             _eraser = false;

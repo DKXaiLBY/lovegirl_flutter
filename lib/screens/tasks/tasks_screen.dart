@@ -6,7 +6,8 @@ import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/organic_ui.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/screens/tasks/task_form.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
 
@@ -99,7 +100,7 @@ class _TasksScreenState extends State<TasksScreen>
     final name = _tasks[index]['name'] ?? '';
     showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg),
         ),
@@ -203,6 +204,7 @@ class _TasksScreenState extends State<TasksScreen>
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: const Text('愿望清单'),
         bottom: TabBar(
           controller: _tabController,

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 
 import '../../models/travel.dart';
 import '../../utils/constants.dart';
@@ -10,7 +11,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../utils/travel_memories.dart';
 import '../../widgets/memory_controls.dart';
 import 'travel_memory_screen.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 省份点亮地图（W6 弹药库：map-for-love 交互复刻，Dart 自研）。
 /// 到访过的地点按经纬度做点在多边形判定点亮所在省份；
 /// 点击已点亮省份弹出该省城市记忆清单。九段线按规范保留（虚线）。
@@ -152,10 +153,9 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
     final adcode = _litMap.entries
         .firstWhere((entry) => identical(entry.value, spots))
         .key;
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (ctx, updateSheet) {
           final groups = groupTravelMemories(_litMap[adcode] ?? []);
@@ -215,6 +215,7 @@ class _ChinaMemoryMapScreenState extends State<ChinaMemoryMapScreen>
                                         child: Icon(Icons.photo_outlined,
                                             color: context.lgTextMuted))
                                     : CachedNetworkImage(
+                                        cacheManager: MediaCache.instance,
                                         imageUrl: (spot.coverImage ??
                                                     spot.photos.first)
                                                 .startsWith('http')

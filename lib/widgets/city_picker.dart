@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../utils/city_data.dart';
 import '../utils/lovegirl_theme.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 城市选择器 — 弹出底部面板，支持热门+字母索引+搜索
 Future<String?> showCityPicker(BuildContext context, {String? currentCity}) {
-  return showModalBottomSheet<String>(
+  return showGlassSheet<String>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (_) => _CityPickerSheet(currentCity: currentCity),
   );
 }

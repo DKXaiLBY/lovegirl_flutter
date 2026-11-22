@@ -136,6 +136,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,

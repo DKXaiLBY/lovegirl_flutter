@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class TaskForm extends StatefulWidget {
   final Map<String, dynamic>? task;
 
@@ -79,6 +79,7 @@ class _TaskFormState extends State<TaskForm> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: Text(_isEdit ? '编辑愿望' : '添加愿望'),
         actions: [
           TextButton(

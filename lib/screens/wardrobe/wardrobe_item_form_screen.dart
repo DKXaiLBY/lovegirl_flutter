@@ -13,7 +13,7 @@ import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P2 添加单品 / P4 编辑单品【M1】
 /// 流程：取图 → 1:1 裁剪（决策 R3）→ 压长边 1600 →（抠图，S3 关闭时隐藏）→ 表单
 class WardrobeItemFormScreen extends StatefulWidget {
@@ -72,6 +72,7 @@ class _WardrobeItemFormScreenState extends State<WardrobeItemFormScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,

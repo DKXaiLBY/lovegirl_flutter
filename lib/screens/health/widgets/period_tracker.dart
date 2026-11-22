@@ -5,7 +5,7 @@ import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 
 int? _toIntOrNull(dynamic v) {
   if (v is int) return v;
@@ -164,7 +164,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
 
   Future<void> _togglePeriod() async {
     if (_isSaving) return;
-    HapticFeedback.mediumImpact();
+    AppHaptics.instance.mediumImpact();
     setState(() => _isSaving = true);
     try {
       final now = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -296,7 +296,7 @@ class _PeriodTrackerState extends State<PeriodTracker> {
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: () {
-          HapticFeedback.selectionClick();
+          AppHaptics.instance.selectionClick();
           setState(() => _selected = date);
         },
         child: SizedBox(

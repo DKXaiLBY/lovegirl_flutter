@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'countdown_form.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 倒计时管理页面
 class CountdownScreen extends StatefulWidget {
   const CountdownScreen({super.key});
@@ -130,7 +131,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
   void _deleteItem(Map<String, dynamic> item) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         // v4.0 弹层大圆角 + 1px 细线
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
@@ -162,6 +163,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: const Text('倒计时'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),

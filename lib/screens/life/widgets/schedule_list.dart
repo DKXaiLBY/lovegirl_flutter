@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/rebuild_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// ===== 课程表 =====
 class ScheduleListWidget extends StatefulWidget {
   final ApiService? api;
@@ -149,10 +149,9 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     int colorIndex = 0;
     var saving = false;
 
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
       // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
@@ -511,7 +510,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
     if (_deleting.contains(id)) return;
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),

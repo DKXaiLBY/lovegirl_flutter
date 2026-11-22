@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' show ImageByteFormat, ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:image_picker/image_picker.dart';
@@ -24,7 +25,7 @@ import '../../widgets/polaroid_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import 'photo_flipbook_screen.dart';
 import 'package:gal/gal.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 云端相册 · 拍立得收集本
 /// 纸感背景 + 两列拍立得流（随机小倾斜 + 底边日期）+ 翻转故事背卡 + 批量管理。
 /// Reuse the original theme, ink and reverse-side renderer on the memory shelf.
@@ -115,7 +116,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
         if (gpsLat != null && gpsLng != null) {
           final ok = await showDialog<bool>(
             context: context,
-            builder: (dCtx) => AlertDialog(
+            builder: (dCtx) => GlassAlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(LoveGirlTheme.radiusLg)),
@@ -191,7 +192,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
     final n = _selectedIds.length;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg)),
         title: Text('删除 $n 张照片？',
@@ -293,9 +294,8 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
       }
     }
 
-    await showModalBottomSheet(
+    await showGlassSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
@@ -368,6 +368,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
                                         ? (photo['description']?.toString() ?? '')
                                         : backCtrl.text.trim(),
                                     photo: CachedNetworkImage(
+                                      cacheManager: MediaCache.instance,
                                       imageUrl: fullUrl,
                                       fit: BoxFit.cover,
                                       placeholder: (_, __) =>
@@ -380,6 +381,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
                               )
                             : PolaroidFrame(
                           photo: CachedNetworkImage(
+                            cacheManager: MediaCache.instance,
                             imageUrl: fullUrl,
                             fit: BoxFit.cover,
                             placeholder: (_, __) =>
@@ -716,7 +718,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
     final c = TextEditingController(text: ctrl.text);
     final v = await showDialog<String>(
       context: sheetCtx,
-      builder: (dctx) => AlertDialog(
+      builder: (dctx) => GlassAlertDialog(
         backgroundColor: context.lgPaper,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LoveGirlTheme.radiusLg)),
@@ -753,6 +755,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
         builder: (_) => Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(
+            flexibleSpace: const RebuildGlassHeader(),
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             elevation: 0,
@@ -760,6 +763,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
           body: Center(
             child: InteractiveViewer(
               child: CachedNetworkImage(
+                cacheManager: MediaCache.instance,
                 imageUrl: fullUrl,
                 fit: BoxFit.contain,
                 placeholder: (_, __) => const Center(
@@ -902,6 +906,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
 
   PreferredSizeWidget _normalAppBar() {
     return AppBar(
+      flexibleSpace: const RebuildGlassHeader(),
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -945,6 +950,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
 
   PreferredSizeWidget _selectionAppBar() {
     return AppBar(
+      flexibleSpace: const RebuildGlassHeader(),
       backgroundColor: context.lgInk,
       foregroundColor: Colors.white,
       elevation: 0,
@@ -1121,6 +1127,7 @@ class _PolaroidTileState extends State<_PolaroidTile> {
         caption: (widget.photo['frame_note'] ?? '').toString(),
         shadows: false,
         photo: CachedNetworkImage(
+          cacheManager: MediaCache.instance,
           imageUrl: fullUrl,
           fit: BoxFit.cover,
           memCacheWidth: widget.fillAvailable ? 640 : null,
@@ -1194,6 +1201,7 @@ class _PolaroidTileState extends State<_PolaroidTile> {
           message: combined,
           photo: theme == PolaroidTheme.film
               ? CachedNetworkImage(
+                  cacheManager: MediaCache.instance,
                   imageUrl: fullUrl,
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(color: Colors.black),

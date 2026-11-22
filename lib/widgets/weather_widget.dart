@@ -8,7 +8,7 @@ import '../utils/lovegirl_theme.dart';
 import 'city_picker.dart';
 import 'illus_image.dart';
 import 'lovegirl_ui.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 enum WeatherErrorType { permission, location, network, data }
 
 class WeatherWidget extends StatefulWidget {
@@ -206,9 +206,8 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   /// 天气操作面板：权限引导 / 重新定位 / 手动选城市
   Future<void> _showWeatherActions() async {
     final isPermission = _errorType == WeatherErrorType.permission;
-    final action = await showModalBottomSheet<String>(
+    final action = await showGlassSheet<String>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (sheetCtx) => SafeArea(
         top: false,
         child: Container(

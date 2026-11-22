@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:provider/provider.dart';
 import '../providers/map_prefs_provider.dart';
 import '../utils/lovegirl_theme.dart';
@@ -76,7 +76,7 @@ class RebuildChoiceChip extends StatelessWidget {
         onSelected: onSelected == null
             ? null
             : (value) {
-                HapticFeedback.selectionClick();
+                AppHaptics.instance.selectionClick();
                 onSelected!(value);
               },
         materialTapTargetSize: MaterialTapTargetSize.padded,
@@ -223,7 +223,7 @@ class _RebuildGlassButtonState extends State<RebuildGlassButton> {
             : context.lgTextSecondary;
     final VoidCallback? press = enabled
         ? () {
-            HapticFeedback.selectionClick();
+            AppHaptics.instance.selectionClick();
             widget.onPressed!();
           }
         : null;

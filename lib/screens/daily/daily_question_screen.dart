@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/daily_provider.dart';
@@ -48,7 +48,7 @@ class _DailyQuestionScreenState extends State<DailyQuestionScreen> {
         duration: const Duration(seconds: 1),
       ));
     } else {
-      HapticFeedback.mediumImpact();
+      AppHaptics.instance.mediumImpact();
       _controller.clear();
     }
   }

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +12,7 @@ import '../../services/api_service.dart';
 import '../../services/log_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
+import '../../widgets/rebuild_controls.dart';
 
 const _kIgnoredVersionKey = 'ignored_update_version';
 
@@ -37,248 +39,246 @@ Future<void> showUpdateDialog(
       child: Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Container(
+        child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: 400,
             maxHeight: MediaQuery.of(ctx).size.height * 0.75,
           ),
-          decoration: BoxDecoration(
-            color: context.lgCard,
-            borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl),
-            border: Border.all(color: context.lgCardBorder),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: LoveGirlTheme.gradientLove,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+          child: RebuildGlass(
+            radius: LoveGirlTheme.radiusXl,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: LoveGirlTheme.gradientLove,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.lgInk.withAlpha(50),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: context.lgInk.withAlpha(50),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        child: const Icon(
+                          Icons.system_update_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.system_update_rounded,
-                        color: Colors.white,
-                        size: 28,
+                      SizedBox(height: 12),
+                      Text(
+                        '发现新版本',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: context.lgTextPrimary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      '发现新版本',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: context.lgTextPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.lgBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            currentVersionLabel,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.lgTextMuted,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 16,
-                              color: context.lgInk,
-                            ),
-                          ),
-                          Text(
-                            'v$latestVersionName',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: context.lgInk,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (changelogLines.isNotEmpty)
-                Flexible(
-                  child: Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: context.lgBg,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
+                      SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.lgBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 15,
-                              color: context.lgInk,
-                            ),
-                            SizedBox(width: 5),
                             Text(
-                              '更新内容',
+                              currentVersionLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.lgTextMuted,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 16,
+                                color: context.lgInk,
+                              ),
+                            ),
+                            Text(
+                              'v$latestVersionName',
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: context.lgTextPrimary,
+                                fontWeight: FontWeight.w700,
+                                color: context.lgInk,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        Flexible(
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: changelogLines.map((line) {
-                                final isBullet = line.isBullet;
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 6),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (isBullet) ...[
-                                        Container(
-                                          margin:
-                                              const EdgeInsets.only(top: 6),
-                                          width: 4,
-                                          height: 4,
-                                          decoration: BoxDecoration(
-                                            color: context.lgInk,
-                                            shape: BoxShape.circle,
+                      ),
+                    ],
+                  ),
+                ),
+                if (changelogLines.isNotEmpty)
+                  Flexible(
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: context.lgBg,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 15,
+                                color: context.lgInk,
+                              ),
+                              SizedBox(width: 5),
+                              Text(
+                                '更新内容',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.lgTextPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Flexible(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: changelogLines.map((line) {
+                                  final isBullet = line.isBullet;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (isBullet) ...[
+                                          Container(
+                                            margin:
+                                                const EdgeInsets.only(top: 6),
+                                            width: 4,
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              color: context.lgInk,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                        ],
+                                        Expanded(
+                                          child: Text(
+                                            line.text,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isBullet
+                                                  ? context.lgTextPrimary
+                                                  : context.lgTextSecondary,
+                                              height: 1.4,
+                                            ),
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
                                       ],
-                                      Expanded(
-                                        child: Text(
-                                          line.text,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isBullet
-                                                ? context.lgTextPrimary
-                                                : context.lgTextSecondary,
-                                            height: 1.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showDownloadDialog(context, downloadUrl);
+                            LogService().userAction(
+                              '版本更新: 下载 $currentVersionLabel -> v$latestVersionName',
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: context.lgInk,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            '立即更新',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!forceUpdate) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 40,
+                          child: TextButton(
+                            onPressed: () async {
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              await prefs.setString(
+                                _kIgnoredVersionKey,
+                                latestVersionName,
+                              );
+                              if (!ctx.mounted) return;
+                              Navigator.pop(ctx);
+                              LogService().userAction(
+                                '版本更新: 跳过 v$latestVersionName',
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: context.lgTextMuted,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              '跳过此版本',
+                              style: TextStyle(fontSize: 13),
                             ),
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          _showDownloadDialog(context, downloadUrl);
-                          LogService().userAction(
-                            '版本更新: 下载 $currentVersionLabel -> v$latestVersionName',
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.lgInk,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          '立即更新',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (!forceUpdate) ...[
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 40,
-                        child: TextButton(
-                          onPressed: () async {
-                            final prefs =
-                                await SharedPreferences.getInstance();
-                            await prefs.setString(
-                              _kIgnoredVersionKey,
-                              latestVersionName,
-                            );
-                            if (!ctx.mounted) return;
-                            Navigator.pop(ctx);
-                            LogService().userAction(
-                              '版本更新: 跳过 v$latestVersionName',
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: context.lgTextMuted,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            '跳过此版本',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -302,6 +302,7 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
   var failed = false;
   var errorMsg = '';
   StateSetter? setDownloadDialogState;
+  BuildContext? downloadDialogContext;
 
   showDialog<void>(
     context: context,
@@ -309,107 +310,106 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setDialogState) {
         setDownloadDialogState = setDialogState;
+        downloadDialogContext = ctx;
         return Dialog(
           backgroundColor: Colors.transparent,
-          child: Container(
-            width: 280,
+          child: RebuildGlass(
+            radius: 18,
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: context.lgCard,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: context.lgInk.withAlpha(20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    failed
-                        ? Icons.error_outline_rounded
-                        : downloading
-                            ? Icons.download_rounded
-                            : Icons.check_circle_outline_rounded,
-                    color: failed
-                        ? LoveGirlTheme.red
-                        : downloading
-                            ? context.lgInk
-                            : LoveGirlTheme.secondary,
-                    size: 28,
-                  ),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  failed
-                      ? '下载失败'
-                      : downloading
-                          ? '正在下载...'
-                          : '下载完成',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: context.lgTextPrimary,
-                  ),
-                ),
-                SizedBox(height: 16),
-                if (downloading && !failed) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progress > 0 ? progress : null,
-                      backgroundColor: context.lgSeparator,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        context.lgInk,
+            child: SizedBox(
+                width: 232,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: context.lgInk.withAlpha(20),
+                        shape: BoxShape.circle,
                       ),
-                      minHeight: 6,
+                      child: Icon(
+                        failed
+                            ? Icons.error_outline_rounded
+                            : downloading
+                                ? Icons.download_rounded
+                                : Icons.check_circle_outline_rounded,
+                        color: failed
+                            ? LoveGirlTheme.red
+                            : downloading
+                                ? context.lgInk
+                                : LoveGirlTheme.secondary,
+                        size: 28,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    progress > 0
-                        ? '${(progress * 100).toStringAsFixed(0)}%'
-                        : '准备下载...',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.lgTextMuted,
+                    SizedBox(height: 16),
+                    Text(
+                      failed
+                          ? '下载失败'
+                          : downloading
+                              ? '正在下载...'
+                              : '下载完成',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: context.lgTextPrimary,
+                      ),
                     ),
-                  ),
-                ],
-                if (failed) ...[
-                  Text(
-                    errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: context.lgTextMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _showDownloadDialog(context, downloadUrl);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.lgInk,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    SizedBox(height: 16),
+                    if (downloading && !failed) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: progress > 0 ? progress : null,
+                          backgroundColor: context.lgSeparator,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            context.lgInk,
+                          ),
+                          minHeight: 6,
                         ),
                       ),
-                      child: const Text('重试'),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                      SizedBox(height: 8),
+                      Text(
+                        progress > 0
+                            ? '${(progress * 100).toStringAsFixed(0)}%'
+                            : '准备下载...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.lgTextMuted,
+                        ),
+                      ),
+                    ],
+                    if (failed) ...[
+                      Text(
+                        errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.lgTextMuted,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showDownloadDialog(context, downloadUrl);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: context.lgInk,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('重试'),
+                        ),
+                      ),
+                    ],
+                  ],
+                )),
           ),
         );
       },
@@ -419,25 +419,26 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
   _downloadApk(
     downloadUrl,
     onProgress: (value) {
-      if (context.mounted && setDownloadDialogState != null) {
-        setDownloadDialogState!(() => progress = value);
+      if (downloadDialogContext?.mounted == true) {
+        setDownloadDialogState?.call(() => progress = value);
       }
     },
     onComplete: (filePath) {
-      if (!context.mounted || setDownloadDialogState == null) return;
-      setDownloadDialogState!(() {
+      final dialog = downloadDialogContext;
+      if (dialog == null || !dialog.mounted) return;
+      setDownloadDialogState?.call(() {
         downloading = false;
         progress = 1;
       });
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (!context.mounted) return;
-        Navigator.of(context).pop();
+        if (!dialog.mounted || ModalRoute.of(dialog)?.isCurrent != true) return;
+        Navigator.of(dialog).pop();
         _installApk(filePath);
       });
     },
     onError: (error) {
-      if (!context.mounted || setDownloadDialogState == null) return;
-      setDownloadDialogState!(() {
+      if (downloadDialogContext?.mounted != true) return;
+      setDownloadDialogState?.call(() {
         downloading = false;
         failed = true;
         errorMsg = error;
@@ -446,19 +447,25 @@ void _showDownloadDialog(BuildContext context, String downloadUrl) {
   );
 }
 
+bool _isDownloadingApk = false;
+
 Future<void> _downloadApk(
   String url, {
   void Function(double)? onProgress,
   void Function(String)? onComplete,
   void Function(String)? onError,
 }) async {
+  if (_isDownloadingApk) {
+    onError?.call('正在下载更新，请稍后再试');
+    return;
+  }
+  _isDownloadingApk = true;
+  File? incomplete;
   try {
     final dir = await getTemporaryDirectory();
-    final filePath = '${dir.path}/LoveGirl-latest.apk';
-    final oldFile = File(filePath);
-    if (await oldFile.exists()) {
-      await oldFile.delete();
-    }
+    final filePath = '${dir.path}/$updateApkName';
+    final partial = File('$filePath.part');
+    incomplete = partial;
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final cacheBustUrl =
@@ -470,7 +477,7 @@ Future<void> _downloadApk(
 
     await dio.download(
       cacheBustUrl,
-      filePath,
+      partial.path,
       deleteOnError: true,
       onReceiveProgress: (received, total) {
         if (total > 0 && onProgress != null) {
@@ -479,15 +486,23 @@ Future<void> _downloadApk(
       },
     );
 
-    final file = File(filePath);
-    if (!await file.exists() || await file.length() < 1024 * 1024) {
+    if (!await partial.exists() || await partial.length() < 1024 * 1024) {
       throw Exception('下载的 APK 文件无效');
     }
-
+    await partial.rename(filePath);
     onComplete?.call(filePath);
   } catch (e) {
     LogService().error('Version', 'APK 下载失败: $e');
     onError?.call(e.toString());
+  } finally {
+    try {
+      final file = incomplete;
+      if (file != null && await file.exists()) {
+        await file.delete().catchError((Object _) => file);
+      }
+    } finally {
+      _isDownloadingApk = false;
+    }
   }
 }
 
@@ -593,12 +608,10 @@ List<_ChangelogLine> _normalizeChangelog(String raw) {
       .map((line) => line.trim())
       .where((line) => line.isNotEmpty)
       .map((line) {
-        final isBullet = RegExp(r'^[-*•·]').hasMatch(line);
-        final text =
-            isBullet ? line.replaceFirst(RegExp(r'^[-*•·]\s*'), '') : line;
-        return _ChangelogLine(text: text, isBullet: isBullet);
-      })
-      .toList();
+    final isBullet = RegExp(r'^[-*•·]').hasMatch(line);
+    final text = isBullet ? line.replaceFirst(RegExp(r'^[-*•·]\s*'), '') : line;
+    return _ChangelogLine(text: text, isBullet: isBullet);
+  }).toList();
 }
 
 class _ChangelogLine {

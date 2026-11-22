@@ -1,12 +1,14 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/wardrobe.dart';
 import '../../../utils/constants.dart';
 import '../../../utils/lovegirl_theme.dart';
 import '../../../widgets/lovegirl_ui.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 
 /// 衣柜模块共享小组件（M1）
 
@@ -121,6 +123,7 @@ class WnThumb extends StatelessWidget {
       );
     }
     return CachedNetworkImage(
+      cacheManager: MediaCache.instance,
       imageUrl: url,
       width: size,
       height: size,
@@ -350,7 +353,7 @@ Future<bool> wnConfirmDialog(BuildContext context, String title, String body,
     {String confirmText = '删除'}) async {
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => GlassAlertDialog(
       backgroundColor: Theme.of(ctx).dialogBackgroundColor,
       // v4.0 弹层大圆角 + 1px 细线（参考图⑦口径）
       shape: RoundedRectangleBorder(

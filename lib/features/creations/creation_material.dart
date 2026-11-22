@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/paper_flip.dart';
@@ -28,9 +29,70 @@ class CreationPaperTurn extends StatelessWidget {
             : CustomPaint(
                 foregroundPainter: _SurfaceLight(document, lightShift),
                 child: front),
-        reverse: CustomPaint(
-            painter: CreationPainter(document, const [], back: true)),
+        reverse: _PreparedBack(document: document),
       );
+}
+
+class _PreparedBack extends StatefulWidget {
+  final CreationDocument document;
+  const _PreparedBack({required this.document});
+
+  @override
+  State<_PreparedBack> createState() => _PreparedBackState();
+}
+
+class _PreparedBackState extends State<_PreparedBack> {
+  ui.Image? _face;
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _prepare();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PreparedBack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document != widget.document) _prepare();
+  }
+
+  Future<void> _prepare() async {
+    final generation = ++_generation;
+    _face?.dispose();
+    _face = null;
+    final recorder = ui.PictureRecorder();
+    const width = 880;
+    final height = (width / widget.document.aspectRatio).round();
+    CreationPainter(widget.document, const [], back: true)
+        .paint(Canvas(recorder), Size(width.toDouble(), height.toDouble()));
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(width, height);
+      if (!mounted || generation != _generation) {
+        image.dispose();
+        return;
+      }
+      setState(() => _face = image);
+    } catch (_) {
+      // The vector rendering stays available while a texture is unavailable.
+    } finally {
+      picture.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    _face?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => _face == null
+      ? CustomPaint(
+          painter: CreationPainter(widget.document, const [], back: true))
+      : RawImage(
+          image: _face, fit: BoxFit.fill, filterQuality: FilterQuality.low);
 }
 
 class CreationBackdrop extends StatelessWidget {
@@ -58,6 +120,7 @@ class CreationBackdrop extends StatelessWidget {
           ImageFiltered(
               imageFilter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
               child: CachedNetworkImage(
+                  cacheManager: MediaCache.instance,
                   imageUrl: imageUrl!,
                   fit: BoxFit.cover,
                   alignment: Alignment.topRight,

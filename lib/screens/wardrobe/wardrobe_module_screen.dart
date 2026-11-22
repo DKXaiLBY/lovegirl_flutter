@@ -13,7 +13,7 @@ import 'wardrobe_home_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 import 'wardrobe_whiteboard_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 衣柜模块壳（生活 tab 第 5 页签）：顶部分段「衣橱｜穿搭」+ 右上「+」
 /// 决策 Q1/Q2：内嵌形态，不用底部双 Tab（避免与主 App 底栏叠加）
 class WardrobeModuleScreen extends StatefulWidget {
@@ -131,9 +131,8 @@ class _WardrobeModuleScreenState extends State<WardrobeModuleScreen> {
               (Icons.dry_cleaning_rounded, '换装试穿', '/whiteboard'),
             (Icons.person_outline_rounded, '我的数字形象', '/avatar'),
           ];
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
         child: WnGlassSheet(

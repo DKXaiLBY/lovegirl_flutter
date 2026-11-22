@@ -13,7 +13,7 @@ import 'wardrobe_filter_sheet.dart';
 import 'wardrobe_item_detail_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// P1 衣橱主页【M1】：8 类分节 2 列网格（空节隐藏、节内添加时间倒序）、
 /// 「今天」胶囊、筛选、多选（加入搭配/退役/删除）
 class WardrobeHomeScreen extends StatefulWidget {
@@ -161,9 +161,8 @@ class _WardrobeHomeScreenState extends State<WardrobeHomeScreen> {
           icon: Icons.tune,
           showLabel: true,
           onPressed: () async {
-            await showModalBottomSheet<void>(
+            await showGlassSheet<void>(
               context: context,
-              backgroundColor: Colors.transparent,
               isScrollControlled: true,
               builder: (_) => const WardrobeFilterSheet(),
             );

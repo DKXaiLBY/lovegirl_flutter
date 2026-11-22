@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/constants.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../screens/travel/travel_album_picker.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 旅行地点照片网格组件
 class TravelPhotoGrid extends StatefulWidget {
   final int spotId;
@@ -102,7 +104,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
         photo['source_photo_id'] != null);
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(linked ? '移出这次回忆' : '删除照片'),
         content: Text(linked ? '相册原图会保留，只移除这次关联。' : '确定删除这张地点照片吗？'),
@@ -144,6 +146,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
         builder: (_) => Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(
+            flexibleSpace: const RebuildGlassHeader(),
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             elevation: 0,
@@ -151,6 +154,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
           body: Center(
             child: InteractiveViewer(
               child: CachedNetworkImage(
+                cacheManager: MediaCache.instance,
                 imageUrl: fullUrl,
                 fit: BoxFit.contain,
                 placeholder: (_, __) => Center(
@@ -220,6 +224,7 @@ class _TravelPhotoGridState extends State<TravelPhotoGrid> {
                     fit: StackFit.expand,
                     children: [
                       CachedNetworkImage(
+                        cacheManager: MediaCache.instance,
                         imageUrl: fullUrl,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => Container(color: context.lgBg),

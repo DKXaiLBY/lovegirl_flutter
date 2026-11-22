@@ -10,6 +10,7 @@ import 'package:amap_flutter_map/amap_flutter_map.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 
 import '../../models/travel.dart' show TravelSpot;
 import '../../utils/lovegirl_theme.dart';
@@ -440,7 +441,7 @@ class TravelMapCanvasState extends State<TravelMapCanvas> {
     }
     final url = path.startsWith('http') ? path : AppConstants.baseUrl + path;
     final dark = context.lgIsDark;
-    final stream = ResizeImage(CachedNetworkImageProvider(url), width: 240)
+    final stream = ResizeImage(CachedNetworkImageProvider(cacheManager: MediaCache.instance, url), width: 240)
         .resolve(ImageConfiguration.empty);
     final ready = Completer<ImageInfo>();
     final listener = ImageStreamListener((info, _) {

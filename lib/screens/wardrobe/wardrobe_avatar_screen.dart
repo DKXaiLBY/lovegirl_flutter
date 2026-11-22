@@ -10,7 +10,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/parallax_avatar.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P12 我的数字形象（M2a，MIROIR 化双 Tab）：
 /// 照片库=原图管理（上传/抠图/设默认/删除）；数字形象=抠图成果（进换装白板）
 class WardrobeAvatarScreen extends StatefulWidget {
@@ -37,6 +37,7 @@ class _WardrobeAvatarScreenState extends State<WardrobeAvatarScreen>
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,

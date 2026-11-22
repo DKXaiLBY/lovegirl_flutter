@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 
 import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/lovegirl_ui.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 愿望兑换券：TA 发行的券用爱心豆兑换，兑换后 TA 现实兑现
 class WishVoucherScreen extends StatefulWidget {
   const WishVoucherScreen({super.key});
@@ -64,9 +65,8 @@ class _WishVoucherScreenState extends State<WishVoucherScreen>
       (v as List? ?? []).whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
 
   Future<void> _openCreate() async {
-    final created = await showModalBottomSheet<bool>(
+    final created = await showGlassSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => const _CreateVoucherSheet(),
     );
@@ -77,7 +77,7 @@ class _WishVoucherScreenState extends State<WishVoucherScreen>
     final cost = (v['cost_bean'] as num?)?.toInt() ?? 0;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         backgroundColor: Theme.of(ctx).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: Text('兑换「${v['title']}」？',
@@ -101,7 +101,7 @@ class _WishVoucherScreenState extends State<WishVoucherScreen>
     try {
       await ApiService().redeemVoucher((v['id'] as num).toInt());
       if (!mounted) return;
-      HapticFeedback.mediumImpact();
+      AppHaptics.instance.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('已兑换「${v['title']}」，等 $_partnerName 兑现吧'),
         behavior: SnackBarBehavior.floating,
@@ -505,7 +505,7 @@ class _MyVoucherRow extends StatelessWidget {
       confirmDismiss: (_) async {
         final ok = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (ctx) => GlassAlertDialog(
             backgroundColor: Theme.of(ctx).colorScheme.surface,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
@@ -786,12 +786,12 @@ class _CreateVoucherSheetState extends State<_CreateVoucherSheet> {
     if (title.isEmpty) {
       // 行内校验：字段红框+错误文案（底部 snackbar 会被键盘挡住）
       setState(() => _titleError = '给券起个名字吧');
-      HapticFeedback.selectionClick();
+      AppHaptics.instance.selectionClick();
       return;
     }
     if (cost <= 0) {
       setState(() => _costError = '定个豆价（大于 0）');
-      HapticFeedback.selectionClick();
+      AppHaptics.instance.selectionClick();
       return;
     }
     if (_titleError != null || _costError != null) {

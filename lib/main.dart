@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
@@ -20,20 +21,29 @@ import 'screens/profile/profile_screen.dart';
 import 'features/travel/travel_screen.dart';
 import 'screens/version/update_dialog.dart';
 import 'services/log_service.dart';
+import 'services/app_storage.dart';
 import 'services/notification_service.dart';
 import 'utils/lovegirl_theme.dart';
 import 'utils/app_section.dart';
 import 'widgets/illus_image.dart';
 import 'widgets/rebuild_controls.dart';
+import 'widgets/glass_routes.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   unawaited(LogService.init());
+  unawaited(AppStorage.reclaimInstalledUpdate());
+  try {
+    await AppHaptics.instance.load();
+  } catch (error, stack) {
+    LogService().error('Settings', '触觉反馈偏好读取失败', stack: stack);
+  }
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
   ));
   runApp(const LoveGirlApp());
+  MediaCache.instance.scheduleTrim();
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(
       NotificationService().init().catchError((Object error, StackTrace stack) {
@@ -105,8 +115,8 @@ class _ThemedLoveGirlApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          theme: LoveGirlTheme.lightTheme,
-          darkTheme: LoveGirlTheme.darkTheme,
+          theme: glassNavigationTheme(LoveGirlTheme.lightTheme),
+          darkTheme: glassNavigationTheme(LoveGirlTheme.darkTheme),
           themeMode: themeProvider.mode,
           home: const AppShell(),
         );
@@ -268,7 +278,7 @@ class _LoveBottomNavButton extends StatelessWidget {
       label: item.label,
       child: InkResponse(
         onTap: () {
-          HapticFeedback.selectionClick();
+          AppHaptics.instance.selectionClick();
           onTap();
         },
         radius: 32,

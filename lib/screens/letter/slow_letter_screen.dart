@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 
 import '../../services/api_service.dart' show ApiService, extractServerMessage;
 import '../../utils/lovegirl_theme.dart';
@@ -334,7 +334,7 @@ class _LetterComposeScreenState extends State<LetterComposeScreen> {
       setState(() => _contentError = '信还空着呢，写点什么吧');
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       if (_contentFocus.hasFocus) _contentFocus.unfocus();
-      HapticFeedback.selectionClick();
+      AppHaptics.instance.selectionClick();
       return;
     }
     setState(() => _sending = true);

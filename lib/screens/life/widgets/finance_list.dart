@@ -5,7 +5,7 @@ import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/rebuild_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class FinanceListWidget extends StatefulWidget {
   final bool createOnOpen;
   final ApiService? api;
@@ -174,10 +174,9 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
       '其他',
     ];
 
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
       // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
@@ -924,7 +923,7 @@ class _FinanceListWidgetState extends State<FinanceListWidget> {
     if (_deleting.contains(id)) return;
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (dialog) => AlertDialog(
+      builder: (dialog) => GlassAlertDialog(
         title: const Text('删除账单'),
         content: const Text('确定删除这笔账单吗？'),
         actions: [

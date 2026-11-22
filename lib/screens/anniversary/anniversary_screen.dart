@@ -5,7 +5,8 @@ import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/illus_image.dart';
 import '../../widgets/lovegirl_ui.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class AnniversaryScreen extends StatefulWidget {
   const AnniversaryScreen({super.key});
 
@@ -165,10 +166,9 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
     var repeatType = _text(item?['repeatType'], fallback: 'yearly');
     String? titleError;
 
-    await showModalBottomSheet<void>(
+    await showGlassSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
@@ -485,7 +485,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   Future<void> _deleteAnniversary(Map<String, dynamic> item) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('\u5220\u9664\u7eaa\u5ff5\u65e5'),
         content: Text(
@@ -531,7 +531,7 @@ class _AnniversaryScreenState extends State<AnniversaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.lgBg,
-      appBar: AppBar(title: const Text(_pageTitle)),
+      appBar: AppBar(flexibleSpace: const RebuildGlassHeader(), title: const Text(_pageTitle)),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditSheet(),
         backgroundColor: context.lgInk,

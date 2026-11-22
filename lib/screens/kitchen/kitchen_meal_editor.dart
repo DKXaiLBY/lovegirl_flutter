@@ -5,7 +5,7 @@ import '../../providers/kitchen_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import 'kitchen_meal_fields.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 bool canAdjustKitchenMeal(KitchenProvider kitchen, KitchenOrder order) {
   final participants = {order.ordererId, order.partnerId ?? order.cookId};
   return order.isActive &&
@@ -16,7 +16,7 @@ bool canAdjustKitchenMeal(KitchenProvider kitchen, KitchenOrder order) {
 }
 
 Future<bool?> showKitchenMealEditor(BuildContext context, int id) =>
-    showModalBottomSheet<bool>(
+    showGlassSheet<bool>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _KitchenMealEditor(id: id),
@@ -82,7 +82,7 @@ class _KitchenMealEditorState extends State<_KitchenMealEditor> {
     if (_base != null) {
       final confirmed = await showDialog<bool>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => GlassAlertDialog(
                 title: const Text('读取最新餐次'),
                 content: const Text('读取成功后会替换尚未保存的修改。'),
                 actions: [
@@ -104,7 +104,7 @@ class _KitchenMealEditorState extends State<_KitchenMealEditor> {
     if (_items.isNotEmpty) {
       final confirmed = await showDialog<bool>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => GlassAlertDialog(
                 title: const Text('更换主厨'),
                 content: const Text('更换后需要从新主厨的菜单重新选菜。'),
                 actions: [

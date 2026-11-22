@@ -1,10 +1,14 @@
 import '../../widgets/rebuild_controls.dart';
 import '../../widgets/glass_feature_icon.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/travel.dart';
+import '../../providers/auth_provider.dart';
+import '../../screens/travel/journey_recap_screen.dart';
 import '../../screens/travel/trip_preparation_screen.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../creations/creation_gallery.dart';
@@ -12,7 +16,7 @@ import '../creations/creation_files.dart';
 import 'journey.dart';
 import 'journey_controller.dart';
 import 'travel_workspace.dart' show hasMapPosition;
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 String journeyRouteDisplay(String value) =>
     value.replaceAll('RESULTS_ARE_EMPTY', '当前路段没有可用路线');
 
@@ -47,7 +51,7 @@ Future<void> journeyDetails(BuildContext context, JourneyController controller,
   final result = await showDialog<bool>(
       context: context,
       builder: (dialog) => StatefulBuilder(
-          builder: (context, update) => AlertDialog(
+          builder: (context, update) => GlassAlertDialog(
                 title: Text(edit ? '行程信息' : '新的旅行'),
                 content: SingleChildScrollView(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -157,7 +161,7 @@ Future<void> showJourneyLibrary(
   final hostContext = context;
   await controller.load();
   if (!context.mounted) return;
-  await showModalBottomSheet<void>(
+  await showGlassSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -222,7 +226,7 @@ Future<void> showJourneyLibrary(
                                     onPressed: () async {
                                       final accepted = await showDialog<bool>(
                                           context: context,
-                                          builder: (context) => AlertDialog(
+                                          builder: (context) => GlassAlertDialog(
                                                   title:
                                                       const Text('删除未提交的修改？'),
                                                   content:
@@ -298,7 +302,7 @@ class JourneyPanel extends StatelessWidget {
   Future<void> _stopMenu(BuildContext context, JourneyStop stop) async {
     final j = controller.current!;
     var note = stop.note;
-    final action = await showModalBottomSheet<String>(
+    final action = await showGlassSheet<String>(
         context: context,
         showDragHandle: true,
         isScrollControlled: true,
@@ -392,7 +396,7 @@ class JourneyPanel extends StatelessWidget {
       if (current != null) {
         final result = await showDialog<bool>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => GlassAlertDialog(
             title: Text(
                 '本站提醒 · ${TimeOfDay.fromDateTime(current).format(context)}'),
             content: const Text('提醒仅发送到这台设备，送达时间由系统调度。'),
@@ -460,7 +464,7 @@ class JourneyPanel extends StatelessWidget {
       for (final key in journeyModes.keys)
         key: controller.alternative(stop, key)
     };
-    final mode = await showModalBottomSheet<String>(
+    final mode = await showGlassSheet<String>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
@@ -641,7 +645,7 @@ class JourneyPanel extends StatelessWidget {
                     FilledButton(
                         style: rebuildFilledStyle(context),
                         onPressed: () async {
-                          HapticFeedback.lightImpact();
+                          AppHaptics.instance.lightImpact();
                           final saved = await controller.save();
                           if (context.mounted && saved) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -659,6 +663,14 @@ class JourneyPanel extends StatelessWidget {
                   PopupMenuButton<String>(
                       tooltip: '行程更多',
                       onSelected: (action) async {
+                        if (action == 'recap' && j.id != null) {
+                          final account = context.read<AuthProvider?>()?.userId;
+                          if (account != null) {
+                            await Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => JourneyRecapScreen(
+                                journey: j, api: controller.api, account: account)));
+                          }
+                        }
                         if (action == 'refresh') {
                           await controller.reloadLatest();
                         }
@@ -696,7 +708,7 @@ class JourneyPanel extends StatelessWidget {
                         if (action == 'delete' && context.mounted) {
                           final yes = await showDialog<bool>(
                               context: context,
-                              builder: (context) => AlertDialog(
+                              builder: (context) => GlassAlertDialog(
                                       title: const Text('删除这份行程？'),
                                       content:
                                           const Text('原地点、照片和作品会保留，作品将解除旅行关联。'),
@@ -723,6 +735,9 @@ class JourneyPanel extends StatelessWidget {
                             if (j.id != null)
                               const PopupMenuItem(
                                   value: 'preparation', child: Text('旅行准备')),
+                            if (j.id != null)
+                              const PopupMenuItem(
+                                  value: 'recap', child: Text('旅行回顾')),
                             if (j.id != null)
                               const PopupMenuItem(
                                   value: 'works', child: Text('旅行拍立得')),
@@ -908,7 +923,7 @@ class JourneyPanel extends StatelessWidget {
               const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 9)),
         ),
         onPressed: () {
-          HapticFeedback.selectionClick();
+          AppHaptics.instance.selectionClick();
           select();
         },
         child: Container(
@@ -981,6 +996,7 @@ class JourneyPanel extends StatelessWidget {
                               ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: CachedNetworkImage(
+                                      cacheManager: MediaCache.instance,
                                       imageUrl: creationUrl(photo),
                                       width: photoWidth,
                                       height: compact ? 44 : 54,

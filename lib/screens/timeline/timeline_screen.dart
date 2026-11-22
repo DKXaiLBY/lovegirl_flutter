@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/rebuild_controls.dart';
 import '../../features/creations/creation_files.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 恋爱时光轴页面
 class TimelineScreen extends StatefulWidget {
   final ApiService? api;
@@ -103,7 +104,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final n = _selectedIds.length;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: Text('删除 $n 条时刻？', style: const TextStyle(fontSize: 16)),
@@ -161,10 +162,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
     ];
     final typeLabels = ['初次相遇', '确定关系', '纪念日', '旅行', '礼物', '其他'];
 
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Container(
           padding: EdgeInsets.only(
@@ -402,6 +402,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
 
   PreferredSizeWidget _normalAppBar() {
     return AppBar(
+      flexibleSpace: const RebuildGlassHeader(),
       backgroundColor: context.lgBg,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -430,6 +431,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
   PreferredSizeWidget _selectionAppBar() {
     final foreground = context.lgIsDark ? context.lgBg : Colors.white;
     return AppBar(
+      flexibleSpace: const RebuildGlassHeader(),
       backgroundColor: context.lgInk,
       foregroundColor: foreground,
       elevation: 0,
@@ -461,7 +463,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final title = (event['title'] ?? '').toString();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         title: const Text('删除这条时刻？', style: TextStyle(fontSize: 16)),
         content: Text(title.isEmpty ? '删除后不可恢复' : '「$title」删除后不可恢复',
             style: const TextStyle(fontSize: 13)),
@@ -576,6 +578,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                         child: AspectRatio(
                           aspectRatio: 1.75,
                           child: CachedNetworkImage(
+                            cacheManager: MediaCache.instance,
                             imageUrl: creationUrl(image),
                             memCacheWidth: 680,
                             fit: BoxFit.cover,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:provider/provider.dart';
@@ -14,7 +14,7 @@ import '../../widgets/illus_image.dart';
 import '../../widgets/rebuild_controls.dart';
 import '../../widgets/glass_feature_icon.dart';
 import '../kitchen/kitchen_screen.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 美食手账：两个人的餐桌相册。
 /// 记一道菜（照片/菜名/新做复刻/食谱/故事）→ TA 品尝打分 → 新菜可挂上点单菜单。
 class CookingLogScreen extends StatefulWidget {
@@ -78,9 +78,8 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
       (v as List? ?? []).whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
 
   Future<void> _openCreate() async {
-    final created = await showModalBottomSheet<bool>(
+    final created = await showGlassSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => const _CreateLogSheet(),
     );
@@ -90,9 +89,8 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
   Future<void> _taste(Map<String, dynamic> log) async {
     int rating = 5;
     final commentCtrl = TextEditingController();
-    final ok = await showModalBottomSheet<bool>(
+    final ok = await showGlassSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
@@ -180,7 +178,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
     try {
       await _api.tasteCookingLog((log['id'] as num).toInt(), rating, comment);
       if (!mounted) return;
-      HapticFeedback.mediumImpact();
+      AppHaptics.instance.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('评分交卷，TA 会收到通知'),
         behavior: SnackBarBehavior.floating,
@@ -417,7 +415,7 @@ class _CookingLogScreenState extends State<CookingLogScreen> {
   )));
 
   Widget _focusedLog(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('餐桌回忆')),
+    appBar: AppBar(flexibleSpace: const RebuildGlassHeader(), title: const Text('餐桌回忆')),
     body: RebuildPageBackground(child: _loading ? const Center(child: CircularProgressIndicator())
       : _logs.isEmpty ? _readError() : RefreshIndicator(onRefresh: _load, child: ListView(
         physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16),
@@ -521,7 +519,7 @@ class _CookingCard extends StatelessWidget {
   Future<void> _delete(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         title: const Text('删除这条记录？', style: TextStyle(fontSize: 16)),
         content: const Text('删除这条回忆后不可恢复，菜单与餐次会保留。', style: TextStyle(fontSize: 13)),
         actions: [
@@ -862,7 +860,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOut);
       }
-      HapticFeedback.selectionClick();
+      AppHaptics.instance.selectionClick();
       return;
     }
     if (_titleError != null) setState(() => _titleError = null);
@@ -883,7 +881,7 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
         'addToMenu': _addToMenu && _isNew,
       });
       if (!mounted) return;
-      HapticFeedback.mediumImpact();
+      AppHaptics.instance.mediumImpact();
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;

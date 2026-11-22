@@ -7,7 +7,7 @@ import '../../utils/lovegirl_theme.dart';
 import 'place_search.dart';
 import 'travel_map_canvas.dart';
 import 'travel_workspace.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class TravelPlacePicker extends StatefulWidget {
   final ApiService api;
   final PlaceChoice? initial;
@@ -68,6 +68,7 @@ class _TravelPlacePickerState extends State<TravelPlacePicker> {
     final picked = _picked;
     return Scaffold(
       appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           systemOverlayStyle: context.lgIsDark
               ? SystemUiOverlayStyle.light
               : SystemUiOverlayStyle.dark,

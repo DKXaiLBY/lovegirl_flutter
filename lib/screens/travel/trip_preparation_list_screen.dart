@@ -88,7 +88,7 @@ class _TripPreparationListScreenState extends State<TripPreparationListScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: context.lgBg,
-        appBar: AppBar(title: const Text('旅行准备')),
+        appBar: AppBar(flexibleSpace: const RebuildGlassHeader(), title: const Text('旅行准备')),
         body: RebuildPageBackground(
           child: _account == null
               ? const Center(child: Text('登录后查看旅行准备'))

@@ -9,7 +9,8 @@ import 'outfit_compose_screen.dart';
 import 'outfit_detail_screen.dart';
 import 'wardrobe_item_form_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P3 单品详情【M1】：大图/标签/品牌价格/穿着次数/关联穿搭；
 /// 底部「加入搭配」（退役置灰）+「标记为」；删除在 P4 编辑页内
 class WardrobeItemDetailScreen extends StatelessWidget {
@@ -33,6 +34,7 @@ class WardrobeItemDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: context.lgBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -295,9 +297,8 @@ class WardrobeItemDetailScreen extends StatelessWidget {
   }
 
   void _markSheet(BuildContext context, WardrobeProvider p, WardrobeItem item) {
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
         child: WnGlassSheet(

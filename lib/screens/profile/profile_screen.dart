@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
@@ -11,7 +12,7 @@ import '../../widgets/rebuild_controls.dart';
 import '../anniversary/anniversary_screen.dart';
 import '../couple/couple_binding_screen.dart';
 import '../settings/settings_screen.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class ProfileScreen extends StatefulWidget {
   final ApiService? api;
   const ProfileScreen({super.key, this.api});
@@ -135,6 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: url.isEmpty
                 ? Icon(Icons.person_outline, color: context.lgTextSecondary)
                 : CachedNetworkImage(
+                    cacheManager: MediaCache.instance,
                     imageUrl: _url(url),
                     fit: BoxFit.cover,
                     memCacheWidth: 140,
@@ -144,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _people() {
     final me = context.read<AuthProvider>().user;
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
         context: context,
         showDragHandle: true,
         isScrollControlled: true,
@@ -231,6 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Stack(fit: StackFit.expand, children: [
               if (_cover != null)
                 CachedNetworkImage(
+                    cacheManager: MediaCache.instance,
                     imageUrl: _url(_cover!),
                     fit: BoxFit.cover,
                     memCacheWidth: 1000,

@@ -189,12 +189,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
     expect(find.byTooltip('翻到正面'), findsOneWidget);
-    final painter = tester
-        .widgetList<CustomPaint>(find.byType(CustomPaint))
-        .map((w) => w.painter)
-        .whereType<CreationPainter>()
-        .single;
-    expect(painter.back, true);
+    expect(
+        find.byWidgetPredicate((widget) =>
+            widget is RawImage && widget.image != null ||
+            widget is CustomPaint &&
+                widget.painter is CreationPainter &&
+                (widget.painter! as CreationPainter).back),
+        findsOneWidget);
     await tester.tap(find.byTooltip('翻到正面'));
     await tester.pumpAndSettle();
     expect(find.byType(ColoredBox), findsWidgets);

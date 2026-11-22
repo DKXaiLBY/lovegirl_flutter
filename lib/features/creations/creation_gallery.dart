@@ -2,9 +2,11 @@ import '../../widgets/rebuild_controls.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -20,7 +22,7 @@ import 'creation_editor.dart';
 import 'creation_files.dart';
 import 'creation_material.dart';
 import 'creation_preview.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class CreationGallery extends StatefulWidget {
   final String kind;
   final int? tripId;
@@ -173,7 +175,7 @@ class _CreationGalleryState extends State<CreationGallery> {
     try {
       String template = _ticket ? 'landscape' : 'classic';
       if (_ticket) {
-        final choice = await showModalBottomSheet<String>(
+        final choice = await showGlassSheet<String>(
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
@@ -244,7 +246,7 @@ class _CreationGalleryState extends State<CreationGallery> {
           : 1;
       final source = minPhotos > 1
           ? 'import'
-          : await showModalBottomSheet<String>(
+          : await showGlassSheet<String>(
               context: context,
               showDragHandle: true,
               builder: (context) => SafeArea(
@@ -358,7 +360,7 @@ class _CreationGalleryState extends State<CreationGallery> {
   Future<void> _deleteWork(CreationWork work) async {
     final accepted = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => GlassAlertDialog(
                 title: const Text('删除这份作品？'),
                 content: const Text('两个人的收藏中都会移除，原相册照片不会删除。'),
                 actions: [
@@ -402,7 +404,7 @@ class _CreationGalleryState extends State<CreationGallery> {
   }
 
   void _flip(int id) {
-    HapticFeedback.selectionClick();
+    AppHaptics.instance.selectionClick();
     setState(() {
       if (!_backWorks.add(id)) _backWorks.remove(id);
     });
@@ -432,6 +434,7 @@ class _CreationGalleryState extends State<CreationGallery> {
       backgroundColor: context.lgBg,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
@@ -593,7 +596,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                                                             bool>(
                                                         context: context,
                                                         builder: (context) =>
-                                                            AlertDialog(
+                                                            GlassAlertDialog(
                                                                 title: const Text(
                                                                     '删除这份草稿？'),
                                                                 content: const Text(
@@ -707,6 +710,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                                             (880 / document.aspectRatio) *
                                             box.maxHeight,
                                         child: CachedNetworkImage(
+                                            cacheManager: MediaCache.instance,
                                             imageUrl: creationUrl(
                                                 (photo['url'] ??
                                                         photo['image'] ??
@@ -779,6 +783,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                 document: work.document,
                 initialBack: back,
                 front: CachedNetworkImage(
+                    cacheManager: MediaCache.instance,
                     imageUrl: creationUrl(work.previewUrl),
                     fit: BoxFit.contain))));
     return Padding(
@@ -973,7 +978,7 @@ class _CreationGalleryState extends State<CreationGallery> {
                 label: Text(_exportingId == work.id ? '正在导出' : '导出图片'))),
       ]);
 
-  void _showStory(CreationWork work) => showModalBottomSheet<void>(
+  void _showStory(CreationWork work) => showGlassSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -1072,6 +1077,7 @@ class CreationFlip extends StatelessWidget {
           back: back,
           lightShift: lightShift,
           front: CachedNetworkImage(
+            cacheManager: MediaCache.instance,
             imageUrl: creationUrl(work.previewUrl),
             fit: BoxFit.contain,
             memCacheWidth: 960,

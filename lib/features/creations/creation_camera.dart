@@ -3,7 +3,7 @@ import '../../utils/lovegirl_theme.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'creation_catalog.dart';
 
@@ -55,7 +55,7 @@ class _CreationCameraState extends State<CreationCamera>
         unawaited(_capture());
       } else {
         setState(() => _remaining--);
-        HapticFeedback.selectionClick();
+        AppHaptics.instance.selectionClick();
       }
     });
   }
@@ -119,7 +119,7 @@ class _CreationCameraState extends State<CreationCamera>
     final operation = _operation;
     setState(() => _busy = true);
     try {
-      HapticFeedback.lightImpact();
+      AppHaptics.instance.lightImpact();
       final image = await controller.takePicture();
       if (mounted && operation == _operation) {
         Navigator.pop(
@@ -169,6 +169,7 @@ class _CreationCameraState extends State<CreationCamera>
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           title: const Text('留住这一刻',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           backgroundColor: context.lgBg,

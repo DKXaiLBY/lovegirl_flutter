@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import '../../providers/kitchen_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import 'kitchen_photo.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// A photo menu made only from the selected kitchen's actual dishes.
 class KitchenMenuGrid extends StatefulWidget {
   final KitchenProvider kitchen;
@@ -26,7 +26,7 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
 
   Future<void> _chooseChef() async {
     final kitchen = widget.kitchen;
-    final myself = await showModalBottomSheet<bool>(
+    final myself = await showGlassSheet<bool>(
         context: context,
         builder: (sheet) => SafeArea(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -49,7 +49,7 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
     if (kitchen.cart.isNotEmpty) {
       final confirmed = await showDialog<bool>(
           context: context,
-          builder: (dialog) => AlertDialog(
+          builder: (dialog) => GlassAlertDialog(
                 title: const Text('更换主厨'),
                 content: const Text('更换后需要从新主厨的菜单重新选菜。'),
                 actions: [
@@ -151,7 +151,7 @@ class _KitchenMenuGridState extends State<KitchenMenuGrid> {
                             : FontWeight.w400),
                   ),
                   onPressed: () {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.instance.selectionClick();
                     setState(() => _category = categories[i]);
                   },
                   child: Text(categories[i]),
@@ -262,10 +262,9 @@ class _MenuPhotoCard extends StatelessWidget {
   const _MenuPhotoCard({required this.dish, required this.kitchen});
 
   void _details(BuildContext context) {
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.lgPaper,
       builder: (context) => SafeArea(
           child: ConstrainedBox(
         constraints:

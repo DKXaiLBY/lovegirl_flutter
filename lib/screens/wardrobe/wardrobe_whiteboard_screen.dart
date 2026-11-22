@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -18,7 +19,8 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import 'wardrobe_avatar_screen.dart';
 import 'package:gal/gal.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// 换装白板（M2 W1，P13）：形象底图 + 已抠图单品拖缩摆放 → 合成 JPEG 白底 →
 /// 换装穿搭（状态=待确认）。口径：wardrobe-interaction §P13 / m2-plan A3。
 /// 白底固定不随主题（导出口径）；无旋转、无画布平移；互斥=替换并 toast。
@@ -177,7 +179,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
     if (_placed.isEmpty) return;
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('清空白板？', style: TextStyle(fontSize: 16)),
         actions: [
@@ -201,9 +203,8 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
 
   void _switchAvatar() {
     final list = _p.avatars;
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         child: Container(
           decoration: BoxDecoration(
@@ -243,7 +244,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
                           ),
                         ),
                         child: Image(
-                          image: CachedNetworkImageProvider(_abs(a.displayImage)),
+                          image: CachedNetworkImageProvider(cacheManager: MediaCache.instance, _abs(a.displayImage)),
                           fit: BoxFit.contain,
                         ),
                       ),
@@ -349,7 +350,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
       var ready = true;
       try {
         await Future.wait(urls
-                .map((u) => precacheImage(CachedNetworkImageProvider(u), context)
+                .map((u) => precacheImage(CachedNetworkImageProvider(cacheManager: MediaCache.instance, u), context)
                     .catchError((_) {})))
             .timeout(const Duration(seconds: 8));
       } on TimeoutException {
@@ -437,6 +438,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -534,6 +536,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
                             Positioned.fill(
                               child: Image(
                                 image: CachedNetworkImageProvider(
+                                    cacheManager: MediaCache.instance,
                                     _abs(avatar.displayImage)),
                                 fit: BoxFit.contain, // 非 3:4 原照 contain 防砍头脚
                               ),
@@ -588,6 +591,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
             child: Stack(
               children: [
                 CachedNetworkImage(
+                  cacheManager: MediaCache.instance,
                   imageUrl: _abs(pl.item.cutoutUrl ?? ''),
                   fit: BoxFit.contain,
                   placeholder: (_, __) =>
@@ -705,6 +709,7 @@ class _WardrobeWhiteboardScreenState extends State<WardrobeWhiteboardScreen> {
                 ),
               ),
               child: CachedNetworkImage(
+                cacheManager: MediaCache.instance,
                 imageUrl: _abs(it.cutoutUrl ?? ''),
                 fit: BoxFit.contain,
                 memCacheWidth: 200,

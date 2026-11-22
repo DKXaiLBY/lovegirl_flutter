@@ -10,7 +10,7 @@ import '../../widgets/rebuild_controls.dart';
 import 'outfit_capture_screen.dart';
 import 'outfit_detail_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// P7 穿搭时间线【M1】：计划中（未来，最近优先）/今天/昨天/本周更早/更早；
 /// 长按菜单按状态裁剪（已通过：改回待确认/删除；待确认：改为已通过/删除）
 class OutfitTimelineScreen extends StatelessWidget {
@@ -170,9 +170,8 @@ class OutfitTimelineScreen extends StatelessWidget {
         },
       ),
     ];
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         // v4.0 弹层玻璃化统一口径（radiusXl 28 / 白 72% / blur 24）
         child: WnGlassSheet(

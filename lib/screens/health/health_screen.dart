@@ -23,6 +23,7 @@ class _HealthScreenState extends State<HealthScreen> {
     if (!auth.isOriginalGirl) {
       return Scaffold(
         appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           title: const Text('经期记录'),
           systemOverlayStyle: context.lgIsDark
               ? SystemUiOverlayStyle.light
@@ -76,6 +77,7 @@ class _HealthScreenState extends State<HealthScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: const Text('经期记录'),
         systemOverlayStyle: context.lgIsDark
             ? SystemUiOverlayStyle.light

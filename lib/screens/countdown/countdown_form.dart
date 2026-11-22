@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/lovegirl_theme.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// 倒计时表单页面 — 新增 / 编辑
 class CountdownForm extends StatefulWidget {
   final Map<String, dynamic>? item;
@@ -98,6 +98,7 @@ class _CountdownFormState extends State<CountdownForm> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: Text(_isEdit ? '编辑倒计时' : '新建倒计时'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),

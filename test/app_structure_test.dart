@@ -167,9 +167,10 @@ void main() {
       (tester) async {
     await tester.pumpWidget(app(const SettingsScreen()));
     await tester.pump();
-    await tester.scrollUntilVisible(find.text('清除缓存'), 300,
+    expect(find.text('触觉反馈'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('存储与缓存'), 300,
         scrollable: find.byType(Scrollable).first);
-    expect(find.text('清除缓存'), findsOneWidget);
+    expect(find.text('存储与缓存'), findsOneWidget);
     expect(find.text('导出数据'), findsNothing);
     expect(find.text('重置所有数据'), findsNothing);
     expect(find.text('姨妈提醒'), findsNothing);

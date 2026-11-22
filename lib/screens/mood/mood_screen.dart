@@ -10,7 +10,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/app_icon.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/rebuild_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class MoodScreen extends StatefulWidget {
   final ApiService? api;
   const MoodScreen({super.key, this.api});
@@ -344,10 +344,9 @@ class _MoodScreenState extends State<MoodScreen> {
     required WidgetBuilder builder,
     bool isScrollControlled = false,
   }) {
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: ctx,
       isScrollControlled: isScrollControlled,
-      backgroundColor: Colors.transparent,
       builder: (sheetCtx) => Padding(
         // 键盘避让集中在外层（detail 无键盘时 viewInsets.bottom=0 不产生留白）
         padding:
@@ -391,6 +390,7 @@ class _MoodScreenState extends State<MoodScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,

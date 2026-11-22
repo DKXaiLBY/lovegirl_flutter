@@ -1,13 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../utils/motion.dart';
 import '../../widgets/lovegirl_ui.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// 爱心豆页：余额 + 每日签到（描边勾选/豆子爆散动效）+ 流水
 class BeansScreen extends StatefulWidget {
   const BeansScreen({super.key});
@@ -100,7 +100,7 @@ class _BeansScreenState extends State<BeansScreen>
       } else {
         setState(() => _checkedIn = true);
       }
-      HapticFeedback.mediumImpact();
+      AppHaptics.instance.mediumImpact();
       _checkCtrl.forward(from: 0);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('签到成功，爱心豆 +5'),
@@ -121,6 +121,7 @@ class _BeansScreenState extends State<BeansScreen>
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: context.lgBg,
         foregroundColor: context.lgTextPrimary,
         elevation: 0,

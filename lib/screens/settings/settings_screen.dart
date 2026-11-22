@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
@@ -17,7 +15,8 @@ import 'package:lovegirl_flutter/screens/version/update_dialog.dart';
 import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 import 'log_screen.dart';
-
+import 'storage_screen.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class SettingsScreen extends StatefulWidget {
   final bool openPrivacy;
   const SettingsScreen({super.key, this.openPrivacy = false});
@@ -43,9 +42,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // 推送开关
   bool _pushEnabled = true;
 
-  // 数据管理
-  String _cacheSize = '计算中...';
-
   // 开发者模式 — 点击版本号7次开启
   int _devTapCount = 0;
   DateTime? _lastDevTapTime;
@@ -61,7 +57,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _nicknameController.text = auth.user?['nickname'] ?? '';
         _loadPrivacySettings();
         _loadPushSettings();
-        _calculateCacheSize();
         if (widget.openPrivacy && _privacySection.currentContext != null) {
           Scrollable.ensureVisible(_privacySection.currentContext!);
         }
@@ -136,55 +131,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.setBool(key, value);
     } catch (e) {
       LogService().error('Settings', '保存推送设置失败: $e');
-    }
-  }
-
-  Future<void> _calculateCacheSize() async {
-    try {
-      final cacheDir = await getTemporaryDirectory();
-      int totalSize = 0;
-      if (cacheDir.existsSync()) {
-        final files = cacheDir.listSync(recursive: true);
-        for (final file in files) {
-          if (file is File) {
-            totalSize += file.lengthSync();
-          }
-        }
-      }
-      if (mounted) {
-        setState(() {
-          _cacheSize = _formatBytes(totalSize);
-        });
-      }
-    } catch (e) {
-      LogService().error('Settings', '计算缓存大小失败: $e');
-    }
-  }
-
-  String _formatBytes(int bytes) {
-    if (bytes <= 0) return '0 B';
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-
-  Future<void> _clearCache() async {
-    try {
-      final cacheDir = await getTemporaryDirectory();
-      if (cacheDir.existsSync()) {
-        for (final file in cacheDir.listSync(recursive: true)) {
-          if (file is File) {
-            try {
-              file.deleteSync();
-            } catch (_) {
-              // 跳过被锁定的文件
-            }
-          }
-        }
-      }
-      await _calculateCacheSize();
-    } catch (e) {
-      LogService().error('Settings', '清除缓存失败: $e');
     }
   }
 
@@ -464,14 +410,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDeco(),
-      child: MergeSemantics(
-        child: _buildSwitchRow(
-            Icons.auto_awesome_rounded,
-            LoveGirlTheme.secondary,
-            '界面动效',
-            mapPrefs.motionEnabled,
-            mapPrefs.setMotionEnabled),
-      ),
+      child: Column(children: [
+        MergeSemantics(
+          child: _buildSwitchRow(
+              Icons.auto_awesome_rounded,
+              LoveGirlTheme.secondary,
+              '界面动效',
+              mapPrefs.motionEnabled,
+              mapPrefs.setMotionEnabled),
+        ),
+        const Divider(height: 24, indent: 40),
+        ListenableBuilder(
+          listenable: AppHaptics.instance,
+          builder: (context, child) => MergeSemantics(
+            child: _buildSwitchRow(
+                Icons.vibration_rounded,
+                LoveGirlTheme.planned,
+                '触觉反馈',
+                AppHaptics.instance.enabled,
+                AppHaptics.instance.setEnabled),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -531,19 +491,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDeco(),
-      child: Column(
-        children: [
-          _buildTapRow(Icons.cached_rounded, LoveGirlTheme.orange, '清除缓存',
-              '当前 $_cacheSize', () async {
-            await _clearCache();
-            LogService().userAction('数据:清除缓存');
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('缓存已清除'), duration: Duration(seconds: 1)));
-            }
-          }),
-        ],
-      ),
+      child: _buildTapRow(Icons.storage_rounded, context.lgInk, '存储与缓存',
+          '查看占用', () {
+        final account = context.read<AuthProvider>().userId;
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => StorageScreen(account: account)));
+      }),
     );
   }
 
@@ -673,7 +626,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _isDevMode = true);
       _devTapCount = 0;
       LogService().userAction('开发者模式:已开启');
-      HapticFeedback.heavyImpact();
+      AppHaptics.instance.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('开发者模式已开启'),
@@ -837,9 +790,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ========== 操作方法 ==========
   void _changeAvatar() {
     final ImagePicker picker = ImagePicker();
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
         decoration: BoxDecoration(
@@ -985,7 +937,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutConfirm(AuthProvider auth) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         // v4.0 底色交给主题（深浅两态自动），不写死
         backgroundColor: Theme.of(ctx).dialogBackgroundColor,
         shape: RoundedRectangleBorder(

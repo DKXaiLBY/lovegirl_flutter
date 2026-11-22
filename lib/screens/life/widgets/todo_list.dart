@@ -6,7 +6,7 @@ import 'package:lovegirl_flutter/widgets/lovegirl_ui.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
 import '../../../widgets/app_icon.dart';
 import '../../../widgets/rebuild_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// ===== 手绘风格复选框 =====
 class HandDrawnCheckbox extends StatelessWidget {
   final bool checked;
@@ -246,10 +246,9 @@ class _TodoListWidgetState extends State<TodoListWidget> {
         '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}';
     dateCtrl.text = dateFormat;
 
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
       // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
       builder: (ctx) => StatefulBuilder(
@@ -453,7 +452,7 @@ class _TodoListWidgetState extends State<TodoListWidget> {
   Future<bool> _confirmDelete(int id, String title) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),

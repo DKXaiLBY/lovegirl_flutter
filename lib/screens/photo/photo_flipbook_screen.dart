@@ -3,12 +3,14 @@ import 'dart:ui' as ui;
 
 import 'package:book_page_flip/book_page_flip.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../utils/lovegirl_theme.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// 翻页相册：横屏摊开书浏览（选型定稿 book_page_flip，2026-09-19 真机择优）。
 /// 照片由用户在"选片"面板手动挑选并按点选顺序装订（隐私约束：AI 不参与挑选）。
 
@@ -136,9 +138,8 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
   }
 
   Future<void> _openPicker() async {
-    final picked = await showModalBottomSheet<List<String>>(
+    final picked = await showGlassSheet<List<String>>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _PhotoPickerSheet(
         allUrls: widget.photoUrls,
@@ -172,6 +173,7 @@ class _PhotoFlipbookScreenState extends State<PhotoFlipbookScreen> {
       // 翻页书=暗房语境（深浅两态恒暗），底色对齐 bgDark token 消硬编码
       backgroundColor: LoveGirlTheme.bgDark,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -349,6 +351,7 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
                                 child: CachedNetworkImage(
+                                  cacheManager: MediaCache.instance,
                                   imageUrl: url,
                                   fit: BoxFit.cover,
                                   color: picked

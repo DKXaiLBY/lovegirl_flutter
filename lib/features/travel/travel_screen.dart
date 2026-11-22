@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 
 import '../../models/travel.dart' show TravelSpot;
 import '../../providers/auth_provider.dart';
@@ -23,7 +25,7 @@ import 'journey_controller.dart';
 import 'journey.dart';
 import 'journey_panel.dart';
 import 'map_platform.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class TravelScreen extends StatefulWidget {
   final TravelSpot? initialSpot;
   final int? initialJourneyId;
@@ -314,7 +316,7 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   void _previewNew(PlaceChoice place) {
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
         context: context,
         builder: (sheetContext) => SafeArea(
             child: Padding(
@@ -404,7 +406,7 @@ class _TravelScreenState extends State<TravelScreen> {
     if (_deleting) return;
     final confirmed = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => GlassAlertDialog(
                 title: const Text('删除地点？'),
                 content: Text('将移除“${place.name}”及其旅行记录。'),
                 actions: [
@@ -447,7 +449,7 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   Future<void> _mapOptions() async {
-    final option = await showModalBottomSheet<String>(
+    final option = await showGlassSheet<String>(
         context: context,
         showDragHandle: true,
         builder: (sheet) => SafeArea(
@@ -530,7 +532,7 @@ class _TravelScreenState extends State<TravelScreen> {
                           onPressed: _journeys.busy
                               ? null
                               : () {
-                                  HapticFeedback.selectionClick();
+                                  AppHaptics.instance.selectionClick();
                                   if (item.$2) {
                                     showJourneyLibrary(context, _journeys);
                                   } else {
@@ -594,6 +596,7 @@ class _TravelScreenState extends State<TravelScreen> {
                                   child: Icon(Icons.place_outlined,
                                       size: 36, color: context.lgTextSecondary))
                               : CachedNetworkImage(
+                                  cacheManager: MediaCache.instance,
                                   imageUrl: image.startsWith('http')
                                       ? image
                                       : AppConstants.baseUrl + image,
@@ -823,7 +826,7 @@ class _TravelScreenState extends State<TravelScreen> {
                                                 cardsController: _cards,
                                                 expanded: extent > .52,
                                                 onToggleExpanded: () {
-                                                  HapticFeedback
+                                                  AppHaptics.instance
                                                       .selectionClick();
                                                   final target =
                                                       extent > .52 ? .42 : .62;
@@ -1103,6 +1106,7 @@ class _PlaceRow extends StatelessWidget {
                         color: context.lgPrimarySoft,
                         child: Icon(Icons.place_outlined, color: context.lgInk))
                     : CachedNetworkImage(
+                        cacheManager: MediaCache.instance,
                         imageUrl: image.startsWith('http')
                             ? image
                             : AppConstants.baseUrl + image,

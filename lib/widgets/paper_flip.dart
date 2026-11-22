@@ -19,7 +19,8 @@ class PaperFlip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final still = rebuildReduceMotion(context);
-    return LayoutBuilder(builder: (context, constraints) {
+    return RepaintBoundary(
+        child: LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
       if (width <= 0 || constraints.maxHeight <= 0) return const SizedBox();
       final perspective = .27 / width;
@@ -35,7 +36,8 @@ class PaperFlip extends StatelessWidget {
           final turn = Matrix4.identity()
             ..setEntry(3, 2, perspective)
             ..scale(scale, scale, scale)
-            ..rotateY(angle);
+            // Keep the same perspective rendering path when the sheet is at rest.
+            ..rotateY(angle.clamp(.001, math.pi - .001).toDouble());
           return CustomPaint(
             painter: _PaperDepth(turn, depth, lift),
             child: Transform(
@@ -56,7 +58,7 @@ class PaperFlip extends StatelessWidget {
           );
         },
       );
-    });
+    }));
   }
 }
 
@@ -74,25 +76,36 @@ class _PaperDepth extends CustomPainter {
     final shadowWidth = size.width * (1 - .87 * lift);
     final shadow = Rect.fromCenter(
       center: center + Offset(6 * lift, 5 + 12 * lift),
-      width: shadowWidth,
-      height: size.height * (1 - .11 * lift),
+      width: shadowWidth + 10,
+      height: size.height * (1 - .11 * lift) + 12,
     );
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(shadow, const Radius.circular(5)),
+    // Keep the contact shadow soft without rasterizing a blur on each tick.
+    canvas.save();
+    canvas.translate(shadow.center.dx, shadow.center.dy);
+    canvas.scale(shadow.width / 2, shadow.height / 2);
+    canvas.drawCircle(
+        Offset.zero,
+        1,
         Paint()
-          ..color = Colors.black.withAlpha((62 - 20 * lift).round())
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 + 6 * lift));
+          ..shader = RadialGradient(
+            colors: [
+              Colors.black.withAlpha((61 - 19 * lift).round()),
+              Colors.transparent,
+            ],
+            stops: const [.60, 1],
+          ).createShader(const Rect.fromLTRB(-1, -1, 1, 1)));
+    canvas.restore();
     if (lift < .02) return;
-    Offset corner(double y, double z) =>
-        center +
-        MatrixUtils.transformPoint(
-            turn.clone()..translate(0.0, 0.0, z), Offset(w, y));
+    final front = turn.clone()..translate(0.0, 0.0, -depth);
+    final back = turn.clone()..translate(0.0, 0.0, depth);
+    Offset corner(Matrix4 face, double y) =>
+        center + MatrixUtils.transformPoint(face, Offset(w, y));
     final edge = Path()
       ..addPolygon([
-        corner(-h, -depth),
-        corner(h, -depth),
-        corner(h, depth),
-        corner(-h, depth),
+        corner(front, -h),
+        corner(front, h),
+        corner(back, h),
+        corner(back, -h),
       ], true);
     canvas.drawPath(edge, Paint()..color = const Color(0xffd5cbb9));
   }

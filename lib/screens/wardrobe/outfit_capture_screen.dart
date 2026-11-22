@@ -9,7 +9,8 @@ import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P6 实拍记录【M1】：拍照/选图（原比例仅压缩）→ 日期（上限今天）→ 备注 →
 /// 可选关联在柜单品 → 保存即已通过（实拍是既成事实，决策 Q3）
 class OutfitCaptureScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -252,9 +254,8 @@ class _OutfitCaptureScreenState extends State<OutfitCaptureScreen> {
   void _pickLinked(WardrobeProvider p) {
     final pool = p.inCabItems;
     final temp = Set<int>.from(_linked);
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) => SafeArea(
         child: WnGlassSheet(

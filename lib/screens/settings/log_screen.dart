@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
   @override
@@ -34,6 +35,7 @@ class _LogScreenState extends State<LogScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: context.lgBg,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -64,7 +66,7 @@ class _LogScreenState extends State<LogScreen> {
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
-                builder: (ctx) => AlertDialog(
+                builder: (ctx) => GlassAlertDialog(
                   shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(LoveGirlTheme.radiusXl)),
@@ -198,9 +200,8 @@ class _LogScreenState extends State<LogScreen> {
   }
 
   void _showDetail(LogEntry entry) {
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(

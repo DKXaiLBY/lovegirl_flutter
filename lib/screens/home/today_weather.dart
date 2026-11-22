@@ -6,7 +6,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/city_picker.dart';
 import '../../widgets/glass_feature_icon.dart';
 import '../../widgets/rebuild_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class TodayWeather extends StatefulWidget {
   final ApiService api;
   const TodayWeather({super.key, required this.api});
@@ -87,9 +87,8 @@ class _TodayWeatherState extends State<TodayWeather> {
       await _chooseCity();
       return;
     }
-    final action = await showModalBottomSheet<String>(
+    final action = await showGlassSheet<String>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (sheet) => SafeArea(
         top: false,
         child: RebuildGlass(

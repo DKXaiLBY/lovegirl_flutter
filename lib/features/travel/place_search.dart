@@ -109,6 +109,7 @@ class _TravelPlaceSearchState extends State<TravelPlaceSearch> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           systemOverlayStyle: context.lgIsDark
               ? SystemUiOverlayStyle.light
               : SystemUiOverlayStyle.dark,

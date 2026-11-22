@@ -6,7 +6,7 @@ import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// P14 三层钻取（M2b，源自阿Fi不在案例）：维度 → 标签 → 预填现有筛选
 /// 第一层=主页四维度圆片；第二层=本面板（维度下的标签列表+计数）；
 /// 第三层=点标签预填 filter 后回 P1 即时过滤（不加新查询）
@@ -143,9 +143,8 @@ class WardrobeDimensionRow extends StatelessWidget {
         for (final (icon, label, dim) in entries)
           Expanded(
             child: GestureDetector(
-              onTap: () => showModalBottomSheet<void>(
+              onTap: () => showGlassSheet<void>(
                 context: context,
-                backgroundColor: Colors.transparent,
                 isScrollControlled: true,
                 builder: (_) =>
                     WardrobeDimensionSheet(dimension: dim),

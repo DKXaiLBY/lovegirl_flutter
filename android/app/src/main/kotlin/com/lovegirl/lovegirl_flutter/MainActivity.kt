@@ -22,6 +22,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity: FlutterActivity() {
     private val amapSdkKey by lazy {
@@ -50,6 +51,23 @@ class MainActivity: FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSupportedAbis" -> result.success(Build.SUPPORTED_ABIS.toList())
+                "setAppHaptics" -> {
+                    val enabled = call.arguments as? Boolean
+                    if (enabled == null) {
+                        result.error("HAPTICS_OPTION", "触觉设置无效", null)
+                    } else {
+                        window.decorView.isHapticFeedbackEnabled = enabled
+                        result.success(null)
+                    }
+                }
+                "reclaimInstalledUpdate" -> Thread {
+                    try {
+                        val removed = reclaimInstalledUpdate()
+                        runOnUiThread { result.success(removed) }
+                    } catch (_: Exception) {
+                        runOnUiThread { result.error("UPDATE_CACHE", "无法回收安装包", null) }
+                    }
+                }.start()
                 "saveCreationPng" -> {
                     val bytes = call.argument<ByteArray>("bytes")
                     val name = call.argument<String>("name")
@@ -134,6 +152,25 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun reclaimInstalledUpdate(): Boolean {
+        val apk = File(cacheDir, "LoveGirl-latest.apk")
+        if (!apk.isFile) return false
+        val modified = apk.lastModified()
+        val size = apk.length()
+        val archive = packageManager.getPackageArchiveInfo(apk.path, 0) ?: return false
+        if (archive.packageName != packageName) return false
+        val installed = packageManager.getPackageInfo(packageName, 0)
+        val archiveVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            archive.longVersionCode
+        } else archive.versionCode.toLong()
+        val installedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            installed.longVersionCode
+        } else installed.versionCode.toLong()
+        return archiveVersion <= installedVersion && apk.lastModified() == modified &&
+            apk.length() == size && apk.delete()
     }
 
     @android.annotation.TargetApi(Build.VERSION_CODES.Q)

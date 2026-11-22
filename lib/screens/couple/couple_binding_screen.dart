@@ -6,6 +6,7 @@ import '../../services/log_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/rebuild_controls.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 
 /// 伴侣绑定页面
 class CoupleBindingScreen extends StatefulWidget {
@@ -153,7 +154,7 @@ class _CoupleBindingScreenState extends State<CoupleBindingScreen> {
     if (_breaking) return;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LoveGirlTheme.radiusXl)),
         title: const Text('解除绑定'),

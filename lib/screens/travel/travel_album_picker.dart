@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/memory_controls.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class TravelAlbumPicker extends StatefulWidget {
   final int spotId;
   final Set<int> linkedPhotoIds;
@@ -77,6 +78,7 @@ class _TravelAlbumPickerState extends State<TravelAlbumPicker> {
         child: Scaffold(
           backgroundColor: context.lgPaper,
           appBar: AppBar(
+            flexibleSpace: const RebuildGlassHeader(),
             automaticallyImplyLeading: !_linking,
             title: Text(_linking ? '正在关联照片' : '选择相册照片'),
           ),
@@ -117,6 +119,7 @@ class _TravelAlbumPickerState extends State<TravelAlbumPicker> {
                                   borderRadius: BorderRadius.circular(12),
                                   child: Ink.image(
                                     image: CachedNetworkImageProvider(
+                                        cacheManager: MediaCache.instance,
                                         url.startsWith('http')
                                             ? url
                                             : AppConstants.baseUrl + url),

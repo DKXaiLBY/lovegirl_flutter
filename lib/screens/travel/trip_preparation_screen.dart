@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +17,7 @@ import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import '../wardrobe/wardrobe_module_screen.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 
 class TripPreparationScreen extends StatefulWidget {
   final int tripId;
@@ -185,12 +188,12 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
       builder: (_) => StatefulBuilder(builder: (dialog, update) {
         if (dialog.watch<AuthProvider>().userId != account ||
             session != _session) {
-          return AlertDialog(title: const Text('账号已切换'), actions: [
+          return GlassAlertDialog(title: const Text('账号已切换'), actions: [
             TextButton(
                 onPressed: () => Navigator.pop(dialog), child: const Text('关闭'))
           ]);
         }
-        return AlertDialog(
+        return GlassAlertDialog(
           scrollable: true,
           title: Text(item == null ? '添加物品' : '编辑物品'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -319,7 +322,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
     final relationship = _data!.relationshipKey;
     final confirmed = await showDialog<bool>(
         context: context,
-        builder: (dialog) => AlertDialog(
+        builder: (dialog) => GlassAlertDialog(
               title: const Text('移除这件物品？'),
               content: Text(item.label),
               actions: [
@@ -342,7 +345,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
 
   Future<void> _toggle(PackingItem item, bool? packed) async {
     if (packed == null) return;
-    HapticFeedback.selectionClick();
+    AppHaptics.instance.selectionClick();
     _notice(await _write(
         account: _account,
         shared: _shared,
@@ -497,7 +500,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
                           EdgeInsets.symmetric(horizontal: 8)),
                     ),
                     onPressed: () {
-                      HapticFeedback.selectionClick();
+                      AppHaptics.instance.selectionClick();
                       setState(() => _day = day);
                     },
                     child: Text(
@@ -721,6 +724,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: const Text('旅行准备'),
         centerTitle: true,
         backgroundColor:
@@ -812,6 +816,7 @@ class _PreparationPhoto extends StatelessWidget {
       child: url.isEmpty
           ? empty
           : CachedNetworkImage(
+              cacheManager: MediaCache.instance,
               imageUrl: url,
               fit: fit,
               width: double.infinity,

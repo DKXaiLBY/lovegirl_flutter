@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
@@ -530,6 +531,7 @@ class _HomeAvatar extends StatelessWidget {
                   child: Icon(Icons.person_outline,
                       size: 22, color: context.lgTextSecondary))
               : CachedNetworkImage(
+                  cacheManager: MediaCache.instance,
                   imageUrl: _homeImageUrl(path),
                   fit: BoxFit.cover,
                   memCacheWidth: 120,
@@ -667,6 +669,7 @@ class _HomePhotoHero extends StatelessWidget {
                   GestureDetector(
                       onTap: onOpen,
                       child: CachedNetworkImage(
+                          cacheManager: MediaCache.instance,
                           key: ValueKey('${item['url']}:$revision'),
                           imageUrl: _homeImageUrl('${item['url']}'),
                           fit: BoxFit.cover,
@@ -1323,7 +1326,7 @@ class _HomeTodoRow extends StatelessWidget {
             onTap: id <= 0 || saving || onToggle == null
                 ? null
                 : () {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.instance.selectionClick();
                     onToggle!(true);
                   },
             child: ConstrainedBox(

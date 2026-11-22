@@ -4,7 +4,7 @@ import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/app_icon.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
 
@@ -64,6 +64,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: const Text('成就'),
         backgroundColor: context.lgBg,
         elevation: 0,

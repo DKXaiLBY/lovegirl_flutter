@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:flutter/material.dart';
 
 /// 数字形象伪 3D 视差（W4）：背景原图与人像透明层反向错动。
@@ -89,6 +90,7 @@ class _ParallaxAvatarState extends State<ParallaxAvatar>
                   transform: Matrix4.translationValues(-tilt * 7, 0, 0)
                     ..scale(1.10, 1.10),
                   child: CachedNetworkImage(
+                    cacheManager: MediaCache.instance,
                     imageUrl: widget.imageUrl,
                     fit: BoxFit.cover,
                     memCacheWidth: 400,
@@ -105,6 +107,7 @@ class _ParallaxAvatarState extends State<ParallaxAvatar>
                     ..rotateZ(tilt * 0.015)
                     ..scale(1 + tilt.abs() * 0.03, 1 + tilt.abs() * 0.03, 1),
                   child: CachedNetworkImage(
+                    cacheManager: MediaCache.instance,
                     imageUrl: widget.cutoutUrl,
                     fit: BoxFit.cover,
                     memCacheWidth: 400,

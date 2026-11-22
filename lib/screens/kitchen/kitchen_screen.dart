@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
@@ -19,7 +19,7 @@ import 'kitchen_menu_grid.dart';
 import 'kitchen_meal_fields.dart';
 import 'kitchen_meal_editor.dart';
 import 'kitchen_photo.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 /// 情侣厨房：照片菜单 / 这一餐 / 开饭记录
 class KitchenScreen extends StatelessWidget {
   final int initialTab;
@@ -312,9 +312,8 @@ class _MenuTab extends StatelessWidget {
     return KitchenMenuGrid(
         kitchen: kitchen,
         onOpenCart: () async {
-          final saved = await showModalBottomSheet<bool>(
+          final saved = await showGlassSheet<bool>(
               context: context,
-              backgroundColor: Colors.transparent,
               isScrollControlled: true,
               builder: (_) => const _CartSheet());
           if (context.mounted && saved == true) onOrdered();
@@ -451,7 +450,7 @@ class _CartSheetState extends State<_CartSheet> {
                   final err = await kitchen.placeOrder(_noteCtrl.text.trim(), mealDate: _mealDate, mealSlot: _mealSlot);
                   if (!context.mounted) return;
                   if (err == null) Navigator.of(context).pop(true);
-                  if (err == null) HapticFeedback.mediumImpact();
+                  if (err == null) AppHaptics.instance.mediumImpact();
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(err ?? '这一餐已安排，等待主厨确认'),
                     behavior: SnackBarBehavior.floating,
@@ -507,7 +506,7 @@ class _MyKitchenTab extends StatelessWidget {
                     onDelete: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder: (dCtx) => AlertDialog(
+                        builder: (dCtx) => GlassAlertDialog(
                           // v4.0 弹层大圆角 + 1px 细线
                           shape: RoundedRectangleBorder(
                               borderRadius:
@@ -554,9 +553,8 @@ class _MyKitchenTab extends StatelessWidget {
   }
 
   void _showDishSheet(BuildContext context, {KitchenDish? dish}) {
-    showModalBottomSheet(
+    showGlassSheet(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _DishEditSheet(existing: dish),
     );
@@ -1106,6 +1104,7 @@ class KitchenOrdersScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: context.lgBg,
         appBar: AppBar(
+          flexibleSpace: const RebuildGlassHeader(),
           backgroundColor: context.lgBg,
           foregroundColor: context.lgTextPrimary,
           elevation: 0,
@@ -1282,7 +1281,7 @@ class _OrderCard extends StatelessWidget {
                   onTap: kitchen.isOrderBusy(order.id) ? null : () async {
                     final confirm = await showDialog<bool>(
                       context: context,
-                      builder: (dCtx) => AlertDialog(
+                      builder: (dCtx) => GlassAlertDialog(
                         // v4.0 弹层大圆角 + 1px 细线
                         shape: RoundedRectangleBorder(
                             borderRadius:
@@ -1330,9 +1329,8 @@ class _OrderCard extends StatelessWidget {
   }
 
   Future<void> _showFulfillSheet(BuildContext context) async {
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await showGlassSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _FulfillSheet(order: order),
     );
@@ -1484,7 +1482,7 @@ class _MealStatusButton extends StatelessWidget {
       onPressed: kitchen.isOrderBusy(order.id) ? null : () async {
         final error = await kitchen.updateOrderStatus(order.id, status, extra: order.expectedState);
         if (!context.mounted) return;
-        if (error == null) HapticFeedback.selectionClick();
+        if (error == null) AppHaptics.instance.selectionClick();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(error ?? (status == 'accepted' ? '已接下这一餐' : '已撤销接单，可以重新商量')),
           behavior: SnackBarBehavior.floating,

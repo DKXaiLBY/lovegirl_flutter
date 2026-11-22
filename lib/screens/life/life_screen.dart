@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +18,7 @@ import '../wardrobe/wardrobe_module_screen.dart';
 import 'widgets/finance_list.dart';
 import 'widgets/schedule_list.dart';
 import 'widgets/todo_list.dart';
-
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class LifeScreen extends StatefulWidget {
   final ApiService? api;
   const LifeScreen({super.key, this.api});
@@ -123,7 +124,7 @@ class _LifeScreenState extends State<LifeScreen> {
   }
 
   void _quickAdd() {
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
         context: context,
         showDragHandle: true,
         builder: (sheet) => SafeArea(
@@ -166,6 +167,7 @@ class _LifeScreenState extends State<LifeScreen> {
     if (path == null) return placeholder;
     final url = path.startsWith('http') ? path : '${AppConstants.baseUrl}$path';
     return CachedNetworkImage(
+        cacheManager: MediaCache.instance,
         imageUrl: url,
         fit: BoxFit.cover,
         memCacheWidth: 900,
@@ -526,6 +528,7 @@ class LifeToolScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         title: Text(title),
         systemOverlayStyle: context.lgIsDark
             ? SystemUiOverlayStyle.light

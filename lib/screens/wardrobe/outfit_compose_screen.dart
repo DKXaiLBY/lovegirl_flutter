@@ -6,7 +6,7 @@ import '../../providers/wardrobe_provider.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P5 组合搭配创建/编辑【M1】：选件面板（在柜、按类型分节）+ 底部托盘（≤8）
 /// 校验 ≥2 件；日期默认今天可改未来=计划（≤今天+90）
 class OutfitComposeScreen extends StatefulWidget {
@@ -58,6 +58,7 @@ class _OutfitComposeScreenState extends State<OutfitComposeScreen> {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,

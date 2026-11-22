@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lovegirl_flutter/services/app_storage.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -19,7 +21,8 @@ import '../mood/mood_screen.dart';
 import '../report/annual_report_screen.dart';
 import '../report/monthly_report_screen.dart';
 import '../timeline/timeline_screen.dart';
-
+import 'memory_search_screen.dart';
+import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 class MemoriesScreen extends StatefulWidget {
   final ApiService? api;
   const MemoriesScreen({super.key, this.api});
@@ -124,7 +127,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   void _album() => _open(CreationGallery(
       initialMonth: _month,
       initialSection: _polaroids.isEmpty && _originals.isNotEmpty ? 2 : 0));
-  void _new() => showModalBottomSheet<void>(
+  void _new() => showGlassSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheet) => SafeArea(
@@ -151,7 +154,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           _key(p['photo_date'] ?? p['created_at'])!,
     }.toList()
       ..sort((a, b) => b.compareTo(a));
-    final result = await showModalBottomSheet<String>(
+    final result = await showGlassSheet<String>(
         context: context,
         showDragHandle: true,
         builder: (sheet) => SafeArea(
@@ -191,7 +194,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       work: work,
       back: _backs.contains(work.id),
       onFlip: () {
-        HapticFeedback.selectionClick();
+        AppHaptics.instance.selectionClick();
         setState(() => _backs.contains(work.id)
             ? _backs.remove(work.id)
             : _backs.add(work.id));
@@ -200,6 +203,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           document: work.document,
           initialBack: _backs.contains(work.id),
           front: CachedNetworkImage(
+              cacheManager: MediaCache.instance,
               imageUrl: creationUrl(work.previewUrl), fit: BoxFit.contain))));
 
   Widget _shelf() {
@@ -351,6 +355,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                         child: InkWell(
                             onTap: _album,
                             child: CachedNetworkImage(
+                                cacheManager: MediaCache.instance,
                                 imageUrl: creationUrl(images[i]),
                                 fit: BoxFit.cover,
                                 memCacheWidth: 350,
@@ -383,6 +388,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           child: Row(children: [
                             const Expanded(
                                 child: Text('回忆',
+                                    maxLines: 1,
                                     style: TextStyle(
                                         fontSize: 30,
                                         fontWeight: FontWeight.w800))),
@@ -393,6 +399,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                     child: Text(_month == null
                                         ? '全部月份 ▾'
                                         : '${_month!.substring(0, 4)}年${int.parse(_month!.substring(5))}月 ▾'))),
+                            const SizedBox(width: 8),
+                            RebuildGlassButton(
+                                label: '查找回忆',
+                                icon: Icons.search,
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => MemorySearchScreen(
+                                    works: _works, photos: _photos, api: _api)))),
                             const SizedBox(width: 8),
                             RebuildGlassButton(
                                 label: '新增回忆',
@@ -456,7 +469,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                     ]))),
       ]));
   void _openReports(BuildContext context) {
-    showModalBottomSheet<void>(
+    showGlassSheet<void>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Column(

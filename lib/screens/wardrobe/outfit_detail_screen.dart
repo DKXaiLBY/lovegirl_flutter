@@ -10,7 +10,7 @@ import 'outfit_compose_screen.dart';
 import 'wardrobe_item_detail_screen.dart';
 import 'wardrobe_whiteboard_screen.dart';
 import 'widgets/wardrobe_widgets.dart';
-
+import 'package:lovegirl_flutter/widgets/rebuild_controls.dart';
 /// P9 穿搭详情【M1】：大图/组合单品横排（软删=灰占位不可点）/元信息/状态流转
 /// 未来日期一律显示"计划"蓝钟，操作按钮按真实状态给出（§3 叠加态规则）
 class OutfitDetailScreen extends StatelessWidget {
@@ -34,6 +34,7 @@ class OutfitDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.lgBg,
       appBar: AppBar(
+        flexibleSpace: const RebuildGlassHeader(),
         backgroundColor: context.lgBg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
