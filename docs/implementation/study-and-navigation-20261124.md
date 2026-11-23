@@ -18,3 +18,16 @@
 - 源码基线 `71a9f61`，回滚分支 `backup/before-20261124-study-and-navigation`。
 - 源码包 `D:\Projects\codex\lovegirl-ui-backups\20261124-study-and-navigation\source-before.bundle` 已通过 `git bundle verify`。
 - 旧发布包 `/opt/love-girl/apk-backups/v4.6.2.apk`。后端改动前备份 `/opt/love-girl/backups/study-4.7.0-195/backend-before.tar` 包含启动入口和发布路由。新增学习空间表与原有业务表分开，回滚应用时应保留用户学习数据。
+
+## 验证记录
+
+- Flutter 静态分析无问题，266 项测试通过。Node 回归 54 项通过。
+- 工作站本机启动独立 MySQL，用真实登录路由和两个同角色账号验证学校资料、进度及并发版本隔离。相同版本的并发保存有一个成功、一个返回冲突。独立发布路由验证上传支持加入中文识字模型后的安装包。
+- 荣耀畅玩 20 使用并行安装的 QA 包和独立数据库。已查看生活分区及三科入口，完成测试讲义选图、裁切、中文识字、保存来源题、核对答案和保存复习日期。录入页提供可编辑识别结果和原图预览。实体相机快门、全量教材和更多字号组合未做这轮真机实测。
+- 真机答对测试考点后，App 显示三天后的复习日期。验收结束后切回荣耀原有的 LoveGirl，移除了并行验收包和测试图片。
+
+## 发布
+
+- `4.7.0+195` 于 2026-11-24 发布，安装包对应源码 `4b9ddce`。版本接口对 `193`、`194` 提示更新，对 `195` 返回已最新。正式服务器现有账号与关系指纹在发布前后一致。
+- 正式 APK 为 `172518026` 字节。签名证书与 194 相同。服务器版本包、发布备份与公网完整下载的 SHA-256 均为 `6d415a7d73ae56cf0fcd5f98004ea585274d17919b4b330cffd3899886f89e6b`。
+- 发布收据 `D:\Projects\codex\lovegirl-ui-backups\20261124-study-and-navigation\study-release-195-published.json`。
