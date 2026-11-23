@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../services/app_storage.dart';
 import '../../utils/constants.dart';
 import 'creation_document.dart';
 import 'creation_drafts.dart';
@@ -61,13 +62,15 @@ Future<CreationDraft> draftFromRemote(
     for (var i = 0; i < urls.length; i++) {
       final uri = Uri.parse(creationUrl(urls[i]));
       // Only fetch our own media while creating an editable local copy.
-      if (uri.host != Uri.parse(AppConstants.baseUrl).host ||
-          !uri.path.startsWith('/uploads/')) {
+      if (!MediaCache.isProtectedUri(uri)) {
         throw const FormatException('照片来源不正确');
       }
       final path = '${temporary.path}/$i.jpg';
       await Dio().download(uri.toString(), path,
-          options: Options(receiveTimeout: const Duration(seconds: 30)));
+          options: Options(
+              headers: await MediaCache.headersFor(uri),
+              followRedirects: false,
+              receiveTimeout: const Duration(seconds: 30)));
       files.add(path);
     }
     return await store.create(document, files,

@@ -98,7 +98,7 @@ async function save(req, res) {
     if (!preview) contract.fail('请先生成作品预览');
     // Decode, bound and re-encode every uploaded image. Extensions are never trusted.
     async function image(file, isPreview) {
-      const filename = `${randomUUID()}${isPreview ? '.png' : '.jpg'}`;
+      const filename = `u${req.user.id}_${randomUUID()}${isPreview ? '.png' : '.jpg'}`;
       const target = path.join(directory, filename);
       added.push(target);
       try {

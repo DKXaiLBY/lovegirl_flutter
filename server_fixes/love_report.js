@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
-const { getPartnerId } = require('./utils/lovegirl_rewards');
+const { partnerId: currentPartnerId, privacyFor } = require('../utils/creation_access');
 
 // 年度恋爱报告：纯 SQL 聚合既有业务表（Wrapped 式总结页）
 
@@ -17,9 +17,11 @@ router.get('/', authRequired, async (req, res) => {
     if (year < 2000 || year > 2100) {
       return res.status(400).json({ code: 400, message: '年份不合法' });
     }
-    const partnerId = await getPartnerId(req.user.id);
-    const userIds = partnerId != null ? [req.user.id, partnerId] : [req.user.id];
-    const pairIds = [userIds[0], userIds.length > 1 ? userIds[1] : userIds[0]];
+    const userId = req.user.id;
+    const partnerId = await currentPartnerId(pool, userId);
+    const privacy = partnerId == null ? null : await privacyFor(pool, partnerId);
+    const travelPartner = privacy?.travel_visible ? partnerId : null;
+    const photoPartner = privacy?.photo_visible ? partnerId : null;
     const yStart = `${year}-01-01`;
     const yEnd = `${year + 1}-01-01`;
 
@@ -30,7 +32,7 @@ router.get('/', authRequired, async (req, res) => {
        FROM travel_spots
        WHERE user_id IN (?, ?) AND status='visited'
          AND visited_date >= ? AND visited_date < ?`,
-      [...pairIds, yStart, yEnd]
+      [userId, travelPartner, yStart, yEnd]
     );
 
     // 厨房：今年订单 / 完成 / ta 做给我的
@@ -39,9 +41,9 @@ router.get('/', authRequired, async (req, res) => {
               COALESCE(SUM(status='done'),0) AS done,
               COALESCE(SUM(orderer_id = ? AND status='done'),0) AS fedMe
        FROM kitchen_orders
-       WHERE (orderer_id IN (?, ?) OR cook_id IN (?, ?))
+       WHERE (orderer_id = ? OR cook_id = ? OR partner_id = ?)
          AND created_at >= ? AND created_at < ?`,
-      [req.user.id, ...pairIds, ...pairIds, yStart, yEnd]
+      [userId, userId, userId, userId, yStart, yEnd]
     );
 
     // 最常点的菜（订单首个菜近似）
@@ -52,9 +54,9 @@ router.get('/', authRequired, async (req, res) => {
          FROM kitchen_orders o
          JOIN kitchen_dishes d
            ON JSON_UNQUOTE(JSON_EXTRACT(o.items, '$[0].dish_id')) = CAST(d.id AS CHAR)
-         WHERE o.created_at >= ? AND o.created_at < ?
+         WHERE (o.orderer_id = ? OR o.cook_id = ? OR o.partner_id = ?) AND o.created_at >= ? AND o.created_at < ?
          GROUP BY d.name ORDER BY n DESC LIMIT 1`,
-        [yStart, yEnd]
+        [userId, userId, userId, yStart, yEnd]
       );
       topDish = t.length > 0 ? t[0].name : null;
     } catch (_) {}
@@ -62,13 +64,13 @@ router.get('/', authRequired, async (req, res) => {
     // 相册照片 / 时光轴
     const photoRows = await rows(
       `SELECT COUNT(*) AS n FROM photos
-       WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?`,
-      [...pairIds, yStart, yEnd]
+       WHERE (user_id = ? OR (user_id = ? AND visibility = 'shared')) AND created_at >= ? AND created_at < ?`,
+      [userId, photoPartner, yStart, yEnd]
     );
     const timelineRows = await rows(
       `SELECT COUNT(*) AS n FROM love_timeline
-       WHERE user_id IN (?, ?) AND event_date >= ? AND event_date < ?`,
-      [...pairIds, yStart, yEnd]
+       WHERE user_id = ? AND event_date >= ? AND event_date < ?`,
+      [userId, yStart, yEnd]
     );
     // 最活跃月份（厨房订单 + 旅行打卡 + 时光轴）
     let busiestMonth = null;
@@ -76,15 +78,15 @@ router.get('/', authRequired, async (req, res) => {
       const m = await rows(
         `SELECT month, SUM(c) AS total FROM (
            SELECT MONTH(created_at) AS month, COUNT(*) AS c FROM kitchen_orders
-           WHERE created_at >= ? AND created_at < ? GROUP BY month
+           WHERE (orderer_id = ? OR cook_id = ? OR partner_id = ?) AND created_at >= ? AND created_at < ? GROUP BY month
            UNION ALL
            SELECT MONTH(visited_date), COUNT(*) FROM travel_spots
-           WHERE status='visited' AND visited_date >= ? AND visited_date < ? GROUP BY MONTH(visited_date)
+           WHERE user_id IN (?, ?) AND status='visited' AND visited_date >= ? AND visited_date < ? GROUP BY MONTH(visited_date)
            UNION ALL
            SELECT MONTH(event_date), COUNT(*) FROM love_timeline
-           WHERE event_date >= ? AND event_date < ? GROUP BY MONTH(event_date)
+           WHERE user_id = ? AND event_date >= ? AND event_date < ? GROUP BY MONTH(event_date)
          ) s GROUP BY month ORDER BY total DESC LIMIT 1`,
-        [yStart, yEnd, yStart, yEnd, yStart, yEnd]
+        [userId, userId, userId, yStart, yEnd, userId, travelPartner, yStart, yEnd, userId, yStart, yEnd]
       );
       if (m.length > 0) {
         const names = ['', '一月', '二月', '三月', '四月', '五月', '六月',
@@ -132,9 +134,11 @@ router.get('/monthly', authRequired, async (req, res) => {
     if (month < 1 || month > 12 || year < 2000 || year > 2100) {
       return res.status(400).json({ code: 400, message: '月份不合法' });
     }
-    const partnerId = await getPartnerId(req.user.id);
-    const userIds = partnerId != null ? [req.user.id, partnerId] : [req.user.id];
-    const pairIds = [userIds[0], userIds.length > 1 ? userIds[1] : userIds[0]];
+    const userId = req.user.id;
+    const partnerId = await currentPartnerId(pool, userId);
+    const privacy = partnerId == null ? null : await privacyFor(pool, partnerId);
+    const travelPartner = privacy?.travel_visible ? partnerId : null;
+    const photoPartner = privacy?.photo_visible ? partnerId : null;
     const mm = (month < 10 ? '0' : '') + month;
     const mStart = [year, mm, '01'].join('-');
     const nextMonth = month === 12 ? 1 : month + 1;
@@ -143,27 +147,27 @@ router.get('/monthly', authRequired, async (req, res) => {
 
     const travelRows = await rows(
       'SELECT COUNT(DISTINCT name) AS spots, COUNT(DISTINCT CASE WHEN city IS NOT NULL AND city != \'\' THEN city END) AS cities FROM travel_spots WHERE user_id IN (?, ?) AND status=\'visited\' AND visited_date >= ? AND visited_date < ?',
-      [...pairIds, mStart, mEnd]
+      [userId, travelPartner, mStart, mEnd]
     );
     const kitchenRows = await rows(
-      'SELECT COALESCE(SUM(status=\'done\'),0) AS done FROM kitchen_orders WHERE (orderer_id IN (?, ?) OR cook_id IN (?, ?)) AND created_at >= ? AND created_at < ?',
-      [...pairIds, ...pairIds, mStart, mEnd]
+      'SELECT COALESCE(SUM(status=\'done\'),0) AS done FROM kitchen_orders WHERE (orderer_id = ? OR cook_id = ? OR partner_id = ?) AND created_at >= ? AND created_at < ?',
+      [userId, userId, userId, mStart, mEnd]
     );
     let topDish = null;
     try {
       const t = await rows(
-        'SELECT d.name AS name, COUNT(*) AS n FROM kitchen_orders o JOIN kitchen_dishes d ON JSON_UNQUOTE(JSON_EXTRACT(o.items, \'$[0].dish_id\')) = CAST(d.id AS CHAR) WHERE o.created_at >= ? AND o.created_at < ? AND o.status = \'done\' GROUP BY d.name ORDER BY n DESC LIMIT 1',
-        [mStart, mEnd]
+        'SELECT d.name AS name, COUNT(*) AS n FROM kitchen_orders o JOIN kitchen_dishes d ON JSON_UNQUOTE(JSON_EXTRACT(o.items, \'$[0].dish_id\')) = CAST(d.id AS CHAR) WHERE (o.orderer_id = ? OR o.cook_id = ? OR o.partner_id = ?) AND o.created_at >= ? AND o.created_at < ? AND o.status = \'done\' GROUP BY d.name ORDER BY n DESC LIMIT 1',
+        [userId, userId, userId, mStart, mEnd]
       );
       topDish = t.length > 0 ? t[0].name : null;
     } catch (_) {}
     const photoRows = await rows(
-      'SELECT COUNT(*) AS n FROM photos WHERE user_id IN (?, ?) AND created_at >= ? AND created_at < ?',
-      [...pairIds, mStart, mEnd]
+      'SELECT COUNT(*) AS n FROM photos WHERE (user_id = ? OR (user_id = ? AND visibility = \'shared\')) AND created_at >= ? AND created_at < ?',
+      [userId, photoPartner, mStart, mEnd]
     );
     const timelineRows = await rows(
-      'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id IN (?, ?) AND event_date >= ? AND event_date < ?',
-      [...pairIds, mStart, mEnd]
+      'SELECT COUNT(*) AS n FROM love_timeline WHERE user_id = ? AND event_date >= ? AND event_date < ?',
+      [userId, mStart, mEnd]
     );
     // Neutral compatibility fields do not read or erase retired history.
     res.json({

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
@@ -15,10 +16,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nicknameController = TextEditingController();
+  final _inviteController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
+  String? _registrationError;
   String _gender = 'female';
 
   @override
@@ -27,13 +30,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nicknameController.dispose();
+    _inviteController.dispose();
     super.dispose();
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || !_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _registrationError = null;
+    });
 
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
@@ -41,29 +48,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _passwordController.text,
       _nicknameController.text.trim(),
       gender: _gender,
+      inviteCode: _inviteController.text.trim(),
     );
 
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() {
+      _isLoading = false;
+      _registrationError = success ? null : auth.error;
+    });
 
     if (success) {
       // 注册成功自动登录，pop 回 AppShell，此时 isLoggedIn=true 自动切到主页
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
-    } else if (auth.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.error!),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          duration: const Duration(seconds: 2),
-        ),
-      );
     }
   }
 
@@ -192,6 +190,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return '请输入用户名';
                 if (v.trim().length < 2) return '用户名至少2个字符';
+                if (v.trim().length > 50) return '用户名不能超过50个字符';
                 return null;
               },
             ),
@@ -210,7 +209,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 密码
+            _buildInputField(
+              controller: _inviteController,
+              hint: '注册邀请码',
+              icon: Icons.vpn_key_outlined,
+              validator: (value) {
+                final code =
+                    value?.trim().replaceAll(RegExp(r'[- ]'), '') ?? '';
+                if (!RegExp(r'^[0-9a-fA-F]{24}$').hasMatch(code)) {
+                  return '请输入对方发给你的注册邀请码';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+
             _buildGenderSelector(),
             const SizedBox(height: 16),
 
@@ -233,6 +246,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (v) {
                 if (v == null || v.isEmpty) return '请输入密码';
                 if (v.length < 6) return '密码至少6个字符';
+                if (utf8.encode(v).length > 72) return '密码太长，请缩短后再试';
                 return null;
               },
             ),
@@ -261,7 +275,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return null;
               },
             ),
-            SizedBox(height: 28),
+            if (_registrationError case final error?) ...[
+              const SizedBox(height: 12),
+              Semantics(
+                liveRegion: true,
+                child: Text(error,
+                    style: const TextStyle(color: Color(0xffa52721))),
+              ),
+            ],
+            const SizedBox(height: 28),
 
             // 注册按钮
             SizedBox(
@@ -383,9 +405,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              color: selected
-                  ? context.lgInk.withAlpha(24)
-                  : context.lgBg,
+              color: selected ? context.lgInk.withAlpha(24) : context.lgBg,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: selected ? LoveGirlTheme.primary : Colors.transparent,
@@ -398,9 +418,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Icon(
                   icon,
                   size: 20,
-                  color: selected
-                      ? context.lgInk
-                      : context.lgTextMuted,
+                  color: selected ? context.lgInk : context.lgTextMuted,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -408,9 +426,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     label,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: selected
-                          ? context.lgInk
-                          : context.lgTextPrimary,
+                      color: selected ? context.lgInk : context.lgTextPrimary,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),

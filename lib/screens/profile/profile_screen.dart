@@ -10,6 +10,7 @@ import '../../utils/lovegirl_theme.dart';
 import '../../widgets/lovegirl_ui.dart';
 import '../../widgets/rebuild_controls.dart';
 import '../anniversary/anniversary_screen.dart';
+import '../auth/registration_invite_screen.dart';
 import '../couple/couple_binding_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:lovegirl_flutter/widgets/glass_routes.dart';
@@ -449,6 +450,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const Divider(height: 1, indent: 16, endIndent: 16),
                           _row(Icons.link_outlined, '伴侣绑定', '',
                               () => _open(const CoupleBindingScreen())),
+                          if (context.watch<AuthProvider>().isAdmin) ...[
+                            const Divider(height: 1, indent: 16, endIndent: 16),
+                            _row(Icons.person_add_outlined, '邀请注册', '',
+                                () => _open(const RegistrationInviteScreen())),
+                          ],
                           const Divider(height: 1, indent: 16, endIndent: 16),
                           _row(
                               Icons.notifications_outlined,

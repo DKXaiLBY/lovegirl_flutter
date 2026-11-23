@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
-const { visibleIds, slots, errorResponse } = require('../utils/creation_access');
+const { travelIds, slots, errorResponse } = require('../utils/creation_access');
 const contract = require('../utils/creation_contract');
 const router = express.Router();
 
@@ -64,7 +64,7 @@ async function detail(connection, ids, id) {
 
 router.get('/', authRequired, async (req, res) => {
   try {
-    const ids = await visibleIds(pool, req.user.id);
+    const ids = await travelIds(pool, req.user.id);
     const trips = await rows(pool, ids);
     const placeMap = await places(pool, ids);
     const [links] = await pool.query(
@@ -81,7 +81,7 @@ router.get('/', authRequired, async (req, res) => {
 
 router.get('/:id', authRequired, async (req, res) => {
   try {
-    res.json({ code: 200, data: await detail(pool, await visibleIds(pool, req.user.id), Number(req.params.id)) });
+    res.json({ code: 200, data: await detail(pool, await travelIds(pool, req.user.id), Number(req.params.id)) });
   } catch (error) { errorResponse(res, error); }
 });
 
@@ -89,7 +89,7 @@ async function save(req, res) {
   let connection;
   try {
     const plan = contract.itinerary(req.body);
-    const ids = await visibleIds(pool, req.user.id);
+    const ids = await travelIds(pool, req.user.id);
     connection = await pool.getConnection();
     await connection.beginTransaction();
     let id;
@@ -148,7 +148,7 @@ router.put('/:id', authRequired, save);
 router.delete('/:id', authRequired, async (req, res) => {
   let connection;
   try {
-    const ids = await visibleIds(pool, req.user.id);
+    const ids = await travelIds(pool, req.user.id);
     const id = contract.integer(req.params.id, 1, 2147483647, '行程不正确');
     const revision = contract.integer(req.query.revision, 0, 2147483647, '请刷新后删除');
     connection = await pool.getConnection();

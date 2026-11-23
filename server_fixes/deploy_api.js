@@ -61,6 +61,7 @@ function downloadFile(url, dest) {
 // POST /api/deploy/publish
 router.post('/publish', upload.single('apk'), async function (req, res) {
   var apkPath = req.file ? req.file.path : null;
+  var archivePending = null;
   try {
     var vname = req.body.v || req.body.version_name || '';
     var vcode = parseInt(req.body.c || req.body.version_code || 0);
@@ -69,7 +70,7 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
     var force = req.body.f === '1' ? 1 : 0;
     var url = req.body.url || '';
 
-    if (!vname || !vcode) {
+    if (!/^\d+\.\d+\.\d+(?:[-.][A-Za-z0-9.-]+)?$/.test(vname) || !Number.isSafeInteger(vcode) || vcode < 1) {
       return res.status(400).json({ code: 400, message: '缺少版本信息' });
     }
 
@@ -90,7 +91,9 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
 
     // 重命名带版本号
     var versionedFile = path.join(uploadDir, 'LoveGirl-v' + vname + '-build' + vcode + '.apk');
-    fs.copyFileSync(apkPath, versionedFile);
+    // 保留版本下载地址，同时让公开文件和归档共用同一份 APK。
+    archivePending = apkPath + '.archive';
+    fs.linkSync(apkPath, archivePending);
 
     var apkUrl = 'http://47.121.119.191:3001/public/download/LoveGirl-latest.apk';
 
@@ -102,6 +105,8 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
     await pool.query('UPDATE app_versions SET is_active = 0 WHERE version_code != ?', [vcode]);
 
     // Replace the public file only after the full upload and version writes.
+    fs.renameSync(archivePending, versionedFile);
+    archivePending = null;
     fs.renameSync(apkPath, path.join(uploadDir, 'LoveGirl-latest.apk'));
     apkPath = null;
 
@@ -111,6 +116,7 @@ router.post('/publish', upload.single('apk'), async function (req, res) {
     console.error('[Deploy] 失败:', err);
     res.status(500).json({ code: 500, message: '发布失败: ' + err.message });
   } finally {
+    if (archivePending) fs.rmSync(archivePending, { force: true });
     if (apkPath) {
       try {
         fs.unlinkSync(apkPath);

@@ -9,8 +9,8 @@
  *   status VARCHAR(20) DEFAULT 'active' COMMENT 'active/broken',
  *   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  *   broken_at DATETIME DEFAULT NULL,
- *   UNIQUE KEY uk_user1 (user1_id),
- *   UNIQUE KEY uk_user2 (user2_id),
+ *   UNIQUE KEY uk_couple_pair (user1_id, user2_id),
+ *   KEY idx_couple_user2 (user2_id),
  *   FOREIGN KEY (user1_id) REFERENCES users(id),
  *   FOREIGN KEY (user2_id) REFERENCES users(id)
  * ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -28,13 +28,14 @@
  */
 
 const express = require('express');
+const { randomInt } = require('node:crypto');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
 
 // 生成6位随机邀请码
 function generateCode() {
-  return Math.random().toString().slice(2, 8).padStart(6, '0');
+  return String(randomInt(1000000)).padStart(6, '0');
 }
 
 // GET /api/couple — 获取当前绑定状态
@@ -54,7 +55,7 @@ router.get('/', authRequired, async (req, res) => {
       [userId, userId]
     );
 
-    if (rows.length === 0) {
+    if (rows.length !== 1) {
       return res.json({ code: 200, data: { coupled: false } });
     }
 
@@ -108,10 +109,9 @@ router.post('/invite', authRequired, async (req, res) => {
     while (attempts < 10) {
       code = generateCode();
       try {
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10分钟后过期
         await pool.query(
-          'INSERT INTO couple_invites (code, creator_id, expires_at) VALUES (?, ?, ?)',
-          [code, userId, expiresAt]
+          'INSERT INTO couple_invites (code, creator_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))',
+          [code, userId]
         );
         break;
       } catch (e) {
@@ -126,8 +126,6 @@ router.post('/invite', authRequired, async (req, res) => {
     if (attempts >= 10) {
       return res.status(500).json({ code: 500, message: '生成邀请码失败，请重试' });
     }
-
-    console.log(`[Couple] 用户${userId} 生成邀请码 ${code}`);
 
     res.json({
       code: 200,
@@ -147,66 +145,59 @@ router.post('/invite', authRequired, async (req, res) => {
 router.post('/accept', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { code } = req.body;
+    const { code } = req.body || {};
 
-    if (!code || code.length !== 6) {
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
       return res.status(400).json({ code: 400, message: '请输入6位邀请码' });
     }
 
-    // 检查自己是否已绑定
-    const [myCouple] = await pool.query(
-      "SELECT id FROM couples WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'",
-      [userId, userId]
-    );
-    if (myCouple.length > 0) {
-      return res.status(400).json({ code: 400, message: '你已经绑定过了' });
-    }
-
-    // 查找邀请码
     const [invites] = await pool.query(
-      'SELECT * FROM couple_invites WHERE code = ? AND used = 0',
+      'SELECT id, creator_id FROM couple_invites WHERE code = ? AND used = 0 AND expires_at > NOW()',
       [code]
     );
     if (invites.length === 0) {
-      return res.status(400).json({ code: 400, message: '邀请码无效或已使用' });
+      return res.status(400).json({ code: 400, message: '邀请码无效、已过期或已使用' });
     }
 
     const invite = invites[0];
-
-    // 检查是否过期
-    if (new Date(invite.expires_at) < new Date()) {
-      return res.status(400).json({ code: 400, message: '邀请码已过期，请让对方重新生成' });
-    }
-
-    // 不能自己绑定自己
     if (invite.creator_id === userId) {
       return res.status(400).json({ code: 400, message: '不能和自己绑定哦' });
     }
 
-    // 检查邀请方是否已绑定（防止竞态）
-    const [creatorCouple] = await pool.query(
-      "SELECT id FROM couples WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'",
-      [invite.creator_id, invite.creator_id]
-    );
-    if (creatorCouple.length > 0) {
-      return res.status(400).json({ code: 400, message: '对方已经绑定了其他人' });
-    }
-
-    // 执行绑定（事务）
+    const user1 = Math.min(invite.creator_id, userId);
+    const user2 = Math.max(invite.creator_id, userId);
     const conn = await pool.getConnection();
+    let partner;
     try {
       await conn.beginTransaction();
-
-      // 确保 user1_id < user2_id 保持一致性
-      const user1 = Math.min(invite.creator_id, userId);
-      const user2 = Math.max(invite.creator_id, userId);
-
+      const [first] = await conn.query(
+        'SELECT id, nickname, role FROM users WHERE id = ? FOR UPDATE', [user1]
+      );
+      const [second] = await conn.query(
+        'SELECT id, nickname, role FROM users WHERE id = ? FOR UPDATE', [user2]
+      );
+      const [valid] = await conn.query(
+        'SELECT id FROM couple_invites WHERE id = ? AND used = 0 AND expires_at > NOW() FOR UPDATE',
+        [invite.id]
+      );
+      if (!first.length || !second.length || !valid.length) {
+        await conn.rollback();
+        return res.status(400).json({ code: 400, message: '邀请码无效、已过期或已使用' });
+      }
+      const [active] = await conn.query(
+        "SELECT id FROM couples WHERE status = 'active' AND (user1_id IN (?, ?) OR user2_id IN (?, ?))",
+        [user1, user2, user1, user2]
+      );
+      if (active.length) {
+        await conn.rollback();
+        return res.status(409).json({ code: 409, message: '其中一方已有伴侣，请核对绑定状态' });
+      }
+      partner = invite.creator_id === user1 ? first[0] : second[0];
       await conn.query(
-        'INSERT INTO couples (user1_id, user2_id, status) VALUES (?, ?, "active") ON DUPLICATE KEY UPDATE status = "active", broken_at = NULL',
+        "INSERT INTO couples (user1_id, user2_id, status) VALUES (?, ?, 'active') ON DUPLICATE KEY UPDATE status = 'active', broken_at = NULL",
         [user1, user2]
       );
 
-      // 标记邀请码已使用
       await conn.query(
         'UPDATE couple_invites SET used = 1, used_by = ? WHERE id = ?',
         [userId, invite.id]
@@ -220,19 +211,11 @@ router.post('/accept', authRequired, async (req, res) => {
       conn.release();
     }
 
-    // 获取双方信息
-    const [users] = await pool.query(
-      'SELECT id, nickname, role FROM users WHERE id IN (?, ?)',
-      [invite.creator_id, userId]
-    );
-
-    console.log(`[Couple] 绑定成功: 用户${invite.creator_id} <-> 用户${userId}`);
-
     res.json({
       code: 200,
       message: '绑定成功！',
       data: {
-        partner: users.find(u => u.id !== userId) || {},
+        partner,
       }
     });
   } catch (err) {

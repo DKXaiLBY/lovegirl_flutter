@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { partnerId: currentPartnerId } = require('../utils/creation_access');
 const { authRequired } = require('../middleware/auth');
 
 function normalizeCategory(category) {
@@ -148,16 +149,11 @@ router.put('/:id/boyfriend-help', authRequired, async (req, res) => {
     }
 
     if (req.user.role === 'boy') {
-      const [girls] = await pool.query("SELECT id FROM users WHERE role = 'girl' ORDER BY id ASC LIMIT 1");
-      if (girls.length === 0) return res.status(404).json({ code: 404, message: 'girl user not found' });
-      const [todos] = await pool.query(
-        'SELECT * FROM todos WHERE id = ? AND user_id = ?',
-        [req.params.id, girls[0].id]
-      );
-      if (todos.length === 0) return res.status(404).json({ code: 404, message: 'todo not found' });
+      const partner = await currentPartnerId(pool, req.user.id);
+      if (partner == null) return res.status(404).json({ code: 404, message: 'todo not found' });
       const [result] = await pool.query(
-        'UPDATE todos SET completed = 1, completed_at = COALESCE(completed_at, NOW()), boyfriend_help = 0, version = version + 1 WHERE id = ?',
-        [req.params.id]
+        "UPDATE todos t JOIN users u ON u.id = t.user_id AND u.role = 'girl' SET t.completed = 1, t.completed_at = COALESCE(t.completed_at, NOW()), t.boyfriend_help = 0, t.version = t.version + 1 WHERE t.id = ? AND t.user_id = ? AND t.boyfriend_help = 1",
+        [req.params.id, partner]
       );
       if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: 'todo not found' });
       return res.json({ code: 200, message: 'help completed' });
@@ -175,11 +171,11 @@ router.get('/boyfriend/list', authRequired, async (req, res) => {
     if (req.user.role !== 'boy' && !req.user.isAdmin) {
       return res.status(403).json({ code: 403, message: 'boy only' });
     }
-    const [girls] = await pool.query("SELECT id FROM users WHERE role = 'girl' ORDER BY id ASC LIMIT 1");
-    if (girls.length === 0) return res.json({ code: 200, data: [] });
+    const partner = await currentPartnerId(pool, req.user.id);
+    if (partner == null) return res.json({ code: 200, data: [] });
     const [todos] = await pool.query(
-      'SELECT * FROM todos WHERE user_id = ? AND boyfriend_help = 1 AND completed = 0 ORDER BY priority DESC, due_date ASC',
-      [girls[0].id]
+      "SELECT t.* FROM todos t JOIN users u ON u.id = t.user_id AND u.role = 'girl' WHERE t.user_id = ? AND t.boyfriend_help = 1 AND t.completed = 0 ORDER BY t.priority DESC, t.due_date ASC",
+      [partner]
     );
     res.json({ code: 200, data: todos });
   } catch (err) {

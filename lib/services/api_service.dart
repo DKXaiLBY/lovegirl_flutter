@@ -210,13 +210,16 @@ class ApiService {
       data: json.encode({'username': username, 'password': password}));
 
   Future register(String username, String password, String nickname,
-          {String gender = 'female'}) =>
+          {String gender = 'female', required String inviteCode}) =>
       post('/api/auth/register', data: {
         'username': username,
         'password': password,
         'nickname': nickname,
         'gender': gender,
+        'inviteCode': inviteCode,
       });
+
+  Future createRegistrationInvite() => post('/api/auth/registration-invites');
 
   // ========== 用户 ==========
   Future getProfile() => get('/api/user/profile');

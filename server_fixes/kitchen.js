@@ -14,6 +14,7 @@ const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
 const { todayString } = require('./utils/lovegirl_rewards');
+const { canAttachPhoto } = require('../utils/media_access');
 
 // ---------- 图片上传（菜品照 / 成品照） ----------
 const uploadDir = path.join(__dirname, '..', 'uploads', 'kitchen');
@@ -21,8 +22,9 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
-    const ext = (path.extname(file.originalname) || '.jpg').toLowerCase();
-    cb(null, `${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`);
+    const suffix = path.extname(file.originalname).toLowerCase();
+    const ext = /^\.(?:jpe?g|png|webp|gif|heic|heif|bmp)$/.test(suffix) ? suffix : '.jpg';
+    cb(null, `u${req.user.id}_${Date.now()}_${crypto.randomBytes(8).toString('hex')}${ext}`);
   },
 });
 const upload = multer({
@@ -234,6 +236,9 @@ router.get('/menu', authRequired, async (req, res) => {
 router.post('/dishes', authRequired, async (req, res) => {
   try {
     const { name, category, emoji, price, description, photo_url, sort_order } = req.body || {};
+    if (!await canAttachPhoto(pool, req.user.id, photo_url)) {
+      throw failure(400, '请选择自己的菜品照片');
+    }
     const dishName = text(name, 100, '菜名');
     if (!dishName) throw failure(400, '菜名不能为空');
     const ingredients = text(req.body.ingredients, 2000, '食材');
@@ -263,6 +268,9 @@ router.put('/dishes/:id', authRequired, async (req, res) => {
     if (!dish) return res.status(404).json({ code: 404, message: '菜品不存在' });
     if (dish.user_id !== req.user.id) return res.status(403).json({ code: 403, message: '只能编辑自己的菜品' });
     const b = req.body || {};
+    if (b.photo_url !== undefined && !await canAttachPhoto(pool, req.user.id, b.photo_url)) {
+      throw failure(400, '请选择自己的菜品照片');
+    }
     const dishName = text(b.name === undefined ? dish.name : b.name, 100, '菜名');
     if (!dishName) throw failure(400, '菜名不能为空');
     const ingredients = b.ingredients === undefined ? dish.ingredients : text(b.ingredients, 2000, '食材');
@@ -437,6 +445,7 @@ router.put('/orders/:id/status', authRequired, async (req, res) => {
         if (!isCook) throw failure(403, '只有主厨可以完成这一餐');
         if (order.status !== 'accepted') throw failure(400, '请先接单再做完成');
         const photo = text(req.body?.photo_url, 500, '照片地址');
+        if (!await canAttachPhoto(conn, userId, photo)) throw failure(400, '请选择自己的成品照片');
         await createMealMemory(conn, order, photo, todayString());
         await conn.query("UPDATE kitchen_orders SET status = 'done', photo_url = ?, done_at = ?, revision = revision + 1 WHERE id = ?", [photo, now, id]);
         title = '菜做好啦'; content = '这一餐完成了，快去尝尝';

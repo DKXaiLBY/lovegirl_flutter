@@ -3,6 +3,7 @@ const https = require('https');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
+const { travelIds } = require('../utils/creation_access');
 const {
   createFinanceRecord,
   createTimelineEvent,
@@ -64,22 +65,9 @@ function amapGet(path, params = {}) {
   });
 }
 
-async function getVisibleUserIds(userId) {
-  try {
-    const [rows] = await pool.query(
-      `SELECT CASE WHEN user1_id = ? THEN user2_id ELSE user1_id END AS partner_id
-       FROM couples
-       WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'
-       LIMIT 1`,
-      [userId, userId, userId]
-    );
-    if (rows.length > 0 && rows[0].partner_id) {
-      return [userId, rows[0].partner_id];
-    }
-  } catch (_) {}
-  return [userId];
+function getVisibleUserIds(userId) {
+  return travelIds(pool, userId);
 }
-
 function parseTags(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -1019,7 +1007,7 @@ router.delete('/spots/:id', authRequired, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const visibleIds = await getVisibleUserIds(req.user.id);
-    const [photos] = await pool.query('SELECT url FROM travel_photos WHERE spot_id = ?', [id]);
+    const [photos] = await pool.query('SELECT url FROM travel_photos WHERE spot_id = ? AND source_photo_id IS NULL', [id]);
     const [result] = await pool.query(
       `DELETE FROM travel_spots WHERE id = ? AND user_id IN (${visibleIds.map(() => '?').join(',')})`,
       [id, ...visibleIds]
@@ -1033,6 +1021,7 @@ router.delete('/spots/:id', authRequired, async (req, res) => {
       const path = require('path');
       const fs = require('fs');
       for (const photo of photos) {
+        if (!/^\/uploads\/travel\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(photo.url)) continue;
         const filePath = path.join(__dirname, '..', photo.url.replace(/^\/+/, ''));
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }

@@ -17,6 +17,7 @@ function fixture() {
   const pool = {
     async query(sql, args) {
       if (sql.includes('FROM couples')) return [[{ partner_id: args[0] === 1 ? 2 : 99 }]];
+      if (sql.includes('FROM user_privacy')) return [[]];
       if (sql.includes('FROM travel_spots')) {
         return [[...(args[0] === 10 && args.slice(1).includes(2) ? [{ id: 10 }] : [])]];
       }
@@ -60,6 +61,7 @@ function fixture() {
   const originalRequire = loaded.require.bind(loaded);
   loaded.require = name => {
     if (name === '../config/database') return pool;
+    if (name === '../utils/creation_access') return require('../utils/creation_access');
     if (name === '../middleware/auth') return {
       authRequired(req, res, next) {
         const user = Number(req.headers['x-test-user']);

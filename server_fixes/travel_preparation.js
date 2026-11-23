@@ -1,7 +1,7 @@
 const express = require('express');
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
-const { errorResponse } = require('../utils/creation_access');
+const { errorResponse, privacyFor } = require('../utils/creation_access');
 const { fail, integer, json } = require('../utils/creation_contract');
 const router = express.Router();
 const categories = new Set(['clothes', 'toiletries', 'documents', 'electronics', 'other']);
@@ -15,9 +15,12 @@ function text(value, max, label) {
 async function pair(db, userId, lock = false) {
   const args = [userId, userId];
   const [rows] = lock
-    ? await db.query("SELECT id,user1_id,user2_id,preparation_epoch FROM couples WHERE (user1_id=? OR user2_id=?) AND status='active' LIMIT 1 FOR SHARE", args)
-    : await db.query("SELECT id,user1_id,user2_id,preparation_epoch FROM couples WHERE (user1_id=? OR user2_id=?) AND status='active' LIMIT 1", args);
-  return rows[0] || null;
+    ? await db.query("SELECT id,user1_id,user2_id,preparation_epoch FROM couples WHERE (user1_id=? OR user2_id=?) AND status='active' LIMIT 2 FOR SHARE", args)
+    : await db.query("SELECT id,user1_id,user2_id,preparation_epoch FROM couples WHERE (user1_id=? OR user2_id=?) AND status='active' LIMIT 2", args);
+  if (rows.length !== 1) return null;
+  const current = rows[0];
+  const partner = current.user1_id === userId ? current.user2_id : current.user1_id;
+  return (await privacyFor(db, partner)).travel_visible ? current : null;
 }
 
 function members(userId, relationship) {

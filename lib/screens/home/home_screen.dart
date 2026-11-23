@@ -1170,7 +1170,7 @@ class _MemoryTicket extends StatelessWidget {
               width: 64,
               height: 64,
               child: imageUrl.isNotEmpty
-                  ? Image.network(imageUrl,
+                  ? Image(image: MediaCache.image(imageUrl),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => _memPlaceholder(context))
                   : _memPlaceholder(context),

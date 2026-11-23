@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../utils/constants.dart';
 import 'log_service.dart';
 
 const updateApkName = 'LoveGirl-latest.apk';
@@ -13,6 +17,8 @@ class MediaCache extends CacheManager with ImageCacheManager {
   static final instance = MediaCache._();
   static const diskBudget = 100 * 1024 * 1024;
   static const _idle = Duration(seconds: 5);
+  static final _origin = Uri.parse(AppConstants.baseUrl);
+  static const _authStorage = FlutterSecureStorage();
 
   MediaCache._() : super(Config(DefaultCacheManager.key));
 
@@ -20,6 +26,36 @@ class MediaCache extends CacheManager with ImageCacheManager {
   Timer? _trimTimer;
   int _pendingImages = 0;
   Future<void> _maintenance = Future.value();
+  int? _account;
+
+  static bool isProtectedUri(Uri uri) =>
+      uri.scheme == _origin.scheme &&
+      uri.host == _origin.host &&
+      uri.port == _origin.port &&
+      uri.userInfo.isEmpty &&
+      uri.path.startsWith('/uploads/');
+
+  static Future<Map<String, String>> headersFor(Uri uri) async {
+    if (!isProtectedUri(uri)) return const {};
+    final token = await _authStorage.read(key: AppConstants.tokenKey);
+    return token == null ? const {} : {'Authorization': 'Bearer $token'};
+  }
+
+  static ImageProvider image(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri != null && isProtectedUri(uri)) {
+      return CachedNetworkImageProvider(url, cacheManager: instance);
+    }
+    return NetworkImage(url);
+  }
+
+  void setAccount(int? account) {
+    if (_account == account) return;
+    _account = account;
+    PaintingBinding.instance.imageCache
+      ..clear()
+      ..clearLiveImages();
+  }
 
   @override
   Stream<FileResponse> getImageFile(String url,
@@ -28,6 +64,16 @@ class MediaCache extends CacheManager with ImageCacheManager {
       bool withProgress = false,
       int? maxHeight,
       int? maxWidth}) async* {
+    final uri = Uri.tryParse(url);
+    final protected = uri != null && isProtectedUri(uri);
+    final account = _account;
+    if (protected) {
+      if (account == null) return;
+      final auth = await headersFor(uri);
+      if (auth.isEmpty || account != _account) return;
+      key = 'media-v2/$account/${key ?? url}';
+      headers = {...?headers, ...auth};
+    }
     _pendingImages++;
     var readImage = false;
     try {
@@ -37,6 +83,7 @@ class MediaCache extends CacheManager with ImageCacheManager {
           withProgress: withProgress,
           maxHeight: maxHeight,
           maxWidth: maxWidth)) {
+        if (protected && account != _account) break;
         if (response is FileInfo) readImage = true;
         yield response;
       }

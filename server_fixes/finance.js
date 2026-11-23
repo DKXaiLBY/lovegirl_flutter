@@ -51,15 +51,6 @@ router.get('/', authRequired, async (req, res) => {
       }
     }
 
-    // 如果当前用户是boy查看girl的数据，也检查隐私
-    if (req.user.role === 'boy') {
-      const [girlUsers] = await pool.query("SELECT finance_privacy_enabled FROM users WHERE role = 'girl'");
-      if (girlUsers.length > 0 && girlUsers[0].finance_privacy_enabled) {
-        // 男方查看女方账单，暂时允许看到金额（可以调整为隐藏）
-        // hideAmount = true;
-      }
-    }
-
     const data = records.map(r => ({
       id: r.id,
       type: r.type,
@@ -68,6 +59,7 @@ router.get('/', authRequired, async (req, res) => {
       description: safeDecrypt(r.description_encrypted),
       receiptUrl: r.receipt_url,
       recordDate: r.record_date,
+      calorieSynced: r.calorie_synced,
       createdAt: r.created_at
     }));
 
@@ -81,9 +73,19 @@ router.get('/', authRequired, async (req, res) => {
 // POST /api/finance - 添加记录（amount 加密存储）
 router.post('/', authRequired, async (req, res) => {
   try {
-    const { type, category, amount, description, recordDate, receiptUrl } = req.body;
+    const { type, category, amount, description, recordDate, receiptUrl, calorieSynced } = req.body;
     if (!type || !category || amount === undefined) {
       return res.status(400).json({ code: 400, message: '请填写完整信息' });
+    }
+    if (typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({ code: 400, message: '金额必须大于0' });
+    }
+    if (typeof type !== 'string' || !['income', 'expense'].includes(type)) {
+      return res.status(400).json({ code: 400, message: '无效的记账类型' });
+    }
+    const validCategories = ['餐饮', '交通', '购物', '娱乐', '住房', '医疗', '教育', '人情', '日用', '其他'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({ code: 400, message: '无效的分类' });
     }
 
     const [result] = await pool.query(
@@ -96,9 +98,24 @@ router.post('/', authRequired, async (req, res) => {
         encrypt(description || ''),
         receiptUrl || null,
         recordDate || new Date().toISOString().split('T')[0],
-        0
+        calorieSynced ? 1 : 0
       ]
     );
+
+    // 如果 calorieSynced=1，自动在 calorie_records 表创建对应记录
+    if (calorieSynced && amount > 0) {
+      try {
+        const foodName = category || description || '记账记录';
+        const calories = Math.round(amount * 10); // 简单估算：1元 ≈ 10卡路里
+        await pool.query(
+          'INSERT INTO calorie_records (user_id, meal_type, food_name, calories, quantity, record_date, source) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [req.user.id, 'snack', foodName, calories, '1份', recordDate || new Date().toISOString().split('T')[0], 'finance']
+        );
+      } catch (calErr) {
+        console.error('自动同步卡路里记录失败:', calErr.message);
+        // 不阻断主流程
+      }
+    }
 
     res.json({ code: 200, message: '记录成功', data: { id: result.insertId } });
   } catch (err) {
@@ -113,8 +130,19 @@ router.put('/:id', authRequired, async (req, res) => {
     const { type, category, amount, description, recordDate } = req.body;
     const updates = []; const params = [];
     if (type !== undefined) { updates.push('type=?'); params.push(type); }
-    if (category !== undefined) { updates.push('category=?'); params.push(category); }
-    if (amount !== undefined) { updates.push('amount_encrypted=?'); params.push(encrypt(String(amount))); }
+    if (category !== undefined) {
+      const validCategories = ['餐饮', '交通', '购物', '娱乐', '住房', '医疗', '教育', '人情', '日用', '其他'];
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({ code: 400, message: '无效的分类' });
+      }
+      updates.push('category=?'); params.push(category);
+    }
+    if (amount !== undefined) {
+      if (typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ code: 400, message: '金额必须大于0' });
+      }
+      updates.push('amount_encrypted=?'); params.push(encrypt(String(amount)));
+    }
     if (description !== undefined) { updates.push('description_encrypted=?'); params.push(encrypt(description)); }
     if (recordDate !== undefined) { updates.push('record_date=?'); params.push(recordDate); }
     if (updates.length === 0) return res.status(400).json({ code: 400, message: '没有要更新的字段' });
@@ -130,7 +158,10 @@ router.put('/:id', authRequired, async (req, res) => {
 // DELETE /api/finance/:id - 删除记录
 router.delete('/:id', authRequired, async (req, res) => {
   try {
-    await pool.query('DELETE FROM finance_records WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    const [delResult] = await pool.query('DELETE FROM finance_records WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    if (delResult.affectedRows === 0) {
+      return res.status(404).json({ code: 404, message: '记录不存在' });
+    }
     res.json({ code: 200, message: '删除成功' });
   } catch (err) {
     console.error('删除记账记录失败:', err);
@@ -259,6 +290,50 @@ router.post('/import', authRequired, upload.single('file'), async (req, res) => 
     console.error('导入失败:', err);
     res.status(500).json({ code: 500, message: '导入失败，请检查Excel格式（第1列日期，第2列类型，第3列分类，第4列金额，第5列描述）' });
   }
+});
+
+
+// 兼容老版本：/api/finance/records -> 同 /
+router.get('/records', authRequired, async (req, res) => {
+  const month = req.query.month || new Date().toISOString().substring(0, 7);
+  const [year, mon] = month.split('-');
+  try {
+    const userId = req.user.id;
+    const role = req.user.role;
+    const isPrivate = req.financePrivate;
+    const [records] = await pool.query(
+      'SELECT * FROM finance_records WHERE user_id = ? AND YEAR(record_date) = ? AND MONTH(record_date) = ? ORDER BY record_date DESC',
+      [userId, parseInt(year), parseInt(mon)]
+    );
+    if (role === 'boy' && isPrivate) {
+      return res.json({ code: 200, data: records.map(r => ({ ...r, amount: '***', type: '***', category: '***', description: '***' })) });
+    }
+    res.json({ code: 200, data: records });
+  } catch (err) { res.json({ code: 500, message: '获取账单失败' }); }
+});
+
+router.post('/records', authRequired, async (req, res) => {
+  const { amount, type, category, description, recordDate } = req.body;
+  if (!amount || !type) return res.json({ code: 400, message: '金额和类型不能为空' });
+  if (typeof type !== 'string' || !['income', 'expense'].includes(type)) return res.json({ code: 400, message: '无效的记账类型' });
+  try {
+    const userId = req.user.id;
+    const date = recordDate || new Date().toISOString().substring(0, 10);
+    const [result] = await pool.query(
+      'INSERT INTO finance_records (user_id, amount, type, category, description, record_date) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, parseFloat(amount), type, category || '其他', description || '', date]
+    );
+    res.json({ code: 200, data: { id: result.insertId } });
+  } catch (err) { res.json({ code: 500, message: '添加失败' }); }
+});
+
+router.delete('/records/:id', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [result] = await pool.query('DELETE FROM finance_records WHERE id = ? AND user_id = ?', [req.params.id, userId]);
+    if (result.affectedRows === 0) return res.status(404).json({ code: 404, message: '记录不存在' });
+    res.json({ code: 200, message: '删除成功' });
+  } catch (err) { res.json({ code: 500, message: '删除失败' }); }
 });
 
 

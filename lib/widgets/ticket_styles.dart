@@ -4,18 +4,15 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../services/app_storage.dart';
 import '../utils/lovegirl_theme.dart';
 
 /// 照片主色提取：降采样统计，返回适合做票根深色背景的基色
 class PhotoPalette {
   PhotoPalette._();
 
-  static final Map<String, Color> _cache = {};
-
-  static Future<Color> extract(NetworkImage image) async {
-    final key = image.url;
-    final cached = _cache[key];
-    if (cached != null) return cached;
+  static Future<Color> extract(String url) async {
+    final image = MediaCache.image(url);
     try {
       final stream =
           image.resolve(const ImageConfiguration(devicePixelRatio: 1));
@@ -48,7 +45,6 @@ class PhotoPalette {
           .withSaturation((hsl.saturation * 0.75).clamp(0.25, 0.72))
           .withLightness((hsl.lightness * 0.42).clamp(0.12, 0.34))
           .toColor();
-      _cache[key] = dark;
       return dark;
     } catch (_) {
       return _fallback;
@@ -163,7 +159,7 @@ class HorizontalTicketStub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = photoUrl != null
-        ? Image.network(photoUrl!, fit: BoxFit.cover, width: double.infinity,
+        ? Image(image: MediaCache.image(photoUrl!), fit: BoxFit.cover, width: double.infinity,
             errorBuilder: (_, __, ___) => const SizedBox.expand())
         : null;
     return ClipRRect(
@@ -207,7 +203,7 @@ class HorizontalTicketStub extends StatelessWidget {
                 child: FutureBuilder<Color>(
                   future: photoUrl == null
                       ? Future.value(PhotoPalette._fallback)
-                      : PhotoPalette.extract(NetworkImage(photoUrl!)),
+                      : PhotoPalette.extract(photoUrl!),
                   builder: (context, snap) {
                     final base = snap.data ?? const Color(0xFF2C3A47);
                     return Container(
@@ -360,7 +356,7 @@ class VerticalPostcardTicket extends StatelessWidget {
               Expanded(
                 flex: 65,
                 child: photoUrl != null
-                    ? Image.network(photoUrl!,
+                    ? Image(image: MediaCache.image(photoUrl!),
                         fit: BoxFit.cover, width: double.infinity,
                         errorBuilder: (_, __, ___) =>
                             Container(color: context.lgPrimarySoft))

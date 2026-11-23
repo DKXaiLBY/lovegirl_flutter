@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { partnerId: currentPartnerId } = require('../utils/creation_access');
+const { canAttachPhoto } = require('../utils/media_access');
 const { authRequired } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
@@ -19,7 +21,7 @@ const avatarUpload = multer({
     filename: (req, file, cb) => {
       const raw = (path.extname(file.originalname || '') || '').toLowerCase();
       const ext = AVATAR_EXTS.includes(raw) ? raw : '.jpg';
-      cb(null, `avatar_${req.user.id}_${Date.now()}${ext}`);
+      cb(null, `u${req.user.id}_${Date.now()}${ext}`);
     },
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -36,10 +38,9 @@ async function profilePayload(user) {
   // 如果当前用户没有设置love_start_date，从伴侣获取
   let loveStartDate = user.love_start_date;
   if (!loveStartDate) {
-    const partnerRole = user.role === 'boy' ? 'girl' : 'boy';
-    const [partners] = await pool.query(
-      'SELECT love_start_date FROM users WHERE role = ? LIMIT 1',
-      [partnerRole]
+    const partner = await currentPartnerId(pool, user.id);
+    const [partners] = partner == null ? [[]] : await pool.query(
+      'SELECT love_start_date FROM users WHERE id = ?', [partner]
     );
     if (partners.length > 0 && partners[0].love_start_date) {
       loveStartDate = partners[0].love_start_date;
@@ -97,6 +98,9 @@ router.get('/profile', authRequired, async (req, res) => {
 router.put('/profile', authRequired, async (req, res) => {
   try {
     const { nickname, partnerNickname, avatarUrl, loveStartDate, partnerPhone, emergencyPhone } = req.body;
+    if (avatarUrl && !await canAttachPhoto(pool, req.user.id, avatarUrl)) {
+      return res.status(400).json({ code: 400, message: '请选择自己的头像' });
+    }
     if (nickname) {
       if (typeof nickname !== 'string' || nickname.length > 30) {
         return res.status(400).json({ code: 400, message: '昵称长度不能超过30个字符' });
@@ -253,17 +257,13 @@ router.put('/password', authRequired, async (req, res) => {
 // GET /api/user/status - 获取伴侣状态（双方通用）
 router.get('/status', authRequired, async (req, res) => {
   try {
-    const partnerRole = req.user.role === 'girl' ? 'boy' : 'girl';
-    const [partners] = await pool.query(
-      'SELECT id FROM users WHERE role = ? LIMIT 1',
-      [partnerRole]
-    );
-    if (partners.length === 0) {
-      return res.json({ code: 200, data: { status: 'online', statusText: '在线', emoji: '🟢' } });
+    const partner = await currentPartnerId(pool, req.user.id);
+    if (partner == null) {
+      return res.json({ code: 200, data: { status: 'offline', statusText: '尚未绑定伴侣', emoji: '' } });
     }
     const [rows] = await pool.query(
       'SELECT status, status_text FROM boyfriend_status WHERE user_id = ? LIMIT 1',
-      [partners[0].id]
+      [partner]
     );
     const statusMap = {
       online: { emoji: '🟢', text: '在线' },
@@ -326,13 +326,12 @@ router.put('/status', authRequired, async (req, res) => {
 // GET /api/user/partner - 获取对方信息（一键呼叫用）
 router.get('/partner', authRequired, async (req, res) => {
   try {
-    const partnerRole = req.user.role === 'girl' ? 'boy' : 'girl';
-    const [users] = await pool.query(
-      'SELECT id, nickname, partner_phone, emergency_phone FROM users WHERE role = ? AND is_admin = 0 LIMIT 1',
-      [partnerRole]
+    const partner = await currentPartnerId(pool, req.user.id);
+    const [users] = partner == null ? [[]] : await pool.query(
+      'SELECT id, nickname, partner_phone, emergency_phone FROM users WHERE id = ?', [partner]
     );
     if (users.length === 0) {
-      return res.json({ code: 200, data: null, message: '对方还未注册' });
+      return res.json({ code: 200, data: null, message: '尚未绑定伴侣' });
     }
     const u = users[0];
     res.json({

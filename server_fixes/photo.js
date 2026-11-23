@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
+const { ownsMedia } = require('../utils/media_access');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -20,7 +21,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `${Date.now()}_${Math.random().toString(36).substr(2, 8)}${ext}`);
+    cb(null, `u${req.user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}${ext}`);
   }
 });
 const upload = multer({
@@ -226,10 +227,13 @@ router.delete('/:id', authRequired, async (req, res) => {
       return res.status(404).json({ code: 404, message: '照片不存在' });
     }
     // 删除文件
-    const filePath = path.join(__dirname, '..', rows[0].url);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    const url = rows[0].url;
+    if (await ownsMedia(pool, userId, url)) {
+      const filePath = path.join(__dirname, '..', url);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
     // 删除数据库记录
-    await pool.query('DELETE FROM photos WHERE id = ?', [photoId]);
+    await pool.query('DELETE FROM photos WHERE id = ? AND user_id = ?', [photoId, userId]);
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     console.error('[Photo] 删除失败:', err);

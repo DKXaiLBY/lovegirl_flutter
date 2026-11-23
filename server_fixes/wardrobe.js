@@ -11,6 +11,8 @@ const pool = require('../config/database');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { Readable } = require('node:stream');
+const { parseMedia, ownsMedia } = require('../utils/media_access');
 const sharp = require('sharp');
 
 // ---------- 上传 ----------
@@ -21,7 +23,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`);
+    cb(null, `u${req.user.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`);
   },
 });
 const upload = multer({
@@ -118,10 +120,13 @@ async function makeThumbnail(absPath) {
   return `/uploads/wardrobe/${path.basename(thumbPath)}`;
 }
 
-function removeFilesQuiet(urls) {
+async function removeFilesQuiet(userId, urls) {
   for (const url of urls) {
-    if (!url) continue;
-    try { fs.unlinkSync(path.join(__dirname, '..', url)); } catch (_) { /* 文件可能已不存在 */ }
+    try {
+      if (parseMedia(url)?.kind.startsWith('wardrobe') && await ownsMedia(pool, userId, url)) {
+        fs.unlinkSync(path.join(__dirname, '..', url));
+      }
+    } catch (_) { /* 文件可能已不存在 */ }
   }
 }
 
@@ -292,7 +297,7 @@ router.put('/items/:id', authRequired, wrapUpload('image'), async (req, res) => 
          JSON.stringify(occasions), JSON.stringify(styles), color, brand, price, id, req.user.id]
       );
     }
-    if (oldUrls) removeFilesQuiet(oldUrls); // 换图旧文件：提交后清理
+    if (oldUrls) await removeFilesQuiet(req.user.id, oldUrls); // 换图旧文件：提交后清理
     res.json({ code: 200, message: '已保存', data: { id, imageUrl, thumbnailUrl } });
   } catch (err) {
     console.error('[Wardrobe] item update failed:', err);
@@ -343,7 +348,7 @@ router.delete('/items/:id', authRequired, async (req, res) => {
     );
     await conn.commit();
     conn.release();
-    removeFilesQuiet([rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]); // 事务提交后清理文件
+    await removeFilesQuiet(req.user.id, [rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]);
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -527,7 +532,7 @@ router.put('/outfits/:id', authRequired, wrapUpload('photo'), async (req, res) =
     );
     await conn.commit();
     conn.release();
-    if (oldFiles) removeFilesQuiet(oldFiles);
+    if (oldFiles) await removeFilesQuiet(req.user.id, oldFiles);
     res.json({ code: 200, message: '已保存' });
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -609,7 +614,7 @@ router.delete('/outfits/:id', authRequired, async (req, res) => {
     await conn.query('DELETE FROM wardrobe_outfits WHERE id = ? AND user_id = ?', [id, req.user.id]);
     await conn.commit();
     conn.release();
-    removeFilesQuiet([rows[0].photo_url, rows[0].thumbnail_url]);
+    await removeFilesQuiet(req.user.id, [rows[0].photo_url, rows[0].thumbnail_url]);
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -647,7 +652,7 @@ function cutoutEnabled() {
 }
 
 // 人像分割：输入原图路径 → 输出透明 PNG 落盘，返回 cutout url
-async function runPortraitCutout(absPath) {
+async function runPortraitCutout(absPath, userId) {
   const { bda } = require('tencentcloud-sdk-nodejs-bda');
   let input = await sharp(absPath).rotate().jpeg({ quality: 90 }).toBuffer();
   if (input.length > 5 * 1024 * 1024) {
@@ -672,7 +677,7 @@ async function runPortraitCutout(absPath) {
   }
   if (!r.ResultImage) throw new Error('empty result');
   // 文件名纯程序生成（时间戳+随机），无用户输入成分；输出路径校验边界
-  const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+  const outName = `u${userId}_cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
   const outPath = path.resolve(cutoutDir, outName);
   if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
   fs.writeFileSync(outPath, Buffer.from(r.ResultImage, 'base64'));
@@ -726,7 +731,7 @@ function httpDownload(url) {
 }
 
 // 衣服抠图：原图规整 → 公网 URL → SegmentCloth（按类目，未知类走整体）→ 下载压缩落盘
-async function runItemCutout(absPath, category, publicOrigin) {
+async function runItemCutout(absPath, category, userId) {
   if (!itemCutoutReady()) {
     const e = new Error('aliyun not configured');
     e.notConfigured = true;
@@ -737,57 +742,46 @@ async function runItemCutout(absPath, category, publicOrigin) {
     // SegmentCloth 硬限 3MB：降一档尺寸重出
     const smaller = await sharp(absPath).rotate().resize(1200, 1200, { fit: 'inside' }).jpeg({ quality: 80 }).toBuffer();
     if (smaller.length < input.length) {
-      return runItemCutoutWithBuffer(smaller, category, publicOrigin);
+      return runItemCutoutWithBuffer(smaller, category, userId);
     }
   }
-  return runItemCutoutWithBuffer(input, category, publicOrigin);
+  return runItemCutoutWithBuffer(input, category, userId);
 }
 
-async function runItemCutoutWithBuffer(input, category, publicOrigin) {
-  // 输入先落一个中转文件拿公网 URL（uploads/wardrobe 内、文件名纯程序生成）
-  const tmpName = `src_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
-  const tmpPath = path.resolve(cutoutDir, '..', tmpName);
-  const upDir = path.resolve(__dirname, '..', 'uploads');
-  if (!tmpPath.startsWith(upDir + path.sep)) throw new Error('bad tmp path');
-  fs.writeFileSync(tmpPath, input);
-  const imageUrl = `${publicOrigin}/uploads/wardrobe/${tmpName}`;
-  try {
-    const imageseg = require('@alicloud/imageseg20191230');
-    const OpenApi = require('@alicloud/openapi-client');
-    const config = new OpenApi.Config({
-      accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID,
-      accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET,
-      endpoint: 'imageseg.cn-shanghai.aliyuncs.com',
-    });
-    const client = new imageseg.default(config);
-    const req = new imageseg.SegmentClothRequest({ imageURL: imageUrl });
-    const classes = ALIYUN_CLOTH_CLASS[category];
-    if (classes) {
-      req.clothClass = classes;
-      req.outMode = 1; // 指定类别组合分割
-    } else {
-      req.outMode = 0; // 主体服饰整体分割（连体装/配饰/未知类）
-    }
-    const resp = await client.segmentClothWithOptions(req, new OpenApi.RuntimeOptions({}));
-    const el = resp && resp.body && Array.isArray(resp.body.data && resp.body.data.elements)
-      ? resp.body.data.elements[0] : null;
-    const resultUrl = el && (el.imageURL || el.imageUrl);
-    if (!resultUrl) {
-      const e = new Error('no garment detected');
-      e.noPerson = true;
-      throw e;
-    }
-    const png = await httpDownload(resultUrl);
-    const outName = `cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
-    const outPath = path.resolve(cutoutDir, outName);
-    if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
-    const out = await sharp(png).resize(1200, 1200, { fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
-    fs.writeFileSync(outPath, out);
-    return `/uploads/wardrobe/cutout/${outName}`;
-  } finally {
-    // 中转原图即删（扣图结果才长期保存）
-    fs.unlink(tmpPath, () => {});
+async function runItemCutoutWithBuffer(input, category, userId) {
+  const imageseg = require('@alicloud/imageseg20191230');
+  const OpenApi = require('@alicloud/openapi-client');
+  const config = new OpenApi.Config({
+    accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID,
+    accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET,
+    endpoint: 'imageseg.cn-shanghai.aliyuncs.com',
+  });
+  const client = new imageseg.default(config);
+  const TeaUtil = require('@alicloud/tea-util');
+  const req = new imageseg.SegmentClothAdvanceRequest({ imageURLObject: Readable.from([input]) });
+  const classes = ALIYUN_CLOTH_CLASS[category];
+  if (classes) {
+    req.clothClass = classes;
+    req.outMode = 1; // 指定类别组合分割
+  } else {
+    req.outMode = 0; // 主体服饰整体分割（连体装/配饰/未知类）
   }
+  const resp = await client.segmentClothAdvance(req, new TeaUtil.RuntimeOptions({}));
+  const el = resp && resp.body && Array.isArray(resp.body.data && resp.body.data.elements)
+    ? resp.body.data.elements[0] : null;
+  const resultUrl = el && (el.imageURL || el.imageUrl);
+  if (!resultUrl) {
+    const e = new Error('no garment detected');
+    e.noPerson = true;
+    throw e;
+  }
+  const png = await httpDownload(resultUrl);
+  const outName = `u${userId}_cut_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+  const outPath = path.resolve(cutoutDir, outName);
+  if (!outPath.startsWith(cutoutDir + path.sep)) throw new Error('bad out path');
+  const out = await sharp(png).resize(1200, 1200, { fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+  fs.writeFileSync(outPath, out);
+  return `/uploads/wardrobe/cutout/${outName}`;
 }
 
 router.get('/bg-status', authRequired, (req, res) => {
@@ -859,10 +853,9 @@ router.post('/bg-remove', authRequired, wrapUpload('image'), (req, res) => {
       }
     }
     const t0 = Date.now();
-    const publicOrigin = `${req.protocol}://${req.get('host')}`;
     cutoutUrl = kind === 'person'
-      ? await runPortraitCutout(absPath)
-      : await runItemCutout(absPath, itemCategory, publicOrigin);
+      ? await runPortraitCutout(absPath, req.user.id)
+      : await runItemCutout(absPath, itemCategory, req.user.id);
     cutoutConsume(req.user.id);
     // 直取模式自动回写（App 的 cutoutItem 不调 PUT cutout，必须在这里落库）
     if (!theFile && Number.isInteger(avatarId) && kind === 'person') {
@@ -979,7 +972,7 @@ router.delete('/avatars/:id', authRequired, async (req, res) => {
     );
     await conn.commit();
     conn.release();
-    removeFilesQuiet([rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]);
+    await removeFilesQuiet(req.user.id, [rows[0].image_url, rows[0].thumbnail_url, rows[0].cutout_url]);
     res.json({ code: 200, message: '已删除' });
   } catch (err) {
     await conn.rollback().catch(() => {});
@@ -994,6 +987,9 @@ router.put('/avatars/:id/cutout', authRequired, async (req, res) => {
     const id = parseInt(req.params.id);
     const cutoutUrl = cleanText(req.body.cutoutUrl, 500);
     if (!Number.isInteger(id) || !cutoutUrl) return res.status(400).json({ code: 400, message: '参数不对' });
+    if (parseMedia(cutoutUrl)?.kind !== 'wardrobe/cutout' || !await ownsMedia(pool, req.user.id, cutoutUrl)) {
+      return res.status(400).json({ code: 400, message: '请选择自己的抠图' });
+    }
     const [r] = await pool.query(
       'UPDATE wardrobe_avatars SET cutout_url = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
       [cutoutUrl, id, req.user.id]
@@ -1017,6 +1013,9 @@ router.put('/items/:id/cutout', authRequired, async (req, res) => {
       try { layout = JSON.stringify(JSON.parse(layoutRaw)); } catch { layout = null; }
     }
     if (!Number.isInteger(id)) return res.status(400).json({ code: 400, message: '参数不对' });
+    if (cutoutUrl && (parseMedia(cutoutUrl)?.kind !== 'wardrobe/cutout' || !await ownsMedia(pool, req.user.id, cutoutUrl))) {
+      return res.status(400).json({ code: 400, message: '请选择自己的抠图' });
+    }
     const [r] = await pool.query(
       'UPDATE wardrobe_items SET cutout_url = ?, bg_removed = 1, item_layout = ? WHERE id = ? AND user_id = ? AND deleted_at IS NULL',
       [cutoutUrl || null, layout, id, req.user.id]

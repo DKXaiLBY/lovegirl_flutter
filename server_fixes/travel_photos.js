@@ -5,26 +5,14 @@ const express = require('express');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
+const { travelIds } = require('../utils/creation_access');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-async function getVisibleUserIds(userId) {
-  try {
-    const [rows] = await pool.query(
-      `SELECT CASE WHEN user1_id = ? THEN user2_id ELSE user1_id END AS partner_id
-       FROM couples
-       WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'
-       LIMIT 1`,
-      [userId, userId, userId]
-    );
-    if (rows.length > 0 && rows[0].partner_id) {
-      return [userId, rows[0].partner_id];
-    }
-  } catch (_) {}
-  return [userId];
+function getVisibleUserIds(userId) {
+  return travelIds(pool, userId);
 }
-
 // 上传目录
 const uploadDir = path.join(__dirname, '..', 'uploads', 'travel');
 if (!fs.existsSync(uploadDir)) {
@@ -36,7 +24,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `travel_${Date.now()}_${Math.random().toString(36).substr(2, 8)}${ext}`);
+    cb(null, `u${req.user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 8)}${ext}`);
   }
 });
 const upload = multer({
@@ -210,7 +198,7 @@ router.delete('/spots/:spotId/photos/:photoId', authRequired, async (req, res) =
 
     // 删除关联只移除引用；相册原图由相册管理。
     await pool.query('DELETE FROM travel_photos WHERE id = ? AND spot_id = ?', [photoId, spotId]);
-    if (photos[0].source_photo_id == null) {
+    if (photos[0].source_photo_id == null && /^\/uploads\/travel\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(photos[0].url)) {
       const filePath = path.join(__dirname, '..', photos[0].url.replace(/^\/+/, ''));
       try {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);

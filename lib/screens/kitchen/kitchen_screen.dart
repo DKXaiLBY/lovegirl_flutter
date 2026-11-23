@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import '../../services/app_storage.dart';
 import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -586,8 +587,8 @@ class _MyDishCard extends StatelessWidget {
               width: 56,
               height: 56,
               child: dish.photoUrl != null
-                  ? Image.network(
-                      kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl),
+                  ? Image(
+                      image: MediaCache.image(kitchenPhotoUrl(dish.photoUrl!, AppConstants.baseUrl)),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => _emojiBox(context),
                     )
@@ -743,9 +744,9 @@ class _DishEditSheetState extends State<_DishEditSheet> {
                           : _photoUrl != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(14),
-                                  child: Image.network(
-                                      kitchenPhotoUrl(
-                                          _photoUrl!, AppConstants.baseUrl),
+                                  child: Image(
+                                      image: MediaCache.image(kitchenPhotoUrl(
+                                          _photoUrl!, AppConstants.baseUrl)),
                                       fit: BoxFit.cover))
                               : Icon(Icons.add_a_photo_rounded,
                                   color: context.lgInk),

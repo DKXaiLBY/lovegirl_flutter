@@ -74,14 +74,16 @@ class LoveGirlApp extends StatelessWidget {
           create: (_) => TravelWorkspace(),
           update: (_, auth, workspace) => workspace!..setAccount(auth.userId),
         ),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
       ],
       child: Selector<AuthProvider, int?>(
         selector: (_, auth) => auth.userId,
-        builder: (_, account, child) => ChangeNotifierProvider(
+        builder: (_, account, child) => MultiProvider(
           key: ValueKey(account),
-          create: (_) => WardrobeProvider(),
+          providers: [
+            ChangeNotifierProvider(create: (_) => WardrobeProvider()),
+            ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ],
           child: child,
         ),
         child: const _ThemedLoveGirlApp(),

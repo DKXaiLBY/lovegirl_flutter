@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/app_storage.dart';
 import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -567,8 +568,8 @@ class _CookingCard extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (hasPhoto)
-            Image.network(
-              photo.startsWith('http') ? photo : '${AppConstants.baseUrl}$photo',
+            Image(
+              image: MediaCache.image(photo.startsWith('http') ? photo : '${AppConstants.baseUrl}$photo'),
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _photoFallback(context),
             )
@@ -951,10 +952,10 @@ class _CreateLogSheetState extends State<_CreateLogSheet> {
                       : _photoUrl != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(13),
-                              child: Image.network(
-                                _photoUrl!.startsWith('http')
+                              child: Image(
+                                image: MediaCache.image(_photoUrl!.startsWith('http')
                                     ? _photoUrl!
-                                    : '${AppConstants.baseUrl}$_photoUrl',
+                                    : '${AppConstants.baseUrl}$_photoUrl'),
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                               ),

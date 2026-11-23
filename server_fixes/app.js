@@ -41,7 +41,6 @@ app.use(morgan('short'));
 
 // Body 解析
 app.use(express.json({ limit: '10mb' }));
-app.use('/uploads', express.static('uploads'));
 app.use(express.urlencoded({ extended: true }));
 
 // 全局限流 — 每IP每分钟最多200次请求
@@ -70,6 +69,18 @@ app.use('/api/auth/register', rateLimit({ windowMs: 60 * 1000, max: 5 }));
 
 // ========== Static Files (APK downloads) ==========
 const path = require('path');
+const { authRequired } = require('./middleware/auth');
+const { protectUploads } = require('./utils/media_access');
+const pool = require('./config/database');
+app.get(/^\/uploads\/apk\/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.apk$/, (req, res, next) => {
+  res.sendFile(path.basename(req.path), { root: path.join(__dirname, 'uploads', 'apk') }, (error) => {
+    if (error) next(error);
+  });
+});
+app.use('/uploads', authRequired, protectUploads(pool),
+  express.static(path.join(__dirname, 'uploads'), {
+    index: false, redirect: false, cacheControl: false,
+  }));
 app.use('/public', express.static(path.join(__dirname, 'public'), {
   // APK 文件不缓存，确保下载最新版本
   setHeaders: (res, filePath) => {

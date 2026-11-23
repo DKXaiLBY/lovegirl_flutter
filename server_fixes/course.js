@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { partnerId: currentPartnerId } = require('../utils/creation_access');
 const xlsx = require('xlsx');
 const multer = require('multer');
 const path = require('path');
@@ -326,14 +327,11 @@ router.get('/shared', authRequired, async (req, res) => {
     if (req.user.role !== 'boy' && req.user.role !== 'girl') {
       return res.json({ code: 200, data: [] });
     }
-    // 找对方
-    const partnerRole = req.user.role === 'girl' ? 'boy' : 'girl';
-    const [partners] = await pool.query("SELECT id FROM users WHERE role=? AND is_admin=0 LIMIT 1", [partnerRole]);
-    if (partners.length === 0) return res.json({ code: 200, data: [] });
-
-    // 直接返回对方课程（无需 settings 列，同行情侣默认共享）
-    const [courses] = await pool.query('SELECT * FROM courses WHERE user_id=? ORDER BY day_of_week, start_time', [partners[0].id]);
-    res.json({ code: 200, data: courses, sharedBy: partnerRole });
+    const partner = await currentPartnerId(pool, req.user.id);
+    if (partner == null) return res.json({ code: 200, data: [] });
+    const [users] = await pool.query('SELECT role FROM users WHERE id = ?', [partner]);
+    const [courses] = await pool.query('SELECT * FROM courses WHERE user_id=? ORDER BY day_of_week, start_time', [partner]);
+    res.json({ code: 200, data: courses, sharedBy: users[0]?.role });
   } catch (err) { res.status(500).json({ code: 500, message: '服务器错误' }); }
 });
 

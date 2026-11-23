@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/app_storage.dart';
 import 'package:lovegirl_flutter/utils/app_haptics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -276,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               color: context.lgInk.withAlpha(50), width: 2)),
                       child: ClipOval(
                         child: _avatarUrl(auth) != null
-                            ? Image.network(_avatarUrl(auth)!,
+                            ? Image(image: MediaCache.image(_avatarUrl(auth)! ),
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) =>
                                     _avatarPlaceholder(auth))

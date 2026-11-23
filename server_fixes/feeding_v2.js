@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const pool = require('../config/database');
+const { partnerId: currentPartnerId } = require('../utils/creation_access');
 const {
   createFinanceRecord,
   createTimelineEvent,
@@ -73,29 +74,8 @@ async function createNotification(userId, type, title, content, payload = {}) {
   }
 }
 
-async function getPartnerId(user) {
-  const userId = user.id;
-  try {
-    const [couples] = await pool.query(
-      `SELECT CASE WHEN user1_id = ? THEN user2_id ELSE user1_id END AS partner_id
-       FROM couples
-       WHERE (user1_id = ? OR user2_id = ?) AND status = 'active'
-       LIMIT 1`,
-      [userId, userId, userId]
-    );
-    if (couples.length > 0) return couples[0].partner_id;
-  } catch (_) {}
-
-  try {
-    const partnerRole = user.role === 'boy' ? 'girl' : 'boy';
-    const [partners] = await pool.query(
-      'SELECT id FROM users WHERE role = ? AND id != ? ORDER BY id ASC LIMIT 1',
-      [partnerRole, userId]
-    );
-    return partners[0]?.id || null;
-  } catch (_) {
-    return null;
-  }
+function getPartnerId(user) {
+  return currentPartnerId(pool, user.id);
 }
 
 async function getGirlUserIdForPeriod(user) {

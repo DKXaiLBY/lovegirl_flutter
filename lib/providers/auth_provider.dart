@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/api_service.dart';
+import '../services/app_storage.dart';
 import '../utils/constants.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -46,6 +47,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final token = await _storage.read(key: AppConstants.tokenKey);
       if (token == null) {
+        MediaCache.instance.setAccount(null);
         // QA 自动登录账号经 --dart-define 传入，发布包不含任何凭据
         final e2eUser = const String.fromEnvironment('LOVEGIRL_E2E_USER');
         final e2ePass = const String.fromEnvironment('LOVEGIRL_E2E_PASS');
@@ -62,6 +64,7 @@ class AuthProvider extends ChangeNotifier {
       final cachedUser = await _readCachedUser();
       if (cachedUser != null) {
         _user = cachedUser;
+        MediaCache.instance.setAccount(userId);
       }
       _isLoggedIn = true;
       _error = null;
@@ -77,6 +80,7 @@ class AuthProvider extends ChangeNotifier {
         _error = null;
       } catch (e) {
         if (_isUnauthorized(e)) {
+          MediaCache.instance.setAccount(null);
           await _storage.delete(key: AppConstants.tokenKey);
           await _storage.delete(key: 'refresh_token');
           await _storage.delete(key: _profileCacheKey);
@@ -154,17 +158,25 @@ class AuthProvider extends ChangeNotifier {
     String password,
     String nickname, {
     String gender = 'female',
+    required String inviteCode,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final res =
-          await _api.register(username, password, nickname, gender: gender);
+      final res = await _api.register(username, password, nickname,
+          gender: gender, inviteCode: inviteCode);
       final data = res.data['data'];
+      if (data is! Map) {
+        throw const FormatException('Invalid registration response');
+      }
       final token = (data['accessToken'] ?? data['token']) as String;
+      final refreshToken = data['refreshToken'] as String?;
       await _storage.write(key: AppConstants.tokenKey, value: token);
+      if (refreshToken != null) {
+        await _storage.write(key: 'refresh_token', value: refreshToken);
+      }
       if (data['user'] != null) {
         _user = Map<String, dynamic>.from(data['user']);
       } else {
@@ -179,7 +191,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = '注册失败: $e';
+      _error = _friendlyAuthError(e, fallback: '暂时无法注册，请稍后再试');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -200,6 +212,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    MediaCache.instance.setAccount(null);
     await _storage.delete(key: AppConstants.tokenKey);
     await _storage.delete(key: 'refresh_token');
     await _storage.delete(key: _profileCacheKey);
@@ -252,6 +265,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _cacheUser(Map<String, dynamic>? user) async {
+    MediaCache.instance.setAccount(
+        int.tryParse(user?['id']?.toString() ?? ''));
     if (user == null) return;
     await _storage.write(key: _profileCacheKey, value: jsonEncode(user));
   }

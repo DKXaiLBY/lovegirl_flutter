@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/app_storage.dart';
 
 import '../../providers/kitchen_provider.dart';
 import '../../utils/constants.dart';
@@ -35,7 +36,7 @@ class _KitchenPhotoState extends State<KitchenPhoto> {
           ]));
     }
     final image = ResizeImage.resizeIfNeeded(widget.cacheWidth, null,
-        NetworkImage(kitchenPhotoUrl(path, AppConstants.baseUrl)));
+        MediaCache.image(kitchenPhotoUrl(path, AppConstants.baseUrl)));
     return Image(
       key: ValueKey((path, _attempt)),
       image: image,

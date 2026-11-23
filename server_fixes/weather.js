@@ -4,6 +4,7 @@ const router = express.Router();
 const { authRequired } = require('../middleware/auth');
 const { getWeatherByCity } = require('../utils/weather');
 const pool = require('../config/database');
+const { partnerId: currentPartnerId } = require('../utils/creation_access');
 
 // GET /api/weather?city=深圳
 router.get('/', async (req, res) => {
@@ -118,12 +119,10 @@ router.post('/reminder', authRequired, async (req, res) => {
   try {
     const { content } = req.body;
     if (!content) return res.status(400).json({ code: 400, message: '请输入提醒内容' });
-    // 发送给伴侣（异角色用户）
-    const partnerRole = req.user.role === 'boy' ? 'girl' : 'boy';
-    const [partners] = await pool.query('SELECT id FROM users WHERE role = ?', [partnerRole]);
-    if (partners.length === 0) return res.status(404).json({ code: 404, message: '未找到伴侣账号' });
+    const partner = await currentPartnerId(pool, req.user.id);
+    if (partner == null) return res.status(404).json({ code: 404, message: '请先绑定伴侣' });
     await pool.query('INSERT INTO push_messages (user_id, type, title, content) VALUES (?, ?, ?, ?)',
-      [partners[0].id, 'custom', '天气提醒', content]);
+      [partner, 'custom', '天气提醒', content]);
     res.json({ code: 200, message: '提醒发送成功' });
   } catch (err) {
     res.status(500).json({ code: 500, message: '服务器错误' });

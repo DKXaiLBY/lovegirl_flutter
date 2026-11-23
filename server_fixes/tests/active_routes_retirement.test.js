@@ -42,6 +42,8 @@ function fixture(route, query) {
       req.user = { id: Number(req.headers['x-test-user'] || 71), role: 'boy' }; next();
     } };
     if (name === './utils/lovegirl_rewards') return rewards;
+    if (name === '../utils/creation_access') return require('../utils/creation_access');
+    if (name === '../utils/media_access') return require('../utils/media_access');
     if (name === 'fs') return { existsSync: () => true };
     if (name === 'multer') return Object.assign(() => ({ single: () => (_, __, next) => next() }), { diskStorage: options => options });
     return original(name);
@@ -126,7 +128,7 @@ function kitchenFixture(user = 71, fail = false) {
 
 test('kitchen completion keeps the transaction and does not set legacy award flags', async () => {
   const f = kitchenFixture();
-  const result = await request(f, '/orders/8/status', 'PUT', { status: 'done', photo_url: '/uploads/meal.jpg' });
+  const result = await request(f, '/orders/8/status', 'PUT', { status: 'done', photo_url: '/uploads/kitchen/u71_meal.jpg' });
   assert.equal(result.status, 200);
   assert.equal(result.body.data.status, 'done');
   assert.equal(result.body.data.beans_earned, 0);
@@ -141,7 +143,7 @@ test('unauthorized and failed kitchen completions cannot grant points or announc
   assert.equal((await request(forbidden, '/orders/8/status', 'PUT', { status: 'done' })).status, 403);
   assert.deepEqual(forbidden.calls.retired, []);
   const failed = kitchenFixture(71, true);
-  assert.equal((await request(failed, '/orders/8/status', 'PUT', { status: 'done', photo_url: '/uploads/meal.jpg' })).status, 500);
+  assert.equal((await request(failed, '/orders/8/status', 'PUT', { status: 'done', photo_url: '/uploads/kitchen/u71_meal.jpg' })).status, 500);
   assert.deepEqual(failed.calls.transactions, ['begin', 'rollback', 'release']);
   assert.equal(failed.calls.sql.some(c => c.sql.includes('INSERT INTO notifications')), false);
   assert.deepEqual(failed.calls.retired, []);
