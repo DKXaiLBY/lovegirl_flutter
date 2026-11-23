@@ -1,33 +1,25 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/map_prefs_provider.dart';
 import '../utils/lovegirl_theme.dart';
 
-/// 仅用于操作层；高对比度/辅助导航模式使用稳定底色。
+/// 照片上方的操作区使用稳定底色。
 class MemoryGlass extends StatelessWidget {
   final Widget child;
   const MemoryGlass({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final stable = MediaQuery.highContrastOf(context) ||
-        MediaQuery.accessibleNavigationOf(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        enabled: !stable,
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: context.lgPaper.withAlpha(stable ? 255 : 235),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: context.lgCardBorder),
-          ),
-          child: child,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.lgCard,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: context.lgCardBorder),
         ),
+        child: child,
       ),
     );
   }
@@ -69,7 +61,8 @@ class _MemoryActionState extends State<MemoryAction> {
   @override
   Widget build(BuildContext context) {
     final enabled = !_busy && widget.onPressed != null;
-    final motionOff = context.watch<MapPrefsProvider?>()?.motionEnabled == false;
+    final motionOff =
+        context.watch<MapPrefsProvider?>()?.motionEnabled == false;
     return AnimatedScale(
       scale: _pressed &&
               enabled &&

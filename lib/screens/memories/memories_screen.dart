@@ -40,6 +40,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
   int? _account;
   int _request = 0;
   String? _month;
+  int _collection = 0;
 
   @override
   void didChangeDependencies() {
@@ -53,6 +54,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       _backs.clear();
       _errors.clear();
       _month = null;
+      _collection = 0;
       _loading = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && account == _account) unawaited(_load());
@@ -133,6 +135,14 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       builder: (sheet) => SafeArea(
           minimum: const EdgeInsets.only(bottom: 24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+              leading: const Icon(Icons.add_photo_alternate_outlined),
+              title: const Text('添加照片'),
+              onTap: () {
+                Navigator.pop(sheet);
+                _open(const LegacyPhotoScreen(uploadOnOpen: true));
+              },
+            ),
             for (final kind in [
               ('polaroid', '制作拍立得', GlassFeature.polaroid),
               ('ticket', '制作票根', GlassFeature.ticket)
@@ -422,11 +432,18 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                   MaterialPageRoute(builder: (_) => MemorySearchScreen(
                                     works: _works, photos: _photos, api: _api)))),
                             const SizedBox(width: 8),
-                            RebuildGlassButton(
-                                label: '新增回忆',
-                                icon: Icons.add,
-                                onPressed: _new),
+                            FilledButton(style: rebuildFilledStyle(context),
+                              onPressed: _new, child: const Text('添加')),
                           ])),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                        child: Wrap(spacing: 6, children: [
+                          for (final (index, title) in
+                              ['全部', '照片', '拍立得', '票根'].indexed)
+                            RebuildChoiceChip(label: Text(title), selected: _collection == index,
+                              onSelected: (_) => setState(() => _collection = index)),
+                        ]),
+                      ),
                       if (_errors.isNotEmpty)
                         Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -441,17 +458,19 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                   onPressed: _load,
                                   child: const Text('重试'))
                             ])),
-                      if (_polaroids.isEmpty && _originals.isEmpty)
-                        _title('相册', _album),
-                      _shelf(),
-                      _title(
-                          '票根收藏',
-                          () => _open(CreationGallery(
-                              kind: 'ticket', initialMonth: _month))),
-                      _ticketShelf(),
-                      _title(_month == null ? '照片片段' : '这个月的片段', _album,
-                          action: '相册 ›'),
-                      _fragments(),
+                      if (_collection == 0 || _collection == 2) ...[
+                        _title('拍立得', _album),
+                        _shelf(),
+                      ],
+                      if (_collection == 0 || _collection == 3) ...[
+                        _title('票根', () => _open(CreationGallery(
+                            kind: 'ticket', initialMonth: _month))),
+                        _ticketShelf(),
+                      ],
+                      if (_collection == 0 || _collection == 1) ...[
+                        _title('照片', () => _open(const LegacyPhotoScreen()), action: '相册 ›'),
+                        _fragments(),
+                      ],
                       const SizedBox(height: 16),
                       Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -461,7 +480,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                               (Icons.mood_outlined, '心情', const MoodScreen()),
                               (
                                 Icons.restaurant_outlined,
-                                '美食手账',
+                                '餐桌回忆',
                                 const CookingLogScreen()
                               )
                             ])

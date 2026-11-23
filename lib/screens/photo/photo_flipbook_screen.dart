@@ -273,15 +273,11 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
     final mq = MediaQuery.of(context);
     // 横屏高度有限：网格高度随可用高度收缩，整板可滚动兜底
     final gridH = (mq.size.height * 0.40).clamp(160.0, 260.0);
-    // v4.0 弹层统一口径：暗室场景（弹层浮在黑色书页上）保持深色玻璃
-    //（radiusXl 28 + 卡色 88% + blur 24），沿用深色相册暗房语境，不引暖米旧值
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
+      child: Container(
           decoration: BoxDecoration(
-            color: LoveGirlTheme.cardDark.withValues(alpha: 0.88),
+            color: LoveGirlTheme.cardDark,
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(top: BorderSide(color: LoveGirlTheme.cardBorderDark)),
@@ -406,7 +402,6 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
             ),
           ),
         ),
-      ),
     );
   }
 }

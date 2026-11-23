@@ -83,9 +83,9 @@ void main() {
     await tester.pumpWidget(app(MemoriesScreen(api: _Api())));
     expect(find.text('每日一问'), findsNothing);
     expect(find.text('慢信'), findsNothing);
-    expect(find.text('相册'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('美食手账'), 300, scrollable: find.byType(Scrollable).first);
-    expect(find.text('美食手账'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '照片'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('餐桌回忆'), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text('餐桌回忆'), findsOneWidget);
   });
 
   testWidgets('profile stops loading and exposing reward features', (tester) async {

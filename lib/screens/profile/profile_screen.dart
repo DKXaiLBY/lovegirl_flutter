@@ -448,11 +448,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Column(children: [
                           _row(Icons.person_outline, '双方资料', '', _people),
                           const Divider(height: 1, indent: 16, endIndent: 16),
-                          _row(Icons.link_outlined, '伴侣绑定', '',
+                          _row(Icons.link_outlined, '伴侣绑定', '连接已有账号',
                               () => _open(const CoupleBindingScreen())),
                           if (context.watch<AuthProvider>().isAdmin) ...[
                             const Divider(height: 1, indent: 16, endIndent: 16),
-                            _row(Icons.person_add_outlined, '邀请注册', '',
+                            _row(Icons.person_add_outlined, '邀请注册', '生成新账号注册码',
                                 () => _open(const RegistrationInviteScreen())),
                           ],
                           const Divider(height: 1, indent: 16, endIndent: 16),

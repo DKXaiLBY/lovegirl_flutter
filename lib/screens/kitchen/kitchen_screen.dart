@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import '../../services/app_storage.dart';
@@ -336,19 +335,16 @@ class _KitchenGlassSheet extends StatelessWidget {
     final radius = BorderRadius.vertical(top: Radius.circular(LoveGirlTheme.radiusXl));
     return ClipRRect(
       borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
+      child: Container(
           decoration: BoxDecoration(
-            // v4.1：72%→58%，磨砂透底感更接近参考图
-            color: context.lgPaper.withValues(alpha: 0.58),
+
+            color: context.lgPaper,
             borderRadius: radius,
             border: Border(top: BorderSide(color: context.lgCardBorder)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: child,
         ),
-      ),
     );
   }
 }

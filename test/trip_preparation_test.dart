@@ -231,23 +231,35 @@ void main() {
     expect(api.writes.length, 1);
   });
 
-  testWidgets('picker writes wardrobe references for the selected day only',
+  testWidgets('packing is independent and a legacy outfit can be unlinked',
       (tester) async {
-    final api = _Api();
+    final api = _Api()
+      ..mine = _list(items: [_item('雨伞')], outfits: [
+        {
+          'day': 1,
+          'outfitId': null,
+          'itemIds': [55],
+          'label': '自选衣物',
+          'available': true,
+          'items': [
+            {'label': '蓝 外套', 'imageUrl': null, 'available': true}
+          ],
+        }
+      ]);
     await show(tester, api, _Auth());
-    await tap(tester, '第 2 天');
-    await tap(tester, '从衣橱选择');
-    expect(find.text('退役外套'), findsNothing);
-    await tap(tester, '蓝 外套');
-    await tap(tester, '保存搭配');
+    expect(find.text('从衣橱选择'), findsNothing);
+    expect(find.text('添加物品'), findsOneWidget);
+    final outfit = find.text('自选衣物');
+    await tester.scrollUntilVisible(outfit, 160,
+        scrollable: find.byType(Scrollable).first);
+    expect(outfit, findsOneWidget);
+    await tester.tap(find.byTooltip('搭配操作'));
+    await tester.pumpAndSettle();
+    await tap(tester, '移除搭配关联');
     final write = api.writes.single;
     expect(write.path, '/api/travel-preparation/24/private');
-    expect((write.body['outfits'] as List).single, {
-      'day': 1,
-      'outfitId': null,
-      'itemIds': [55]
-    });
-    expect(find.text('自选衣物'), findsOneWidget);
+    expect(write.body['outfits'], isEmpty);
+    expect((write.body['items'] as List).single['label'], '雨伞');
   });
 
   testWidgets('a newly uploaded journey photo leads the cover', (tester) async {

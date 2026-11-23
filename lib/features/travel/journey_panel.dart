@@ -676,17 +676,6 @@ class JourneyPanel extends StatelessWidget {
                         if (action == 'edit' && context.mounted) {
                           await journeyDetails(context, controller, edit: true);
                         }
-                        if (action == 'preparation' &&
-                            context.mounted &&
-                            j.id != null) {
-                          final navigator = Navigator.of(context);
-                          await navigator.push<void>(MaterialPageRoute(
-                              builder: (_) => TripPreparationScreen(
-                                  tripId: j.id!,
-                                  journey: j,
-                                  api: controller.api,
-                                  onViewJourney: () => navigator.pop())));
-                        }
                         if (action == 'works' && context.mounted) {
                           await Navigator.push(
                               context,
@@ -733,9 +722,6 @@ class JourneyPanel extends StatelessWidget {
                                 value: 'refresh', child: Text('查看最新版本（保留草稿）')),
                             if (j.id != null)
                               const PopupMenuItem(
-                                  value: 'preparation', child: Text('旅行准备')),
-                            if (j.id != null)
-                              const PopupMenuItem(
                                   value: 'recap', child: Text('旅行回顾')),
                             if (j.id != null)
                               const PopupMenuItem(
@@ -755,6 +741,20 @@ class JourneyPanel extends StatelessWidget {
                           '${j.days} 天 · ${j.stops.length} 站${controller.dirty ? ' · 私密草稿未共享' : ' · 两人共同编辑'}',
                           style: TextStyle(
                               fontSize: 11, color: context.lgTextSecondary))),
+                  if (j.id != null)
+                    TextButton.icon(
+                      icon: const Icon(Icons.luggage_outlined, size: 18),
+                      label: const Text('行李清单'),
+                      onPressed: () {
+                        final navigator = Navigator.of(context);
+                        navigator.push<void>(MaterialPageRoute(
+                          builder: (_) => TripPreparationScreen(
+                            tripId: j.id!, journey: j, api: controller.api,
+                            onViewJourney: () => navigator.pop(),
+                          ),
+                        ));
+                      },
+                    ),
                   if (controller.routing)
                     const SizedBox(
                         width: 12,

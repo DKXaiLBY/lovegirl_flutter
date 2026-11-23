@@ -9,34 +9,15 @@ class RebuildPageBackground extends StatelessWidget {
   final Widget child;
   const RebuildPageBackground({super.key, required this.child});
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-      decoration: BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: context.lgIsDark
-                  ? [context.lgBg, context.lgBg]
-                  : const [
-                      Color(0xfff3fbff),
-                      Colors.white,
-                      Color(0xffedf7ff)
-                    ])),
-      child: child);
+  Widget build(BuildContext context) =>
+      ColoredBox(color: context.lgBg, child: child);
 }
 
 class RebuildGlassHeader extends StatelessWidget {
   const RebuildGlassHeader({super.key});
 
   @override
-  Widget build(BuildContext context) => const RebuildPageBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(4, 2, 4, 3),
-            child: RebuildGlass(radius: 22, child: SizedBox.expand()),
-          ),
-        ),
-      );
+  Widget build(BuildContext context) => ColoredBox(color: context.lgCard);
 }
 
 bool rebuildReduceMotion(BuildContext context) =>
@@ -82,16 +63,15 @@ class RebuildChoiceChip extends StatelessWidget {
         materialTapTargetSize: MaterialTapTargetSize.padded,
         showCheckmark: false,
         selectedColor: context.lgInk,
-        backgroundColor:
-            context.lgPaper.withAlpha(context.lgIsDark ? 115 : 125),
+        backgroundColor: context.lgCard,
         surfaceTintColor: Colors.transparent,
         shape: const StadiumBorder(),
         labelStyle: TextStyle(
             color: selected ? context.lgPaper : context.lgInk,
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400),
-        side: BorderSide(
-            color: selected ? context.lgInk : context.lgPaper.withAlpha(195)),
+        side:
+            BorderSide(color: selected ? context.lgInk : context.lgCardBorder),
       );
 }
 
@@ -99,15 +79,30 @@ class RebuildGlass extends StatelessWidget {
   final Widget child;
   final double radius;
   final EdgeInsetsGeometry padding;
+  final bool navigation;
   const RebuildGlass(
       {super.key,
       required this.child,
       this.radius = 28,
+      this.navigation = false,
       this.padding = EdgeInsets.zero});
   @override
   Widget build(BuildContext context) {
     final dark = context.lgIsDark;
     final border = BorderRadius.circular(radius);
+    if (!navigation ||
+        MediaQuery.highContrastOf(context) ||
+        MediaQuery.accessibleNavigationOf(context)) {
+      return Material(
+        color: context.lgCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: border,
+          side: BorderSide(color: context.lgCardBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: padding, child: child),
+      );
+    }
     return DecoratedBox(
         decoration: BoxDecoration(borderRadius: border, boxShadow: [
           BoxShadow(
@@ -133,14 +128,14 @@ class RebuildGlass extends StatelessWidget {
                                 end: Alignment.bottomRight,
                                 colors: dark
                                     ? const [
-                                        Color(0x703a424a),
-                                        Color(0x9920262d),
-                                        Color(0x66323c46)
+                                        Color(0xec2e3742),
+                                        Color(0xdb222a34),
+                                        Color(0xe6333e49)
                                       ]
                                     : const [
-                                        Color(0x77ffffff),
-                                        Color(0x42ffffff),
-                                        Color(0x66e9f3fb)
+                                        Color(0xf0ffffff),
+                                        Color(0xdbffffff),
+                                        Color(0xe9e9f3fb)
                                       ],
                                 stops: const [0, .55, 1])),
                         child: Material(

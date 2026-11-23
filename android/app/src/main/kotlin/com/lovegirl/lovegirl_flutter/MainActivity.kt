@@ -2,6 +2,7 @@ package com.lovegirl.lovegirl_flutter
 
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -18,6 +19,9 @@ import com.amap.api.navi.AmapNaviTheme
 import com.amap.api.navi.AmapNaviType
 import com.amap.api.navi.AmapPageType
 import com.amap.api.navi.enums.NaviType
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -50,6 +54,14 @@ class MainActivity: FlutterActivity() {
             "lovegirl/device"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "recognizeStudyText" -> {
+                    val path = call.arguments as? String
+                    if (path.isNullOrBlank()) {
+                        result.error("STUDY_IMAGE", "图片暂时无法读取", null)
+                    } else {
+                        recognizeStudyText(path, result)
+                    }
+                }
                 "getSupportedAbis" -> result.success(Build.SUPPORTED_ABIS.toList())
                 "setAppHaptics" -> {
                     val enabled = call.arguments as? Boolean
@@ -152,6 +164,21 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun recognizeStudyText(path: String, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val image = InputImage.fromFilePath(applicationContext, Uri.fromFile(File(path)))
+                val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+                recognizer.process(image)
+                    .addOnSuccessListener { recognized -> result.success(recognized.text) }
+                    .addOnFailureListener { result.error("STUDY_OCR", "文字暂时无法识别", null) }
+                    .addOnCompleteListener { recognizer.close() }
+            } catch (_: Exception) {
+                runOnUiThread { result.error("STUDY_IMAGE", "图片暂时无法读取", null) }
+            }
+        }.start()
     }
 
     @Suppress("DEPRECATION")

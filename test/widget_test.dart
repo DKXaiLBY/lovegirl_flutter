@@ -105,10 +105,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('home_header')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_today_care')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home_memory_ticket')), findsOneWidget);
     expect(find.byKey(const ValueKey('home_travel_ticket')), findsNothing);
     expect(find.byKey(const ValueKey('home_life_summary')), findsNothing);
     expect(find.text('2/3 完成'), findsOneWidget);
+    final memory = find.byKey(const ValueKey('home_memory_ticket'));
+    await tester.scrollUntilVisible(memory, 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(memory, findsOneWidget);
 
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
     await tester.pump(const Duration(seconds: 11));

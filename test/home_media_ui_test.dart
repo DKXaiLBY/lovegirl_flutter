@@ -189,7 +189,8 @@ void main() {
       'an empty account gets a photo invitation without a made-up photo or memory',
       (tester) async {
     await show(tester, _Api(), _Auth());
-    expect(find.text('留下一张两个人的照片'), findsOneWidget);
+    expect(find.text('给今天留一张照片'), findsOneWidget);
+    expect(find.text('留下一张两个人的照片'), findsNothing);
     expect(find.byKey(const ValueKey('home_photo_hero')), findsNothing);
     expect(find.byKey(const ValueKey('home_memory_ticket')), findsNothing);
     expect(find.text('照片暂时没加载出来'), findsNothing);
@@ -224,7 +225,7 @@ void main() {
         of: find.byKey(const ValueKey('home_photo_empty')),
         matching: find.text('重试')));
     await tester.pump();
-    expect(find.text('留下一张两个人的照片'), findsOneWidget);
+    expect(find.text('给今天留一张照片'), findsOneWidget);
     expect(find.text('照片暂时没加载出来'), findsNothing);
     expect(api.photoReads, 2);
     await finish(tester);
@@ -246,7 +247,7 @@ void main() {
     await tester.pump();
     expect(find.text('旧账号的私密照片'), findsNothing);
     expect(find.byKey(const ValueKey('home_photo_hero')), findsNothing);
-    expect(find.text('留下一张两个人的照片'), findsOneWidget);
+    expect(find.text('给今天留一张照片'), findsOneWidget);
     await finish(tester);
   });
 
@@ -268,7 +269,7 @@ void main() {
     expect(api.photoReads, 2);
     api.pendingPhotos!.complete(_result([]));
     await tester.pump();
-    expect(find.text('留下一张两个人的照片'), findsOneWidget);
+    expect(find.text('给今天留一张照片'), findsOneWidget);
     await finish(tester);
   });
 

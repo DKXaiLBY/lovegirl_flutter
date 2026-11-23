@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' show ImageByteFormat, ImageFilter;
+import 'dart:ui' show ImageByteFormat;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lovegirl_flutter/services/app_storage.dart';
@@ -44,7 +44,8 @@ Widget legacyMemoryPolaroid(Map<String, dynamic> photo,
             onLongPress: onInspect));
 
 class LegacyPhotoScreen extends StatefulWidget {
-  const LegacyPhotoScreen({super.key});
+  const LegacyPhotoScreen({super.key, this.uploadOnOpen = false});
+  final bool uploadOnOpen;
 
   @override
   State<LegacyPhotoScreen> createState() => _LegacyPhotoScreenState();
@@ -67,6 +68,11 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
   void initState() {
     super.initState();
     _loadPhotos();
+    if (widget.uploadOnOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pickAndUpload();
+      });
+    }
   }
 
   @override
@@ -306,7 +312,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
                 maxHeight: MediaQuery.of(ctx).size.height * 0.88),
             decoration: BoxDecoration(
               // v4.0 弹层统一口径：毛玻璃白 58% + radiusXl 28（参考图⑦；v4.1 降透明度增强磨砂透底）
-              color: context.lgPaper.withValues(alpha: 0.58),
+              color: context.lgPaper,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(28)),
               border: Border(
@@ -316,9 +322,7 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
             child: ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(28)),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                child: Stack(
+              child: Stack(
                   children: [
                     // 纸面纹理保留（拍立得纸面隐喻；随玻璃口径降透明度）
                     const Positioned.fill(
@@ -644,7 +648,6 @@ class _LegacyPhotoScreenState extends State<LegacyPhotoScreen> {
             ),
               ],
             ),
-              ),
             ),
           ),
         ),

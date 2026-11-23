@@ -12,6 +12,7 @@ import 'providers/map_prefs_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/theme_provider.dart';
 import 'features/travel/travel_workspace.dart';
+import 'features/study/study_workspace.dart';
 import 'providers/wardrobe_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
@@ -83,6 +84,7 @@ class LoveGirlApp extends StatelessWidget {
           providers: [
             ChangeNotifierProvider(create: (_) => WardrobeProvider()),
             ChangeNotifierProvider(create: (_) => NotificationProvider()),
+            ChangeNotifierProvider(create: (_) => StudyWorkspace(account)..load()),
           ],
           child: child,
         ),
@@ -206,6 +208,7 @@ class _AppShellState extends State<AppShell> {
       minimum: const EdgeInsets.fromLTRB(8, 3, 8, 4),
       child: RebuildPageBackground(
         child: RebuildGlass(
+          navigation: true,
           radius: 25,
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           child: SizedBox(

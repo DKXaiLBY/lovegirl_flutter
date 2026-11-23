@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
@@ -153,15 +152,13 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
       context: context,
       isScrollControlled: true,
       // v4.0 弹层玻璃化统一口径（v4-ui-token-plan §4）：
-      // 半透明白 72% + BackdropFilter blur 24 + radiusXl 28
+
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => ClipRRect(
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(LoveGirlTheme.radiusXl),
           ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
+          child: Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
                 left: 20,
@@ -169,7 +166,7 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                 top: 24,
               ),
               decoration: BoxDecoration(
-                color: context.lgCard.withValues(alpha: 0.72),
+                color: context.lgCard,
                 border: Border(
                   top: BorderSide(color: context.lgCardBorder, width: 1),
                 ),
@@ -500,7 +497,6 @@ class _ScheduleListWidgetState extends State<ScheduleListWidget> {
                 ],
               ),
             ),
-          ),
         ),
       ),
     );

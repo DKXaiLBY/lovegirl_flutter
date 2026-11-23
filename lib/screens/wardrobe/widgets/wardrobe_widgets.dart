@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lovegirl_flutter/services/app_storage.dart';
@@ -53,20 +52,17 @@ class WnGlassSheet extends StatelessWidget {
       padding: margin,
       child: ClipRRect(
         borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Container(
+        child: Container(
             constraints: constraints,
             padding: padding,
             decoration: BoxDecoration(
-              // v4.1：72%→58%，磨砂透底感更接近参考图
-              color: context.lgPaper.withValues(alpha: 0.58),
+
+              color: context.lgPaper,
               borderRadius: radius,
               border: Border.all(color: context.lgCardBorder),
             ),
             child: child,
           ),
-        ),
       ),
     );
   }

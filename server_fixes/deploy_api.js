@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) { cb(null, uploadDir); },
   filename: function (req, file, cb) { cb(null, pendingApkName()); }
 });
-const upload = multer({ storage: storage, limits: { fileSize: 160 * 1024 * 1024 } });
+const upload = multer({ storage: storage, limits: { fileSize: 176 * 1024 * 1024 } });
 
 // Token 验证
 router.use(function (req, res, next) {

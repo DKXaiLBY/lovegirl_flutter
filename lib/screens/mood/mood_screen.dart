@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -338,7 +337,7 @@ class _MoodScreenState extends State<MoodScreen> {
   }
 
   /// v4.0 弹层统一口径（v4-ui-token-plan §4）：半透明白卡玻璃化 +
-  /// BackdropFilter blur 24 + radiusXl 28 + cardBorder 顶线。
+
   void _showGlassSheet({
     required BuildContext ctx,
     required WidgetBuilder builder,
@@ -354,20 +353,17 @@ class _MoodScreenState extends State<MoodScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.vertical(
               top: Radius.circular(LoveGirlTheme.radiusXl)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
+          child: Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               decoration: BoxDecoration(
-                // v4.1：72%→58%，磨砂透底感更接近参考图
-                color: context.lgPaper.withValues(alpha: 0.58),
+
+                color: context.lgPaper,
                 border: Border(
                     top: BorderSide(color: context.lgCardBorder, width: 1)),
               ),
               child: builder(sheetCtx),
             ),
-          ),
         ),
       ),
     );

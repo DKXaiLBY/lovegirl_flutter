@@ -1,73 +1,46 @@
-import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:lovegirl_flutter/providers/auth_provider.dart';
 import 'package:lovegirl_flutter/screens/life/life_screen.dart';
 import 'package:lovegirl_flutter/services/api_service.dart';
 import 'package:lovegirl_flutter/utils/lovegirl_theme.dart';
+import 'package:provider/provider.dart';
 
 class _Auth extends AuthProvider {
-  int account = 7;
-  bool girl = false;
   @override
-  int get userId => account;
-  @override
-  bool get isOriginalGirl => girl;
-  void switchAccount() {
-    account++;
-    notifyListeners();
-  }
+  int get userId => 7;
 }
 
 class _Api implements ApiService {
-  bool financeFails = false;
-  Map<String, dynamic> stats = {'totalExpense': '2360.50'};
-  bool toggleFails = false;
-  int toggles = 0;
-  int todoReads = 0;
-  Completer<Response>? firstTodos;
-  Completer<void>? saving;
-  List<Map<String, dynamic>> todos = [
-    {'id': 17, 'title': '整理相机', 'completed': 0}
-  ];
-  List<Map<String, dynamic>> dishes = [];
-  Future<Response> response(dynamic value) async => Response(
+  final calls = <Symbol>[];
+
+  Response<dynamic> _response(dynamic value) => Response(
       requestOptions: RequestOptions(), data: {'code': 200, 'data': value});
+
   @override
-  Future<Response> getTodos() {
-    todoReads++;
-    return todoReads == 1 && firstTodos != null
-        ? firstTodos!.future
-        : response(todos);
+  Future<Response> getTodos() async {
+    calls.add(#getTodos);
+    return _response([
+      {'id': 17, 'title': '整理相机', 'completed': 0}
+    ]);
   }
 
   @override
-  Future<Response> getFinanceStats(String month, {String? source}) {
-    if (financeFails) return Future.error(Exception('offline'));
-    return response(stats);
+  Future<Response> get(String path, {Map<String, dynamic>? query}) async {
+    expect(path, '/api/study');
+    return _response({
+      'revision': 0,
+      'document': {'cards': [], 'showOnToday': false}
+    });
   }
 
   @override
-  Future<Response> getKitchenMenu() =>
-      response({'mine': dishes, 'partner_dishes': []});
-  @override
-  Future<Response> getWardrobeItems() => response([]);
-  @override
-  Future<Response> toggleTodo(int id) async {
-    toggles++;
-    if (saving != null) await saving!.future;
-    if (toggleFails) throw Exception('offline');
-    todos = [
-      {'id': id, 'title': '整理相机', 'completed': 1}
-    ];
-    return response({});
+  dynamic noSuchMethod(Invocation invocation) {
+    calls.add(invocation.memberName);
+    return Future.value(_response([]));
   }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => response([]);
 }
 
 void main() {
@@ -78,130 +51,51 @@ void main() {
             (_) async => null);
   });
 
-  Future<void> show(WidgetTester tester, _Api api, _Auth auth,
-      {double scale = 1, bool dark = false}) async {
+  Future<void> show(WidgetTester tester, _Api api, {bool dark = false}) async {
     tester.view.physicalSize = const Size(720, 1600);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
-        value: auth,
-        child: MaterialApp(
-            theme: dark ? LoveGirlTheme.darkTheme : LoveGirlTheme.lightTheme,
-            builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(context)
-                    .copyWith(textScaler: TextScaler.linear(scale)),
-                child: child!),
-            home: LifeScreen(api: api))));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>(
+      create: (_) => _Auth(),
+      child: MaterialApp(
+        theme: dark ? LoveGirlTheme.darkTheme : LoveGirlTheme.lightTheme,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(1.4)),
+          child: child!,
+        ),
+        home: LifeScreen(api: api),
+      ),
+    ));
+    await tester.pumpAndSettle();
   }
 
-  testWidgets(
-      'overview shows real tasks and decimal expense without example records',
+  testWidgets('life loads task data only after entering the task page',
       (tester) async {
     final api = _Api();
-    await show(tester, api, _Auth());
-    expect(find.text('整理相机'), findsOneWidget);
-    expect(find.text('还有1件小事'), findsOneWidget);
-    expect(find.text('¥2,360.5'), findsOneWidget);
-    expect(find.text('买晚餐食材'), findsNothing);
-    expect(find.text('晚饭后一起散步'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('failed finance is distinguished from zero expenditure',
-      (tester) async {
-    await show(tester, _Api()..financeFails = true, _Auth());
-    expect(find.text('暂未读取'), findsOneWidget);
-    expect(find.text('账本暂未加载'), findsOneWidget);
-    expect(find.text('¥0'), findsNothing);
-  });
-
-  testWidgets('kitchen actions remain available while a dish photo is pending',
-      (tester) async {
-    final api = _Api()
-      ..dishes = [
-        {'id': 1, 'photo_url': 'https://example.invalid/dish.png'}
-      ];
-    await show(tester, api, _Auth());
-    final cover = find.byWidgetPredicate((widget) =>
-        widget is Image &&
-        widget.image is AssetImage &&
-        (widget.image as AssetImage).assetName.endsWith('/kitchen_cover.png'));
-    expect(cover, findsOneWidget);
-    expect(find.text('去点菜').hitTestable(), findsOneWidget);
-    expect(find.text('我的菜单').hitTestable(), findsOneWidget);
-  });
-
-  testWidgets('legacy expense field remains readable during rollout',
-      (tester) async {
-    await show(tester, _Api()..stats = {'expense': 123.45}, _Auth());
-    expect(find.text('¥123.45'), findsOneWidget);
-  });
-
-  testWidgets('failed task toggle preserves the task and allows retry',
-      (tester) async {
-    final api = _Api()..toggleFails = true;
-    await show(tester, api, _Auth());
-    await tester.tap(find.text('整理相机'));
-    await tester.pump();
-    expect(find.text('整理相机'), findsOneWidget);
-    expect(find.text('没有修改成功，请再试一次'), findsOneWidget);
-    api.toggleFails = false;
-    await tester.tap(find.text('整理相机'));
-    await tester.pump();
-    expect(api.toggles, 2);
-    expect(find.text('今天从容一点'), findsOneWidget);
-  });
-
-  testWidgets('pending task update cannot be submitted twice', (tester) async {
-    final api = _Api()..saving = Completer<void>();
-    await show(tester, api, _Auth());
-    await tester.tap(find.text('整理相机'));
-    await tester.tap(find.text('整理相机'));
-    expect(api.toggles, 1);
-    api.saving!.complete();
-    await tester.pump();
-    expect(find.text('今天从容一点'), findsOneWidget);
-  });
-
-  testWidgets('account switch discards an old pending private overview',
-      (tester) async {
-    final api = _Api()..firstTodos = Completer<Response>();
-    final auth = _Auth();
-    await show(tester, api, auth);
-    auth.switchAccount();
-    await tester.pump();
-    await tester.pump();
-    api.firstTodos!.complete(await api.response([
-      {'id': 5, 'title': '上个账号的私密事项', 'completed': 0}
-    ]));
-    await tester.pump();
-    expect(find.text('上个账号的私密事项'), findsNothing);
+    await show(tester, api);
+    expect(api.calls, isEmpty);
+    expect(find.text('去点菜'), findsOneWidget);
+    expect(find.text('账本'), findsNothing);
+    expect(find.text('衣橱资料'), findsNothing);
+    await tester.tap(find.text('看待办'));
+    await tester.pumpAndSettle();
+    expect(api.calls, contains(#getTodos));
     expect(find.text('整理相机'), findsOneWidget);
   });
 
   for (final dark in [false, true]) {
-    testWidgets(
-        '360px overview works with larger text in ${dark ? 'dark' : 'light'} mode',
+    testWidgets('life and all three subjects fit large text, dark=$dark',
         (tester) async {
-      await show(tester, _Api(), _Auth(), scale: 1.4, dark: dark);
-      final more = find.widgetWithText(TextButton, '查看全部 ›');
-      final theme = Theme.of(tester.element(more));
-      final foreground = tester
-          .widget<TextButton>(more)
-          .style!
-          .foregroundColor!
-          .resolve({})!.computeLuminance();
-      final background = theme.scaffoldBackgroundColor.computeLuminance();
-      final contrast = foreground > background
-          ? (foreground + .05) / (background + .05)
-          : (background + .05) / (foreground + .05);
-      expect(contrast, greaterThanOrEqualTo(4.5));
-      await tester.drag(find.byType(ListView), const Offset(0, -1200));
+      await show(tester, _Api(), dark: dark);
+      expect(find.byType(BackdropFilter), findsNothing);
+      await tester.tap(find.text('专升本备考'));
       await tester.pumpAndSettle();
+      for (final subject in ['政治理论', '管理学', '基础会计学']) {
+        expect(find.text(subject), findsOneWidget);
+      }
+      expect(find.byType(BackdropFilter), findsNothing);
       expect(tester.takeException(), isNull);
-      expect(find.text('经期记录'), findsNothing);
     });
   }
 }

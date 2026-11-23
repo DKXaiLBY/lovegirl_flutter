@@ -10,13 +10,12 @@ import 'package:uuid/uuid.dart';
 
 import '../../features/travel/journey.dart';
 import '../../features/travel/trip_preparation.dart';
-import '../../models/wardrobe.dart';
+import '../../models/wardrobe.dart' show wnImgUrl;
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
-import '../wardrobe/wardrobe_module_screen.dart';
 import 'package:lovegirl_flutter/widgets/glass_routes.dart';
 
 class TripPreparationScreen extends StatefulWidget {
@@ -364,30 +363,6 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
             ]));
   }
 
-  Future<void> _chooseOutfit(PreparationOutfit? selected) async {
-    final account = _account;
-    final session = _session;
-    final day = _day;
-    await Navigator.of(context).push<void>(MaterialPageRoute(
-        builder: (_) => _OutfitPicker(
-              api: _api,
-              account: account,
-              day: day,
-              initial: selected,
-              save: (selection) async {
-                if (session != _session) return '账号已切换，请重新打开旅行准备';
-                return _write(
-                    account: account,
-                    shared: false,
-                    relationship: null,
-                    outfits: (list) => [
-                          ...list.outfits.where((outfit) => outfit.day != day),
-                          selection
-                        ]);
-              },
-            )));
-  }
-
   Widget _hero(TripPreparation data) {
     final cover = data.coverUrl ??
         widget.journey?.stops
@@ -474,17 +449,14 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
   }
 
   Widget _outfits(TripPreparation data, bool editable) {
+    final saved = data.mine.outfits.toList()
+      ..sort((a, b) => a.day.compareTo(b.day));
     final selected =
-        data.mine.outfits.where((entry) => entry.day == _day).firstOrNull;
-    final days = [
-      for (var i = 0; i < data.days; i++) i,
-      ...data.mine.outfits
-          .where((entry) => entry.day >= data.days)
-          .map((entry) => entry.day),
-    ];
+        saved.where((entry) => entry.day == _day).firstOrNull ?? saved.first;
+    final days = saved.map((entry) => entry.day).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Row(children: [
-        Text('每日搭配', style: Theme.of(context).textTheme.titleLarge),
+        Text('已有搭配', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(width: 10),
         Expanded(
           child: SingleChildScrollView(
@@ -492,7 +464,7 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
             child: Row(children: [
               for (final day in days)
                 Semantics(
-                  selected: _day == day,
+                  selected: selected.day == day,
                   child: TextButton(
                     style: rebuildTextStyle(context).copyWith(
                       minimumSize: const WidgetStatePropertyAll(Size(48, 48)),
@@ -508,12 +480,13 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
                           ? '第 ${day + 1} 天 · 已移出'
                           : '第 ${day + 1} 天',
                       style: TextStyle(
-                        color: _day == day
+                        color: selected.day == day
                             ? context.lgInk
                             : context.lgTextSecondary,
-                        fontWeight:
-                            _day == day ? FontWeight.w700 : FontWeight.w400,
-                        decoration: _day == day
+                        fontWeight: selected.day == day
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                        decoration: selected.day == day
                             ? TextDecoration.underline
                             : TextDecoration.none,
                       ),
@@ -524,90 +497,72 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
           ),
         ),
       ]),
-      if (selected == null)
-        const RebuildGlass(
-            radius: 16,
-            padding: EdgeInsets.all(12),
-            child: Text('这天还没有搭配 · 仅自己可见'))
-      else ...[
-        if (selected.imageUrl != null)
-          AspectRatio(
-              aspectRatio: 2,
-              child: _PreparationPhoto(selected.imageUrl, fit: BoxFit.cover)),
-        if (selected.imageUrl == null ||
-            selected.pieces.any((piece) => !piece.available))
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              for (final piece in selected.pieces)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, right: 9),
-                  child: SizedBox(
-                    width: 94,
-                    child: Column(children: [
-                      SizedBox(
-                          height: 90, child: _PreparationPhoto(piece.imageUrl)),
-                      Text(
-                          piece.available
-                              ? piece.label
-                              : '${piece.label} · 已不可用',
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis),
-                    ]),
-                  ),
+      if (selected.imageUrl != null)
+        AspectRatio(
+            aspectRatio: 2,
+            child: _PreparationPhoto(selected.imageUrl, fit: BoxFit.cover)),
+      if (selected.imageUrl == null ||
+          selected.pieces.any((piece) => !piece.available))
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (final piece in selected.pieces)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, right: 9),
+                child: SizedBox(
+                  width: 94,
+                  child: Column(children: [
+                    SizedBox(
+                        height: 90, child: _PreparationPhoto(piece.imageUrl)),
+                    Text(
+                        piece.available ? piece.label : '${piece.label} · 已不可用',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis),
+                  ]),
                 ),
-            ]),
-          ),
-      ],
-      if (selected != null || editable)
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Row(children: [
-            if (selected != null)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        selected.available
-                            ? selected.label
-                            : '${selected.label} · 已不可用',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text('仅自己可见',
-                          style: TextStyle(
-                              fontSize: 12, color: context.lgTextSecondary)),
-                    ],
-                  ),
-                ),
-              ),
-            if (editable && _day < data.days)
-              RebuildGlassButton(
-                onPressed: () => _chooseOutfit(selected),
-                icon: Icons.checkroom_outlined,
-                label: selected == null ? '从衣橱选择' : '更换搭配',
-                showLabel: true,
-              ),
-            if (editable && selected != null)
-              PopupMenuButton<String>(
-                tooltip: '搭配操作',
-                onSelected: (_) async => _notice(await _write(
-                    account: _account,
-                    shared: false,
-                    relationship: null,
-                    outfits: (list) => list.outfits
-                        .where((entry) => entry.day != selected.day)
-                        .toList())),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'remove', child: Text('移除搭配关联')),
-                ],
               ),
           ]),
         ),
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selected.available
+                        ? selected.label
+                        : '${selected.label} · 已不可用',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text('仅自己可见',
+                      style: TextStyle(
+                          fontSize: 12, color: context.lgTextSecondary)),
+                ],
+              ),
+            ),
+          ),
+          if (editable)
+            PopupMenuButton<String>(
+              tooltip: '搭配操作',
+              onSelected: (_) async => _notice(await _write(
+                  account: _account,
+                  shared: false,
+                  relationship: null,
+                  outfits: (list) => list.outfits
+                      .where((entry) => entry.day != selected.day)
+                      .toList())),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'remove', child: Text('移除搭配关联')),
+              ],
+            ),
+        ]),
+      ),
     ]);
   }
 
@@ -760,9 +715,11 @@ class _TripPreparationScreenState extends State<TripPreparationScreen> {
                         const SizedBox(height: 8),
                         _progress(data),
                         const SizedBox(height: 14),
-                        _outfits(data, editable),
-                        const SizedBox(height: 14),
                         _packing(list, editable && list != null),
+                        if (data.mine.outfits.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _outfits(data, editable),
+                        ],
                       ]
                     ],
                   ),
@@ -823,228 +780,6 @@ class _PreparationPhoto extends StatelessWidget {
               memCacheWidth: fit == BoxFit.cover ? 900 : 260,
               placeholder: (_, __) => empty,
               errorWidget: (_, __, ___) => empty,
-            ),
-    );
-  }
-}
-
-class _OutfitPicker extends StatefulWidget {
-  final ApiService api;
-  final int? account;
-  final int day;
-  final PreparationOutfit? initial;
-  final Future<String?> Function(PreparationOutfit) save;
-
-  const _OutfitPicker({
-    required this.api,
-    required this.account,
-    required this.day,
-    required this.initial,
-    required this.save,
-  });
-
-  @override
-  State<_OutfitPicker> createState() => _OutfitPickerState();
-}
-
-class _OutfitPickerState extends State<_OutfitPicker> {
-  late final _selected = widget.initial?.itemIds.toSet() ?? <int>{};
-  late int? _outfit = widget.initial?.outfitId;
-  List<WardrobeItem> _items = [];
-  List<WardrobeOutfit> _outfits = [];
-  bool _loading = true;
-  bool _saving = false;
-  String? _loadError;
-  String? _saveError;
-
-  bool get _sameAccount =>
-      mounted && context.read<AuthProvider>().userId == widget.account;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    if (!_sameAccount) return;
-    setState(() {
-      _loading = true;
-      _loadError = null;
-    });
-    try {
-      final result = await Future.wait(
-          [widget.api.getWardrobeItems(), widget.api.getWardrobeOutfits()]);
-      if (!_sameAccount) return;
-      setState(() {
-        _items = (result[0].data['data'] as List)
-            .cast<Map<String, dynamic>>()
-            .map(WardrobeItem.fromJson)
-            .where((item) => item.status == '在柜')
-            .toList();
-        _outfits = (result[1].data['data'] as List)
-            .cast<Map<String, dynamic>>()
-            .map(WardrobeOutfit.fromJson)
-            .toList();
-        _selected.retainWhere((id) => _items.any((item) => item.id == id));
-        if (!_outfits.any((entry) => entry.id == _outfit)) _outfit = null;
-      });
-    } catch (e) {
-      if (_sameAccount) {
-        setState(() =>
-            _loadError = extractServerMessage(e, fallback: '衣橱加载失败，可以重试'));
-      }
-    } finally {
-      if (_sameAccount) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _save() async {
-    setState(() {
-      _saving = true;
-      _saveError = null;
-    });
-    final error = await widget.save(PreparationOutfit(
-      day: widget.day,
-      outfitId: _outfit,
-      itemIds: _outfit == null ? _selected.toList() : const [],
-    ));
-    if (!mounted || !_sameAccount) return;
-    if (error == null) {
-      Navigator.pop(context);
-    } else {
-      setState(() {
-        _saving = false;
-        _saveError = error;
-      });
-    }
-  }
-
-  Widget _wardrobeLink() => TextButton.icon(
-      onPressed: _saving
-          ? null
-          : () async {
-              await Navigator.push<void>(
-                context,
-                MaterialPageRoute(builder: (_) => const WardrobeModuleScreen()),
-              );
-              if (_sameAccount) await _load();
-            },
-      icon: const Icon(Icons.checkroom_outlined),
-      label: const Text('打开衣橱'));
-
-  @override
-  Widget build(BuildContext context) {
-    final sameAccount = context.watch<AuthProvider>().userId == widget.account;
-    return Scaffold(
-      backgroundColor: context.lgBg,
-      appBar: AppBar(
-        flexibleSpace: const RebuildGlassHeader(),
-        title: Text('第 ${widget.day + 1} 天搭配'),
-      ),
-      body: RebuildPageBackground(
-        child: !sameAccount
-            ? const Center(child: Text('账号已切换，请返回'))
-            : _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _loadError != null
-                    ? ListTile(
-                        title: Text(_loadError!),
-                        trailing: TextButton(
-                            onPressed: _load, child: const Text('重试')))
-                    : ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          const Text('选择一套搭配，或选最多 8 件衣物。'),
-                          if (_outfits.isEmpty && _items.isEmpty)
-                            const ListTile(title: Text('衣橱还没有可选内容')),
-                          if (_outfits.isNotEmpty) ...[
-                            const ListTile(title: Text('已有搭配')),
-                            for (final outfit in _outfits)
-                              CheckboxListTile(
-                                title: Text(
-                                    outfit.note?.trim().isNotEmpty == true
-                                        ? outfit.note!
-                                        : '衣橱搭配'),
-                                subtitle: Text(outfit.wornDate),
-                                secondary: SizedBox(
-                                    height: 48,
-                                    width: 48,
-                                    child: _PreparationPhoto(outfit.photoUrl)),
-                                value: _outfit == outfit.id,
-                                onChanged: _saving
-                                    ? null
-                                    : (selected) => setState(() {
-                                          _outfit = selected == true
-                                              ? outfit.id
-                                              : null;
-                                          if (_outfit != null) {
-                                            _selected.clear();
-                                          }
-                                        }),
-                              ),
-                          ],
-                          if (_items.isNotEmpty) ...[
-                            ListTile(title: Text('衣物 · ${_selected.length}/8')),
-                            for (final item in _items)
-                              CheckboxListTile(
-                                title: Text([
-                                  item.color,
-                                  item.category,
-                                  item.brand
-                                ]
-                                    .whereType<String>()
-                                    .where((part) => part.isNotEmpty)
-                                    .join(' ')),
-                                secondary: SizedBox(
-                                    height: 48,
-                                    width: 48,
-                                    child: _PreparationPhoto(
-                                        item.thumbnailUrl ?? item.imageUrl)),
-                                value: _selected.contains(item.id),
-                                onChanged: _saving ||
-                                        (_selected.length >= 8 &&
-                                            !_selected.contains(item.id))
-                                    ? null
-                                    : (selected) => setState(() {
-                                          if (selected == true) {
-                                            _outfit = null;
-                                            _selected.add(item.id);
-                                          } else {
-                                            _selected.remove(item.id);
-                                          }
-                                        }),
-                              ),
-                          ],
-                          Align(
-                              alignment: Alignment.centerLeft,
-                              child: _wardrobeLink()),
-                        ],
-                      ),
-      ),
-      bottomNavigationBar: !sameAccount
-          ? null
-          : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                if (_saveError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(_saveError!,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.error)),
-                  ),
-                FilledButton(
-                  style: rebuildFilledStyle(context),
-                  onPressed: _saving ||
-                          _loading ||
-                          _loadError != null ||
-                          (_selected.isEmpty && _outfit == null)
-                      ? null
-                      : _save,
-                  child: Text(_saving ? '保存中' : '保存搭配'),
-                ),
-              ]),
             ),
     );
   }

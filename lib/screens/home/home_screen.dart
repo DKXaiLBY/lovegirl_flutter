@@ -8,6 +8,9 @@ import 'package:lovegirl_flutter/services/app_storage.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/notification_provider.dart';
+import '../../features/study/study_review.dart';
+import '../../features/study/study_workspace.dart';
+import '../../features/travel/travel_screen.dart';
 import '../../models/travel.dart';
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
@@ -20,6 +23,7 @@ import '../../utils/constants.dart';
 import '../couple/couple_binding_screen.dart';
 import '../cooking/cooking_log_screen.dart';
 import '../photo/photo_screen.dart';
+import '../photo/legacy_photo_screen.dart';
 import '../kitchen/kitchen_screen.dart';
 import '../notifications/notification_center_screen.dart';
 import '../anniversary/anniversary_screen.dart';
@@ -332,6 +336,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final home = context.watch<HomeProvider>();
+    final study = context.watch<StudyWorkspace?>();
+    final due = study?.showOnToday == true ? study!.due(DateTime.now()) : <StudyCard>[];
+    final trip = _typedMap(home.today?['todaysTrip']);
+    final tripId = _asInt(trip['id']);
+    final todos = _typedMap(home.today?['todo']);
+    final todoCount = _asInt(todos['dueToday']);
+    final hasPriorityAction = tripId > 0 || due.isNotEmpty || todoCount > 0;
+    final (title, label, action) = switch ((tripId > 0, due.isNotEmpty, todoCount > 0)) {
+      (true, _, _) => (_asString(trip['title'], fallback: '今天的行程'),
+        '查看今天的行程', () => _push(TravelScreen(initialJourneyId: tripId, embedded: false))),
+      (_, true, _) => ('今天有 ${due.length} 个考点待复习',
+        '开始复习', () => _push(StudyReview(workspace: study!, cards: due))),
+      (_, _, true) => ('今天有 $todoCount 件待办',
+        '查看待办', () => _push(const LifeToolScreen(title: '待办', child: TodoListWidget()))),
+      _ => ('给今天留一张照片',
+        '从相册选照片', () => _push(const LegacyPhotoScreen(uploadOnOpen: true))),
+    };
     final anniversary = home.today?['anniversary'];
     final start = resolveLoveStartDate(
             explicitDate: auth.user?['loveStartDate']?.toString()) ??
@@ -359,7 +380,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   _push(const CoupleBindingScreen()),
                               onNavigateToTab: widget.onNavigateToTab),
                           const SizedBox(height: 16),
-                          _HomePhotoHero(
+                          RebuildGlass(
+                            radius: 20,
+                            padding: const EdgeInsets.all(16),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                              Text(title, style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 12),
+                              FilledButton(style: rebuildFilledStyle(context),
+                                onPressed: action, child: Text(label)),
+                            ]),
+                          ),
+                          if (hasPriorityAction || _heroPhoto != null || _photoFailed) ...[
+                            const SizedBox(height: 12),
+                            _HomePhotoHero(
                               photo: _heroPhoto,
                               loading: _photoLoading,
                               failed: _photoFailed,
@@ -368,6 +401,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   _push(const PhotoScreen(createOnOpen: true)),
                               onOpen: () => _push(const PhotoScreen()),
                               onRetry: _loadMemoryToday),
+                          ],
                           if (home.error != null) ...[
                             const SizedBox(height: 12),
                             _ErrorBanner(

@@ -152,12 +152,22 @@ class HomeProvider extends ChangeNotifier {
       explicitDate: relationshipStart?.toIso8601String(),
       fallbackDays: _asInt(raw['loveDays'], fallback: 1),
     );
+    final todayKey = DateTime.now().toIso8601String().split('T').first;
+    final todaysTrip = travelTrips.where((trip) {
+      final start = DateTime.tryParse(_asString(trip['startDate'] ?? trip['start_date']));
+      final end = DateTime.tryParse(_asString(trip['endDate'] ?? trip['end_date']));
+      if (start == null) return false;
+      final first = start.toIso8601String().split('T').first;
+      final last = (end ?? start).toIso8601String().split('T').first;
+      return first.compareTo(todayKey) <= 0 && todayKey.compareTo(last) <= 0;
+    }).firstOrNull;
 
     return {
       ...raw,
       'loveDays': preciseLoveDays,
       'relationshipStart': relationshipStart,
       'anniversary': upcomingAnniversary(anniversaries),
+      'todaysTrip': todaysTrip,
       'feed': _buildFeedPreview(feedingOrders),
       'todo': {
         'total': todos.length,

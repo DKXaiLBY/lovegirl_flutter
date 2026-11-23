@@ -92,12 +92,14 @@ void main() {
       await tester.pumpWidget(
           app(LifeScreen(api: _LifeApi()), girl: role.$1, perspectiveGirl: role.$2));
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(ListView), const Offset(0, -1100));
+      expect(find.text('衣橱资料'), findsNothing);
+      expect(find.text('经期记录'), findsNothing);
+      await tester.tap(find.text('全部工具'));
       await tester.pumpAndSettle();
       expect(find.text('经期记录'), role.$1 ? findsOneWidget : findsNothing);
       expect(find.byType(TabBar), findsNothing);
-      expect(find.text('我的衣橱'), findsOneWidget);
-      expect(find.text('情侣厨房'), findsOneWidget);
+      expect(find.text('衣橱资料'), findsOneWidget);
+      expect(find.text('情侣厨房'), findsNothing);
     });
   }
 
@@ -112,13 +114,13 @@ void main() {
   testWidgets('life tools open as pages and back returns to the list',
       (tester) async {
     await tester.pumpWidget(app(LifeScreen(api: _LifeApi())));
-    await tester.tap(find.text('待办'));
+    await tester.tap(find.text('看待办'));
     await tester.pumpAndSettle();
     expect(find.byType(TodoListWidget), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('本月账本'), findsOneWidget);
+    expect(find.text('专升本备考'), findsOneWidget);
     expect(find.byType(TodoListWidget), findsNothing);
   });
 
