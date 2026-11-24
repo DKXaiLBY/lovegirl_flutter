@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
-import '../../utils/lovegirl_theme.dart';
-import '../../widgets/rebuild_controls.dart';
+import 'study_book_theme.dart';
 import 'study_pdf.dart';
 import 'study_workspace.dart';
 
 class StudyReview extends StatefulWidget {
-  const StudyReview({super.key, required this.workspace, required this.cards});
+  const StudyReview(
+      {super.key,
+      required this.workspace,
+      required this.cards,
+      this.returnLabel = '返回备考'});
   final StudyWorkspace workspace;
   final List<StudyCard> cards;
+  final String returnLabel;
 
   @override
   State<StudyReview> createState() => _StudyReviewState();
@@ -18,6 +22,7 @@ class StudyReview extends StatefulWidget {
 class _StudyReviewState extends State<StudyReview> {
   final _text = List.generate(8, (_) => TextEditingController());
   final _scroll = ScrollController();
+  final _feedback = GlobalKey();
   int _card = 0;
   int _question = 0;
   int _again = 0;
@@ -47,6 +52,12 @@ class _StudyReviewState extends State<StudyReview> {
     setState(() {
       _revealed = true;
       _correct = result;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final feedbackContext = _feedback.currentContext;
+      if (feedbackContext != null) {
+        Scrollable.ensureVisible(feedbackContext, alignment: 0.04);
+      }
     });
   }
 
@@ -101,7 +112,12 @@ class _StudyReviewState extends State<StudyReview> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      StudyBookTheme(child: Builder(builder: _buildBook));
+
+  Widget _buildBook(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     if (_done) {
       return Scaffold(
         appBar: AppBar(title: const Text('本次复习')),
@@ -116,7 +132,7 @@ class _StudyReviewState extends State<StudyReview> {
             const SizedBox(height: 20),
             FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('返回备考')),
+                child: Text(widget.returnLabel)),
           ]),
         )),
       );
@@ -135,25 +151,28 @@ class _StudyReviewState extends State<StudyReview> {
         _text.take(fields.length).map((field) => field.text.trim()).toList();
     final account = widget.workspace.account;
     return Scaffold(
-      appBar: AppBar(title: const Text('练习')),
+      appBar: AppBar(
+          title: Text('第 ${_question + 1} / ${card.questions.length} 题')),
       body: ListView(
           controller: _scroll,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 26),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 26),
           children: [
-            Text(card.title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text('第 ${_question + 1}/${card.questions.length} 题',
-                style: TextStyle(color: context.lgTextSecondary)),
-            const SizedBox(height: 9),
             LinearProgressIndicator(
                 value: (_question + 1) / card.questions.length,
-                borderRadius: BorderRadius.circular(4)),
+                backgroundColor: colors.outlineVariant,
+                minHeight: 2),
+            const SizedBox(height: 16),
+            Text(card.title,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colors.onSurfaceVariant,
+                )),
             const SizedBox(height: 22),
             Text(question.prompt,
-                style: Theme.of(context).textTheme.headlineSmall),
+                style: theme.textTheme.headlineSmall?.copyWith(height: 1.45)),
             const SizedBox(height: 20),
             if (kind == StudyQuestionKind.choice ||
-                kind == StudyQuestionKind.multiChoice)
+                kind == StudyQuestionKind.multiChoice) ...[
+              const Divider(height: 1),
               for (final (index, option) in question.options.indexed)
                 _ChoiceTile(
                   letter: String.fromCharCode(65 + index),
@@ -172,6 +191,8 @@ class _StudyReviewState extends State<StudyReview> {
                             }
                           }),
                 ),
+              const SizedBox(height: 16),
+            ],
             for (var i = 0; i < fields.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -187,7 +208,6 @@ class _StudyReviewState extends State<StudyReview> {
               ),
             if (!_revealed) ...[
               FilledButton(
-                style: rebuildFilledStyle(context),
                 onPressed: switch (kind) {
                   StudyQuestionKind.recall => () => _reveal(null),
                   StudyQuestionKind.choice => _option == null
@@ -218,8 +238,13 @@ class _StudyReviewState extends State<StudyReview> {
                   onPressed: () => _reveal(false),
                   child: const Text('想不起来，先看解析')),
             ] else ...[
-              RebuildGlass(
-                  radius: 18,
+              Container(
+                  key: _feedback,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerLow,
+                    border: BorderDirectional(
+                        start: BorderSide(color: colors.primary, width: 2)),
+                  ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -230,19 +255,20 @@ class _StudyReviewState extends State<StudyReview> {
                               : _correct == false
                                   ? '明天再练一次'
                                   : '对照参考答案',
-                          style: Theme.of(context).textTheme.titleLarge),
+                          style: theme.textTheme.titleLarge),
                       if (kind == StudyQuestionKind.journal &&
                           _correct == false &&
                           entered.every((value) => value.isNotEmpty))
                         Text(
                             '需要核对 ${question.checkJournal(entered).join('、')}'),
                       const SizedBox(height: 8),
-                      Text(question.answer),
+                      Text(question.answer,
+                          style: studySerif(theme.textTheme.bodyLarge)),
                       const SizedBox(height: 18),
                       Text(card.reference.isEmpty ? '资料出处' : card.reference,
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       Text(question.source,
-                          style: TextStyle(color: context.lgTextSecondary)),
+                          style: TextStyle(color: colors.onSurfaceVariant)),
                       if (question.questionPage case final page?)
                         ListTile(
                             contentPadding: EdgeInsets.zero,
@@ -312,57 +338,49 @@ class _ChoiceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final shape = RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-            color: selected
-                ? colors.primary
-                : colors.outlineVariant.withValues(alpha: .3)));
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: MergeSemantics(
-        child: Semantics(
-          checked: selected,
-          inMutuallyExclusiveGroup: !multiple,
-          child: Material(
-            color: selected ? colors.surfaceContainerHighest : colors.surface,
-            shape: shape,
-            child: InkWell(
-              customBorder: shape,
-              onTap: onTap,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? colors.primary
-                              : colors.surfaceContainerHighest,
-                          borderRadius:
-                              BorderRadius.circular(multiple ? 7 : 24),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 9, vertical: 3),
-                          child: Text(letter,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: selected
-                                    ? colors.onPrimary
-                                    : colors.onSurface,
-                              )),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: Text(text,
-                              softWrap: true,
-                              style: theme.textTheme.bodyLarge
-                                  ?.copyWith(height: 1.45))),
-                    ]),
-              ),
+    return MergeSemantics(
+      child: Semantics(
+        checked: selected,
+        inMutuallyExclusiveGroup: !multiple,
+        child: Material(
+          color: selected ? colors.primaryContainer : colors.surface,
+          child: InkWell(
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                  border: BorderDirectional(
+                start: BorderSide(
+                    color: selected ? colors.primary : Colors.transparent,
+                    width: 2),
+                bottom: BorderSide(color: colors.outlineVariant),
+              )),
+              padding: const EdgeInsets.fromLTRB(8, 13, 8, 13),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(
+                  constraints: const BoxConstraints(minWidth: 31),
+                  padding: const EdgeInsetsDirectional.only(end: 9),
+                  decoration: BoxDecoration(
+                      border: BorderDirectional(
+                    end: BorderSide(color: colors.outlineVariant),
+                  )),
+                  child: Center(
+                      widthFactor: 1,
+                      child: Text(letter,
+                          style: studySerif(theme.textTheme.titleMedium,
+                                  weight: FontWeight.w700)
+                              .copyWith(
+                                  color: selected
+                                      ? colors.primary
+                                      : colors.onSurface))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Text(text,
+                        softWrap: true,
+                        style: studySerif(theme.textTheme.bodyLarge)
+                            .copyWith(height: 1.55))),
+              ]),
             ),
           ),
         ),

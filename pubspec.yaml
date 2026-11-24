@@ -1,7 +1,7 @@
 name: lovegirl_flutter
 description: "LoveGirl - 情侣专属APP"
 publish_to: 'none'
-version: 4.8.0+196
+version: 4.8.1+197
 
 environment:
   sdk: ^3.6.2
@@ -68,9 +68,13 @@ flutter:
     - assets/images/clear_app/
     - assets/images/glass_features/
     - assets/geo/
+    - assets/fonts/OFL-StudyBookSerif.txt
   fonts:
     - family: Caveat
       fonts:
         - asset: assets/fonts/Caveat-400.ttf
         - asset: assets/fonts/Caveat-700.ttf
           weight: 700
+    - family: StudyBookSerif
+      fonts:
+        - asset: assets/fonts/StudyBookSerif.ttf

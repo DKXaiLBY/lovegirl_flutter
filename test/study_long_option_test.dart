@@ -30,6 +30,12 @@ class _Workspace extends StudyWorkspace {
 
   @override
   bool get ready => true;
+
+  @override
+  Future<void> saveCard(StudyCard card) async {
+    cards = [for (final old in cards) old.id == card.id ? card : old];
+    notifyListeners();
+  }
 }
 
 void main() {
@@ -132,16 +138,60 @@ void main() {
     await tester.tap(find.text('练习本节 · 1 题'));
     await tester.pumpAndSettle();
     expect(find.text(_question.prompt), findsOneWidget);
+    expect(tester.widget<Text>(find.text(_question.prompt)).style?.fontFamily,
+        'StudyBookSerif');
+    await tester.tap(find.text(_longOption));
+    await tester.scrollUntilVisible(find.text('提交答案').hitTestable(), 180);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('提交答案'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('继续').hitTestable(), 180);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('返回讲义'));
+    await tester.pumpAndSettle();
+    expect(find.text('先阅读这一节的考点。'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    expect(find.text('继续学习'), findsOneWidget);
+    expect(find.text('继续阅读'), findsOneWidget);
 
     await tester.tap(find.text('第二章'));
     await tester.pumpAndSettle();
     expect(find.text('这一节暂时只有原文。'), findsOneWidget);
     expect(find.text('添加练习题'), findsOneWidget);
     expect(find.byType(StudyEditor), findsNothing);
+  });
+
+  testWidgets('today review opens the due lesson without opening its reader',
+      (tester) async {
+    final workspace = _Workspace(const [
+      StudyCard(
+          id: 'chapter-new',
+          subject: StudySubject.politics,
+          title: '未学新章',
+          reference: '',
+          notes: '首次阅读',
+          questions: [_question]),
+      StudyCard(
+          id: 'chapter-due',
+          subject: StudySubject.politics,
+          title: '已到期的章节',
+          reference: '',
+          notes: '已经读过',
+          questions: [_question],
+          dueOn: '2000-01-01',
+          attempts: 1),
+    ]);
+    addTearDown(workspace.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<StudyWorkspace>.value(
+            value: workspace, child: const StudyScreen())));
+    expect(find.text('1 个考点待练习'), findsOneWidget);
+    await tester.tap(find.text('今日复习'));
+    await tester.pumpAndSettle();
+    final review = tester.widget<StudyReview>(find.byType(StudyReview));
+    expect(review.cards.map((card) => card.id), ['chapter-due']);
+    expect(find.text('阅读考点'), findsNothing);
   });
 }

@@ -279,7 +279,9 @@ class StudyWorkspace extends ChangeNotifier {
   bool get ready => _revision != null;
   List<StudyCard> due(DateTime now, [StudySubject? subject]) => cards
       .where((card) =>
-          (subject == null || subject == card.subject) && card.isDue(now))
+          (subject == null || subject == card.subject) &&
+          card.dueOn != null &&
+          card.isDue(now))
       .toList(growable: false);
 
   Future<void> load() async {

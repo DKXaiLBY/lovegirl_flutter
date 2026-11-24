@@ -347,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       (true, _, _) => (_asString(trip['title'], fallback: '今天的行程'),
         '查看今天的行程', () => _push(TravelScreen(initialJourneyId: tripId, embedded: false))),
       (_, true, _) => ('今天有 ${due.length} 个考点待复习',
-        '开始复习', () => _push(StudyReview(workspace: study!, cards: due))),
+        '开始复习', () => _push(StudyReview(workspace: study!, cards: due, returnLabel: '返回今天'))),
       (_, _, true) => ('今天有 $todoCount 件待办',
         '查看待办', () => _push(const LifeToolScreen(title: '待办', child: TodoListWidget()))),
       _ => ('给今天留一张照片',
