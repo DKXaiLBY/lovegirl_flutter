@@ -192,21 +192,25 @@ class MainActivity: FlutterActivity() {
 
     @Suppress("DEPRECATION")
     private fun reclaimInstalledUpdate(): Boolean {
-        val apk = File(cacheDir, "LoveGirl-latest.apk")
-        if (!apk.isFile) return false
-        val modified = apk.lastModified()
-        val size = apk.length()
-        val archive = packageManager.getPackageArchiveInfo(apk.path, 0) ?: return false
-        if (archive.packageName != packageName) return false
         val installed = packageManager.getPackageInfo(packageName, 0)
-        val archiveVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            archive.longVersionCode
-        } else archive.versionCode.toLong()
         val installedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             installed.longVersionCode
         } else installed.versionCode.toLong()
-        return archiveVersion <= installedVersion && apk.lastModified() == modified &&
-            apk.length() == size && apk.delete()
+        var removed = false
+        for (apk in listOf(File(cacheDir, "LoveGirl-latest.apk"),
+            File(filesDir, "app_update/LoveGirl-latest.apk"))) {
+            if (!apk.isFile) continue
+            val modified = apk.lastModified()
+            val size = apk.length()
+            val archive = packageManager.getPackageArchiveInfo(apk.path, 0) ?: continue
+            if (archive.packageName != packageName) continue
+            val archiveVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archive.longVersionCode
+            } else archive.versionCode.toLong()
+            if (archiveVersion <= installedVersion && apk.lastModified() == modified &&
+                apk.length() == size && apk.delete()) removed = true
+        }
+        return removed
     }
 
     @android.annotation.TargetApi(Build.VERSION_CODES.Q)

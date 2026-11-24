@@ -5,8 +5,8 @@ class AppConstants {
   // Only internal QA builds set this define; formal releases use the default.
   static const String baseUrl = String.fromEnvironment('LOVEGIRL_QA_API_URL',
       defaultValue: 'http://47.121.119.191:3001');
-  static const String versionName = '4.8.1';
-  static const int versionCode = 197;
+  static const String versionName = '4.8.2';
+  static const int versionCode = 198;
 
   // 设计规范
   static const double borderRadius = 14.0;

@@ -202,6 +202,9 @@ class StorageSnapshot {
 }
 
 class AppStorage {
+  static Future<Directory> updateDirectory() async =>
+      Directory('${(await getApplicationSupportDirectory()).path}/app_update');
+
   static Future<void> reclaimInstalledUpdate() async {
     if (!Platform.isAndroid) return;
     try {
@@ -223,7 +226,8 @@ class AppStorage {
       Future.wait([
         _size(File('${temp.path}/$updateApkName')),
         _size(File('${temp.path}/$updateApkName.part')),
-      ]).then((values) => values[0] + values[1]),
+        _size(await updateDirectory()),
+      ]).then((values) => values.fold<int>(0, (sum, n) => sum + n)),
       Future.wait(exports.map(_size))
           .then((values) => values.fold<int>(0, (sum, n) => sum + n)),
       if (account != null)

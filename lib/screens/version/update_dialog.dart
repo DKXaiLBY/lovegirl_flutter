@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:lovegirl_flutter/services/app_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
 import '../../services/log_service.dart';
+import '../../services/update_download.dart';
 import '../../utils/constants.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
@@ -24,12 +23,13 @@ Future<void> showUpdateDialog(
   final version = data['version'] as Map<String, dynamic>? ?? const {};
   final changelog = (version['changelog'] ?? '').toString();
   final latestVersionName = (version['name'] ?? '').toString();
-  final url = (version['url'] ?? '').toString();
+  final package =
+      UpdatePackage.fromVersion(version, Uri.parse(AppConstants.baseUrl));
   final currentVersionLabel =
       'v${AppConstants.versionName} (build ${AppConstants.versionCode})';
   final changelogLines = _normalizeChangelog(changelog);
-  final downloadUrl =
-      url.startsWith('http') ? url : '${AppConstants.baseUrl}$url';
+  final saved = await UpdateDownload.instance.progress(package);
+  if (!context.mounted) return;
 
   return showDialog<void>(
     context: context,
@@ -220,7 +220,8 @@ Future<void> showUpdateDialog(
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            _showDownloadDialog(context, downloadUrl);
+                            _showDownloadDialog(
+                                context, package, saved, forceUpdate);
                             LogService().userAction(
                               '版本更新: 下载 $currentVersionLabel -> v$latestVersionName',
                             );
@@ -233,9 +234,13 @@ Future<void> showUpdateDialog(
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            '立即更新',
-                            style: TextStyle(
+                          child: Text(
+                            saved.complete
+                                ? '安装更新'
+                                : saved.bytes > 0
+                                    ? '继续下载 · ${_percent(saved.bytes, package.size)}%'
+                                    : '立即更新',
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -249,6 +254,10 @@ Future<void> showUpdateDialog(
                           height: 40,
                           child: TextButton(
                             onPressed: () async {
+                              if (saved.bytes > 0) {
+                                Navigator.pop(ctx);
+                                return;
+                              }
                               final prefs =
                                   await SharedPreferences.getInstance();
                               await prefs.setString(
@@ -267,9 +276,9 @@ Future<void> showUpdateDialog(
                                 borderRadius: BorderRadius.circular(14),
                               ),
                             ),
-                            child: const Text(
-                              '跳过此版本',
-                              style: TextStyle(fontSize: 13),
+                            child: Text(
+                              saved.bytes > 0 ? '稍后继续' : '跳过此版本',
+                              style: const TextStyle(fontSize: 13),
                             ),
                           ),
                         ),
@@ -286,223 +295,164 @@ Future<void> showUpdateDialog(
   );
 }
 
-void _showDownloadDialog(BuildContext context, String downloadUrl) {
-  if (downloadUrl.isEmpty || downloadUrl == AppConstants.baseUrl) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('下载链接无效，请稍后再试'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    return;
-  }
+int _percent(int bytes, int total) => (bytes * 100 ~/ total).clamp(0, 100);
 
-  var progress = 0.0;
-  var downloading = true;
-  var failed = false;
-  var errorMsg = '';
-  StateSetter? setDownloadDialogState;
-  BuildContext? downloadDialogContext;
+String _megabytes(int bytes) => (bytes / 1000000).toStringAsFixed(1);
 
+void _showDownloadDialog(
+  BuildContext context,
+  UpdatePackage package,
+  UpdateProgress saved,
+  bool forceUpdate,
+) {
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setDialogState) {
-        setDownloadDialogState = setDialogState;
-        downloadDialogContext = ctx;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: RebuildGlass(
-            radius: 18,
-            padding: const EdgeInsets.all(24),
-            child: SizedBox(
-                width: 232,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: context.lgInk.withAlpha(20),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        failed
-                            ? Icons.error_outline_rounded
-                            : downloading
-                                ? Icons.download_rounded
-                                : Icons.check_circle_outline_rounded,
-                        color: failed
-                            ? LoveGirlTheme.red
-                            : downloading
-                                ? context.lgInk
-                                : LoveGirlTheme.secondary,
-                        size: 28,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      failed
-                          ? '下载失败'
-                          : downloading
-                              ? '正在下载...'
-                              : '下载完成',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: context.lgTextPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    if (downloading && !failed) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: progress > 0 ? progress : null,
-                          backgroundColor: context.lgSeparator,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            context.lgInk,
-                          ),
-                          minHeight: 6,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        progress > 0
-                            ? '${(progress * 100).toStringAsFixed(0)}%'
-                            : '准备下载...',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: context.lgTextMuted,
-                        ),
-                      ),
-                    ],
-                    if (failed) ...[
-                      Text(
-                        errorMsg.isNotEmpty ? errorMsg : '请检查网络后重试',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: context.lgTextMuted,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 40,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _showDownloadDialog(context, downloadUrl);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: context.lgInk,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('重试'),
-                        ),
-                      ),
-                    ],
-                  ],
-                )),
-          ),
-        );
-      },
+    builder: (_) => _UpdateDownloadDialog(
+      package: package,
+      saved: saved,
+      forceUpdate: forceUpdate,
     ),
-  );
-
-  _downloadApk(
-    downloadUrl,
-    onProgress: (value) {
-      if (downloadDialogContext?.mounted == true) {
-        setDownloadDialogState?.call(() => progress = value);
-      }
-    },
-    onComplete: (filePath) {
-      final dialog = downloadDialogContext;
-      if (dialog == null || !dialog.mounted) return;
-      setDownloadDialogState?.call(() {
-        downloading = false;
-        progress = 1;
-      });
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!dialog.mounted || ModalRoute.of(dialog)?.isCurrent != true) return;
-        Navigator.of(dialog).pop();
-        _installApk(filePath);
-      });
-    },
-    onError: (error) {
-      if (downloadDialogContext?.mounted != true) return;
-      setDownloadDialogState?.call(() {
-        downloading = false;
-        failed = true;
-        errorMsg = error;
-      });
-    },
   );
 }
 
-bool _isDownloadingApk = false;
+class _UpdateDownloadDialog extends StatefulWidget {
+  const _UpdateDownloadDialog({
+    required this.package,
+    required this.saved,
+    required this.forceUpdate,
+  });
 
-Future<void> _downloadApk(
-  String url, {
-  void Function(double)? onProgress,
-  void Function(String)? onComplete,
-  void Function(String)? onError,
-}) async {
-  if (_isDownloadingApk) {
-    onError?.call('正在下载更新，请稍后再试');
-    return;
+  final UpdatePackage package;
+  final UpdateProgress saved;
+  final bool forceUpdate;
+
+  @override
+  State<_UpdateDownloadDialog> createState() => _UpdateDownloadDialogState();
+}
+
+class _UpdateDownloadDialogState extends State<_UpdateDownloadDialog> {
+  late int _bytes = widget.saved.bytes;
+  CancelToken? _transfer;
+  File? _apk;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _download();
+    });
   }
-  _isDownloadingApk = true;
-  File? incomplete;
-  try {
-    final dir = await getTemporaryDirectory();
-    final filePath = '${dir.path}/$updateApkName';
-    final partial = File('$filePath.part');
-    incomplete = partial;
 
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final cacheBustUrl =
-        url.contains('?') ? '$url&_t=$timestamp' : '$url?_t=$timestamp';
-
-    final dio = Dio()
-      ..options.connectTimeout = const Duration(seconds: 30)
-      ..options.receiveTimeout = const Duration(minutes: 5);
-
-    await dio.download(
-      cacheBustUrl,
-      partial.path,
-      deleteOnError: true,
-      onReceiveProgress: (received, total) {
-        if (total > 0 && onProgress != null) {
-          onProgress(received / total);
-        }
-      },
-    );
-
-    if (!await partial.exists() || await partial.length() < 1024 * 1024) {
-      throw Exception('下载的 APK 文件无效');
-    }
-    await partial.rename(filePath);
-    onComplete?.call(filePath);
-  } catch (e) {
-    LogService().error('Version', 'APK 下载失败: $e');
-    onError?.call(e.toString());
-  } finally {
+  Future<void> _download() async {
+    if (_transfer != null) return;
+    final token = CancelToken();
+    setState(() {
+      _transfer = token;
+      _error = null;
+    });
     try {
-      final file = incomplete;
-      if (file != null && await file.exists()) {
-        await file.delete().catchError((Object _) => file);
+      final file = await UpdateDownload.instance.download(
+        widget.package,
+        token,
+        (bytes) {
+          if (mounted && _bytes != bytes) setState(() => _bytes = bytes);
+        },
+      );
+      if (mounted) setState(() => _apk = file);
+    } catch (error) {
+      final cancelled = token.isCancelled;
+      if (!cancelled) {
+        LogService().error('Version', 'APK 下载失败: ${error.runtimeType}');
       }
+      if (!mounted) return;
+      var bytes = _bytes;
+      try {
+        bytes = (await UpdateDownload.instance.progress(widget.package)).bytes;
+      } on FileSystemException {
+        // Keep the last known progress if local storage is unavailable.
+      }
+      if (!mounted) return;
+      setState(() {
+        _bytes = bytes;
+        if (!cancelled) {
+          _error = switch (error) {
+            UpdateDownloadException() => error.message,
+            FileSystemException() => '暂时无法保存安装包，请检查可用空间',
+            _ => '下载中断，请检查网络后继续',
+          };
+        }
+      });
     } finally {
-      _isDownloadingApk = false;
+      if (mounted) setState(() => _transfer = null);
     }
+  }
+
+  @override
+  void dispose() {
+    _transfer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final transfer = _transfer;
+    final apk = _apk;
+    final size = widget.package.size;
+    final percent = _percent(_bytes, size);
+    final headline = apk != null
+        ? '下载完成'
+        : transfer?.isCancelled == true
+            ? '正在暂停'
+            : transfer != null
+                ? (_bytes == size ? '正在校验安装包' : '正在下载更新')
+                : (_error == null ? '下载已暂停' : '下载中断');
+
+    return PopScope(
+      canPop: !widget.forceUpdate,
+      child: AlertDialog(
+        scrollable: true,
+        title: Text(headline),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(value: _bytes / size),
+            const SizedBox(height: 12),
+            Text(
+                '$percent%  ·  ${_megabytes(_bytes)} / ${_megabytes(size)} MB'),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!),
+            ],
+          ],
+        ),
+        actions: [
+          if (!widget.forceUpdate && transfer == null)
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('稍后继续'),
+            ),
+          if (apk != null)
+            FilledButton(
+              onPressed: () => _installApk(apk.path),
+              child: const Text('安装更新'),
+            )
+          else if (transfer != null)
+            TextButton(
+              onPressed:
+                  transfer.isCancelled ? null : () => setState(transfer.cancel),
+              child: const Text('暂停下载'),
+            )
+          else
+            FilledButton(
+              onPressed: _download,
+              child: Text(_bytes > 0 ? '继续下载' : '重新下载'),
+            ),
+        ],
+      ),
+    );
   }
 }
 
