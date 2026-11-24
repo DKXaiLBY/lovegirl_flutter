@@ -462,30 +462,38 @@ class _QuestionEditorState extends State<StudyQuestionEditor> {
             if (_kind == StudyQuestionKind.choice ||
                 _kind == StudyQuestionKind.multiChoice) ...[
               for (var i = 0; i < _options.length; i++)
-                Row(children: [
-                  if (_kind == StudyQuestionKind.multiChoice)
-                    Checkbox(
-                        value: _selected.contains(i),
-                        onChanged: (checked) => setState(() {
-                              if (checked == true) {
-                                _selected.add(i);
-                              } else {
-                                _selected.remove(i);
-                              }
-                            }))
-                  else
-                    Radio<int>(
-                        value: i,
-                        groupValue: _correct,
-                        onChanged: (value) =>
-                            setState(() => _correct = value!)),
-                  Expanded(
-                      child: TextField(
-                          controller: _options[i],
-                          maxLength: 260,
-                          decoration: InputDecoration(
-                              labelText: '选项 ${i + 1}', counterText: ''))),
-                ]),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_kind == StudyQuestionKind.multiChoice)
+                          Checkbox(
+                              value: _selected.contains(i),
+                              onChanged: (checked) => setState(() {
+                                    if (checked == true) {
+                                      _selected.add(i);
+                                    } else {
+                                      _selected.remove(i);
+                                    }
+                                  }))
+                        else
+                          Radio<int>(
+                              value: i,
+                              groupValue: _correct,
+                              onChanged: (value) =>
+                                  setState(() => _correct = value!)),
+                        Expanded(
+                            child: TextField(
+                                controller: _options[i],
+                                maxLength: 260,
+                                minLines: 1,
+                                maxLines: null,
+                                decoration: InputDecoration(
+                                    labelText: '选项 ${i + 1}',
+                                    counterText: ''))),
+                      ]),
+                ),
             ] else
               TextField(
                   controller: _answer,

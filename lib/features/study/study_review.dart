@@ -17,6 +17,7 @@ class StudyReview extends StatefulWidget {
 
 class _StudyReviewState extends State<StudyReview> {
   final _text = List.generate(8, (_) => TextEditingController());
+  final _scroll = ScrollController();
   int _card = 0;
   int _question = 0;
   int _again = 0;
@@ -31,6 +32,7 @@ class _StudyReviewState extends State<StudyReview> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     for (final controller in _text) {
       controller.dispose();
     }
@@ -49,6 +51,7 @@ class _StudyReviewState extends State<StudyReview> {
   }
 
   void _resetQuestion() {
+    if (_scroll.hasClients) _scroll.jumpTo(0);
     for (final field in _text) {
       field.clear();
     }
@@ -132,37 +135,39 @@ class _StudyReviewState extends State<StudyReview> {
         _text.take(fields.length).map((field) => field.text.trim()).toList();
     final account = widget.workspace.account;
     return Scaffold(
-      appBar: AppBar(title: const Text('复习考点')),
+      appBar: AppBar(title: const Text('练习')),
       body: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 26),
           children: [
-            Text(
-                '${card.subject.label} · 考点 ${_card + 1}/${widget.cards.length} · 第 ${_question + 1} 题'),
-            const SizedBox(height: 14),
+            Text(card.title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text('第 ${_question + 1}/${card.questions.length} 题',
+                style: TextStyle(color: context.lgTextSecondary)),
+            const SizedBox(height: 9),
+            LinearProgressIndicator(
+                value: (_question + 1) / card.questions.length,
+                borderRadius: BorderRadius.circular(4)),
+            const SizedBox(height: 22),
             Text(question.prompt,
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 20),
-            if (kind == StudyQuestionKind.choice)
-              for (final option in question.options)
-                RadioListTile<String>(
-                  value: option,
-                  groupValue: _option,
-                  title: Text(option),
-                  onChanged: _revealed
+            if (kind == StudyQuestionKind.choice ||
+                kind == StudyQuestionKind.multiChoice)
+              for (final (index, option) in question.options.indexed)
+                _ChoiceTile(
+                  letter: String.fromCharCode(65 + index),
+                  text: option,
+                  multiple: kind == StudyQuestionKind.multiChoice,
+                  selected: kind == StudyQuestionKind.choice
+                      ? _option == option
+                      : _options.contains(option),
+                  onTap: _revealed
                       ? null
-                      : (value) => setState(() => _option = value),
-                ),
-            if (kind == StudyQuestionKind.multiChoice)
-              for (final option in question.options)
-                CheckboxListTile(
-                  title: Text(option),
-                  value: _options.contains(option),
-                  onChanged: _revealed
-                      ? null
-                      : (value) => setState(() {
-                            if (value == true) {
-                              _options.add(option);
-                            } else {
+                      : () => setState(() {
+                            if (kind == StudyQuestionKind.choice) {
+                              _option = option;
+                            } else if (!_options.add(option)) {
                               _options.remove(option);
                             }
                           }),
@@ -285,6 +290,83 @@ class _StudyReviewState extends State<StudyReview> {
               ],
             ],
           ]),
+    );
+  }
+}
+
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile(
+      {required this.letter,
+      required this.text,
+      required this.multiple,
+      required this.selected,
+      required this.onTap});
+
+  final String letter;
+  final String text;
+  final bool multiple;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final shape = RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+            color: selected
+                ? colors.primary
+                : colors.outlineVariant.withValues(alpha: .3)));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: MergeSemantics(
+        child: Semantics(
+          checked: selected,
+          inMutuallyExclusiveGroup: !multiple,
+          child: Material(
+            color: selected ? colors.surfaceContainerHighest : colors.surface,
+            shape: shape,
+            child: InkWell(
+              customBorder: shape,
+              onTap: onTap,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? colors.primary
+                              : colors.surfaceContainerHighest,
+                          borderRadius:
+                              BorderRadius.circular(multiple ? 7 : 24),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 3),
+                          child: Text(letter,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: selected
+                                    ? colors.onPrimary
+                                    : colors.onSurface,
+                              )),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text(text,
+                              softWrap: true,
+                              style: theme.textTheme.bodyLarge
+                                  ?.copyWith(height: 1.45))),
+                    ]),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

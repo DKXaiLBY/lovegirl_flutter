@@ -6,8 +6,8 @@ import 'package:provider/provider.dart';
 
 import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
-import '../../widgets/rebuild_controls.dart';
 import 'study_editor.dart';
+import 'study_lesson.dart';
 import 'study_pdf.dart';
 import 'study_pdf_import.dart';
 import 'study_review.dart';
@@ -24,6 +24,7 @@ class _StudyScreenState extends State<StudyScreen> {
   static const _shareTag = 'LoveGirl-考点-1\n';
   StudySubject? _subject;
   bool _showNeedsReview = false;
+  String? _lastOpened;
 
   void _edit(StudyWorkspace workspace, [StudyCard? card]) {
     Navigator.of(context).push(MaterialPageRoute<void>(
@@ -69,6 +70,13 @@ class _StudyScreenState extends State<StudyScreen> {
     if (cards.isEmpty) return;
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => StudyReview(workspace: workspace, cards: cards),
+    ));
+  }
+
+  void _read(StudyWorkspace workspace, StudyCard card) {
+    setState(() => _lastOpened = card.id);
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => StudyLesson(workspace: workspace, lesson: card),
     ));
   }
 
@@ -137,21 +145,20 @@ class _StudyScreenState extends State<StudyScreen> {
   @override
   Widget build(BuildContext context) {
     final workspace = context.watch<StudyWorkspace>();
-    final selected = workspace.cards
-        .where((card) =>
-            (_subject == null || _subject == card.subject) &&
-            (!_showNeedsReview || (card.attempts > 0 && card.level == 0)))
+    final lessons = workspace.cards
+        .where((card) => _subject == null || _subject == card.subject)
         .toList();
+    final selected = _showNeedsReview
+        ? lessons.where((card) => card.attempts > 0 && card.level == 0)
+        : lessons;
     final due = workspace.due(DateTime.now(), _subject);
+    final last = lessons.where((card) => card.id == _lastOpened).firstOrNull;
+    final featured = last ?? due.firstOrNull ?? lessons.firstOrNull;
     final editable = workspace.ready && !workspace.loading && !workspace.saving;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('专升本备考'), actions: [
-        if (workspace.cards.isNotEmpty)
-          IconButton(
-            tooltip: '添加资料',
-            onPressed: editable ? () => _add(workspace) : null,
-            icon: const Icon(Icons.note_add_outlined),
-          ),
         PopupMenuButton<String>(
           tooltip: '备考工具',
           enabled: editable,
@@ -183,70 +190,92 @@ class _StudyScreenState extends State<StudyScreen> {
                     trailing: TextButton(
                         onPressed: workspace.load, child: const Text('重试'))),
               if (workspace.ready) ...[
-                Wrap(spacing: 6, children: [
-                  ChoiceChip(
-                      label: const Text('全部'),
-                      selected: _subject == null,
-                      onSelected: (_) => setState(() => _subject = null)),
-                  for (final subject in StudySubject.values)
-                    ChoiceChip(
-                        label: Text(subject.label),
-                        selected: _subject == subject,
-                        onSelected: (_) => setState(() => _subject = subject)),
-                ]),
-                const SizedBox(height: 12),
-                RebuildGlass(
-                  radius: 18,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+                if (featured != null || workspace.cards.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(19, 18, 19, 15),
+                    decoration: BoxDecoration(
+                        color: colors.surface,
+                        border: Border.all(
+                            color:
+                                colors.outlineVariant.withValues(alpha: .22)),
+                        borderRadius: BorderRadius.circular(18)),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (due.isNotEmpty) ...[
-                          Text('${due.length} 个考点待复习',
-                              style: Theme.of(context).textTheme.titleLarge),
+                        if (featured != null) ...[
+                          Text(featured.subject.label,
+                              style: theme.textTheme.labelLarge
+                                  ?.copyWith(color: context.lgTextSecondary)),
                           const SizedBox(height: 8),
-                          FilledButton(
+                        ],
+                        Text(featured?.title ?? '添加第一份讲义',
+                            style: theme.textTheme.titleLarge),
+                        const SizedBox(height: 14),
+                        FilledButton.icon(
+                          onPressed: !editable
+                              ? null
+                              : featured == null
+                                  ? () => _add(workspace)
+                                  : () => _read(workspace, featured),
+                          icon: Icon(featured == null
+                              ? Icons.add
+                              : Icons.menu_book_outlined),
+                          label: Text(featured == null
+                              ? '导入资料'
+                              : last == null
+                                  ? '开始阅读'
+                                  : '继续学习'),
+                        ),
+                        if (due.isNotEmpty)
+                          TextButton(
                               onPressed: editable
                                   ? () => _review(workspace, due)
                                   : null,
-                              child: const Text('开始今日复习')),
-                        ] else if (workspace.cards.isEmpty)
-                          FilledButton(
-                              onPressed:
-                                  editable ? () => _add(workspace) : null,
-                              child: const Text('导入资料'))
-                        else
-                          const Text('今天暂无待复习考点'),
-                      ]),
-                ),
-                const SizedBox(height: 15),
-                if (workspace.cards.isNotEmpty)
+                              child: Text('今日复习 · ${due.length} 个考点')),
+                      ],
+                    ),
+                  ),
+                if (workspace.cards.isNotEmpty) ...[
+                  const SizedBox(height: 18),
                   Row(children: [
                     Expanded(
-                        child: Text('考点',
-                            style: Theme.of(context).textTheme.titleLarge)),
+                        child: Text('资料', style: theme.textTheme.titleLarge)),
+                    TextButton.icon(
+                        onPressed: editable ? () => _add(workspace) : null,
+                        icon: const Icon(Icons.add),
+                        label: const Text('添加资料')),
+                  ]),
+                ] else
+                  const SizedBox(height: 12),
+                Wrap(spacing: 6, children: [
+                  for (final subject in <StudySubject?>[
+                    null,
+                    ...StudySubject.values
+                  ])
+                    ChoiceChip(
+                        label: Text(subject?.label ?? '全部'),
+                        selected: _subject == subject,
+                        onSelected: (_) => setState(() => _subject = subject)),
+                  if (workspace.cards.isNotEmpty)
                     FilterChip(
                         label: const Text('需要重练'),
                         selected: _showNeedsReview,
                         onSelected: (value) =>
                             setState(() => _showNeedsReview = value)),
-                  ]),
+                ]),
                 if (selected.isEmpty && workspace.cards.isNotEmpty)
                   const Padding(
                       padding: EdgeInsets.symmetric(vertical: 18),
                       child: Text('这里暂时没有考点')),
-                for (final card in selected)
+                for (final card in selected) ...[
                   ListTile(
                     contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.article_outlined),
                     title: Text(card.title),
                     subtitle: Text(
-                        '${card.subject.label} · ${card.questions.isEmpty ? '待配题' : card.dueOn == null ? '可以现在练' : '下次复习 ${card.dueOn}'}',
+                        '${card.subject.label} · ${card.questions.isEmpty ? '讲义' : '${card.questions.length} 道习题'}',
                         style: TextStyle(color: context.lgTextSecondary)),
-                    onTap: !editable
-                        ? null
-                        : card.questions.isEmpty
-                            ? () => _edit(workspace, card)
-                            : () => _review(workspace, [card]),
+                    onTap: () => _read(workspace, card),
                     trailing: PopupMenuButton<String>(
                       tooltip: '管理${card.title}',
                       enabled: editable,
@@ -262,6 +291,8 @@ class _StudyScreenState extends State<StudyScreen> {
                       ],
                     ),
                   ),
+                  const Divider(height: 1),
+                ],
               ],
             ],
           )),
