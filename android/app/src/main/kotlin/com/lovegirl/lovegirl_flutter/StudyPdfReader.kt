@@ -81,7 +81,7 @@ internal class StudyPdfReader(private val activity: Activity) {
             if (call.method == "previewStudyPdf") {
                 withRenderer(uri) { renderer ->
                     renderer.openPage(first - 1).use { page ->
-                        val bitmap = render(page, 1360)
+                        val bitmap = render(page, if (call.argument<Boolean>("forOcr") == true) 2200 else 1360)
                         try {
                             ByteArrayOutputStream().use { buffer ->
                                 bitmap.compress(Bitmap.CompressFormat.JPEG, 88, buffer)

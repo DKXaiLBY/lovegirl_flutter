@@ -115,7 +115,8 @@ class _StudyEditorState extends State<StudyEditor> {
         context: context,
         builder: (sheet) => AlertDialog(
               title: const Text('AI 起草题目'),
-              content: Text('将这段 ${source.length} 字的原文发送给阿里云百炼起草，确认后才保存题目。'),
+              content: Text(
+                  '将这段 ${source.length} 字的原文发送给${widget.workspace.aiProvider}起草，确认后才保存题目。'),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(sheet, false),

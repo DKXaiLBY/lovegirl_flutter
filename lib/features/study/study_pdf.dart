@@ -93,11 +93,12 @@ class StudyPdf {
     }).toList(growable: false);
   }
 
-  Future<Uint8List?> preview(StudyPageReference page) =>
+  Future<Uint8List?> preview(StudyPageReference page, {bool forOcr = false}) =>
       _channel.invokeMethod<Uint8List>('previewStudyPdf', {
         'account': account,
         'id': page.documentId,
         'first': page.page,
+        if (forOcr) 'forOcr': true,
       });
 }
 

@@ -181,6 +181,11 @@ class ApiService {
       '/api/study/drafts', data: data,
       options: Options(receiveTimeout: const Duration(seconds: 28)));
 
+  Future<Response> recognizeStudyPage(Map<String, dynamic> data) => _dio.post(
+      '/api/study/ocr',
+      data: data,
+      options: Options(receiveTimeout: const Duration(seconds: 46)));
+
   Future<Response> put(String path, {dynamic data}) =>
       _dio.put(path, data: data);
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
 const drafts = require('./study_drafts');
+const ocr = require('./study_ocr');
 
 const subjects = new Set(['politics', 'management', 'accounting']);
 const kinds = new Set(['recall', 'choice', 'multiChoice', 'blank', 'multiBlank', 'journal']);
@@ -64,6 +65,7 @@ const empty = { cards: [], showOnToday: false };
 const needsUpgrade = (res) => res.status(426).json({ code: 426, message: '请更新 LoveGirl 后查看或修改导入的题目' });
 
 router.post('/drafts', authRequired, drafts.draftLimit, drafts.createDrafts);
+router.post('/ocr', authRequired, ocr.ocrLimit, ocr.recognizePage);
 
 router.get('/', authRequired, async (req, res) => {
   try {
@@ -73,10 +75,17 @@ router.get('/', authRequired, async (req, res) => {
     const stored = row ? row.document : empty;
     const document = typeof stored === 'string' ? JSON.parse(stored) : stored;
     if (req.query.schema !== '2' && document.schema === 2) return needsUpgrade(res);
+    const draftService = drafts.provider();
+    const ocrService = ocr.provider();
     res.json({ code: 200, data: {
       revision: row?.revision ?? 0,
       document,
-      ...(req.query.schema === '2' ? { aiAvailable: drafts.configured() } : {}),
+      ...(req.query.schema === '2' ? {
+        aiAvailable: Boolean(draftService),
+        ocrAvailable: Boolean(ocrService),
+        aiProvider: draftService?.label,
+        ocrProvider: ocrService?.label
+      } : {}),
     }});
   } catch (error) {
     console.error('[Study]', error.code || error.name);

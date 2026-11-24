@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +13,8 @@ enum StudySubject {
   const StudySubject(this.label);
   final String label;
 }
+
+enum StudyOcrRole { lecture, question, answer }
 
 enum StudyQuestionKind {
   recall('回忆要点'),
@@ -274,6 +278,9 @@ class StudyWorkspace extends ChangeNotifier {
   String? error;
   bool showOnToday = false;
   bool aiAvailable = false;
+  bool ocrAvailable = false;
+  String aiProvider = '云端 AI 服务';
+  String ocrProvider = '云端 AI 服务';
   List<StudyCard> cards = const [];
 
   bool get ready => _revision != null;
@@ -300,6 +307,9 @@ class StudyWorkspace extends ChangeNotifier {
       _revision = (data['revision'] as num).toInt();
       showOnToday = document['showOnToday'] == true;
       aiAvailable = data['aiAvailable'] == true;
+      ocrAvailable = data['ocrAvailable'] == true;
+      aiProvider = data['aiProvider'] as String? ?? '云端 AI 服务';
+      ocrProvider = data['ocrProvider'] as String? ?? '云端 AI 服务';
       cards = fetched;
     } catch (failure) {
       error = extractServerMessage(failure, fallback: '备考资料暂未读取');
@@ -326,6 +336,24 @@ class StudyWorkspace extends ChangeNotifier {
         .map((value) =>
             StudyQuestion.fromJson(Map<String, dynamic>.from(value as Map)))
         .toList(growable: false);
+  }
+
+  Future<String> recognizePage(StudyOcrRole role, Uint8List jpeg) async {
+    if (_disposed || !ocrAvailable || account == null) {
+      throw StateError('云端重识别暂未启用');
+    }
+    if (jpeg.isEmpty || jpeg.length > 2 * 1024 * 1024) {
+      throw StateError('当前页图无法发送，请重新打开 PDF');
+    }
+    final response = await _api.recognizeStudyPage({
+      'owner': account,
+      'consent': true,
+      'role': role.name,
+      'image': base64Encode(jpeg),
+    });
+    if (_disposed) throw StateError('账号已切换，请重新打开备考');
+    final data = response.data['data'] as Map;
+    return data['text'] as String;
   }
 
   Future<int> importCards(List<StudyCard> incoming) async {

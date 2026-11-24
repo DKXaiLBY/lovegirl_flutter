@@ -3,7 +3,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../services/api_service.dart';
 import '../../widgets/rebuild_controls.dart';
+import 'study_book_theme.dart';
 import 'study_editor.dart';
+import 'study_ocr_compare.dart';
 import 'study_pdf.dart';
 import 'study_pdf_questions.dart';
 import 'study_workspace.dart';
@@ -31,6 +33,8 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
   _Selection? _questions;
   _Selection? _answers;
   List<StudyPdfText> _pages = [];
+  List<StudyPdfText> _answerPages = [];
+  final _replacements = <(StudyOcrRole, int), String>{};
   List<ImportedStudyQuestion> _candidates = [];
   final _checked = <ImportedStudyQuestion, StudyCard>{};
   final _reviewed = <ImportedStudyQuestion, StudyCard>{};
@@ -44,10 +48,67 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
 
   void _clearResult() {
     _pages = [];
+    _answerPages = [];
+    _replacements.clear();
     _candidates = [];
     _checked.clear();
     _reviewed.clear();
     _message = null;
+  }
+
+  StudyOcrRole get _paperRole =>
+      _lecture ? StudyOcrRole.lecture : StudyOcrRole.question;
+
+  StudyPdfText _selectedText(StudyPdfText page, StudyOcrRole role) {
+    final replacement = _replacements[(role, page.reference.page)];
+    return replacement == null
+        ? page
+        : StudyPdfText(page.reference, replacement);
+  }
+
+  void _rematch() {
+    final chapter = _chapter.text.trim();
+    _candidates = _lecture
+        ? const []
+        : matchStudyPdfQuestions(
+            _pages.map((page) => _selectedText(page, _paperRole)).toList(),
+            _answerPages
+                .map((page) => _selectedText(page, StudyOcrRole.answer))
+                .toList(),
+            chapter: chapter.isEmpty ? '选定章节' : chapter,
+          );
+    _checked.clear();
+    _reviewed.clear();
+    _message = null;
+    if (_pages
+        .every((page) => _selectedText(page, _paperRole).text.trim().isEmpty)) {
+      _message = '暂未读到文字，可打开原页核对或重识别';
+    } else if (!_lecture && _candidates.isEmpty) {
+      _message = '暂未配对题目，可核对试题和答案页';
+    }
+  }
+
+  Future<void> _compare(StudyPdfText page, StudyOcrRole role) async {
+    final key = (role, page.reference.page);
+    final text = await Navigator.of(context).push<String>(MaterialPageRoute(
+      builder: (_) => StudyBookTheme(
+          child: StudyOcrCompare(
+        page: page,
+        previousText: _replacements[key],
+        pdf: _pdf,
+        workspace: widget.workspace,
+        role: role,
+      )),
+    ));
+    if (!mounted || text == null) return;
+    setState(() {
+      if (text.isEmpty) {
+        _replacements.remove(key);
+      } else {
+        _replacements[key] = text;
+      }
+      _rematch();
+    });
   }
 
   Future<void> _select(bool answers, {StudyPdfDocument? sameFile}) async {
@@ -82,7 +143,6 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
     final paper = _questions, key = _lecture ? null : _answers;
     if (_busy || paper == null) return;
     FocusScope.of(context).unfocus();
-    final chapter = _chapter.text.trim();
     setState(() {
       _busy = true;
       _clearResult();
@@ -96,20 +156,10 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
           : await _pdf.read(key.document, key.first, key.last,
               forceOcr: _forceOcr, answerGrid: true);
       if (!mounted) return;
-      final candidates = _lecture
-          ? const <ImportedStudyQuestion>[]
-          : matchStudyPdfQuestions(pages, answers,
-              chapter: chapter.isEmpty ? '选定章节' : chapter);
       setState(() {
-        _candidates = candidates;
-        _pages = pages
-            .where((page) => page.rows.any((row) => row.trim().isNotEmpty))
-            .toList();
-        if (_pages.isEmpty) {
-          _message = '这几页没有识别到文字';
-        } else if (!_lecture && candidates.isEmpty) {
-          _message = '这几页没有识别到可配对的题目，可以直接选一页录入';
-        }
+        _pages = pages;
+        _answerPages = answers;
+        _rematch();
       });
     } catch (failure) {
       if (mounted) {
@@ -230,11 +280,39 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
         ],
       );
 
+  Widget _pageTile(StudyPdfText page, StudyOcrRole role) {
+    final current = _selectedText(page, role);
+    final firstLine = current.rows.firstWhere(
+      (line) => line.trim().isNotEmpty,
+      orElse: () => '本地未读到文字',
+    );
+    final name = switch (role) {
+      StudyOcrRole.lecture => '讲义',
+      StudyOcrRole.question => '试题',
+      StudyOcrRole.answer => '答案',
+    };
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text('$name · 第 ${page.reference.page} 页'),
+      subtitle: Text(firstLine, maxLines: 2, overflow: TextOverflow.ellipsis),
+      onTap: _busy ? null : () => _compare(page, role),
+      trailing: role == StudyOcrRole.answer || current.text.trim().isEmpty
+          ? const Icon(Icons.chevron_right)
+          : IconButton(
+              tooltip: '从本页录入',
+              onPressed: _busy ? null : () => _makeNote(current),
+              icon: const Icon(Icons.note_add_outlined),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final prefilled = {
       for (final question in _candidates)
-        if ((_reviewed[question] ?? question.toCard(_subject)) case final card?)
+        if ((_reviewed[question] ??
+                (_replacements.isEmpty ? question.toCard(_subject) : null))
+            case final card?)
           question: card,
     };
     final questions = _questions;
@@ -314,7 +392,21 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: LinearProgressIndicator()),
             if (_message case final message?) Text(message),
+            if (_pages.isNotEmpty || _answerPages.isNotEmpty)
+              ExpansionTile(
+                key: const ValueKey('study-page-checks'),
+                initiallyExpanded: _candidates.isEmpty,
+                tilePadding: EdgeInsets.zero,
+                title: const Text('逐页核对识别'),
+                trailing: const Icon(Icons.keyboard_arrow_down),
+                children: [
+                  for (final page in _pages) _pageTile(page, _paperRole),
+                  for (final page in _answerPages)
+                    _pageTile(page, StudyOcrRole.answer),
+                ],
+              ),
             if (_candidates.isNotEmpty) ...[
+              if (_replacements.isNotEmpty) const Text('已采用 AI 识别文字，请逐题核对后导入。'),
               const SizedBox(height: 12),
               Wrap(
                   alignment: WrapAlignment.spaceBetween,
@@ -360,23 +452,7 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
               FilledButton(
                   onPressed: _busy || _checked.isEmpty ? null : _save,
                   child: Text('导入 ${_checked.length} 道题')),
-            ] else
-              for (final page in _pages)
-                ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('第 ${page.reference.page} 页'),
-                    subtitle: Text(
-                        page.rows.firstWhere((line) => line.trim().isNotEmpty),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    onTap: _busy ? null : () => _makeNote(page),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.visibility_outlined),
-                        tooltip: '查看原页',
-                        onPressed: _busy
-                            ? null
-                            : () => openStudyPage(
-                                context, page.reference, _pdf.account))),
+            ],
           ]),
     );
   }
