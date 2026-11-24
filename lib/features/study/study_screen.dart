@@ -8,6 +8,8 @@ import '../../services/api_service.dart';
 import '../../utils/lovegirl_theme.dart';
 import '../../widgets/rebuild_controls.dart';
 import 'study_editor.dart';
+import 'study_pdf.dart';
+import 'study_pdf_import.dart';
 import 'study_review.dart';
 import 'study_workspace.dart';
 
@@ -27,6 +29,40 @@ class _StudyScreenState extends State<StudyScreen> {
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => StudyEditor(workspace: workspace, card: card),
     ));
+  }
+
+  Future<void> _add(StudyWorkspace workspace) async {
+    if (!StudyPdf.available || workspace.account == null) {
+      _edit(workspace);
+      return;
+    }
+    final picked = await showModalBottomSheet<bool>(
+        context: context,
+        builder: (sheet) => SafeArea(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
+                  title: const Text('导入 PDF'),
+                  onTap: () => Navigator.pop(sheet, true)),
+              ListTile(
+                  leading: const Icon(Icons.edit_note),
+                  title: const Text('录入笔记'),
+                  onTap: () => Navigator.pop(sheet, false)),
+            ])));
+    if (!mounted || picked == null) return;
+    if (!picked) {
+      _edit(workspace);
+      return;
+    }
+    final count = await Navigator.push<int>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => StudyPdfImport(
+                workspace: workspace,
+                subject: _subject ?? StudySubject.politics)));
+    if (mounted && count != null) {
+      _notice(count == 0 ? '这些题已经在备考里' : '已导入 $count 道题');
+    }
   }
 
   void _review(StudyWorkspace workspace, List<StudyCard> cards) {
@@ -110,11 +146,12 @@ class _StudyScreenState extends State<StudyScreen> {
     final editable = workspace.ready && !workspace.loading && !workspace.saving;
     return Scaffold(
       appBar: AppBar(title: const Text('专升本备考'), actions: [
-        IconButton(
-          tooltip: '录入考点',
-          onPressed: editable ? () => _edit(workspace) : null,
-          icon: const Icon(Icons.note_add_outlined),
-        ),
+        if (workspace.cards.isNotEmpty)
+          IconButton(
+            tooltip: '添加资料',
+            onPressed: editable ? () => _add(workspace) : null,
+            icon: const Icon(Icons.note_add_outlined),
+          ),
         PopupMenuButton<String>(
           tooltip: '备考工具',
           enabled: editable,
@@ -146,8 +183,6 @@ class _StudyScreenState extends State<StudyScreen> {
                     trailing: TextButton(
                         onPressed: workspace.load, child: const Text('重试'))),
               if (workspace.ready) ...[
-                const Text('广东普通专升本 · 会计方向'),
-                const SizedBox(height: 10),
                 Wrap(spacing: 6, children: [
                   ChoiceChip(
                       label: const Text('全部'),
@@ -166,40 +201,36 @@ class _StudyScreenState extends State<StudyScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                            due.isEmpty
-                                ? (workspace.cards.isEmpty
-                                    ? '录入第一个考点'
-                                    : '今天的复习已安排好')
-                                : '今天有 ${due.length} 个考点待练习',
-                            style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 8),
-                        if (due.isNotEmpty)
+                        if (due.isNotEmpty) ...[
+                          Text('${due.length} 个考点待复习',
+                              style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 8),
                           FilledButton(
                               onPressed: editable
                                   ? () => _review(workspace, due)
                                   : null,
-                              child: const Text('开始今日复习'))
-                        else if (workspace.cards.isEmpty)
+                              child: const Text('开始今日复习')),
+                        ] else if (workspace.cards.isEmpty)
                           FilledButton(
                               onPressed:
-                                  editable ? () => _edit(workspace) : null,
-                              child: const Text('拍讲义或粘贴笔记'))
+                                  editable ? () => _add(workspace) : null,
+                              child: const Text('导入资料'))
                         else
-                          const Text('可以从下面选一个考点再练一遍'),
+                          const Text('今天暂无待复习考点'),
                       ]),
                 ),
                 const SizedBox(height: 15),
-                Row(children: [
-                  Expanded(
-                      child: Text('考点',
-                          style: Theme.of(context).textTheme.titleLarge)),
-                  FilterChip(
-                      label: const Text('需要重练'),
-                      selected: _showNeedsReview,
-                      onSelected: (value) =>
-                          setState(() => _showNeedsReview = value)),
-                ]),
+                if (workspace.cards.isNotEmpty)
+                  Row(children: [
+                    Expanded(
+                        child: Text('考点',
+                            style: Theme.of(context).textTheme.titleLarge)),
+                    FilterChip(
+                        label: const Text('需要重练'),
+                        selected: _showNeedsReview,
+                        onSelected: (value) =>
+                            setState(() => _showNeedsReview = value)),
+                  ]),
                 if (selected.isEmpty && workspace.cards.isNotEmpty)
                   const Padding(
                       padding: EdgeInsets.symmetric(vertical: 18),

@@ -36,7 +36,7 @@ async function main() {
     }
     const [owner, other] = userIds;
     const [token, otherToken] = accounts;
-    const get = (auth) => request('/study', { token: auth });
+    const get = (auth, schema) => request(schema ? '/study?schema=2' : '/study', { token: auth });
     const put = (auth, payload) => request('/study', { token: auth, method: 'PUT', data: payload });
     const source = '计划包含确定目标和选择行动方案。';
     const card = {
@@ -67,7 +67,23 @@ async function main() {
     assert.deepEqual(outcomes.map((value) => value.status).sort(), [200, 409]);
     assert.equal((await get(token)).body.data.document.cards[0].attempts, 1);
     assert.equal((await get(otherToken)).body.data.document.cards.length, 0);
+    const questionPage = { documentId: '25173ac8-67bb-4e96-b74c-39304aa623ff', name: '试题.pdf', page: 6 };
+    const answerPage = { documentId: '1a110440-fe13-469f-93c1-339c429ec217', name: '答案.pdf', page: 3 };
+    const rich = { ...document, cards: [{ ...card, questions: [
+      { kind: 'multiChoice', prompt: '选择正确的两项', source, answer: '目标、行动',
+        options: ['目标', '行动', '无关一', '无关二'], answerParts: ['目标', '行动'], questionPage, answerPage },
+      { kind: 'multiBlank', prompt: '先____再____', source, answer: '定目标\n选方案',
+        options: [], answerParts: ['定目标', '选方案'], questionPage },
+    ] }] };
+    assert.equal((await put(token, { owner, revision: 2, document: rich })).status, 426);
+    assert.equal((await put(token, { owner, revision: 2, schema: 2, document: rich })).status, 200);
+    assert.equal((await get(token)).status, 426);
+    assert.equal((await put(token, { owner, revision: 3, document })).status, 426);
+    assert.deepEqual((await get(token, 2)).body.data.document.cards, rich.cards);
+    assert.deepEqual((await get(otherToken, 2)).body.data.document.cards, []);
+    assert.equal((await request('/study/drafts', { method: 'POST', data: {} })).status, 401);
     console.log('PASS authenticated independent study workspaces, source validation, revisions and persisted reviews');
+    console.log('PASS updated clients keep multiple answers and PDF sources; legacy clients cannot overwrite them');
   } finally {
     for (const id of userIds) {
       await pool.query('DELETE FROM study_workspaces WHERE user_id = ?', [id]);

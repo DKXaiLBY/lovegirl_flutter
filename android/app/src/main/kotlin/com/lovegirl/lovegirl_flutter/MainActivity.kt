@@ -1,6 +1,7 @@
 package com.lovegirl.lovegirl_flutter
 
 import android.content.ContentValues
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -29,6 +30,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity: FlutterActivity() {
+    private val studyPdf by lazy { StudyPdfReader(this) }
     private val amapSdkKey by lazy {
         @Suppress("DEPRECATION")
         packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
@@ -54,6 +56,7 @@ class MainActivity: FlutterActivity() {
             "lovegirl/device"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "pickStudyPdf", "readStudyPdf", "previewStudyPdf" -> studyPdf.handle(call, result)
                 "recognizeStudyText" -> {
                     val path = call.arguments as? String
                     if (path.isNullOrBlank()) {
@@ -164,6 +167,12 @@ class MainActivity: FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    @Deprecated("Android document picker callback")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == StudyPdfReader.PICK_REQUEST) studyPdf.finishPick(resultCode, data)
     }
 
     private fun recognizeStudyText(path: String, result: MethodChannel.Result) {

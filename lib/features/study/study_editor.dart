@@ -8,12 +8,15 @@ import 'package:uuid/uuid.dart';
 
 import '../../services/api_service.dart';
 import '../../widgets/rebuild_controls.dart';
+import 'study_pdf.dart';
 import 'study_workspace.dart';
 
 class StudyEditor extends StatefulWidget {
-  const StudyEditor({super.key, required this.workspace, this.card});
+  const StudyEditor(
+      {super.key, required this.workspace, this.card, this.sourcePage});
   final StudyWorkspace workspace;
   final StudyCard? card;
+  final StudyPageReference? sourcePage;
 
   @override
   State<StudyEditor> createState() => _StudyEditorState();
@@ -28,6 +31,7 @@ class _StudyEditorState extends State<StudyEditor> {
   String? _photo;
   String? _error;
   bool _reading = false;
+  bool _generating = false;
   bool _saving = false;
 
   @override
@@ -39,29 +43,16 @@ class _StudyEditorState extends State<StudyEditor> {
   }
 
   Future<void> _scan() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (sheet) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('拍讲义'),
-              onTap: () => Navigator.pop(sheet, ImageSource.camera)),
-          ListTile(
-              leading: const Icon(Icons.photo_outlined),
-              title: const Text('从相册选讲义'),
-              onTap: () => Navigator.pop(sheet, ImageSource.gallery)),
-        ]),
-      ),
-    );
-    if (source == null || !mounted) return;
     setState(() {
       _reading = true;
       _error = null;
     });
     try {
       final photo = await ImagePicker().pickImage(
-          source: source, maxWidth: 1900, maxHeight: 2300, imageQuality: 90);
+          source: ImageSource.gallery,
+          maxWidth: 1900,
+          maxHeight: 2300,
+          imageQuality: 90);
       if (photo == null || !mounted) return;
       final crop =
           await ImageCropper().cropImage(sourcePath: photo.path, uiSettings: [
@@ -74,7 +65,7 @@ class _StudyEditorState extends State<StudyEditor> {
       if (!mounted) return;
       final recognized = text?.trim() ?? '';
       if (recognized.isEmpty) {
-        setState(() => _error = '没有读到文字，可以重拍或照着原图填写');
+        setState(() => _error = '没有读到文字，请重选图片或填写原文');
         return;
       }
       final combined = [_notes.text.trim(), recognized]
@@ -86,14 +77,14 @@ class _StudyEditorState extends State<StudyEditor> {
       }
       _notes.text = combined;
     } catch (_) {
-      if (mounted) setState(() => _error = '文字暂时无法识别，可以重拍或粘贴笔记');
+      if (mounted) setState(() => _error = '文字暂时无法识别，请重选图片或粘贴笔记');
     } finally {
       if (mounted) setState(() => _reading = false);
     }
   }
 
   void _draft() {
-    final additions = draftFromNotes(_title.text, _notes.text)
+    final additions = draftFromNotes(_title.text, _selectedNotes())
         .where((question) =>
             _questions.every((saved) => saved.prompt != question.prompt))
         .take(6 - _questions.length)
@@ -104,10 +95,68 @@ class _StudyEditorState extends State<StudyEditor> {
     });
   }
 
+  String _selectedNotes() {
+    final selection = _notes.selection;
+    final all = _notes.text;
+    return selection.isValid &&
+            !selection.isCollapsed &&
+            selection.end <= all.length
+        ? selection.textInside(all).trim()
+        : all.trim();
+  }
+
+  Future<void> _aiDraft() async {
+    final source = _selectedNotes();
+    if (source.length < 12 || source.length > 4000) {
+      setState(() => _error = '请选择 12–4000 字资料原文');
+      return;
+    }
+    final approved = await showDialog<bool>(
+        context: context,
+        builder: (sheet) => AlertDialog(
+              title: const Text('AI 起草题目'),
+              content: Text('将这段 ${source.length} 字的原文发送给阿里云百炼起草，确认后才保存题目。'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(sheet, false),
+                    child: const Text('取消')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(sheet, true),
+                    child: const Text('发送并起草'))
+              ],
+            ));
+    if (!mounted || approved != true) return;
+    setState(() {
+      _generating = true;
+      _error = null;
+    });
+    try {
+      final questions = await widget.workspace.draftQuestions(_subject, source);
+      if (!mounted) return;
+      final accepted = questions
+          .where((question) =>
+              question.validate(_notes.text) == null &&
+              _questions.every((old) => old.prompt != question.prompt))
+          .take(6 - _questions.length)
+          .toList();
+      setState(() {
+        _questions.addAll(accepted);
+        if (accepted.isEmpty) _error = '这段资料暂未生成可核对的题目';
+      });
+    } catch (failure) {
+      if (mounted) {
+        setState(() =>
+            _error = extractServerMessage(failure, fallback: '暂未生成题目，请重试'));
+      }
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
+  }
+
   Future<void> _editQuestion([int? index]) async {
     final question = await showDialog<StudyQuestion>(
       context: context,
-      builder: (_) => _QuestionEditor(
+      builder: (_) => StudyQuestionEditor(
         notes: _notes.text.trim(),
         question: index == null ? null : _questions[index],
         allowJournal: _subject == StudySubject.accounting,
@@ -125,7 +174,7 @@ class _StudyEditorState extends State<StudyEditor> {
   }
 
   Future<void> _save() async {
-    if (_saving || _reading) return;
+    if (_saving || _reading || _generating) return;
     final title = _title.text.trim(), notes = _notes.text.trim();
     if (title.isEmpty || notes.isEmpty) {
       setState(() => _error = '请填写考点标题和资料原文');
@@ -139,6 +188,7 @@ class _StudyEditorState extends State<StudyEditor> {
       }
     }
     final previous = widget.card;
+    final page = widget.sourcePage;
     setState(() {
       _saving = true;
       _error = null;
@@ -150,7 +200,21 @@ class _StudyEditorState extends State<StudyEditor> {
         title: title,
         reference: _reference.text.trim(),
         notes: notes,
-        questions: List.unmodifiable(_questions),
+        questions: [
+          for (final question in _questions)
+            if (page != null && question.questionPage == null)
+              StudyQuestion(
+                  kind: question.kind,
+                  prompt: question.prompt,
+                  answer: question.answer,
+                  source: question.source,
+                  options: question.options,
+                  answerParts: question.answerParts,
+                  questionPage: page,
+                  answerPage: question.answerPage)
+            else
+              question,
+        ],
         level: previous?.level ?? 0,
         attempts: previous?.attempts ?? 0,
         dueOn: previous?.dueOn,
@@ -169,9 +233,18 @@ class _StudyEditorState extends State<StudyEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final busy = _reading || _saving;
+    final busy = _reading || _saving || _generating;
+    final account = widget.workspace.account;
+    final page = widget.sourcePage;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.card == null ? '录入考点' : '编辑考点')),
+      appBar:
+          AppBar(title: Text(widget.card == null ? '录入考点' : '编辑考点'), actions: [
+        if (page != null && account != null)
+          IconButton(
+              onPressed: () => openStudyPage(context, page, account),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              tooltip: '讲义原页'),
+      ]),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
@@ -192,17 +265,19 @@ class _StudyEditorState extends State<StudyEditor> {
               controller: _title,
               enabled: !busy,
               maxLength: 120,
-              decoration: const InputDecoration(labelText: '考点标题')),
+              decoration:
+                  const InputDecoration(labelText: '考点标题', counterText: '')),
           TextField(
               controller: _reference,
               enabled: !busy,
               maxLength: 200,
-              decoration: const InputDecoration(labelText: '讲义名称或页码')),
+              decoration:
+                  const InputDecoration(labelText: '讲义名称或页码', counterText: '')),
           if (Platform.isAndroid)
             OutlinedButton.icon(
                 onPressed: busy ? null : _scan,
                 icon: const Icon(Icons.document_scanner_outlined),
-                label: Text(_reading ? '正在识别讲义…' : '拍照识字')),
+                label: Text(_reading ? '正在识别讲义…' : '从相册选讲义')),
           if (_photo case final path?)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
@@ -215,11 +290,11 @@ class _StudyEditorState extends State<StudyEditor> {
               minLines: 5,
               maxLines: 12,
               maxLength: 12000,
-              decoration: const InputDecoration(
-                  labelText: '资料原文', hintText: '粘贴笔记，或在这里核对识别结果')),
+              decoration:
+                  const InputDecoration(labelText: '资料原文', counterText: '')),
           const SizedBox(height: 12),
           Text('练习题', style: Theme.of(context).textTheme.titleLarge),
-          const Text('保存前核对题目、答案和出处。也可以只保存考点，下次再补题。'),
+          // Notes without practice questions can still be saved as an unfinished card.
           for (var i = 0; i < _questions.length; i++)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -237,6 +312,10 @@ class _StudyEditorState extends State<StudyEditor> {
             Wrap(spacing: 8, children: [
               OutlinedButton(
                   onPressed: busy ? null : _draft, child: const Text('从原文起草')),
+              if (widget.workspace.aiAvailable)
+                OutlinedButton(
+                    onPressed: busy ? null : _aiDraft,
+                    child: Text(_generating ? '正在起草…' : 'AI 起草')),
               TextButton(
                   onPressed: busy ? null : _editQuestion,
                   child: const Text('添加题目')),
@@ -260,31 +339,41 @@ class _StudyEditorState extends State<StudyEditor> {
   }
 }
 
-class _QuestionEditor extends StatefulWidget {
-  const _QuestionEditor(
-      {required this.notes, this.question, required this.allowJournal});
+class StudyQuestionEditor extends StatefulWidget {
+  const StudyQuestionEditor(
+      {super.key,
+      required this.notes,
+      this.question,
+      this.sourceActions = const [],
+      required this.allowJournal});
   final String notes;
   final StudyQuestion? question;
+  final List<Widget> sourceActions;
   final bool allowJournal;
 
   @override
-  State<_QuestionEditor> createState() => _QuestionEditorState();
+  State<StudyQuestionEditor> createState() => _QuestionEditorState();
 }
 
-class _QuestionEditorState extends State<_QuestionEditor> {
+class _QuestionEditorState extends State<StudyQuestionEditor> {
   late StudyQuestionKind _kind =
       widget.question?.kind ?? StudyQuestionKind.recall;
   late final _prompt = TextEditingController(text: widget.question?.prompt);
-  late final _answer = TextEditingController(text: widget.question?.answer);
+  late final _answer = TextEditingController(
+      text: widget.question?.kind == StudyQuestionKind.multiBlank
+          ? widget.question!.answerParts.join('\n')
+          : widget.question?.answer);
   late final _source = TextEditingController(text: widget.question?.source);
   late final _options = List.generate(4, (i) {
     final options = widget.question?.options ?? [];
     return TextEditingController(text: options.length > i ? options[i] : null);
   });
   late int _correct =
-      (widget.question?.options.indexOf(widget.question!.answer) ?? 0)
-          .clamp(0, 3)
-          .toInt();
+      widget.question?.options.indexOf(widget.question!.answer) ?? -1;
+  late final Set<int> _selected = {
+    for (var i = 0; i < (widget.question?.options.length ?? 0); i++)
+      if (widget.question!.answerParts.contains(widget.question!.options[i])) i,
+  };
   String? _problem;
 
   @override
@@ -296,15 +385,38 @@ class _QuestionEditorState extends State<_QuestionEditor> {
   }
 
   void _finish() {
-    final options = _kind == StudyQuestionKind.choice
+    final options = _kind == StudyQuestionKind.choice ||
+            _kind == StudyQuestionKind.multiChoice
         ? _options.map((option) => option.text.trim()).toList()
         : const <String>[];
+    final parts = switch (_kind) {
+      StudyQuestionKind.multiChoice => [
+          for (var i = 0; i < options.length; i++)
+            if (_selected.contains(i)) options[i]
+        ],
+      StudyQuestionKind.multiBlank =>
+        _answer.text.trim().split('\n').map((line) => line.trim()).toList(),
+      _ => const <String>[],
+    };
+    final answer = _kind == StudyQuestionKind.multiChoice
+        ? parts.join('、')
+        : options.isEmpty
+            ? _answer.text.trim()
+            : _correct < 0
+                ? ''
+                : options[_correct];
     final result = StudyQuestion(
       kind: _kind,
       prompt: _prompt.text.trim(),
       source: _source.text.trim(),
-      answer: options.isEmpty ? _answer.text.trim() : options[_correct],
+      answer: answer,
       options: options,
+      answerParts: parts,
+      questionPage: widget.question?.questionPage,
+      answerPage:
+          widget.question?.answer == answer && widget.question?.kind == _kind
+              ? widget.question?.answerPage
+              : null,
     );
     final error = result.validate(widget.notes);
     if (error == null) {
@@ -345,20 +457,34 @@ class _QuestionEditorState extends State<_QuestionEditor> {
                 maxLength: 700,
                 maxLines: 3,
                 minLines: 1,
-                decoration: const InputDecoration(labelText: '题目')),
-            if (_kind == StudyQuestionKind.choice) ...[
+                decoration:
+                    const InputDecoration(labelText: '题目', counterText: '')),
+            if (_kind == StudyQuestionKind.choice ||
+                _kind == StudyQuestionKind.multiChoice) ...[
               for (var i = 0; i < _options.length; i++)
                 Row(children: [
-                  Radio<int>(
-                      value: i,
-                      groupValue: _correct,
-                      onChanged: (value) => setState(() => _correct = value!)),
+                  if (_kind == StudyQuestionKind.multiChoice)
+                    Checkbox(
+                        value: _selected.contains(i),
+                        onChanged: (checked) => setState(() {
+                              if (checked == true) {
+                                _selected.add(i);
+                              } else {
+                                _selected.remove(i);
+                              }
+                            }))
+                  else
+                    Radio<int>(
+                        value: i,
+                        groupValue: _correct,
+                        onChanged: (value) =>
+                            setState(() => _correct = value!)),
                   Expanded(
                       child: TextField(
                           controller: _options[i],
                           maxLength: 260,
-                          decoration:
-                              InputDecoration(labelText: '选项 ${i + 1}'))),
+                          decoration: InputDecoration(
+                              labelText: '选项 ${i + 1}', counterText: ''))),
                 ]),
             ] else
               TextField(
@@ -368,16 +494,21 @@ class _QuestionEditorState extends State<_QuestionEditor> {
                   maxLength: 2400,
                   decoration: InputDecoration(
                       labelText: '参考答案',
+                      counterText: '',
                       hintText: _kind == StudyQuestionKind.journal
                           ? '分三行填写借方科目、贷方科目、金额'
-                          : null)),
+                          : _kind == StudyQuestionKind.multiBlank
+                              ? '每个空的答案填一行'
+                              : null)),
             TextField(
                 controller: _source,
                 maxLines: 5,
                 minLines: 2,
                 maxLength: 2400,
-                decoration: const InputDecoration(
-                    labelText: '出处', hintText: '从资料原文复制对应的段落')),
+                decoration:
+                    const InputDecoration(labelText: '出处', counterText: '')),
+            if (widget.sourceActions.isNotEmpty)
+              Wrap(children: widget.sourceActions),
             if (_problem case final message?) Text(message),
           ]),
         ),

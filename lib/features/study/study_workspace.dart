@@ -15,11 +15,33 @@ enum StudySubject {
 enum StudyQuestionKind {
   recall('回忆要点'),
   choice('单选'),
+  multiChoice('多选'),
   blank('填空'),
+  multiBlank('多空填空'),
   journal('会计分录');
 
   const StudyQuestionKind(this.label);
   final String label;
+}
+
+class StudyPageReference {
+  const StudyPageReference(this.documentId, this.name, this.page);
+
+  final String documentId;
+  final String name;
+  final int page;
+
+  String get label => '$name · PDF 第 $page 页';
+
+  factory StudyPageReference.fromJson(Map<String, dynamic> json) =>
+      StudyPageReference(json['documentId'] as String, json['name'] as String,
+          (json['page'] as num).toInt());
+
+  Map<String, dynamic> toJson() => {
+        'documentId': documentId,
+        'name': name,
+        'page': page,
+      };
 }
 
 class StudyQuestion {
@@ -29,6 +51,9 @@ class StudyQuestion {
     required this.answer,
     required this.source,
     this.options = const [],
+    this.answerParts = const [],
+    this.questionPage,
+    this.answerPage,
   });
 
   final StudyQuestionKind kind;
@@ -36,6 +61,13 @@ class StudyQuestion {
   final String answer;
   final String source;
   final List<String> options;
+  final List<String> answerParts;
+  final StudyPageReference? questionPage;
+  final StudyPageReference? answerPage;
+
+  static StudyPageReference? _page(dynamic value) => value is Map
+      ? StudyPageReference.fromJson(Map<String, dynamic>.from(value))
+      : null;
 
   factory StudyQuestion.fromJson(Map<String, dynamic> json) => StudyQuestion(
         kind: StudyQuestionKind.values.byName(json['kind'] as String),
@@ -43,6 +75,9 @@ class StudyQuestion {
         answer: json['answer'] as String,
         source: json['source'] as String,
         options: (json['options'] as List).cast<String>(),
+        answerParts: (json['answerParts'] as List?)?.cast<String>() ?? const [],
+        questionPage: _page(json['questionPage']),
+        answerPage: _page(json['answerPage']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,7 +86,22 @@ class StudyQuestion {
         'answer': answer,
         'source': source,
         'options': options,
+        if (answerParts.isNotEmpty) 'answerParts': answerParts,
+        if (questionPage != null) 'questionPage': questionPage!.toJson(),
+        if (answerPage != null) 'answerPage': answerPage!.toJson(),
       };
+
+  bool checkMultiChoice(Set<String> selected) =>
+      selected.length == answerParts.length &&
+      selected.containsAll(answerParts);
+
+  bool checkMultiBlank(List<String> entered) {
+    if (entered.length != answerParts.length) return false;
+    String normalized(String value) =>
+        value.replaceAll(RegExp(r'[\s，。、；：！？，,.!?;:]+'), '').toLowerCase();
+    return entered.asMap().entries.every((entry) =>
+        normalized(entry.value) == normalized(answerParts[entry.key]));
+  }
 
   List<String> checkJournal(List<String> inputs) {
     final expected = answer.split('\n').map((line) => line.trim()).toList();
@@ -70,12 +120,24 @@ class StudyQuestion {
     if (source.trim().isEmpty || !notes.contains(source)) {
       return '请选择或填写资料中的原文作为出处';
     }
-    if (kind == StudyQuestionKind.choice &&
+    if ((kind == StudyQuestionKind.choice ||
+            kind == StudyQuestionKind.multiChoice) &&
         (options.length != 4 ||
             options.any((option) => option.trim().isEmpty) ||
             options.toSet().length != 4 ||
-            !options.contains(answer))) {
+            (kind == StudyQuestionKind.choice
+                ? !options.contains(answer)
+                : answerParts.length < 2 ||
+                    answerParts.toSet().length != answerParts.length ||
+                    !answerParts.every(options.contains)))) {
       return '请填写四个不同的选项并选择正确答案';
+    }
+    if (kind == StudyQuestionKind.multiBlank &&
+        (answerParts.length < 2 ||
+            answerParts.length > 8 ||
+            answerParts.any((part) => part.trim().isEmpty) ||
+            RegExp(r'_{2,}').allMatches(prompt).length != answerParts.length)) {
+      return '请用下划线标出每个空，并按顺序逐行填写答案';
     }
     if (kind == StudyQuestionKind.journal) {
       final parts = answer.split('\n');
@@ -211,6 +273,7 @@ class StudyWorkspace extends ChangeNotifier {
   bool saving = false;
   String? error;
   bool showOnToday = false;
+  bool aiAvailable = false;
   List<StudyCard> cards = const [];
 
   bool get ready => _revision != null;
@@ -225,7 +288,7 @@ class StudyWorkspace extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final response = await _api.get('/api/study');
+      final response = await _api.get('/api/study', query: {'schema': 2});
       final data = response.data['data'] as Map;
       final document = data['document'] as Map;
       final fetched = (document['cards'] as List)
@@ -234,6 +297,7 @@ class StudyWorkspace extends ChangeNotifier {
           .toList(growable: false);
       _revision = (data['revision'] as num).toInt();
       showOnToday = document['showOnToday'] == true;
+      aiAvailable = data['aiAvailable'] == true;
       cards = fetched;
     } catch (failure) {
       error = extractServerMessage(failure, fallback: '备考资料暂未读取');
@@ -245,6 +309,30 @@ class StudyWorkspace extends ChangeNotifier {
 
   Future<void> saveCard(StudyCard card) => _save(
       [card, ...cards.where((entry) => entry.id != card.id)], showOnToday);
+
+  Future<List<StudyQuestion>> draftQuestions(
+      StudySubject subject, String source) async {
+    if (_disposed || !aiAvailable || account == null) return const [];
+    final response = await _api.createStudyDrafts({
+      'owner': account,
+      'consent': true,
+      'subject': subject.name,
+      'source': source,
+    });
+    final data = response.data['data'] as Map;
+    return (data['questions'] as List)
+        .map((value) =>
+            StudyQuestion.fromJson(Map<String, dynamic>.from(value as Map)))
+        .toList(growable: false);
+  }
+
+  Future<int> importCards(List<StudyCard> incoming) async {
+    final seen = cards.map((card) => card.id).toSet();
+    final additions = incoming.where((card) => seen.add(card.id)).toList();
+    if (additions.isEmpty) return 0;
+    await _save([...additions, ...cards], showOnToday);
+    return additions.length;
+  }
 
   Future<void> removeCard(String id) =>
       _save(cards.where((card) => card.id != id).toList(), showOnToday);
@@ -261,6 +349,7 @@ class StudyWorkspace extends ChangeNotifier {
     try {
       final response = await _api.put('/api/study', data: {
         'owner': account,
+        'schema': 2,
         'revision': revision,
         'document': {
           'cards': next.map((card) => card.toJson()).toList(),
