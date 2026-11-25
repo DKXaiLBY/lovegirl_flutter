@@ -78,7 +78,19 @@ internal class StudyPdfReader(private val activity: Activity) {
         }
         val uri = Uri.parse(stored)
         run(result) {
-            if (call.method == "previewStudyPdf") {
+            if (call.method == "copyStudyPdf") {
+                val copy = File.createTempFile("study-$account-", ".pdf", activity.cacheDir)
+                try {
+                    val stream = resolver.openInputStream(uri) ?: throw IOException("PDF unavailable")
+                    LimitedInput(stream, 100L * 1024 * 1024).use { input ->
+                        copy.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    copy.absolutePath
+                } catch (failure: Exception) {
+                    copy.delete()
+                    throw failure
+                }
+            } else if (call.method == "previewStudyPdf") {
                 withRenderer(uri) { renderer ->
                     renderer.openPage(first - 1).use { page ->
                         val bitmap = render(page, if (call.argument<Boolean>("forOcr") == true) 2200 else 1360)
@@ -290,11 +302,11 @@ internal class StudyPdfReader(private val activity: Activity) {
 
     private class PdfTooLarge : IOException()
 
-    private class LimitedInput(source: InputStream) : FilterInputStream(source) {
+    private class LimitedInput(source: InputStream, private val limit: Long = MAX_FILE) : FilterInputStream(source) {
         private var consumed = 0L
         private fun record(bytes: Int) {
             if (bytes > 0) consumed += bytes
-            if (consumed > MAX_FILE) throw PdfTooLarge()
+            if (consumed > limit) throw PdfTooLarge()
         }
         override fun read(): Int = super.read().also { if (it >= 0) record(1) }
         override fun read(bytes: ByteArray, offset: Int, count: Int): Int =

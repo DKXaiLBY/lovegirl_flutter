@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
 import 'study_book_theme.dart';
+import 'study_coach.dart';
 import 'study_pdf.dart';
 import 'study_workspace.dart';
 
@@ -264,6 +265,10 @@ class _StudyReviewState extends State<StudyReview> {
                       const SizedBox(height: 8),
                       Text(question.answer,
                           style: studySerif(theme.textTheme.bodyLarge)),
+                      if (question.explanation.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(question.explanation),
+                      ],
                       const SizedBox(height: 18),
                       Text(card.reference.isEmpty ? '资料出处' : card.reference,
                           style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -285,6 +290,27 @@ class _StudyReviewState extends State<StudyReview> {
                             onTap: account != null && StudyPdf.available
                                 ? () => openStudyPage(context, page, account)
                                 : null),
+                      if (widget.workspace.coachAvailable)
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.push<void>(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => StudyCoach(
+                                        workspace: widget.workspace,
+                                        card: card,
+                                        questionIndex: _question,
+                                        selected: [
+                                          _option,
+                                          ..._options,
+                                          ...entered
+                                        ]
+                                            .whereType<String>()
+                                            .where((value) => value.isNotEmpty)
+                                            .toList(),
+                                      ))),
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          label: const Text('问 AI'),
+                        ),
                     ],
                   )),
               const SizedBox(height: 15),

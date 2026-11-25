@@ -64,7 +64,7 @@ class _StudyScreenState extends State<StudyScreen> {
                     workspace: workspace,
                     subject: _subject ?? StudySubject.politics))));
     if (mounted && count != null) {
-      _notice(count == 0 ? '这些题已经在备考里' : '已导入 $count 道题');
+      _notice(count == 0 ? '内容已经在备考里' : '已导入备考');
     }
   }
 

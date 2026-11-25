@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'study_book_theme.dart';
+import 'study_coach.dart';
 import 'study_editor.dart';
+import 'study_pdf.dart';
 import 'study_review.dart';
 import 'study_workspace.dart';
 
@@ -58,6 +60,13 @@ class StudyLesson extends StatelessWidget {
                       style: theme.textTheme.bodySmall
                           ?.copyWith(color: colors.onSurfaceVariant)),
                 ],
+                if (card.questions.firstOrNull?.answerPage case final page?
+                    when StudyPdf.available && workspace.account != null)
+                  TextButton(
+                    onPressed: () =>
+                        openStudyPage(context, page, workspace.account!),
+                    child: Text('PDF 第 ${page.page} 页'),
+                  ),
                 const SizedBox(height: 22),
                 FilledButton(
                   onPressed: !enabled
@@ -78,6 +87,16 @@ class StudyLesson extends StatelessWidget {
                       ? '练习本节 · ${card.questions.length} 题'
                       : '添加练习题'),
                 ),
+                if (workspace.coachAvailable)
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                StudyCoach(workspace: workspace, card: card))),
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('问 AI'),
+                  ),
               ],
             ),
           );

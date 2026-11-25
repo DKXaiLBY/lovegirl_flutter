@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../services/api_service.dart';
 import '../../widgets/rebuild_controls.dart';
 import 'study_book_theme.dart';
+import 'study_chapter_review.dart';
 import 'study_editor.dart';
 import 'study_ocr_compare.dart';
 import 'study_pdf.dart';
@@ -39,6 +42,18 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
   final _checked = <ImportedStudyQuestion, StudyCard>{};
   final _reviewed = <ImportedStudyQuestion, StudyCard>{};
   String? _message;
+  ChapterDraft? _chapterDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreChapter();
+  }
+
+  Future<void> _restoreChapter() async {
+    final draft = await loadChapterDraft(_pdf.account);
+    if (mounted) setState(() => _chapterDraft = draft);
+  }
 
   @override
   void dispose() {
@@ -116,12 +131,14 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
       final document = sameFile ?? await _pdf.pick();
       if (!mounted || document == null) return;
       final previous = answers ? _answers : _questions;
-      final range = await showDialog<_Selection>(
-          context: context,
-          builder: (_) => _RangeDialog(
-              document: document,
-              previous:
-                  previous?.document.id == document.id ? previous : null));
+      final range = _lecture
+          ? (document: document, first: 1, last: document.pages)
+          : await showDialog<_Selection>(
+              context: context,
+              builder: (_) => _RangeDialog(
+                  document: document,
+                  previous:
+                      previous?.document.id == document.id ? previous : null));
       if (!mounted || range == null) return;
       setState(() {
         if (answers) {
@@ -136,6 +153,82 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
         setState(() =>
             _message = extractServerMessage(failure, fallback: '暂时无法打开文件'));
       }
+    }
+  }
+
+  Future<void> _openChapter(ChapterDraft draft) async {
+    final count = await Navigator.push<int>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => StudyBookTheme(
+                child: StudyChapterReview(
+                    workspace: widget.workspace, draft: draft))));
+    if (!mounted) return;
+    if (count != null) {
+      Navigator.pop(context, count);
+    } else {
+      await _restoreChapter();
+    }
+  }
+
+  Future<void> _generateChapter() async {
+    final document = _questions!.document;
+    final chapter = _chapter.text.trim().isEmpty ? '第一章' : _chapter.text.trim();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('生成考点与练习'),
+        content: Text('将《${document.name}》原始 PDF 发送给 DeepSeek，整理$chapter。'
+            '${_chapterDraft == null ? '' : '\n生成成功后将替换此设备上的待核对章节。'}'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('取消')),
+          FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('生成')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    File? temporary;
+    ChapterDraft? draft;
+    try {
+      final path = await _pdf.copyOriginal(document);
+      if (path == null) throw StateError('无法打开原文件');
+      temporary = File(path);
+      final generated = await widget.workspace.generateChapter(path,
+          id: document.id,
+          name: document.name,
+          pages: document.pages,
+          subject: _subject,
+          chapter: chapter);
+      draft = (
+        title: generated.title,
+        cards: generated.cards,
+        reviewed: <String>{}
+      );
+      await saveChapterDraft(_pdf.account, draft);
+    } catch (failure) {
+      if (mounted) {
+        setState(() => _message =
+            extractServerMessage(failure, fallback: '暂未生成考点与练习，可重试'));
+      }
+    } finally {
+      if (temporary != null) {
+        await temporary
+            .delete()
+            .onError<FileSystemException>((_, __) => temporary!);
+      }
+      if (mounted) setState(() => _busy = false);
+    }
+    if (mounted && draft != null) {
+      setState(() => _chapterDraft = draft);
+      await _openChapter(draft);
     }
   }
 
@@ -260,7 +353,9 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
             ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(file.document.name),
-                subtitle: Text('第 ${file.first}–${file.last} 页'),
+                subtitle: Text(_lecture
+                    ? '${file.document.pages} 页'
+                    : '第 ${file.first}–${file.last} 页'),
                 trailing: IconButton(
                     icon: const Icon(Icons.close),
                     tooltip: '取消选择',
@@ -333,6 +428,7 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
                     ? null
                     : (values) => setState(() {
                           _lecture = values.single;
+                          _questions = null;
                           _clearResult();
                         })),
             const SizedBox(height: 10),
@@ -358,8 +454,10 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
                 controller: _chapter,
                 enabled: !_busy,
                 maxLength: 80,
-                decoration:
-                    const InputDecoration(labelText: '章节（可选）', counterText: ''),
+                decoration: InputDecoration(
+                    labelText: _lecture ? '章节' : '章节（可选）',
+                    hintText: _lecture ? '第一章' : null,
+                    counterText: ''),
                 onChanged: (_) => setState(_clearResult)),
             _fileTile(_lecture ? '选择讲义 PDF' : '选择试题 PDF', _questions,
                 answer: false),
@@ -372,7 +470,7 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
                         : () => _select(true, sameFile: questions.document),
                     child: const Text('答案在同一份 PDF')),
             ],
-            if (questions != null)
+            if (!_lecture && questions != null)
               CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('按扫描件识字'),
@@ -385,8 +483,23 @@ class _StudyPdfImportState extends State<StudyPdfImport> {
                           })),
             FilledButton(
                 style: rebuildFilledStyle(context),
-                onPressed: _busy || questions == null ? null : _read,
-                child: Text(_busy ? '正在处理…' : '读取选中页')),
+                onPressed: _busy ||
+                        questions == null ||
+                        (_lecture && !widget.workspace.coachAvailable)
+                    ? null
+                    : _lecture
+                        ? _generateChapter
+                        : _read,
+                child: Text(_busy
+                    ? (_lecture ? '正在读讲义并出题…' : '正在处理…')
+                    : (_lecture ? 'AI 生成考点与练习' : '读取选中页'))),
+            if (_lecture && !widget.workspace.coachAvailable)
+              const Text('讲义 AI 暂未启用'),
+            if (_chapterDraft case final draft? when _lecture)
+              OutlinedButton.icon(
+                  onPressed: _busy ? null : () => _openChapter(draft),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('继续核对')),
             if (_busy)
               const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),

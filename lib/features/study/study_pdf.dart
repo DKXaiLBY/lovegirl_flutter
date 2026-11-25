@@ -100,6 +100,13 @@ class StudyPdf {
         'first': page.page,
         if (forOcr) 'forOcr': true,
       });
+
+  Future<String?> copyOriginal(StudyPdfDocument document) =>
+      _channel.invokeMethod<String>('copyStudyPdf', {
+        'account': account,
+        'id': document.id,
+        'first': 1,
+      });
 }
 
 void openStudyPage(BuildContext context, StudyPageReference page, int account) {

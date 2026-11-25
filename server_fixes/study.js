@@ -4,6 +4,8 @@ const pool = require('../config/database');
 const { authRequired } = require('../middleware/auth');
 const drafts = require('./study_drafts');
 const ocr = require('./study_ocr');
+const coach = require('./study_coach');
+const { partnerId } = require('../utils/creation_access');
 
 const subjects = new Set(['politics', 'management', 'accounting']);
 const kinds = new Set(['recall', 'choice', 'multiChoice', 'blank', 'multiBlank', 'journal']);
@@ -18,6 +20,7 @@ function validQuestion(question) {
       !boundedString(question.prompt, 1, 700) ||
       !boundedString(question.answer, 1, 2400) ||
       !boundedString(question.source, 1, 2400) ||
+      (question.explanation != null && !boundedString(question.explanation, 1, 1200)) ||
       !Array.isArray(question.options) ||
       !validPage(question.questionPage) || !validPage(question.answerPage)) return false;
   const parts = question.answerParts ?? [];
@@ -66,6 +69,62 @@ const needsUpgrade = (res) => res.status(426).json({ code: 426, message: '请更
 
 router.post('/drafts', authRequired, drafts.draftLimit, drafts.createDrafts);
 router.post('/ocr', authRequired, ocr.ocrLimit, ocr.recognizePage);
+router.post('/ask', authRequired, coach.askLimit, coach.ask);
+router.post('/chapter', authRequired, coach.chapterLimit, coach.uploadPdf, coach.generateChapter(validCard, subjects));
+
+router.post('/chapter/share', authRequired, async (req, res) => {
+  const { owner, cards } = req.body || {};
+  if (owner !== req.user.id) {
+    return res.status(403).json({ code: 403, message: '账号已切换，请重新打开备考' });
+  }
+  if (!Array.isArray(cards) || cards.length < 1 || cards.length > 8 || !cards.every(validCard) ||
+      new Set(cards.map((card) => card.id)).size !== cards.length) {
+    return res.status(400).json({ code: 400, message: '请先核对要发送的考点和练习' });
+  }
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+    const recipient = await partnerId(connection, req.user.id);
+    if (recipient === null) {
+      await connection.rollback();
+      return res.status(409).json({ code: 409, message: '先绑定伴侣，再把本章发给 TA' });
+    }
+    await connection.query(
+      'INSERT IGNORE INTO study_workspaces (user_id, revision, document) VALUES (?, 0, ?)',
+      [recipient, JSON.stringify(empty)],
+    );
+    const [[row]] = await connection.query(
+      'SELECT document FROM study_workspaces WHERE user_id = ? FOR UPDATE', [recipient],
+    );
+    const document = typeof row.document === 'string' ? JSON.parse(row.document) : row.document;
+    const existing = new Set(document.cards.map((card) => card.id));
+    const additions = cards.filter((card) => !existing.has(card.id)).map((card) => ({
+      ...card, dueOn: null, level: 0, attempts: 0,
+      questions: card.questions.map(({ questionPage, answerPage, ...question }) => question),
+    }));
+    if (additions.length) {
+      document.cards.unshift(...additions);
+      const payload = JSON.stringify(document);
+      if (document.cards.length > 300 || Buffer.byteLength(payload) > 2 * 1024 * 1024) {
+        await connection.rollback();
+        return res.status(413).json({ code: 413, message: '对方备考资料已满，暂时无法发送' });
+      }
+      await connection.query(
+        'UPDATE study_workspaces SET document = ?, revision = revision + 1 WHERE user_id = ?',
+        [payload, recipient],
+      );
+    }
+    await connection.commit();
+    res.json({ code: 200, data: { count: additions.length } });
+  } catch (error) {
+    await connection?.rollback();
+    console.error('[Study Share]', error.code || error.name);
+    res.status(503).json({ code: 503, message: '本章暂未发送，请重试' });
+  } finally {
+    connection?.release();
+  }
+});
 
 router.get('/', authRequired, async (req, res) => {
   try {
@@ -83,6 +142,7 @@ router.get('/', authRequired, async (req, res) => {
       ...(req.query.schema === '2' ? {
         aiAvailable: Boolean(draftService),
         ocrAvailable: Boolean(ocrService),
+        coachAvailable: coach.configured(),
         aiProvider: draftService?.label,
         ocrProvider: ocrService?.label
       } : {}),

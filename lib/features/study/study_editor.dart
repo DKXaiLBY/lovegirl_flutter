@@ -365,6 +365,8 @@ class _QuestionEditorState extends State<StudyQuestionEditor> {
           ? widget.question!.answerParts.join('\n')
           : widget.question?.answer);
   late final _source = TextEditingController(text: widget.question?.source);
+  late final _explanation =
+      TextEditingController(text: widget.question?.explanation);
   late final _options = List.generate(4, (i) {
     final options = widget.question?.options ?? [];
     return TextEditingController(text: options.length > i ? options[i] : null);
@@ -379,7 +381,7 @@ class _QuestionEditorState extends State<StudyQuestionEditor> {
 
   @override
   void dispose() {
-    for (final field in [_prompt, _answer, _source, ..._options]) {
+    for (final field in [_prompt, _answer, _source, _explanation, ..._options]) {
       field.dispose();
     }
     super.dispose();
@@ -410,6 +412,7 @@ class _QuestionEditorState extends State<StudyQuestionEditor> {
       kind: _kind,
       prompt: _prompt.text.trim(),
       source: _source.text.trim(),
+      explanation: _explanation.text.trim(),
       answer: answer,
       options: options,
       answerParts: parts,
@@ -509,6 +512,13 @@ class _QuestionEditorState extends State<StudyQuestionEditor> {
                           : _kind == StudyQuestionKind.multiBlank
                               ? '每个空的答案填一行'
                               : null)),
+            TextField(
+                controller: _explanation,
+                maxLength: 1200,
+                minLines: 1,
+                maxLines: 4,
+                decoration:
+                    const InputDecoration(labelText: '解析', counterText: '')),
             TextField(
                 controller: _source,
                 maxLines: 5,

@@ -56,7 +56,7 @@ class MainActivity: FlutterActivity() {
             "lovegirl/device"
         ).setMethodCallHandler { call, result ->
             when (call.method) {
-                "pickStudyPdf", "readStudyPdf", "previewStudyPdf" -> studyPdf.handle(call, result)
+                "pickStudyPdf", "readStudyPdf", "previewStudyPdf", "copyStudyPdf" -> studyPdf.handle(call, result)
                 "recognizeStudyText" -> {
                     val path = call.arguments as? String
                     if (path.isNullOrBlank()) {

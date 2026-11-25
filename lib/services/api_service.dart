@@ -186,6 +186,24 @@ class ApiService {
       data: data,
       options: Options(receiveTimeout: const Duration(seconds: 46)));
 
+  Future<Response> askStudyCoach(Map<String, dynamic> data) => _dio.post(
+      '/api/study/ask',
+      data: data,
+      options: Options(receiveTimeout: const Duration(seconds: 108)));
+
+  Future<Response> generateStudyChapter(
+      String path, Map<String, String> fields) async {
+    final data = FormData.fromMap({
+      ...fields,
+      'file': await MultipartFile.fromFile(path, filename: 'lecture.pdf'),
+    });
+    return _dio.post('/api/study/chapter',
+        data: data,
+        options: Options(
+            sendTimeout: const Duration(minutes: 3),
+            receiveTimeout: const Duration(minutes: 7)));
+  }
+
   Future<Response> put(String path, {dynamic data}) =>
       _dio.put(path, data: data);
 

@@ -58,6 +58,7 @@ class StudyQuestion {
     this.answerParts = const [],
     this.questionPage,
     this.answerPage,
+    this.explanation = '',
   });
 
   final StudyQuestionKind kind;
@@ -68,6 +69,7 @@ class StudyQuestion {
   final List<String> answerParts;
   final StudyPageReference? questionPage;
   final StudyPageReference? answerPage;
+  final String explanation;
 
   static StudyPageReference? _page(dynamic value) => value is Map
       ? StudyPageReference.fromJson(Map<String, dynamic>.from(value))
@@ -82,6 +84,7 @@ class StudyQuestion {
         answerParts: (json['answerParts'] as List?)?.cast<String>() ?? const [],
         questionPage: _page(json['questionPage']),
         answerPage: _page(json['answerPage']),
+        explanation: json['explanation'] as String? ?? '',
       );
 
   Map<String, dynamic> toJson() => {
@@ -93,6 +96,7 @@ class StudyQuestion {
         if (answerParts.isNotEmpty) 'answerParts': answerParts,
         if (questionPage != null) 'questionPage': questionPage!.toJson(),
         if (answerPage != null) 'answerPage': answerPage!.toJson(),
+        if (explanation.isNotEmpty) 'explanation': explanation,
       };
 
   bool checkMultiChoice(Set<String> selected) =>
@@ -279,6 +283,7 @@ class StudyWorkspace extends ChangeNotifier {
   bool showOnToday = false;
   bool aiAvailable = false;
   bool ocrAvailable = false;
+  bool coachAvailable = false;
   String aiProvider = '云端 AI 服务';
   String ocrProvider = '云端 AI 服务';
   List<StudyCard> cards = const [];
@@ -308,6 +313,7 @@ class StudyWorkspace extends ChangeNotifier {
       showOnToday = document['showOnToday'] == true;
       aiAvailable = data['aiAvailable'] == true;
       ocrAvailable = data['ocrAvailable'] == true;
+      coachAvailable = data['coachAvailable'] == true;
       aiProvider = data['aiProvider'] as String? ?? '云端 AI 服务';
       ocrProvider = data['ocrProvider'] as String? ?? '云端 AI 服务';
       cards = fetched;
@@ -356,12 +362,67 @@ class StudyWorkspace extends ChangeNotifier {
     return data['text'] as String;
   }
 
+  Future<Map<String, dynamic>> askCoach({
+    required String cardId,
+    required String message,
+    required List<Map<String, String>> history,
+    int? questionIndex,
+    List<String> selected = const [],
+    bool web = false,
+  }) async {
+    final response = await _api.askStudyCoach({
+      'owner': account,
+      'cardId': cardId,
+      'questionIndex': questionIndex,
+      'message': message,
+      'history': history,
+      'selected': selected,
+      'web': web,
+    });
+    return Map<String, dynamic>.from(response.data['data'] as Map);
+  }
+
+  Future<({String title, List<StudyCard> cards})> generateChapter(
+    String path, {
+    required String id,
+    required String name,
+    required int pages,
+    required StudySubject subject,
+    required String chapter,
+  }) async {
+    final response = await _api.generateStudyChapter(path, {
+      'owner': '$account',
+      'consent': 'true',
+      'id': id,
+      'name': name,
+      'pages': '$pages',
+      'subject': subject.name,
+      'chapter': chapter,
+    });
+    final data = response.data['data'] as Map;
+    return (
+      title: data['title'] as String,
+      cards: (data['cards'] as List)
+          .map((item) =>
+              StudyCard.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList(),
+    );
+  }
+
   Future<int> importCards(List<StudyCard> incoming) async {
     final seen = cards.map((card) => card.id).toSet();
     final additions = incoming.where((card) => seen.add(card.id)).toList();
     if (additions.isEmpty) return 0;
     await _save([...additions, ...cards], showOnToday);
     return additions.length;
+  }
+
+  Future<int> shareChapter(List<StudyCard> cards) async {
+    final response = await _api.post('/api/study/chapter/share', data: {
+      'owner': account,
+      'cards': cards.map((card) => card.toJson()).toList(),
+    });
+    return (response.data['data']['count'] as num).toInt();
   }
 
   Future<void> removeCard(String id) =>
