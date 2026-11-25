@@ -87,8 +87,18 @@ void main() {
 
     await tester.tap(find.text('打开校对'));
     await tester.pumpAndSettle();
-    expect(find.text('核对第 3 页'), findsOneWidget);
-    await tester.tap(find.text('用 AI 重识别本页'));
+    expect(find.text('第 3 页'), findsOneWidget);
+    final highlight = find.descendant(
+        of: find.byType(AnimatedAlign), matching: find.byType(DecoratedBox));
+    final originalX = tester.getCenter(highlight).dx;
+    final localX = tester.getCenter(find.text('本地')).dx;
+    await tester.tap(find.text('本地'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 70));
+    expect(tester.getCenter(highlight).dx, inExclusiveRange(originalX, localX));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(highlight).dx, closeTo(localX, 1));
+    await tester.tap(find.text('AI 重识别'));
     await tester.pumpAndSettle();
     expect(workspace.requests, 0);
     expect(find.textContaining('识别测试服务'), findsOneWidget);
@@ -100,7 +110,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('单项选择题\n1. A\n2. C'), findsOneWidget);
 
-    await tester.tap(find.text('用 AI 重识别本页'));
+    await tester.tap(find.text('AI 重识别'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('识别本页'));
     await tester.pumpAndSettle();
@@ -108,10 +118,10 @@ void main() {
     final editor = find.byKey(const ValueKey('study-ocr-draft'));
     expect(
         tester.widget<TextField>(editor).controller!.text, '单项选择题\n1. B\n2. C');
-    expect(find.text('1 行 AI 文字与本地结果不同'), findsOneWidget);
+    expect(find.text('AI 独有 1 行'), findsOneWidget);
     await tester.enterText(editor, '单项选择题\n1. D\n2. C');
     expect(adopted, isNull);
-    await tester.tap(find.text('采用校对后的文字'));
+    await tester.tap(find.text('采用'));
     await tester.pumpAndSettle();
     expect(adopted, '单项选择题\n1. D\n2. C');
     expect(tester.takeException(), isNull);

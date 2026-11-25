@@ -24,10 +24,10 @@ class PaperFlip extends StatelessWidget {
       final width = constraints.maxWidth;
       if (width <= 0 || constraints.maxHeight <= 0) return const SizedBox();
       final perspective = .27 / width;
-      final depth = (width * .009).clamp(1.0, 2.8);
+      final depth = (width * .012).clamp(1.0, 3.8);
       return TweenAnimationBuilder<double>(
         tween: Tween(end: back ? math.pi : 0),
-        duration: still ? Duration.zero : const Duration(milliseconds: 680),
+        duration: still ? Duration.zero : const Duration(milliseconds: 440),
         curve: Curves.easeInOutSine,
         builder: (context, angle, _) {
           final rear = angle >= math.pi / 2;
@@ -75,7 +75,7 @@ class _PaperDepth extends CustomPainter {
     final h = center.dy;
     final shadowWidth = size.width * (1 - .87 * lift);
     final shadow = Rect.fromCenter(
-      center: center + Offset(6 * lift, 5 + 12 * lift),
+      center: center + Offset(14 * lift, 6 + 14 * lift),
       width: shadowWidth + 10,
       height: size.height * (1 - .11 * lift) + 12,
     );
@@ -107,7 +107,15 @@ class _PaperDepth extends CustomPainter {
         corner(back, h),
         corner(back, -h),
       ], true);
-    canvas.drawPath(edge, Paint()..color = const Color(0xffd5cbb9));
+    canvas.drawPath(
+      edge,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xfff0e9dd), Color(0xffbcae97)],
+        ).createShader(edge.getBounds()),
+    );
   }
 
   @override

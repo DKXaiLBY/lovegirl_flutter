@@ -48,6 +48,8 @@ class LoveGirlTheme {
   static const Color cardLight = Color(0xFFFFFFFF);
   static const Color bgDark = Color(0xFF17181B);
   static const Color cardDark = Color(0xFF232529);
+  static const Color neutralCanvasLight = Color(0xFFF7F7F8);
+  static const Color neutralCanvasDark = Color(0xFF191A1D);
 
   // v4.0 中性近黑字阶（浅色）+ 分隔线比卡描边浅一档
   static const Color textPrimary = Color(0xFF1F2126);

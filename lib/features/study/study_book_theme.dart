@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/lovegirl_theme.dart';
+
 TextStyle studySerif(TextStyle? style, {FontWeight? weight}) {
   final base = style ?? const TextStyle();
   final emphasis = weight ?? base.fontWeight ?? FontWeight.w400;
@@ -22,23 +24,27 @@ class StudyBookTheme extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = Theme.of(context);
     final dark = base.brightness == Brightness.dark;
-    final ink = dark ? const Color(0xffe9eef6) : const Color(0xff162846);
-    final canvas = dark ? const Color(0xff161e2a) : const Color(0xfff8f7f2);
-    final primary = dark ? const Color(0xffb8cef0) : const Color(0xff254878);
-    final selection = dark ? const Color(0xff2b3d55) : const Color(0xffe3ebf6);
-    final rule = dark ? const Color(0xff495566) : const Color(0xffbac5d2);
+    final ink = dark ? const Color(0xfff1f2f4) : const Color(0xff202124);
+    final canvas = dark
+        ? LoveGirlTheme.neutralCanvasDark
+        : LoveGirlTheme.neutralCanvasLight;
+    final surface = dark ? const Color(0xff24262b) : Colors.white;
+    final primary = dark ? const Color(0xffecedee) : const Color(0xff27282b);
+    final selection = dark ? const Color(0xff393c42) : const Color(0xffe8e9eb);
+    final rule = dark ? const Color(0xff51545a) : const Color(0xffd6d7da);
     final secondaryInk =
-        dark ? const Color(0xffbecadb) : const Color(0xff465974);
+        dark ? const Color(0xffbfc1c7) : const Color(0xff626469);
     final colors = base.colorScheme.copyWith(
       primary: primary,
-      onPrimary: dark ? const Color(0xff152641) : Colors.white,
+      onPrimary: dark ? LoveGirlTheme.neutralCanvasDark : Colors.white,
       primaryContainer: selection,
       onPrimaryContainer: ink,
-      surface: canvas,
+      secondaryContainer: selection,
+      onSecondaryContainer: ink,
+      surface: surface,
       onSurface: ink,
       onSurfaceVariant: secondaryInk,
-      surfaceContainerLow:
-          dark ? const Color(0xff202938) : const Color(0xfff1f0eb),
+      surfaceContainerLow: canvas,
       surfaceContainerHighest: selection,
       outline: rule,
       outlineVariant: rule,
@@ -69,7 +75,7 @@ class StudyBookTheme extends StatelessWidget {
             minimumSize: const Size(48, 48),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         listTileTheme: base.listTileTheme

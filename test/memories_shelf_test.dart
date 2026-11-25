@@ -111,7 +111,7 @@ void main() {
         ];
       }
       await show(tester, api, ShelfAuth(), reduceMotion: false);
-      final strip = find.byKey(const ValueKey('memory_paper_strip:7:'));
+      final strip = find.byKey(const PageStorageKey('memory_paper_strip:7:'));
       final flip = find.descendant(of: strip, matching: find.byType(PaperFlip));
       final faces =
           find.descendant(of: flip, matching: find.byType(IndexedStack));
@@ -129,15 +129,15 @@ void main() {
       expect(tester.widget<IndexedStack>(faces).index, 0);
       await tester.tap(flip);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 240));
+      await tester.pump(const Duration(milliseconds: 150));
       expect(tester.widget<IndexedStack>(faces).index, 0);
       expect(apparentWidth(), inInclusiveRange(fullWidth * .3, fullWidth * .7));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 70));
       expect(apparentWidth(), lessThan(fullWidth * .05));
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 85));
       expect(tester.widget<IndexedStack>(faces).index, 1);
       expect(apparentWidth(), inInclusiveRange(fullWidth * .3, fullWidth * .8));
-      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 160));
       expect(apparentWidth(), closeTo(fullWidth, .01));
       expect(tester.getSize(faces), size);
       await finish(tester);
@@ -157,7 +157,7 @@ void main() {
           },
       ];
     await show(tester, api, ShelfAuth(), scale: 1.6);
-    final strip = find.byKey(const ValueKey('memory_paper_strip:7:'));
+    final strip = find.byKey(const PageStorageKey('memory_paper_strip:7:'));
     final position = tester
         .state<ScrollableState>(
             find.descendant(of: strip, matching: find.byType(Scrollable)))
@@ -276,7 +276,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('2025年11月'));
     await tester.pumpAndSettle();
-    expect(find.text('轻触翻面'), findsOneWidget);
+    expect(find.byType(PaperFlip), findsOneWidget);
     expect(find.text('去年的照片'), findsOneWidget);
     expect(find.text('十月照片'), findsNothing);
     await finish(tester);

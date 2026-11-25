@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../widgets/rebuild_controls.dart';
 import 'study_book_theme.dart';
 import 'study_pdf.dart';
 import 'study_workspace.dart';
@@ -32,9 +33,10 @@ class StudyOcrCompare extends StatefulWidget {
 class _StudyOcrCompareState extends State<StudyOcrCompare> {
   late final _preview = widget.pdf.preview(widget.page.reference);
   late final _localText = widget.page.rows.join('\n').trim();
+  late final _localRows = _localText.split('\n').map(_normalized).toSet();
   late final _draft = TextEditingController(text: widget.previousText);
+  final _pageView = TransformationController();
   late bool _hasDraft = widget.previousText != null;
-  List<String> _differences = const [];
   int _view = 0;
   bool _busy = false;
   String? _error;
@@ -44,6 +46,7 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
 
   @override
   void dispose() {
+    _pageView.dispose();
     _draft.dispose();
     super.dispose();
   }
@@ -54,9 +57,9 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
       context: context,
       builder: (dialog) => AlertDialog(
         scrollable: true,
-        title: const Text('AI 重识别当前页'),
-        content: Text('只把第 ${widget.page.reference.page} 页的图片发送给'
-            '${widget.workspace.ocrProvider}。核对后可选择采用识别结果。'),
+        title: const Text('AI 重识别'),
+        content: Text('将第 ${widget.page.reference.page} 页发送到'
+            '${widget.workspace.ocrProvider}。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialog, false),
@@ -81,17 +84,9 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
       if (image == null) throw StateError('原页无法打开');
       final result = await widget.workspace.recognizePage(widget.role, image);
       if (!mounted || !_sameAccount) return;
-      final original = _localText.split('\n').map(_normalized).toSet();
-      final differences = result
-          .split('\n')
-          .map((line) => line.trim())
-          .where((line) =>
-              line.isNotEmpty && !original.contains(_normalized(line)))
-          .toList(growable: false);
       setState(() {
         _view = 2;
         _hasDraft = true;
-        _differences = differences;
         _draft.text = result;
       });
     } catch (error) {
@@ -106,7 +101,8 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
     }
   }
 
-  String _normalized(String line) => line.replaceAll(RegExp(r'\s+'), '');
+  String _normalized(String line) => line.replaceAll(_whitespace, '');
+  static final _whitespace = RegExp(r'\s+');
 
   Widget _original() => FutureBuilder<Uint8List?>(
         future: _preview,
@@ -117,6 +113,7 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
           final bytes = snapshot.data;
           if (bytes == null) return const Center(child: Text('本机暂时无法打开原页'));
           return InteractiveViewer(
+            transformationController: _pageView,
             maxScale: 4,
             child: Center(
               child: Image.memory(bytes, semanticLabel: 'PDF 原页'),
@@ -127,30 +124,43 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
 
   Widget _text(bool showAi) {
     final theme = Theme.of(context);
+    if (showAi && !_hasDraft) return const SizedBox.expand();
+    final differences = showAi
+        ? _draft.text
+            .split('\n')
+            .map((line) => line.trim())
+            .where(
+              (line) =>
+                  line.isNotEmpty && !_localRows.contains(_normalized(line)),
+            )
+            .toList()
+        : const <String>[];
+    final ink = studySerif(theme.textTheme.bodyLarge).copyWith(height: 1.65);
     return ListView(
-      key: ValueKey(showAi),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      key: PageStorageKey(showAi ? 'study_ocr_ai' : 'study_ocr_local'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         if (!showAi)
           SelectableText(
             _localText.isEmpty ? '本地未识别到文字' : _localText,
-            style: studySerif(theme.textTheme.bodyLarge).copyWith(height: 1.65),
+            style: ink,
           )
-        else if (!_hasDraft)
-          const Text('识别后的文字可以在这里核对和修正。')
         else ...[
-          if (_differences.isNotEmpty)
+          if (differences.isNotEmpty)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              title: Text('${_differences.length} 行 AI 文字与本地结果不同'),
+              title: Text('AI 独有 ${differences.length} 行'),
               children: [
-                for (final line in _differences.take(5))
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    title: Text(line,
-                        maxLines: 3, overflow: TextOverflow.ellipsis),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: SelectableText(differences.join('\n'), style: ink),
+                ),
               ],
             ),
           TextField(
@@ -160,12 +170,91 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
             minLines: 6,
             maxLines: null,
             maxLength: 16000,
-            style: studySerif(theme.textTheme.bodyLarge).copyWith(height: 1.65),
-            decoration: const InputDecoration(labelText: '校对 AI 文字'),
+            style: ink,
+            decoration: InputDecoration(
+              hintText: 'AI 识别文字',
+              counterText: '',
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+            ),
             onChanged: (_) => setState(() {}),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _sourcePicker(int view, bool wide, Duration duration) {
+    final sources = [if (!wide) (0, '原页'), (1, '本地'), (2, 'AI')];
+    final colors = Theme.of(context).colorScheme;
+    final index = sources.indexWhere((source) => source.$1 == view);
+    final radius = BorderRadius.circular(12);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: radius,
+      ),
+      child: Material(
+        color: colors.surface,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          height: 48,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(3),
+                child: AnimatedAlign(
+                  alignment:
+                      Alignment(-1 + 2 * index / (sources.length - 1), 0),
+                  duration: duration,
+                  curve: Curves.easeOutCubic,
+                  child: FractionallySizedBox(
+                    widthFactor: 1 / sources.length,
+                    heightFactor: 1,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.primaryContainer,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Row(children: [
+                for (final (value, label) in sources)
+                  Expanded(
+                    child: Semantics(
+                      selected: view == value,
+                      button: true,
+                      child: InkWell(
+                        onTap: value == 2 && !_hasDraft
+                            ? null
+                            : () {
+                                FocusScope.of(context).unfocus();
+                                setState(() => _view = value);
+                              },
+                        child: Center(
+                          child: Text(label,
+                              style: TextStyle(
+                                color: view == value
+                                    ? colors.onSurface
+                                    : colors.onSurfaceVariant,
+                                fontWeight: view == value
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              )),
+                        ),
+                      ),
+                    ),
+                  ),
+              ]),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -180,50 +269,48 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
     final page = widget.page.reference;
     final available = widget.workspace.ocrAvailable;
     final theme = Theme.of(context);
+    final duration = rebuildReduceMotion(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 210);
     return Scaffold(
-      appBar: AppBar(title: Text('核对第 ${page.page} 页')),
+      appBar: AppBar(title: Text('第 ${page.page} 页')),
       body: SafeArea(
         top: false,
         bottom: false,
         child: LayoutBuilder(builder: (context, constraints) {
           final wide = constraints.maxWidth >= 720;
           final view = wide && _view == 0 ? 1 : _view;
+          final content = ClipRect(
+            child: AnimatedSwitcher(
+              duration: duration,
+              switchInCurve: Curves.easeOutCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: animation.drive(Tween(
+                    begin: const Offset(.045, 0),
+                    end: Offset.zero,
+                  )),
+                  child: child,
+                ),
+              ),
+              child: KeyedSubtree(
+                key: ValueKey(view),
+                child: view == 0 ? _original() : _text(view == 2),
+              ),
+            ),
+          );
           return Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(page.name,
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-              ),
-            ),
-            SegmentedButton<int>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: theme.colorScheme.primaryContainer,
-                selectedForegroundColor: theme.colorScheme.onPrimaryContainer,
-              ),
-              segments: [
-                if (!wide) const ButtonSegment(value: 0, label: Text('原页')),
-                const ButtonSegment(value: 1, label: Text('本地')),
-                const ButtonSegment(value: 2, label: Text('AI')),
-              ],
-              selected: {view},
-              onSelectionChanged: (selection) =>
-                  setState(() => _view = selection.single),
-            ),
-            const SizedBox(height: 8),
+            _sourcePicker(view, wide, duration),
             const Divider(height: 1),
             Expanded(
               child: wide
                   ? Row(children: [
                       Expanded(child: _original()),
                       const VerticalDivider(width: 1),
-                      Expanded(child: _text(view == 2)),
+                      Expanded(child: content),
                     ])
-                  : view == 0
-                      ? _original()
-                      : _text(view == 2),
+                  : content,
             ),
           ]);
         }),
@@ -245,7 +332,7 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
                 ),
               if (_busy) const LinearProgressIndicator(),
               if (!available)
-                const Text('云端重识别暂未启用，可继续核对本地结果。')
+                const Text('AI 重识别未启用')
               else if (_hasDraft && !_busy) ...[
                 FilledButton(
                   onPressed: _sameAccount && _draft.text.trim().isNotEmpty
@@ -255,7 +342,7 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
                           }
                         }
                       : null,
-                  child: const Text('采用校对后的文字'),
+                  child: const Text('采用'),
                 ),
                 if (widget.previousText != null)
                   TextButton(
@@ -265,7 +352,7 @@ class _StudyOcrCompareState extends State<StudyOcrCompare> {
               ] else
                 FilledButton(
                   onPressed: _busy ? null : _recognize,
-                  child: Text(_busy ? '正在识别本页…' : '用 AI 重识别本页'),
+                  child: Text(_busy ? '识别中…' : 'AI 重识别'),
                 ),
             ],
           ),

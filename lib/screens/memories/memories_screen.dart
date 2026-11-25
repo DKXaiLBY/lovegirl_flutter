@@ -23,6 +23,7 @@ import '../report/monthly_report_screen.dart';
 import '../timeline/timeline_screen.dart';
 import 'memory_search_screen.dart';
 import 'package:lovegirl_flutter/widgets/glass_routes.dart';
+
 class MemoriesScreen extends StatefulWidget {
   final ApiService? api;
   const MemoriesScreen({super.key, this.api});
@@ -214,7 +215,8 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           initialBack: _backs.contains(work.id),
           front: CachedNetworkImage(
               cacheManager: MediaCache.instance,
-              imageUrl: creationUrl(work.previewUrl), fit: BoxFit.contain))));
+              imageUrl: creationUrl(work.previewUrl),
+              fit: BoxFit.contain))));
 
   Widget _shelf() {
     final works = _polaroids;
@@ -233,8 +235,10 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.photo_library_outlined, size: 36),
                     const SizedBox(height: 12),
-                    Text(_errors.isEmpty ? '把一张照片，留成回忆' : '相册暂时没能读取'),
-                    const SizedBox(height: 12),
+                    if (_errors.isNotEmpty) ...[
+                      const Text('相册暂时没能读取'),
+                      const SizedBox(height: 12),
+                    ],
                     RebuildGlassButton(
                         label: '制作拍立得',
                         icon: Icons.add,
@@ -244,45 +248,33 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                   ]))));
     }
     return LayoutBuilder(builder: (context, constraints) {
-      final width = math.min(constraints.maxWidth * .725, 400.0);
-      final side = (constraints.maxWidth - width - 12) / 2;
+      final width = math.min(constraints.maxWidth * .82, 400.0);
       final height = width * 107 / 88;
-      return Column(children: [
-        SizedBox(
-          height: height + 24,
-          child: ListView.builder(
-            key: ValueKey('memory_paper_strip:$_account:${_month ?? ""}'),
-            scrollDirection: Axis.horizontal,
-            primary: false,
-            padding: EdgeInsets.fromLTRB(side, 8, side, 16),
-            itemCount: count,
-            itemExtent: width + 12,
-            itemBuilder: (context, index) {
-              final work = index < works.length ? works[index] : null;
-              final photo =
-                  work == null ? originals[index - works.length] : null;
-              return Padding(
-                key: ValueKey(
-                    work != null ? 'work_${work.id}' : 'photo_${photo!['id']}'),
-                padding: const EdgeInsets.only(right: 12),
-                child: work != null
-                    ? _published(work)
-                    : legacyMemoryPolaroid(photo!,
-                        onEdit: () => _open(const LegacyPhotoScreen()),
-                        onInspect: () => _open(const LegacyPhotoScreen())),
-              );
-            },
-          ),
+      return SizedBox(
+        height: height + 24,
+        child: ListView.builder(
+          key: PageStorageKey('memory_paper_strip:$_account:${_month ?? ""}'),
+          scrollDirection: Axis.horizontal,
+          primary: false,
+          padding: const EdgeInsets.fromLTRB(16, 8, 2, 16),
+          itemCount: count,
+          itemExtent: width + 14,
+          itemBuilder: (context, index) {
+            final work = index < works.length ? works[index] : null;
+            final photo = work == null ? originals[index - works.length] : null;
+            return Padding(
+              key: ValueKey(
+                  work != null ? 'work_${work.id}' : 'photo_${photo!['id']}'),
+              padding: const EdgeInsets.only(right: 14),
+              child: work != null
+                  ? _published(work)
+                  : legacyMemoryPolaroid(photo!,
+                      onEdit: () => _open(const LegacyPhotoScreen()),
+                      onInspect: () => _open(const LegacyPhotoScreen())),
+            );
+          },
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
-          child: Text(
-            count == 1 ? '轻触翻面' : '轻触翻面 · 左右滑动',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 11, color: context.lgTextSecondary),
-          ),
-        ),
-      ]);
+      );
     });
   }
 
@@ -294,8 +286,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           child: RebuildGlass(
               child: ListTile(
                   leading: const GlassFeatureIcon(GlassFeature.ticket),
-                  title:
-                      Text(_errors.contains('作品') ? '票根暂时没能读取' : '留一张属于你们的票根'),
+                  title: Text(_errors.contains('作品') ? '票根暂时没能读取' : '制作票根'),
                   trailing: const Icon(Icons.add),
                   onTap: () => _open(const CreationGallery(
                       kind: 'ticket', createOnOpen: true)))));
@@ -337,8 +328,12 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     if (images.isEmpty) {
       return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Text('照片会在这里连成这个月的片段',
-              style: TextStyle(color: context.lgTextSecondary, fontSize: 13)));
+          child: OutlinedButton.icon(
+            style: rebuildOutlinedStyle(context),
+            onPressed: () => _open(const LegacyPhotoScreen(uploadOnOpen: true)),
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+            label: const Text('添加照片'),
+          ));
     }
     return SizedBox(
         height: 132,
@@ -376,14 +371,16 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      backgroundColor: context.lgBg,
+      backgroundColor: context.lgIsDark
+          ? LoveGirlTheme.neutralCanvasDark
+          : LoveGirlTheme.neutralCanvasLight,
       body: Stack(children: [
         Positioned.fill(
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: context.lgIsDark
                 ? SystemUiOverlayStyle.light
                 : SystemUiOverlayStyle.dark,
-            child: const RebuildPageBackground(child: SizedBox.expand()),
+            child: const SizedBox.expand(),
           ),
         ),
         SafeArea(
@@ -399,8 +396,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                             const Text('回忆',
                                 maxLines: 1,
                                 style: TextStyle(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w800)),
+                                    fontSize: 30, fontWeight: FontWeight.w800)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Align(
@@ -409,10 +405,13 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                   style: FilledButton.styleFrom(
                                     backgroundColor: context.lgCard,
                                     foregroundColor: context.lgInk,
-                                    side: BorderSide(color: context.lgCardBorder),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    side:
+                                        BorderSide(color: context.lgCardBorder),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
                                     minimumSize: const Size(0, 48),
-                                    textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                                    textStyle: const TextStyle(
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   onPressed: _chooseMonth,
                                   child: Text(
@@ -429,19 +428,27 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                                 label: '查找回忆',
                                 icon: Icons.search,
                                 onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => MemorySearchScreen(
-                                    works: _works, photos: _photos, api: _api)))),
+                                    MaterialPageRoute(
+                                        builder: (_) => MemorySearchScreen(
+                                            works: _works,
+                                            photos: _photos,
+                                            api: _api)))),
                             const SizedBox(width: 8),
-                            FilledButton(style: rebuildFilledStyle(context),
-                              onPressed: _new, child: const Text('添加')),
+                            FilledButton(
+                                style: rebuildFilledStyle(context),
+                                onPressed: _new,
+                                child: const Text('添加')),
                           ])),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                         child: Wrap(spacing: 6, children: [
-                          for (final (index, title) in
-                              ['全部', '照片', '拍立得', '票根'].indexed)
-                            RebuildChoiceChip(label: Text(title), selected: _collection == index,
-                              onSelected: (_) => setState(() => _collection = index)),
+                          for (final (index, title)
+                              in ['全部', '照片', '拍立得', '票根'].indexed)
+                            RebuildChoiceChip(
+                                label: Text(title),
+                                selected: _collection == index,
+                                onSelected: (_) =>
+                                    setState(() => _collection = index)),
                         ]),
                       ),
                       if (_errors.isNotEmpty)
@@ -463,12 +470,15 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                         _shelf(),
                       ],
                       if (_collection == 0 || _collection == 3) ...[
-                        _title('票根', () => _open(CreationGallery(
-                            kind: 'ticket', initialMonth: _month))),
+                        _title(
+                            '票根',
+                            () => _open(CreationGallery(
+                                kind: 'ticket', initialMonth: _month))),
                         _ticketShelf(),
                       ],
                       if (_collection == 0 || _collection == 1) ...[
-                        _title('照片', () => _open(const LegacyPhotoScreen()), action: '相册 ›'),
+                        _title('照片', () => _open(const LegacyPhotoScreen()),
+                            action: '相册 ›'),
                         _fragments(),
                       ],
                       const SizedBox(height: 16),
