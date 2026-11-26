@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../utils/lovegirl_theme.dart';
 
+const studyTwoPaneWidth = 840.0;
+
 TextStyle studySerif(TextStyle? style, {FontWeight? weight}) {
   final base = style ?? const TextStyle();
   final emphasis = weight ?? base.fontWeight ?? FontWeight.w400;

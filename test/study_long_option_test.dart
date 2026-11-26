@@ -194,4 +194,88 @@ void main() {
     expect(review.cards.map((card) => card.id), ['chapter-due']);
     expect(find.text('阅读考点'), findsNothing);
   });
+
+  testWidgets('tablet directory switches the reader in the same screen',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1024, 680);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final workspace = _Workspace(const [
+      StudyCard(
+          id: 'first',
+          subject: StudySubject.politics,
+          title: '认识论',
+          reference: '',
+          notes: '第一节的讲义正文。',
+          questions: [_question]),
+      StudyCard(
+          id: 'second',
+          subject: StudySubject.politics,
+          title: '实践论',
+          reference: '',
+          notes: '第二节的讲义正文。',
+          questions: [_question]),
+    ]);
+    addTearDown(workspace.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: ChangeNotifierProvider<StudyWorkspace>.value(
+            value: workspace, child: const StudyScreen())));
+    final chapter = find.text('实践论');
+    final first = find.text('第一节的讲义正文。');
+    expect(tester.getTopLeft(first).dx,
+        greaterThan(tester.getTopLeft(chapter).dx));
+    await tester.tap(chapter);
+    await tester.pumpAndSettle();
+    expect(find.text('专升本备考'), findsOneWidget);
+    expect(find.text('章节目录'), findsOneWidget);
+    expect(first, findsNothing);
+    expect(find.text('第二节的讲义正文。'), findsOneWidget);
+    await tester.tap(find.text('练习本节 · 1 题'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.text(_question.prompt)).dx,
+        lessThan(tester.getTopLeft(find.text(_longOption)).dx));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rotation keeps selected answer and marks the correct choice',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 800);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final workspace = _Workspace(const [
+      StudyCard(
+          id: 'rotate',
+          subject: StudySubject.politics,
+          title: '第一章',
+          reference: '',
+          notes: '阅读样本',
+          questions: [_question]),
+    ]);
+    addTearDown(workspace.dispose);
+    await tester.pumpWidget(
+        _phone(StudyReview(workspace: workspace, cards: workspace.cards)));
+    await tester.tap(find.text('另一个选项').hitTestable());
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(1100, 700);
+    await tester.pumpAndSettle();
+
+    final submit = find.widgetWithText(FilledButton, '提交答案');
+    expect(tester.getTopLeft(find.text(_question.prompt)).dx,
+        lessThan(tester.getTopLeft(find.text(_longOption)).dx));
+    expect(tester.widget<FilledButton>(submit).onPressed, isNotNull);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(
+        find.byWidgetPredicate(
+            (widget) => widget is Icon && widget.semanticLabel == '正确选项'),
+        findsOneWidget);
+    expect(
+        find.byWidgetPredicate(
+            (widget) => widget is Icon && widget.semanticLabel == '误选'),
+        findsOneWidget);
+    expect(find.text('记下错题并继续').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
